@@ -52,7 +52,7 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: buildifier [-a] [-d] [-v] [-mode=mode] [-path=path] [files...]
+	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-path=path] [files...]
 
 Buildifier applies a standard formatting to the named BUILD files.
 The mode flag selects the processing: check, diff, or fix.
@@ -62,9 +62,9 @@ In fix mode, buildifier updates the files that need reformatting and,
 if the -v flag is given, prints their names to standard error.
 The default mode is fix. -d is an alias for -mode=diff.
 
-If no files are listed and -a is not used, buildifier reads a BUILD file from
-standard input. In fix mode, it writes the reformatted BUILD file to standard
-output, even if no changes are necessary.
+If no files are listed, buildifier reads a BUILD file from standard input. In
+fix mode, it writes the reformatted BUILD file to standard output, even if no
+changes are necessary.
 
 Buildifier's reformatting depends in part on the path to the file relative
 to the workspace directory. Normally buildifier deduces that path from the
