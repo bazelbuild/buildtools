@@ -16,6 +16,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 // Lexical scanning for BUILD file parser.
 package build
 
+//go:generate go tool yacc -o parse.y.go parse.y
+
 import (
 	"bytes"
 	"fmt"
