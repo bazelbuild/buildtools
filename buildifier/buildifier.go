@@ -13,6 +13,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
  See the License for the specific language governing permissions and
  limitations under the License.
 */
+
 // Buildifier, a tool to parse and format BUILD files.
 package main
 
