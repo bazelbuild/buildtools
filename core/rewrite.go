@@ -562,11 +562,12 @@ func callArgName(stk []Expr) string {
 	return rule.Token + "." + arg
 }
 
-// A stringSortKey records information about a single string literal to be sorted.
-// The strings are first grouped into three phases: most strings, strings beginning
-// with ":", and strings beginning with "//". The next significant part of the comparison
-// is the list of elements in the value, where elements are split at `.' and `:'.
-// Finally we compare by value and break ties by original index.
+// A stringSortKey records information about a single string literal to be
+// sorted. The strings are first grouped into four phases: most strings,
+// strings beginning with ":", strings beginning with "//", and strings
+// beginning with "@". The next significant part of the comparison is the list
+// of elements in the value, where elements are split at `.' and `:'. Finally
+// we compare by value and break ties by original index.
 type stringSortKey struct {
 	phase    int
 	split    []string
@@ -587,6 +588,8 @@ func makeSortKey(index int, x *StringExpr) stringSortKey {
 		key.phase = 1
 	case strings.HasPrefix(x.Value, "//"):
 		key.phase = 2
+	case strings.HasPrefix(x.Value, "@"):
+		key.phase = 3
 	}
 
 	key.split = strings.Split(strings.Replace(x.Value, ":", ".", -1), ".")
