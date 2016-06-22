@@ -34,7 +34,6 @@ cc_library(
         "=zzz",
         ">zzz",
         "?zzz",
-        "@zzz",
         "Azzz",
         "Bzzz",
         "Czzz",
@@ -300,5 +299,6 @@ cc_library(
         "//a|zzz",
         "//a}zzz",
         "//a~zzz",
+        "@zzz",
     ],
 )
