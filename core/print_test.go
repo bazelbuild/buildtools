@@ -26,12 +26,11 @@ import (
 	"testing"
 )
 
-// Test data is in devtools/buildifier/testdata.
+// Test data is in $pwd/testdata.
 // The files are in pairs xxx.in and xxx.golden.
-// Where buildifier2 differs from buildifier, there
-// is also an xxx.golden2, which we use instead
-// of xxx.golden.
-var testpath = os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/core/testdata"
+func testpath() string {
+	return os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/core/testdata"
+}
 
 // exists reports whether the named file exists.
 func exists(name string) bool {
@@ -42,7 +41,7 @@ func exists(name string) bool {
 // Test that reading and then writing the golden files
 // does not change their output.
 func TestPrintGolden(t *testing.T) {
-	outs, err := filepath.Glob(testpath + "/*.golden")
+	outs, err := filepath.Glob(testpath() + "/*.golden")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +52,7 @@ func TestPrintGolden(t *testing.T) {
 
 // Test that formatting the input files produces the golden files.
 func TestPrintRewrite(t *testing.T) {
-	ins, err := filepath.Glob(testpath + "/*.in")
+	ins, err := filepath.Glob(testpath() + "/*.in")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,8 +79,8 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 		return
 	}
 
-	base := testpath + "/" + filepath.Base(in)
-	bld, err := Parse(testpath, data)
+	base := testpath() + "/" + filepath.Base(in)
+	bld, err := Parse(testpath(), data)
 	if err != nil {
 		t.Error(err)
 		return
@@ -104,7 +103,7 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 // and printed and parsed again, we get the same parse tree
 // both times.
 func TestPrintParse(t *testing.T) {
-	outs, err := filepath.Glob(testpath + "/*")
+	outs, err := filepath.Glob(testpath() + "/*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +114,7 @@ func TestPrintParse(t *testing.T) {
 			continue
 		}
 
-		base := testpath + "/" + filepath.Base(out)
+		base := testpath() + "/" + filepath.Base(out)
 		f, err := Parse(base, data)
 		if err != nil {
 			t.Errorf("parsing original: %v", err)
