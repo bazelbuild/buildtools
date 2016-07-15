@@ -23,20 +23,27 @@ import (
 	"strings"
 )
 
-// For debugging: flag to disable certain rewrites.
+// DisableRewrites is alist of rewrite steps to disable.
+// Used for debugging.
 var DisableRewrites []string
 
-// disabled reports whether the named rewrite is disabled.
-func disabled(name string) bool {
+// isEnabled reports whether the named rewrite is enabled.
+func isEnabled(name string) bool {
 	for _, x := range DisableRewrites {
 		if name == x {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
-// For debugging: allow sorting of these lists even with sorting otherwise disabled.
+// isDisabled reports whether the named rewrite is disabled.
+func isDisabled(name string) bool {
+	return !isEnabled(name)
+}
+
+// AllowSort allows sorting of these lists even with sorting otherwise disabled.
+// Used for debugging.
 var AllowSort []string
 
 // allowedSort reports whether sorting is allowed in the named context.
@@ -51,17 +58,15 @@ func allowedSort(name string) bool {
 
 // Rewrite applies the high-level Buildifier rewrites to f, modifying it in place.
 // If info is non-nil, Rewrite updates it with information about the rewrite.
-func Rewrite(f *File, info *RewriteInfo) {
-	// Allocate an info so that helpers can assume it's there.
-	if info == nil {
-		info = new(RewriteInfo)
-	}
+func Rewrite(f *File) *RewriteInfo {
+	info := &RewriteInfo{}
 
 	for _, r := range rewrites {
-		if !disabled(r.name) {
+		if isEnabled(r.name) {
 			r.fn(f, info)
 		}
 	}
+	return info
 }
 
 // RewriteInfo collects information about what Rewrite did.
@@ -75,7 +80,7 @@ type RewriteInfo struct {
 }
 
 func (info *RewriteInfo) String() string {
-	s := ""
+	var s string
 	if info.EditLabel > 0 {
 		s += " label"
 	}
@@ -93,6 +98,9 @@ func (info *RewriteInfo) String() string {
 	}
 	if s != "" {
 		s = s[1:]
+	}
+	if s == "" {
+		return "no rewrites"
 	}
 	return s
 }
@@ -414,13 +422,13 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				if !isSortableListArg[key.Token] || sortableBlacklist[context] {
 					continue
 				}
-				if disabled("unsafesort") && !sortableWhitelist[context] && !allowedSort(context) {
+				if isDisabled("unsafesort") && !sortableWhitelist[context] && !allowedSort(context) {
 					continue
 				}
 				sortStringList(as.Y, info, context)
 			}
 		case *BinaryExpr:
-			if disabled("unsafesort") {
+			if isDisabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
@@ -429,7 +437,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				sortStringList(as.Y, info, "?")
 			}
 		case *KeyValueExpr:
-			if disabled("unsafesort") {
+			if isDisabled("unsafesort") {
 				return
 			}
 			// "keep sorted" before key: list also forces sorting of list.
@@ -437,7 +445,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				sortStringList(v.Value, info, "?")
 			}
 		case *ListExpr:
-			if disabled("unsafesort") {
+			if isDisabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.

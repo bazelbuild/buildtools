@@ -87,7 +87,7 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 	}
 
 	if rewrite {
-		Rewrite(bld, nil)
+		Rewrite(bld)
 	}
 
 	ndata := Format(bld)
