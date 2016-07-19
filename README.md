@@ -1,4 +1,5 @@
-# buildifier script for formatting bazel BUILD files
+# Buildifier
+buildifier is a tool for formatting bazel BUILD files with a standard convention.
 
 ## Setup
 
@@ -14,3 +15,5 @@ Note: the extra 'generate' step as 'go get' does not run 'generate' when install
 
 Use buildifier to create standardized formatting for BUILD files in the
 same way that clang-format is used for source files.
+
+`$ buildifier -showlog -mode=check `find . -iname BUILD -type f`
