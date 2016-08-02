@@ -162,3 +162,12 @@ var sortableWhitelist = map[string]bool{
 	"java_library.constraints": true,
 	"java_import.constraints":  true,
 }
+
+// OverrideTables allows a user of the build package to override the special-case rules.
+func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool) {
+	isLabelArg = labelArg
+	labelBlacklist = blacklist
+	isSortableListArg = sortableListArg
+	sortableBlacklist = sortBlacklist
+	sortableWhitelist = sortWhitelist
+}
