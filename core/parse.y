@@ -255,6 +255,7 @@ expr:
 	}
 |	'(' expr for_clauses if_clauses_opt ')'
 	{
+		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
 			Brack: "()",
 			Start: $1,
@@ -262,10 +263,12 @@ expr:
 			For: $3,
 			If: $4,
 			End: End{Pos: $5},
+			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
 |	'{' keyvalue for_clauses if_clauses_opt '}'
 	{
+		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
 			Brack: "{}",
 			Start: $1,
@@ -273,6 +276,7 @@ expr:
 			For: $3,
 			If: $4,
 			End: End{Pos: $5},
+			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
 |	'{' keyvalues_opt '}'

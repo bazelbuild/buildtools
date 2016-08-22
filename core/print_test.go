@@ -168,7 +168,7 @@ func (eq *eqchecker) checkValue(v, w reflect.Value) error {
 	// if v is a non-nil interface value, it returns the concrete
 	// value in the interface.
 	inner := func(v reflect.Value) reflect.Value {
-		for {
+		for v.IsValid() {
 			if v.Type() == parenType {
 				v = v.Elem().FieldByName("X")
 				continue
@@ -184,6 +184,15 @@ func (eq *eqchecker) checkValue(v, w reflect.Value) error {
 
 	v = inner(v)
 	w = inner(w)
+
+	if v.Kind() != w.Kind() {
+		return eq.errorf("%s became %s", v.Kind(), w.Kind())
+	}
+
+	// There is nothing to compare for zero values, so exit early.
+	if !v.IsValid() {
+		return nil
+	}
 
 	if v.Type() != w.Type() {
 		return eq.errorf("%s became %s", v.Type(), w.Type())
