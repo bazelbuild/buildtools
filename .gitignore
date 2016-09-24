@@ -1,5 +1,2 @@
-/bazel-bin
-/bazel-buildifier
-/bazel-genfiles
-/bazel-out
-/bazel-testlogs
+/bazel-*
+*~

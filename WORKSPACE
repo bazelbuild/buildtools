@@ -1,9 +1,9 @@
-workspace(name = "io_bazel_buildifier")
+workspace(name = "com_github_bazelbuild_buildifier")
 
 git_repository(
     name = "io_bazel_rules_go",
     remote = "https://github.com/bazelbuild/rules_go.git",
-    tag = "0.0.2",
+    tag = "0.2.0",
 )
 load("@io_bazel_rules_go//go:def.bzl", "go_repositories")
 
