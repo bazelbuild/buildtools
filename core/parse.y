@@ -118,7 +118,10 @@ package build
 
 %left	'\n'
 %left	_ASSERT
-// 'if' and 'else' have lower precedence than all other operators.
+// '=' and '+=' have the lowest precedence
+// e.g. "x = a if c > 0 else 'bar'"
+// followed by
+// 'if' and 'else' which have lower precedence than all other operators.
 // e.g. "a, b if c > 0 else 'foo'" is either a tuple of (a,b) or 'foo'
 // and not a tuple of "(a, (b if ... ))"
 %left	'=' _ADDEQ
