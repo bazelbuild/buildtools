@@ -121,8 +121,8 @@ package build
 // 'if' and 'else' have lower precedence than all other operators.
 // e.g. "a, b if c > 0 else 'foo'" is either a tuple of (a,b) or 'foo'
 // and not a tuple of "(a, (b if ... ))"
-%left   _IF _ELSE
 %left	'=' _ADDEQ
+%left   _IF _ELSE
 %left	','
 %left	':'
 %left	_IN _NOT _IS
