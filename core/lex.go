@@ -34,6 +34,28 @@ func Parse(filename string, data []byte) (*File, error) {
 	return in.parse()
 }
 
+// SyntaxError is a parse error.
+type SyntaxError struct {
+	Filename string
+	Line     int
+	LineRune int
+	msg      string
+}
+
+// Error implements the error interface.
+func (e *SyntaxError) Error() string {
+	return fmt.Sprintf("%s:%d:%d: %v", e.Filename, e.Line, e.LineRune, e.msg)
+}
+
+// IsSyntaxError is a helper method to find SyntaxErrors
+func IsSyntaxError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := err.(*SyntaxError)
+	return ok
+}
+
 // An input represents a single input file being parsed.
 type input struct {
 	// Lexing state.
@@ -101,7 +123,7 @@ func (in *input) Error(s string) {
 	if s == "syntax error" && in.lastToken != "" {
 		s += " near " + in.lastToken
 	}
-	in.parseError = fmt.Errorf("%s:%d:%d: %v", in.filename, in.pos.Line, in.pos.LineRune, s)
+	in.parseError = &SyntaxError{in.filename, in.pos.Line, in.pos.LineRune, s}
 	panic(in.parseError)
 }
 

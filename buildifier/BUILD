@@ -4,6 +4,7 @@ go_binary(
     name = "buildifier",
     srcs = [
         "buildifier.go",
+        "mode_diff.go",
     ],
     deps = [
         "//core:go_default_library",
