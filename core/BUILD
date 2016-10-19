@@ -10,7 +10,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "lex.go",
-        "parse.y.go",
+        "parse.y.go",  # keep
         "print.go",
         "quote.go",
         "rewrite.go",
@@ -23,7 +23,7 @@ go_library(
 )
 
 go_test(
-    name = "build_test",
+    name = "go_default_test",
     size = "small",
     srcs = [
         "parse_test.go",
