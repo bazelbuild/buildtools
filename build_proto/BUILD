@@ -1,4 +1,10 @@
 load("@io_bazel_rules_go//proto:go_proto_library.bzl", "go_proto_library")
+load("//core:build_defs.bzl", "genfile_check_test")
+
+genfile_check_test(
+    src = "build.gen.pb.go",
+    gen = "build.pb.go",
+)
 
 genrule(
     name = "copy_and_fix",

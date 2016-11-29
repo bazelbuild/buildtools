@@ -1,4 +1,10 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//core:build_defs.bzl", "genfile_check_test")
+
+genfile_check_test(
+    src = "tables.gen.go",
+    gen = "tables.go",
+)
 
 genrule(
     name = "generateTablesFile",
