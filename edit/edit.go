@@ -242,7 +242,7 @@ func IndexOfRuleByName(f *build.File, name string) int {
 	linenum := -1
 	if strings.HasPrefix(name, "%") {
 		// "%<LINENUM>" will match the rule which begins at LINENUM.
-		// This is for convenience, "%" is not a valid character in blaze targets.
+		// This is for convenience, "%" is not a valid character in bazel targets.
 		if result, err := strconv.Atoi(name[1:]); err == nil {
 			linenum = result
 		}

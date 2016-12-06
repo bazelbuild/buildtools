@@ -540,7 +540,7 @@ func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
 	} else if strings.HasPrefix(rule, "%") {
 		// "%java_library" will match all java_library functions in the package
 		// "%<LINENUM>" will match the rule which begins at LINENUM.
-		// This is for convenience, "%" is not a valid character in blaze targets.
+		// This is for convenience, "%" is not a valid character in bazel targets.
 		kind := rule[1:]
 		if linenum, err := strconv.Atoi(kind); err == nil {
 			if r := f.RuleAt(linenum); r != nil {

@@ -15,7 +15,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package edit
 
 import (
-	blaze "github.com/bazelbuild/buildifier/build_proto"
+	bazel "github.com/bazelbuild/buildifier/build_proto"
 	"github.com/bazelbuild/buildifier/lang"
 )
 
@@ -24,36 +24,36 @@ var typeOf = lang.TypeOf
 // IsList returns true for all attributes whose type is a list.
 func IsList(attr string) bool {
 	ty := typeOf[attr]
-	return ty == blaze.Attribute_STRING_LIST ||
-		ty == blaze.Attribute_LABEL_LIST ||
-		ty == blaze.Attribute_OUTPUT_LIST ||
-		ty == blaze.Attribute_FILESET_ENTRY_LIST ||
-		ty == blaze.Attribute_INTEGER_LIST ||
-		ty == blaze.Attribute_LICENSE ||
-		ty == blaze.Attribute_DISTRIBUTION_SET
+	return ty == bazel.Attribute_STRING_LIST ||
+		ty == bazel.Attribute_LABEL_LIST ||
+		ty == bazel.Attribute_OUTPUT_LIST ||
+		ty == bazel.Attribute_FILESET_ENTRY_LIST ||
+		ty == bazel.Attribute_INTEGER_LIST ||
+		ty == bazel.Attribute_LICENSE ||
+		ty == bazel.Attribute_DISTRIBUTION_SET
 }
 
 // IsString returns true for all attributes whose type is an int list.
 func IsIntList(attr string) bool {
-	return typeOf[attr] == blaze.Attribute_INTEGER_LIST
+	return typeOf[attr] == bazel.Attribute_INTEGER_LIST
 }
 
 // IsString returns true for all attributes whose type is a string or a label.
 func IsString(attr string) bool {
 	ty := typeOf[attr]
-	return ty == blaze.Attribute_LABEL ||
-		ty == blaze.Attribute_STRING ||
-		ty == blaze.Attribute_OUTPUT
+	return ty == bazel.Attribute_LABEL ||
+		ty == bazel.Attribute_STRING ||
+		ty == bazel.Attribute_OUTPUT
 }
 
 // IsString returns true for all attributes whose type is a string dictionary.
 func IsStringDict(attr string) bool {
-	return typeOf[attr] == blaze.Attribute_STRING_DICT
+	return typeOf[attr] == bazel.Attribute_STRING_DICT
 }
 
 // ContainsLabels returns true for all attributes whose type is a label or a label list.
 func ContainsLabels(attr string) bool {
 	ty := typeOf[attr]
-	return ty == blaze.Attribute_LABEL_LIST ||
-		ty == blaze.Attribute_LABEL
+	return ty == bazel.Attribute_LABEL_LIST ||
+		ty == bazel.Attribute_LABEL
 }
