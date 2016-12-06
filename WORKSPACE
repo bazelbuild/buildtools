@@ -19,4 +19,4 @@ git_repository(
     name = "io_bazel",
     commit = "b782fd45f7046a94a617ec8aec76ee5513555924",
     remote = "https://github.com/bazelbuild/bazel",
-    )	   
+)
