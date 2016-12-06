@@ -15,8 +15,9 @@ go_repositories()
 go_proto_repositories()
 
 # used for build.proto
-git_repository(
+http_archive(
     name = "io_bazel",
-    commit = "b782fd45f7046a94a617ec8aec76ee5513555924",
-    remote = "https://github.com/bazelbuild/bazel",
+    sha256 = "8e4646898fa9298422e69767752680d34cbf21bcae01c401b11aa74fcdb0ef66",
+    strip_prefix = "bazel-0.4.1",
+    url = "https://github.com/bazelbuild/bazel/archive/0.4.1.tar.gz",
 )
