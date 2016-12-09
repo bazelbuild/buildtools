@@ -15,7 +15,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
  limitations under the License.
 """
 
-_GO_TOOL = "@io_bazel_rules_go//go/toolchain:go_tool"
+_GO_YACC_TOOL = "@org_golang_x_tools//cmd/goyacc"
 
 def go_yacc(src, out, visibility=None):
   """Runs go tool yacc -o $out $src."""
@@ -23,9 +23,9 @@ def go_yacc(src, out, visibility=None):
       name = src + ".go_yacc",
       srcs = [src],
       outs = [out],
-      tools = [_GO_TOOL],
-      cmd = ("export GOROOT=$$(dirname $(location " + _GO_TOOL + "))/..;" +
-             " $(location " + _GO_TOOL + ") tool yacc " +
+      tools = [_GO_YACC_TOOL],
+      cmd = ("export GOROOT=$$(dirname $(location " + _GO_YACC_TOOL + "))/..;" +
+             " $(location " + _GO_YACC_TOOL + ") " +
              " -o $(location " + out + ") $(SRCS)"),
       visibility = visibility,
       local = 1,
