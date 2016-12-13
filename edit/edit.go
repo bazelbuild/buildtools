@@ -10,6 +10,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
  See the License for the specific language governing permissions and
  limitations under the License.
 */
+
 // Package edit provides high-level auxiliary functions for AST manipulation
 // on BUILD files.
 package edit
@@ -480,7 +481,7 @@ func isExprLessThan(x1, x2 build.Expr) bool {
 
 func sortedInsert(list []build.Expr, item build.Expr) []build.Expr {
 	i := 0
-	for ; i < len(list); i += 1 {
+	for ; i < len(list); i++ {
 		if isExprLessThan(item, list[i]) {
 			break
 		}
@@ -537,13 +538,13 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 			li.List = append(li.List, item)
 		}
 		return oldList
-	} else {
-		list := &build.ListExpr{List: []build.Expr{item}}
-		concat := &build.BinaryExpr{Op: "+", X: oldList, Y: list}
-		return concat
 	}
+	list := &build.ListExpr{List: []build.Expr{item}}
+	concat := &build.BinaryExpr{Op: "+", X: oldList, Y: list}
+	return concat
 }
 
+// AddValueToListAttribute adds the given item to the list attribute identified by name and pkg.
 func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.BinaryExpr) {
 	old := r.Attr(name)
 	sorted := !attributeMustNotBeSorted(r.Kind(), name)

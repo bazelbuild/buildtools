@@ -33,7 +33,7 @@ func IsList(attr string) bool {
 		ty == bazel.Attribute_DISTRIBUTION_SET
 }
 
-// IsString returns true for all attributes whose type is an int list.
+// IsIntList returns true for all attributes whose type is an int list.
 func IsIntList(attr string) bool {
 	return typeOf[attr] == bazel.Attribute_INTEGER_LIST
 }
@@ -46,7 +46,7 @@ func IsString(attr string) bool {
 		ty == bazel.Attribute_OUTPUT
 }
 
-// IsString returns true for all attributes whose type is a string dictionary.
+// IsStringDict returns true for all attributes whose type is a string dictionary.
 func IsStringDict(attr string) bool {
 	return typeOf[attr] == bazel.Attribute_STRING_DICT
 }
