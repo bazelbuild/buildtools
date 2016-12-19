@@ -2,9 +2,9 @@ workspace(name = "com_github_bazelbuild_buildifier")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "b7759f01d29c075db177f688ffb4464aad2b8fbb7017f89a1d3819ce07f1d584",
-    strip_prefix = "rules_go-0.3.1",
-    url = "https://github.com/bazelbuild/rules_go/archive/0.3.1.tar.gz",
+    sha256 = "890e055a9956daa85287ed309e8efaa9d5336b2bc5a71ad3676c220c99015a9d",
+    strip_prefix = "rules_go-0.3.2",
+    url = "https://github.com/bazelbuild/rules_go/archive/0.3.2.tar.gz",
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_repositories", "new_go_repository")
