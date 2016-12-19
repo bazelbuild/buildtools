@@ -158,6 +158,13 @@ func (m *Output_Record_Field) GetList() *RepeatedString {
 	return nil
 }
 
+func (m *Output_Record_Field) GetQuoteWhenPrinting() bool {
+	if m != nil {
+		return m.QuoteWhenPrinting
+	}
+	return false
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*Output_Record_Field) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _Output_Record_Field_OneofMarshaler, _Output_Record_Field_OneofUnmarshaler, _Output_Record_Field_OneofSizer, []interface{}{
@@ -264,6 +271,13 @@ func (m *RepeatedString) Reset()                    { *m = RepeatedString{} }
 func (m *RepeatedString) String() string            { return proto.CompactTextString(m) }
 func (*RepeatedString) ProtoMessage()               {}
 func (*RepeatedString) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *RepeatedString) GetStrings() []string {
+	if m != nil {
+		return m.Strings
+	}
+	return nil
+}
 
 func init() {
 	proto.RegisterType((*Output)(nil), "devtools.buildozer.Output")
