@@ -10,6 +10,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
  See the License for the specific language governing permissions and
  limitations under the License.
 */
+
 // generateTables is a tool that generates a go file from the Build language proto file.
 // It generates a Go map to find the type of an attribute.
 

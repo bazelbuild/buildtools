@@ -182,9 +182,8 @@ func explicitHeuristicLabels(s string, labels map[string]bool) string {
 	}
 	if changed {
 		return strings.Join(parts, "")
-	} else {
-		return s
 	}
+	return s
 }
 
 func addLabels(r *build.Rule, attr string, labels map[string]bool) {
@@ -500,7 +499,7 @@ var AllRuleFixes = []struct {
 		"Remove useless list concatenation"},
 }
 
-// AllFileFixes is a list of all Buildozer fixes that apply on the whole file.
+// FileLevelFixes is a list of all Buildozer fixes that apply on the whole file.
 var FileLevelFixes = []struct {
 	Name    string
 	Fn      func(file *build.File) bool

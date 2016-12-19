@@ -30,8 +30,8 @@ import (
 	"strconv"
 	"strings"
 
-	build "github.com/bazelbuild/buildifier/core"
 	apipb "github.com/bazelbuild/buildifier/api_proto"
+	build "github.com/bazelbuild/buildifier/core"
 	"github.com/bazelbuild/buildifier/file"
 	"github.com/golang/protobuf/proto"
 )
@@ -140,8 +140,7 @@ func commentsText(comments []build.Comment) string {
 
 func cmdPrintComment(env CmdEnvironment) (*build.File, error) {
 	attrError := func() error {
-		return fmt.Errorf("rule \"//%s:%s\" has no attribute \"%s\"\n",
-			env.Pkg, env.Rule.Name(), env.Args[0])
+		return fmt.Errorf("rule \"//%s:%s\" has no attribute \"%s\"", env.Pkg, env.Rule.Name(), env.Args[0])
 	}
 
 	switch len(env.Args) {
@@ -166,7 +165,7 @@ func cmdPrintComment(env CmdEnvironment) (*build.File, error) {
 		value := env.Args[1]
 		expr := ListFind(attr, value, env.Pkg)
 		if expr == nil {
-			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"\n", env.Args[0], value)
+			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
 		comments := append(expr.Comments.Before, expr.Comments.Suffix...)
 		env.output.Fields = []*apipb.Output_Record_Field{
@@ -200,9 +199,8 @@ func cmdMove(env CmdEnvironment) (*build.File, error) {
 	}
 	if fixed {
 		return env.File, nil
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
 
 func cmdNew(env CmdEnvironment) (*build.File, error) {
@@ -499,6 +497,7 @@ func cmdFix(env CmdEnvironment) (*build.File, error) {
 	return FixRule(env.File, env.Pkg, env.Rule, env.Args), nil
 }
 
+// CommandInfo provides a command function and info on incoming arguments.
 type CommandInfo struct {
 	Fn       func(CmdEnvironment) (*build.File, error)
 	MinArg   int
@@ -506,7 +505,7 @@ type CommandInfo struct {
 	Template string
 }
 
-// allCommands associates the command names with their function and number
+// AllCommands associates the command names with their function and number
 // of arguments.
 var AllCommands = map[string]CommandInfo{
 	"add":                {cmdAdd, 2, -1, "<attr> <value(s)>"},
@@ -597,7 +596,7 @@ func checkCommandUsage(name string, cmd CommandInfo, count int) {
 // Match text that only contains spaces if they're escaped with '\'.
 var spaceRegex = regexp.MustCompile(`(\\ |[^ ])+`)
 
-// splitOnSpaces behaves like strings.Fields, except that spaces can be escaped.
+// SplitOnSpaces behaves like strings.Fields, except that spaces can be escaped.
 // " some dummy\\ string" -> ["some", "dummy string"]
 func SplitOnSpaces(input string) []string {
 	result := spaceRegex.FindAllString(input, -1)
@@ -755,7 +754,7 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 	f = RemoveEmptyPackage(f)
 	ndata, err := runBuildifier(f)
 	if err != nil {
-		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v\n", err)}, records: records}
+		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
 	}
 
 	if Opts.Stdout || name == stdinPackageName {
