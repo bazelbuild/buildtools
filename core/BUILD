@@ -24,10 +24,10 @@ go_library(
         "rewrite.go",
         "rule.go",
         "syntax.go",
-        "tables.go",
         "walk.go",
     ],
     visibility = ["//visibility:public"],
+    deps = ["//tables:go_default_library"],
 )
 
 go_test(

@@ -17,13 +17,13 @@ distributed under the License is distributed on an "AS IS" BASIS,
 // Perhaps eventually this will be
 // derived from the BUILD encyclopedia.
 
-package build
+package tables
 
-// A named argument to a rule call is considered to have a value
+// IsLabelArg: a named argument to a rule call is considered to have a value
 // that can be treated as a label or list of labels if the name
 // is one of these names. There is a separate blacklist for
 // rule-specific exceptions.
-var isLabelArg = map[string]bool{
+var IsLabelArg = map[string]bool{
 	"app_target":         true,
 	"appdir":             true,
 	"base_package":       true,
@@ -89,18 +89,18 @@ var isLabelArg = map[string]bool{
 	"visibility":         true,
 }
 
-// labelBlacklist is the list of call arguments that cannot be
+// LabelBlacklist is the list of call arguments that cannot be
 // shortened, because they are not interpreted using the same
 // rules as for other labels.
-var labelBlacklist = map[string]bool{
+var LabelBlacklist = map[string]bool{
 	// Shortening this can cause visibility checks to fail.
 	"package_group.includes": true,
 }
 
-// A named argument to a rule call is considered to be a sortable list
+// IsSortableListArg: a named argument to a rule call is considered to be a sortable list
 // if the name is one of these names. There is a separate blacklist for
 // rule-specific exceptions.
-var isSortableListArg = map[string]bool{
+var IsSortableListArg = map[string]bool{
 	"cc_deps":             true,
 	"common_deps":         true,
 	"compile_deps":        true,
@@ -142,15 +142,15 @@ var isSortableListArg = map[string]bool{
 	"visibility":          true,
 }
 
-// sortableBlacklist records specific rule arguments that must not be reordered.
-var sortableBlacklist = map[string]bool{
+// SortableBlacklist records specific rule arguments that must not be reordered.
+var SortableBlacklist = map[string]bool{
 	"genrule.outs": true,
 	"genrule.srcs": true,
 }
 
-// sortableWhitelist records specific rule arguments that are guaranteed
+// SortableWhitelist records specific rule arguments that are guaranteed
 // to be reorderable, because bazel re-sorts the list itself after reading the BUILD file.
-var sortableWhitelist = map[string]bool{
+var SortableWhitelist = map[string]bool{
 	"cc_inc_library.hdrs":      true,
 	"cc_library.hdrs":          true,
 	"java_library.srcs":        true,
@@ -165,9 +165,9 @@ var sortableWhitelist = map[string]bool{
 
 // OverrideTables allows a user of the build package to override the special-case rules.
 func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool) {
-	isLabelArg = labelArg
-	labelBlacklist = blacklist
-	isSortableListArg = sortableListArg
-	sortableBlacklist = sortBlacklist
-	sortableWhitelist = sortWhitelist
+	IsLabelArg = labelArg
+	LabelBlacklist = blacklist
+	IsSortableListArg = sortableListArg
+	SortableBlacklist = sortBlacklist
+	SortableWhitelist = sortWhitelist
 }

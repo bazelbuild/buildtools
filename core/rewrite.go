@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/bazelbuild/buildifier/tables"
 )
 
 // For debugging: flag to disable certain rewrites.
@@ -226,7 +228,7 @@ func fixLabels(f *File, info *RewriteInfo) {
 					continue
 				}
 				key, ok := as.X.(*LiteralExpr)
-				if !ok || !isLabelArg[key.Token] || labelBlacklist[callName(v)+"."+key.Token] {
+				if !ok || !tables.IsLabelArg[key.Token] || tables.LabelBlacklist[callName(v)+"."+key.Token] {
 					continue
 				}
 				if leaveAlone1(as.Y) {
@@ -411,10 +413,10 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Token
-				if !isSortableListArg[key.Token] || sortableBlacklist[context] {
+				if !tables.IsSortableListArg[key.Token] || tables.SortableBlacklist[context] {
 					continue
 				}
-				if disabled("unsafesort") && !sortableWhitelist[context] && !allowedSort(context) {
+				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
 					continue
 				}
 				sortStringList(as.Y, info, context)
@@ -496,7 +498,7 @@ func sortStringList(x Expr, info *RewriteInfo, context string) {
 		if !sort.IsSorted(byStringExpr(chunk)) || !isUniq(chunk) {
 			if info != nil {
 				info.SortStringList++
-				if !sortableWhitelist[context] {
+				if !tables.SortableWhitelist[context] {
 					info.UnsafeSort++
 					info.Log = append(info.Log, "sort:"+context)
 				}
