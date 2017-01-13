@@ -40,6 +40,7 @@ var (
 	mode  = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	path  = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	indent = flag.Int("indent", 4, "number of spaces to use for indent")
+	squote = flag.Bool("squote", false, "use single quotes for string literals")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
@@ -91,6 +92,9 @@ func main() {
 		os.Exit(2)
 	}
 	build.IndentSize = *indent
+	if *squote {
+		build.QuoteChar = '\''
+	}
 
 	if *dflag {
 		if *mode != "" {

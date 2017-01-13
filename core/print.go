@@ -299,7 +299,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		// This preserves the specific escaping choices that
 		// BUILD authors have made, and it also works around
 		// b/7272572.
-		if strings.HasPrefix(v.Token, `"`) {
+		if strings.HasPrefix(v.Token, string([]byte{QuoteChar})) {
 			s, triple, err := unquote(v.Token)
 			if s == v.Value && triple == v.TripleQuote && err == nil {
 				p.printf("%s", v.Token)
