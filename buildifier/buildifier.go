@@ -39,6 +39,7 @@ var (
 	dflag = flag.Bool("d", false, "alias for -mode=diff")
 	mode  = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	path  = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
+	indent = flag.Int("indent", 4, "number of spaces to use for indent")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
@@ -84,6 +85,12 @@ func main() {
 	// Pass down debug flags into build package
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
+
+	if *indent < 0 {
+		fmt.Fprintf(os.Stderr, "-indent must be >= 0\n")
+		os.Exit(2)
+	}
+	build.IndentSize = *indent
 
 	if *dflag {
 		if *mode != "" {

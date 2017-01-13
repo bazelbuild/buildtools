@@ -23,6 +23,9 @@ import (
 	"strings"
 )
 
+// Number of spaces to use when indenting.
+var IndentSize int = 4
+
 // Format returns the formatted form of the given BUILD file.
 func Format(f *File) []byte {
 	pr := &printer{}
@@ -379,7 +382,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.LineBreak {
 			p.margin = p.indent()
 			if v.Op == "=" {
-				p.margin += 4
+				p.margin += IndentSize
 			}
 		}
 
@@ -501,7 +504,7 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 
 	default:
 		// Multi-line form.
-		p.margin += 4
+		p.margin += IndentSize
 		for i, x := range list {
 			// If we are about to break the line before the first
 			// element and there are trailing end-of-line comments
@@ -525,7 +528,7 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 			p.newline()
 			p.printf("%s", strings.TrimSpace(com.Token))
 		}
-		p.margin -= 4
+		p.margin -= IndentSize
 		p.newline()
 	}
 	p.depth--
@@ -563,7 +566,7 @@ func (p *printer) listFor(v *ListForExpr) {
 
 	if multiLine {
 		if v.Brack != "" {
-			p.margin += 4
+			p.margin += IndentSize
 		}
 		p.newline()
 	}
@@ -595,7 +598,7 @@ func (p *printer) listFor(v *ListForExpr) {
 			p.printf("%s", strings.TrimSpace(com.Token))
 		}
 		if v.Brack != "" {
-			p.margin -= 4
+			p.margin -= IndentSize
 		}
 		p.newline()
 	}
