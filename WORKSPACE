@@ -1,9 +1,10 @@
 workspace(name = "com_github_bazelbuild_buildifier")
 
-git_repository(
+http_archive(
     name = "io_bazel_rules_go",
-    remote = "https://github.com/bazelbuild/rules_go.git",
-    commit = "76c63b5cd0d47c1f2b47ab4953db96c574af1c1d",
+    sha256 = "3c8a95b0c353acc260bd11f08918b156d40f41f7349433f19df7083e030c4fdb",
+    strip_prefix = "rules_go-0.3.3",
+    url = "https://github.com/bazelbuild/rules_go/archive/0.3.3.tar.gz",
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_repositories", "new_go_repository")
