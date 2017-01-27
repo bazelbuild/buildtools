@@ -27,7 +27,7 @@ import (
 	"sort"
 	"strings"
 
-	build "github.com/bazelbuild/buildifier/build"
+	"github.com/bazelbuild/buildifier/build"
 	"github.com/bazelbuild/buildifier/differ"
 )
 
