@@ -31,7 +31,7 @@ import (
 	"strings"
 
 	apipb "github.com/bazelbuild/buildifier/api_proto"
-	build "github.com/bazelbuild/buildifier/core"
+	build "github.com/bazelbuild/buildifier/build"
 	"github.com/bazelbuild/buildifier/file"
 	"github.com/golang/protobuf/proto"
 )

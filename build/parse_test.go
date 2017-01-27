@@ -43,7 +43,7 @@ func TestParseTestdata(t *testing.T) {
 	// Test that files in the testdata directory can all be parsed.
 	// For this test we don't bother checking what the tree looks like.
 	// The printing tests will exercise that information.
-	testdata := os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/core/testdata"
+	testdata := os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/build/testdata"
 	outs, err := filepath.Glob(testdata + "/*")
 	if err != nil {
 		t.Fatal(err)

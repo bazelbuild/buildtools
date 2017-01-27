@@ -5,7 +5,7 @@ go_binary(
     srcs = ["buildifier.go"],
     visibility = ["//visibility:public"],
     deps = [
-        "//core:go_default_library",
+        "//build:go_default_library",
         "//differ:go_default_library",
     ],
 )

@@ -29,7 +29,7 @@ import (
 // Test data is in $pwd/testdata.
 // The files are in pairs xxx.in and xxx.golden.
 func testpath() string {
-	return os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/core/testdata"
+	return os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/build/testdata"
 }
 
 // exists reports whether the named file exists.
