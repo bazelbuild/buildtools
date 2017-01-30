@@ -7,5 +7,6 @@ go_binary(
     deps = [
         "//build:go_default_library",
         "//differ:go_default_library",
+        "//tables:go_default_library",
     ],
 )

@@ -29,16 +29,18 @@ import (
 
 	"github.com/bazelbuild/buildifier/build"
 	"github.com/bazelbuild/buildifier/differ"
+	"github.com/bazelbuild/buildifier/tables"
 )
 
 var (
 	// Undocumented; for debugging.
 	showlog = flag.Bool("showlog", false, "show log in check mode")
 
-	vflag = flag.Bool("v", false, "print verbose information on standard error")
-	dflag = flag.Bool("d", false, "alias for -mode=diff")
-	mode  = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
-	path  = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
+	vflag      = flag.Bool("v", false, "print verbose information on standard error")
+	dflag      = flag.Bool("d", false, "alias for -mode=diff")
+	mode       = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
+	path       = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
+	tablesPath = flag.String("tables", "", "path to JSON file with custom table definitions")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
@@ -111,6 +113,13 @@ func main() {
 	if *path != "" && len(args) > 1 {
 		fmt.Fprintf(os.Stderr, "buildifier: can only format one file when using -path flag\n")
 		os.Exit(2)
+	}
+
+	if *tablesPath != "" {
+		if err := tables.ParseAndUpdateJsonDefinitions(*tablesPath); err != nil {
+			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -tables: %s\n", *tablesPath, err)
+			os.Exit(2)
+		}
 	}
 
 	diff = differ.Find()
