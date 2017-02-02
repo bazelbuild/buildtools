@@ -12,11 +12,12 @@ Binary downloads for linux/Mac are available on the releases page.
 (Any help with Windows appreciated.)
 
 Build the tool from source:
-* Checkout the repo and then either via `go install` or 
+* Checkout the repo and then 
 `bazel build //buildifier //buildozer`
 * If you already have 'go' installed, then build a binary via: 
 
 `go install github.com/bazelbuild/buildifier/buildifier`
+
 `go install github.com/bazelbuild/buildifier/buildozer`
 
 ## Buildifier Usage
