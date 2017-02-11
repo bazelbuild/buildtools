@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 )
 
 // Invocation of different diff commands, according to environment variables.
@@ -116,15 +115,4 @@ func Find() *Differ {
 		}
 	}
 	return d
-}
-
-// isatty reports whether fd is a tty.
-// Actually it reports whether fd is a character device, which is close enough.
-func isatty(fd int) bool {
-	var st syscall.Stat_t
-	err := syscall.Fstat(fd, &st)
-	if err != nil {
-		return false
-	}
-	return st.Mode&syscall.S_IFMT == syscall.S_IFCHR
 }
