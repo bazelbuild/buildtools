@@ -20,8 +20,16 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"strings"
 )
+
+var breakLine = func() string {
+	if runtime.GOOS == "windows" {
+		return "\r\n"
+	}
+	return "\n"
+}()
 
 // Format returns the formatted form of the given BUILD file.
 func Format(f *File) []byte {
@@ -76,7 +84,7 @@ func (p *printer) newline() {
 		for i, com := range p.comment {
 			if i > 0 {
 				p.trim()
-				p.printf("\n%*s", p.margin, "")
+				p.printf("%s%*s", breakLine, p.margin, "")
 			}
 			p.printf("%s", strings.TrimSpace(com.Token))
 		}
@@ -84,7 +92,7 @@ func (p *printer) newline() {
 	}
 
 	p.trim()
-	p.printf("\n%*s", p.margin, "")
+	p.printf("%s%*s", breakLine, p.margin, "")
 }
 
 // breakline breaks the current line, inserting a continuation \ if needed.
