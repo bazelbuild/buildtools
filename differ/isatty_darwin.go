@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2017 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,8 +22,7 @@ import "syscall"
 // Actually it reports whether fd is a character device, which is close enough.
 func isatty(fd int) bool {
 	var st syscall.Stat_t
-	err := syscall.Fstat(fd, &st)
-	if err != nil {
+	if err := syscall.Fstat(fd, &st); err != nil {
 		return false
 	}
 	return st.Mode&syscall.S_IFMT == syscall.S_IFCHR
