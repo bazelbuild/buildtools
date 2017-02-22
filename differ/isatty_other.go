@@ -12,12 +12,18 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// +build windows
+// +build !windows
 
 package differ
 
+import "syscall"
+
 // isatty reports whether fd is a tty.
-// On Windows we just say no.
+// Actually it reports whether fd is a character device, which is close enough.
 func isatty(fd int) bool {
-	return false
+	var st syscall.Stat_t
+	if err := syscall.Fstat(fd, &st); err != nil {
+		return false
+	}
+	return st.Mode&syscall.S_IFMT == syscall.S_IFCHR
 }
