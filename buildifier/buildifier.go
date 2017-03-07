@@ -32,6 +32,9 @@ import (
 	"github.com/bazelbuild/buildifier/tables"
 )
 
+var BUILDIFIER_VERSION = "redacted"
+var BUILD_SCM_REVISION = "redacted"
+
 var (
 	// Undocumented; for debugging.
 	showlog = flag.Bool("showlog", false, "show log in check mode")
@@ -41,7 +44,7 @@ var (
 	mode       = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	path       = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	tablesPath = flag.String("tables", "", "path to JSON file with custom table definitions")
-
+	version    = flag.Bool("version", false, "Print the version of buildifier")
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
@@ -83,6 +86,10 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
+	if *version {
+		fmt.Printf("buildifier version: %s \n", BUILDIFIER_VERSION)
+		fmt.Printf("buildifier scm revision: %s", BUILD_SCM_REVISION)
+	}
 	// Pass down debug flags into build package
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
