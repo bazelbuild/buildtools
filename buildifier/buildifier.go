@@ -89,10 +89,15 @@ func main() {
 	if *version {
 		fmt.Printf("buildifier version: %s \n", BUILDIFIER_VERSION)
 		fmt.Printf("buildifier scm revision: %s", BUILD_SCM_REVISION)
+		
+		if len(args) == 0 {
+			os.Exit(0)
+		}	
 	}
+	
 	// Pass down debug flags into build package
 	build.DisableRewrites = disable()
-	build.AllowSort = allowSort()
+ 	build.AllowSort = allowSort()
 
 	if *dflag {
 		if *mode != "" {
