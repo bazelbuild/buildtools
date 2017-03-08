@@ -88,7 +88,7 @@ func main() {
 
 	if *version {
 		fmt.Printf("buildifier version: %s \n", BUILDIFIER_VERSION)
-		fmt.Printf("buildifier scm revision: %s", BUILD_SCM_REVISION)
+		fmt.Printf("buildifier scm revision: %s \n", BUILD_SCM_REVISION)
 		
 		if len(args) == 0 {
 			os.Exit(0)
