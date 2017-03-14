@@ -136,9 +136,7 @@ func main() {
 
 	diff = differ.Find()
 
-	// TODO(bazel-team): Handle "-" as stdin/stdout mode too.
-
-	if len(args) == 0 {
+	if (len(args) == 0) || (len(args) == 1 && args[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
