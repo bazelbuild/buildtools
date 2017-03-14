@@ -352,7 +352,8 @@ func cmdPrint(env CmdEnvironment) (*build.File, error) {
 		} else if strList := env.Rule.AttrStrings(str); strList != nil {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}}}
 		} else {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_UNKNOWN}}
+			// Some other Expr we haven't listed above. Just print it.
+			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{build.FormatString(value)}}
 		}
 	}
 
