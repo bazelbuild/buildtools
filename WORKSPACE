@@ -2,9 +2,12 @@ workspace(name = "com_github_bazelbuild_buildifier")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "8d661334a84f67728b0ebe69d7c83f54f1e5026d1fc725c38b74ac22cf31f2a3",
-    strip_prefix = "rules_go-5097c5b883bacb18673145188f6b35fcacdc5d22",
-    url = "https://github.com/bazelbuild/rules_go/archive/5097c5b883bacb18673145188f6b35fcacdc5d22.tar.gz",
+    sha256 = "a4de67d0343d0dbb8c9d29c4cd39ba7de6bffb72369925a4f54f25c70b33fc06",
+    strip_prefix = "rules_go-9496d79880a7d55b8e4a96f04688d70a374eaaf4",
+    urls = [
+        "http://bazel-mirror.storage.googleapis.com/github.com/bazelbuild/rules_go/archive/9496d79880a7d55b8e4a96f04688d70a374eaaf4.tar.gz",
+        "https://github.com/bazelbuild/rules_go/archive/9496d79880a7d55b8e4a96f04688d70a374eaaf4.tar.gz",
+    ],
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_repositories", "new_go_repository")
@@ -17,9 +20,12 @@ go_proto_repositories()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "8e4646898fa9298422e69767752680d34cbf21bcae01c401b11aa74fcdb0ef66",
-    strip_prefix = "bazel-0.4.1",
-    url = "https://github.com/bazelbuild/bazel/archive/0.4.1.tar.gz",
+    sha256 = "a2a00a14bb9b4ea938511977b8e513ba83079c6b4a478a853d603f293c81925f",
+    strip_prefix = "bazel-0.4.4",
+    urls = [
+        "http://bazel-mirror.storage.googleapis.com/github.com/bazelbuild/bazel/archive/0.4.4.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.4.4.tar.gz",
+    ],
 )
 
 new_go_repository(

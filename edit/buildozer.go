@@ -673,6 +673,8 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) 
 	return vars
 }
 
+var buildFileSuffixes = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
+
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout). g4 edit is run
 // automatically if the file is not writeable.
@@ -688,10 +690,18 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 			return &rewriteResult{file: name, errs: []error{err}}
 		}
 	} else {
-		// read a file
-		data, fi, err = file.ReadFile(name)
+		origName := name
+		name = strings.TrimSuffix(name, "BUILD")
+		for _, suffix := range buildFileSuffixes {
+			name = name + suffix
+			data, fi, err = file.ReadFile(name)
+			if err == nil {
+				break
+			}
+			name = strings.TrimSuffix(name, suffix)
+		}
 		if err != nil {
-			return &rewriteResult{file: name, errs: []error{err}}
+			return &rewriteResult{file: origName, errs: []error{err}}
 		}
 	}
 
