@@ -117,7 +117,7 @@ func TestAddValueToListAttribute(t *testing.T) {
 	tests := []struct{ input, expected string }{
 		{`rule(name="rule")`, `rule(name="rule", attr=["foo"])`},
 		{`rule(name="rule", attr=["foo"])`, `rule(name="rule", attr=["foo"])`},
-		{`rule(name="rule", attr=IDENT)`, `rule(name="rule", attr=IDENT+["foo"])`},
+		{`rule(name="rule", attr=IDENT)`, `rule(name="rule", attr=IDENT + ["foo"])`},
 		{`rule(name="rule", attr=["foo"] + IDENT)`, `rule(name="rule", attr=["foo"] + IDENT)`},
 		{`rule(name="rule", attr=["bar"] + IDENT)`, `rule(name="rule", attr=["bar", "foo"] + IDENT)`},
 		{`rule(name="rule", attr=IDENT + ["foo"])`, `rule(name="rule", attr=IDENT + ["foo"])`},
@@ -132,6 +132,39 @@ func TestAddValueToListAttribute(t *testing.T) {
 		}
 		rule := bld.RuleAt(1)
 		AddValueToListAttribute(rule, "attr", "", &build.StringExpr{Value: "foo"}, nil)
+		got := strings.TrimSpace(string(build.Format(bld)))
+		expectedBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		expected := strings.TrimSpace(string(build.Format(expectedBld)))
+		if got != expected {
+			t.Errorf("AddValueToListAttribute(%s): got %s, expected %s", tst.input, got, expected)
+		}
+	}
+}
+
+func TestConcatListValueToListAttribute(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`rule(name="rule")`, `rule(name="rule", attr=SOME_LIST)`},
+		{`rule(name="rule", attr=["foo"])`, `rule(name="rule", attr=["foo"] + SOME_LIST)`},
+		{`rule(name="rule", attr=IDENT)`, `rule(name="rule", attr=IDENT + SOME_LIST)`},
+		{`rule(name="rule", attr=SOME_LIST)`, `rule(name="rule", attr=SOME_LIST + SOME_LIST)`},
+		{`rule(name="rule", attr=["foo"] + IDENT)`, `rule(name="rule", attr=["foo"] + IDENT + SOME_LIST)`},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		ConcatListValueToListAttribute(rule, "attr", "", &build.LiteralExpr{Token: "SOME_LIST"}, nil)
 		got := strings.TrimSpace(string(build.Format(bld)))
 		expectedBld, err := build.Parse("BUILD", []byte(tst.expected))
 		if err != nil {

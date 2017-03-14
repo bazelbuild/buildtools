@@ -544,15 +544,35 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 	return concat
 }
 
-// AddValueToListAttribute adds the given item to the list attribute identified by name and pkg.
-func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.BinaryExpr) {
+// AddListValueToList adds a value (assumed to be of list type) to a
+// list.
+func addListValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool) build.Expr {
+	if oldList == nil {
+		return item
+	}
+	concat := &build.BinaryExpr{Op: "+", X: oldList, Y: item}
+	return concat
+
+}
+
+func addToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.BinaryExpr, adder func(oldList build.Expr, pkg string, item build.Expr, sorted bool) build.Expr) {
 	old := r.Attr(name)
 	sorted := !attributeMustNotBeSorted(r.Kind(), name)
 	if varAssignment := getVariable(old, vars); varAssignment != nil {
-		varAssignment.Y = AddValueToList(varAssignment.Y, pkg, item, sorted)
+		varAssignment.Y = adder(varAssignment.Y, pkg, item, sorted)
 	} else {
-		r.SetAttr(name, AddValueToList(old, pkg, item, sorted))
+		r.SetAttr(name, adder(old, pkg, item, sorted))
 	}
+}
+
+// AddValueToListAttribute adds the given item to the list attribute identified by name and pkg.
+func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.BinaryExpr) {
+	addToListAttribute(r, name, pkg, item, vars, AddValueToList)
+}
+
+// ConcatListValueToListAttribute concatenates the given list to the list attribute identified by name and pkg.
+func ConcatListValueToListAttribute(r *build.Rule, name string, pkg string, item *build.LiteralExpr, vars *map[string]*build.BinaryExpr) {
+	addToListAttribute(r, name, pkg, item, vars, addListValueToList)
 }
 
 // MoveAllListAttributeValues moves all values from list attribute oldAttr to newAttr,

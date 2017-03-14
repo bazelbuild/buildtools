@@ -74,17 +74,30 @@ type CmdEnvironment struct {
 
 // The cmdXXX functions implement the various commands.
 
-func cmdAdd(env CmdEnvironment) (*build.File, error) {
+func addImpl(env CmdEnvironment, concat bool) (*build.File, error) {
 	attr := env.Args[0]
 	for _, val := range env.Args[1:] {
-		if IsIntList(attr) {
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
-			continue
+		if concat {
+			expr := &build.LiteralExpr{Token: val}
+			ConcatListValueToListAttribute(env.Rule, attr, env.Pkg, expr, &env.Vars)
+		} else {
+			if IsIntList(attr) {
+				AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
+				continue
+			}
+			expr := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
+			AddValueToListAttribute(env.Rule, attr, env.Pkg, expr, &env.Vars)
 		}
-		strVal := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
 	return env.File, nil
+}
+
+func cmdConcat(env CmdEnvironment) (*build.File, error) {
+	return addImpl(env, true)
+}
+
+func cmdAdd(env CmdEnvironment) (*build.File, error) {
+	return addImpl(env, false)
 }
 
 func cmdComment(env CmdEnvironment) (*build.File, error) {
@@ -510,6 +523,7 @@ type CommandInfo struct {
 // of arguments.
 var AllCommands = map[string]CommandInfo{
 	"add":                {cmdAdd, 2, -1, "<attr> <value(s)>"},
+	"concat":             {cmdConcat, 2, -1, "<attr> <value(s)>"},
 	"new_load":           {cmdNewLoad, 1, -1, "<path> <symbol(s)>"},
 	"del_subinclude":     {cmdDelSubinclude, 1, 1, "<label>"},
 	"replace_subinclude": {cmdReplaceSubinclude, 2, -1, "<label> <bzl-path> <symbol(s)>"},
