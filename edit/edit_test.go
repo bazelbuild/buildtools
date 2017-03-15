@@ -112,3 +112,35 @@ load("other loc", "symbol")`,
 		}
 	}
 }
+
+func TestAddValueToListAttribute(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{`rule(name="rule")`, `rule(name="rule", attr=["foo"])`},
+		{`rule(name="rule", attr=["foo"])`, `rule(name="rule", attr=["foo"])`},
+		{`rule(name="rule", attr=IDENT)`, `rule(name="rule", attr=IDENT+["foo"])`},
+		{`rule(name="rule", attr=["foo"] + IDENT)`, `rule(name="rule", attr=["foo"] + IDENT)`},
+		{`rule(name="rule", attr=["bar"] + IDENT)`, `rule(name="rule", attr=["bar", "foo"] + IDENT)`},
+		{`rule(name="rule", attr=IDENT + ["foo"])`, `rule(name="rule", attr=IDENT + ["foo"])`},
+		{`rule(name="rule", attr=IDENT + ["bar"])`, `rule(name="rule", attr=IDENT + ["bar", "foo"])`},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		AddValueToListAttribute(rule, "attr", "", &build.StringExpr{Value: "foo"}, nil)
+		got := strings.TrimSpace(string(build.Format(bld)))
+		expectedBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		expected := strings.TrimSpace(string(build.Format(expectedBld)))
+		if got != expected {
+			t.Errorf("AddValueToListAttribute(%s): got %s, expected %s", tst.input, got, expected)
+		}
+	}
+}
