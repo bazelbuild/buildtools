@@ -136,7 +136,7 @@ func main() {
 
 	diff = differ.Find()
 
-	if (len(args) == 0) || (len(args) == 1 && args[0] == "-") {
+	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
