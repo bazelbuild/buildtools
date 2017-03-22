@@ -726,7 +726,8 @@ func (in *input) assignComments() {
 		// whole file, or conditional expression.
 		// Instead assign them to the last argument, element, or rule.
 		switch x.(type) {
-		case *CallExpr, *ListExpr, *End, *File, *ConditionalExpr:
+		case *CallExpr, *ListExpr, *End, *File, 
+			*ConditionalExpr, *IfClause, *ForClause:
 			continue
 		}
 
