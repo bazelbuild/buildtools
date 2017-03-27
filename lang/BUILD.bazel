@@ -14,8 +14,8 @@ genrule(
     # Unable to get this info from within a single bazel.
     srcs = ["build-language.pb"],
     outs = ["tables.go"],
-    cmd = "$(location //generateTables) $(SRCS) > $@",
-    tools = ["//generateTables"],
+    cmd = "$(location //generatetables) $(SRCS) > $@",
+    tools = ["//generatetables"],
 )
 
 go_library(
