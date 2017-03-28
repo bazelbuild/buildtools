@@ -32,8 +32,8 @@ import (
 	"github.com/bazelbuild/buildifier/tables"
 )
 
-var BUILDIFIER_VERSION = "redacted"
-var BUILD_SCM_REVISION = "redacted"
+var buildifierVersion = "redacted"
+var buildScmRevision = "redacted"
 
 var (
 	// Undocumented; for debugging.
@@ -87,17 +87,17 @@ func main() {
 	args := flag.Args()
 
 	if *version {
-		fmt.Printf("buildifier version: %s \n", BUILDIFIER_VERSION)
-		fmt.Printf("buildifier scm revision: %s \n", BUILD_SCM_REVISION)
-		
+		fmt.Printf("buildifier version: %s \n", buildifierVersion)
+		fmt.Printf("buildifier scm revision: %s \n", buildScmRevision)
+
 		if len(args) == 0 {
 			os.Exit(0)
-		}	
+		}
 	}
-	
+
 	// Pass down debug flags into build package
 	build.DisableRewrites = disable()
- 	build.AllowSort = allowSort()
+	build.AllowSort = allowSort()
 
 	if *dflag {
 		if *mode != "" {

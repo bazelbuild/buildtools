@@ -23,19 +23,19 @@ import (
 	"os"
 	"sort"
 
-	bazel "github.com/bazelbuild/buildifier/build_proto"
+	buildpb "github.com/bazelbuild/buildifier/build_proto"
 	"github.com/golang/protobuf/proto"
 )
 
 // bazelBuildLanguage reads a proto file and returns a BuildLanguage object.
-func bazelBuildLanguage(file string) (*bazel.BuildLanguage, error) {
+func bazelBuildLanguage(file string) (*buildpb.BuildLanguage, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot read %s: %s\n", file, err)
 		return nil, err
 	}
 
-	lang := &bazel.BuildLanguage{}
+	lang := &buildpb.BuildLanguage{}
 	if err := proto.Unmarshal(data, lang); err != nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func bazelBuildLanguage(file string) (*bazel.BuildLanguage, error) {
 }
 
 // generateTable returns a map that associate a type for each attribute name found in Bazel.
-func generateTable(rules []*bazel.RuleDefinition) map[string]bazel.Attribute_Discriminator {
-	types := make(map[string]bazel.Attribute_Discriminator)
+func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute_Discriminator {
+	types := make(map[string]buildpb.Attribute_Discriminator)
 	for _, r := range rules {
 		for _, attr := range r.Attribute {
 			types[*attr.Name] = *attr.Type
@@ -52,22 +52,22 @@ func generateTable(rules []*bazel.RuleDefinition) map[string]bazel.Attribute_Dis
 	}
 
 	// Because of inconsistencies in bazel, we need a few exceptions.
-	types["resources"] = bazel.Attribute_LABEL_LIST
-	types["out"] = bazel.Attribute_STRING
-	types["outs"] = bazel.Attribute_STRING_LIST
-	types["stamp"] = bazel.Attribute_TRISTATE
-	types["strip"] = bazel.Attribute_BOOLEAN
+	types["resources"] = buildpb.Attribute_LABEL_LIST
+	types["out"] = buildpb.Attribute_STRING
+	types["outs"] = buildpb.Attribute_STRING_LIST
+	types["stamp"] = buildpb.Attribute_TRISTATE
+	types["strip"] = buildpb.Attribute_BOOLEAN
 
 	// Surprisingly, the name argument is missing.
-	types["name"] = bazel.Attribute_STRING
+	types["name"] = buildpb.Attribute_STRING
 
 	// package arguments are also not listed in the proto file
-	types["default_hdrs_check"] = bazel.Attribute_STRING
+	types["default_hdrs_check"] = buildpb.Attribute_STRING
 	types["default_visibility"] = types["visibility"]
 	types["default_copts"] = types["copts"]
 	types["default_deprecation"] = types["deprecation"]
 	types["default_testonly"] = types["testonly"]
-	types["features"] = bazel.Attribute_STRING_LIST
+	types["features"] = buildpb.Attribute_STRING_LIST
 
 	types["extra_srcs"] = types["srcs"]
 	types["pytype_deps"] = types["deps"]
@@ -96,12 +96,12 @@ func main() {
 	fmt.Printf(`// Generated file, do not edit.
 package lang
 
-import bazel "github.com/bazelbuild/buildifier/build_proto"
+import buildpb "github.com/bazelbuild/buildifier/build_proto"
 
-var TypeOf = map[string]bazel.Attribute_Discriminator{
+var TypeOf = map[string]buildpb.Attribute_Discriminator{
 `)
 	for _, attr := range keys {
-		fmt.Printf("	\"%s\":	bazel.Attribute_%s,\n", attr, types[attr])
+		fmt.Printf("	\"%s\":	buildpb.Attribute_%s,\n", attr, types[attr])
 	}
 	fmt.Printf("}\n")
 }
