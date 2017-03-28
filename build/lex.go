@@ -725,9 +725,10 @@ func (in *input) assignComments() {
 		// Do not assign suffix comments to call, list, end-of-list,
 		// whole file, or conditional expression.
 		// Instead assign them to the last argument, element, or rule.
+		// IfClause and ForClause because in single line mode, [a for b in c]
+		// the suffix comments assigned to these are swallowed up.
 		switch x.(type) {
-		case *CallExpr, *ListExpr, *End, *File, 
-			*ConditionalExpr, *IfClause, *ForClause:
+		case *CallExpr, *ListExpr, *End, *File, *ConditionalExpr, *IfClause, *ForClause:
 			continue
 		}
 

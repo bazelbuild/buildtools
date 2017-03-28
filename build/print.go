@@ -121,9 +121,8 @@ func (p *printer) file(f *File) {
 	for i, stmt := range f.Stmt {
 		switch stmt := stmt.(type) {
 		case *CommentBlock:
-			// This is necessary so that CommentBlock
-			// doesn't swallow up suffix comments of
-			// the expression after it.
+			// This is necessary so that CommentBlock doesn't swallow 
+			// up suffix comments of the expression after it.
 			for _, scom := range stmt.Suffix {
 				scom.Suffix = false
 				stmt.After = append(stmt.After, scom)
