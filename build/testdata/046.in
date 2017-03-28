@@ -1,0 +1,22 @@
+[cc_binary(
+    name = "translator_for_%s" % lang,
+) for lang in li]
+
+[   # Bug if this comment get eaten by buildifier
+    # This line should be fine
+    cc_binary(
+        name = "translate_%s_benchmark" % lang,
+    )
+    for lang in li]
+
+
+# Start of a comment block
+# end of a comment block
+
+[   # Comment block should not swallow this up
+    cc_binary(
+        name = "%s_binary" % lang,
+    )
+    for lang in li]
+
+
