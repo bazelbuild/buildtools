@@ -64,7 +64,9 @@ Buildozer supports the following commands(`'command args'`):
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.), for eg: `srcs`, `<values(s)>`  represents values of the attribute and so on. A '?' indicates that the preceding argument is optional.
 
-List of fixes for the `buildozer 'fix <fix(es)>?'` command above. If fixes are not specified, it applies all eligible fixes below:
+The fix command without a fix specified applied all eligible fixes.  
+Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and `new_rule`.  
+A transformation can be applied to all rules of a particular kind by using `%rule_kind` at the end of the label(see examples below).
 
 
 ### Examples
@@ -84,6 +86,13 @@ buildozer 'set kind java_library' //pkg:%gwt_module
 
 # Replace the dependency on pkg_v1 with a dependency on pkg_v2
 buildozer 'replace deps //pkg_v1 //pkg_v2' //pkg:rule
+
+# Add a cc_binary rule named new_bin before the rule named tests
+buildozer 'new cc_binary new_bin before tests' //:__pkg__
+
+# Add an attribute new_attr with value "def_val" to all cc_binary rules
+# Note that special characters will automatically be escaped in the string
+buildozer 'add new_attr def_val' //:%cc_binary
 
 ```
 
