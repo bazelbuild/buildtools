@@ -1,6 +1,8 @@
 # Buildozer
 
-Buildozer is a command line tool to refactor multiple [Bazel](https://github.com/bazelbuild/bazel) BUILD files using standard commands. 
+Buildozer is a command line tool to rewrite multiple
+[Bazel](https://github.com/bazelbuild/bazel) BUILD files using
+standard commands. 
 
 ### Dependencies
 
@@ -25,23 +27,21 @@ go install
 ### Usage
 `buildozer [OPTIONS] ['command args' | -f FILE ] label-list`
 
-Here, `label-list` is a comma separated list of Bazel labels, for example `//path/to/pkg1:rule1, //path/to/pkg2:rule2`. Buildozer reads commands from FILE ( - for stdin (format:|-separated command line arguments to buildozer, excluding flags))
+Here, `label-list` is a comma separated list of Bazel labels, for example
+`//path/to/pkg1:rule1, //path/to/pkg2:rule2`. Buildozer reads commands from
+FILE ( - for stdin (format:|-separated command line arguments to buildozer,
+excluding flags))
 
-OPTIONS can be one of the following:
+OPTIONS include the following options:
 
-`--stdout` : write changed BUILD file to stdout  
-`--buildifier` : path to buildifier binary  
-`-P cores` : number of cores to use for concurrent actions  
-`--numio N` : number of concurrent actions  
-`-k` : apply all commands, even if there are failures  
-`--eol-comments` : when adding a new comment, put it on the same line if possible  
-`--root_dir` : If present, use this folder rather than $PWD to find the root directory  
-`--quiet` : suppress informational messages  
-`--edit-variables` : For attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute  
-`--output_proto` : output serialized devtools.buildozer.Output protos instead of human-readable strings  
-`--shorten_labels` : convert added labels to short form, e.g. //foo:bar => :bar  
-`--delete_with_comments` : If a list attribute should be deleted even if there is a comment attached to it  
+`-stdout` : write changed BUILD file to stdout  
+`-buildifier` : path to buildifier binary  
+`-k` : apply all commands, even if there are failures 
+`-quiet` : suppress informational messages  
+`-shorten_labels` : convert added labels to short form, e.g. //foo:bar => :bar
 
+See `buildozer -help` for the full list.  
+  
 Buildozer supports the following commands(`'command args'`):
 - `add <attr> <value(s)>`
 - `new_load <path> <symbol(s)>`
@@ -62,11 +62,15 @@ Buildozer supports the following commands(`'command args'`):
 - `copy <attr> <from_rule>`
 - `copy_no_overwrite <attr> <from_rule>`
 
-Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.), for eg: `srcs`, `<values(s)>`  represents values of the attribute and so on. A '?' indicates that the preceding argument is optional.
+Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
+for eg: `srcs`, `<values(s)>`  represents values of the attribute and so on.
+A '?' indicates that the preceding argument is optional.
 
 The fix command without a fix specified applied all eligible fixes.  
-Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and `new_rule`.  
-A transformation can be applied to all rules of a particular kind by using `%rule_kind` at the end of the label(see examples below).
+Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and
+`new_rule`.  
+A transformation can be applied to all rules of a particular kind by using 
+`%rule_kind` at the end of the label(see examples below).
 
 
 ### Examples
@@ -100,7 +104,9 @@ buildozer 'add new_attr def_val' //:%cc_binary
 
 `buildozer/main.go` : Entry point for the buildozer binary  
 `edit/buildozer.go` : Implementation of functions for the buildozer commands  
-`edit/edit.go`: Library functions to perform various operations on ASTs. These functions are called by the impl functions in buildozer.go  
-`edit/fix.go`:  Functions for various fixes for the `buildozer 'fix <fix(es)>'` command, like cleaning unused loads, changing labels to canonical notation, etc.  
+`edit/edit.go`: Library functions to perform various operations on ASTs. These
+functions are called by the impl functions in buildozer.go  
+`edit/fix.go`:  Functions for various fixes for the `buildozer 'fix <fix(es)>'`
+command, like cleaning unused loads, changing labels to canonical notation, etc.  
 `edit/types.go`: Type information for attributes  
 
