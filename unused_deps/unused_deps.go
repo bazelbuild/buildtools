@@ -107,8 +107,7 @@ func blazeInfo(key string) (value string) {
 // inputFileName returns a blaze output file name from which to read input.
 func inputFileName(blazeBin, pkg, ruleName, extension string) string {
 	name := fmt.Sprintf("%s/%s/lib%s.%s", blazeBin, pkg, ruleName, extension) // *_library
-	_, err1 := os.Stat(name)
-	if err1 == nil {
+	if _, err1 := os.Stat(name); err1 == nil {
 		return name
 	}
 	// lazily let the caller handle it if this doesn't exist
