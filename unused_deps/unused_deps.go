@@ -65,7 +65,7 @@ func getJarPath(path string) (string, error) {
 		return "", err
 	}
 	i := &eapb.ExtraActionInfo{}
-	if err = proto.Unmarshal(data, i); err != nil {
+	if err := proto.Unmarshal(data, i); err != nil {
 		return "", err
 	}
 	ext, err := proto.GetExtension(i, eapb.E_JavaCompileInfo_JavaCompileInfo)
@@ -156,8 +156,7 @@ func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps ma
 		return unusedDeps
 	}
 	dependencies := &depspb.Dependencies{}
-	err = proto.Unmarshal(data, dependencies)
-	if err != nil {
+	if err := proto.Unmarshal(data, dependencies); err != nil {
 		log.Println(err)
 		return unusedDeps
 	}
@@ -174,8 +173,7 @@ func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps ma
 
 // parseBuildFile tries to read and parse the contents of buildFileName.
 func parseBuildFile(buildFileName string) (buildFile *build.File, err error) {
-	var data []byte
-	data, err = ioutil.ReadFile(buildFileName)
+	data, err := ioutil.ReadFile(buildFileName)
 	if err != nil {
 		return nil, err
 	}
