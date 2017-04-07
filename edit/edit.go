@@ -34,7 +34,7 @@ var (
 )
 
 // ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
-// the package and rule name.
+// the package (with leading slashes trimmed) and rule name (e.g. ["devtools/buildozer", "rule"]).
 func ParseLabel(target string) (string, string) {
 	target = strings.TrimLeft(target, "/")
 	// TODO(bazel-team): check if the next line can now be deleted
