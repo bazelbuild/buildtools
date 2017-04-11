@@ -1,4 +1,4 @@
-workspace(name = "com_github_bazelbuild_buildifier")
+workspace(name = "com_github_bazelbuild_builditools")
 
 http_archive(
     name = "io_bazel_rules_go",
