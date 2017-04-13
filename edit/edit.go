@@ -74,11 +74,11 @@ func ShortenLabel(label string, pkg string) string {
 }
 
 // LabelsEqual returns true if label1 and label2 are equal. The function
-// takes care of the optional ":" prefix, "@" references and differences
-// between long-form labels and local labels.
+// takes care of the optional ":" prefix and differences between long-form
+// labels and local labels.
 func LabelsEqual(label1, label2, pkg string) bool {
-	str1 := strings.Trim(ShortenLabel(label1, pkg), ":@")
-	str2 := strings.Trim(ShortenLabel(label2, pkg), ":@")
+	str1 := strings.TrimPrefix(ShortenLabel(label1, pkg), ":")
+	str2 := strings.TrimPrefix(ShortenLabel(label2, pkg), ":")
 	return str1 == str2
 }
 

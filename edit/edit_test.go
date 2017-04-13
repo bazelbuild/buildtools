@@ -75,7 +75,6 @@ var labelsEqualTests = []struct {
 }{
 	{"//devtools/buildozer:rule", "rule", "devtools/buildozer", true},
 	{"//devtools/buildozer:rule", "rule:jar","devtools", false},
-	{"@@io_bazel", "@io_bazel","devtools", true},
 }
 
 func TestLabelsEqual(t *testing.T) {
