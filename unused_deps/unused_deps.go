@@ -221,11 +221,11 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 		for _, elem := range li.List {
 			for dep := range deps {
 				str, ok := elem.(*build.StringExpr)
-				if ok && edit.ShortenLabel(str.Value, pkg) == edit.ShortenLabel(dep, pkg) {
+				if ok && edit.LabelsEqual(str.Value, dep, pkg) {
 					if hasRuntimeComment(str) {
-						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", dep, label)
+						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
 					} else {
-						fmt.Printf("buildozer 'remove deps %s' %s\n", dep, label)
+						fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
 					}
 					anyCommandPrinted = true
 				}

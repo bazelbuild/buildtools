@@ -67,6 +67,26 @@ func TestShortenLabel(t *testing.T) {
 	}
 }
 
+var labelsEqualTests = []struct {
+	label1   string
+	label2   string
+	pkg      string
+	expected bool
+}{
+	{"//devtools/buildozer:rule", "rule", "devtools/buildozer", true},
+	{"//devtools/buildozer:rule", "rule:jar","devtools", false},
+}
+
+func TestLabelsEqual(t *testing.T) {
+	for i, tt := range labelsEqualTests {
+		got := LabelsEqual(tt.label1, tt.label2, tt.pkg)
+		if got != tt.expected {
+			t.Errorf("%d. LabelsEqual(%q, %q, %q) => %q, want %q",
+				i, tt.label1, tt.label2, tt.pkg, got, tt.expected)
+		}
+	}
+}
+
 var splitOnSpacesTests = []struct {
 	in  string
 	out []string
