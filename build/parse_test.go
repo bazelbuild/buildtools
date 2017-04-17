@@ -108,7 +108,7 @@ func tdiff(t *testing.T, a, b string) {
 		t.Error(err)
 		return
 	}
-	t.Errorf("diff, length: %d\n%v", len(data), string(data))
+	t.Error(string(data))
 }
 
 // Compare expected and actual values, failing and outputting a diff of the two values if they are not deeply equal
