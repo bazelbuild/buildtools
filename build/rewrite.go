@@ -252,13 +252,10 @@ func fixLabels(f *File, info *RewriteInfo) {
 }
 
 // callName returns the name of the rule being called by call.
-// If the call is not to a literal rule name, callName returns "".
+// If the call is not to a literal rule name or a series of dot accesses beginning with a literal,
+// callName returns "".
 func callName(call *CallExpr) string {
-	rule, ok := call.X.(*LiteralExpr)
-	if !ok {
-		return ""
-	}
-	return rule.Token
+	return (&Rule{call}).Kind()
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
@@ -557,11 +554,11 @@ func callArgName(stk []Expr) string {
 	if !ok {
 		return ""
 	}
-	rule, ok := call.X.(*LiteralExpr)
-	if !ok {
+	kind := (&Rule{call}).Kind()
+	if kind == "" {
 		return ""
 	}
-	return rule.Token + "." + arg
+	return kind + "." + arg
 }
 
 // A stringSortKey records information about a single string literal to be
