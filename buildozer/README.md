@@ -2,11 +2,11 @@
 
 Buildozer is a command line tool to rewrite multiple
 [Bazel](https://github.com/bazelbuild/bazel) BUILD files using
-standard commands. 
+standard commands.
 
 ### Dependencies
 
-1. Protobuf go runtime: to download  
+1. Protobuf go runtime: to download
 `go get -u github.com/golang/protobuf/{proto,protoc-gen-go}`
 
 
@@ -34,14 +34,14 @@ excluding flags))
 
 OPTIONS include the following options:
 
-`-stdout` : write changed BUILD file to stdout  
-`-buildifier` : path to buildifier binary  
-`-k` : apply all commands, even if there are failures 
-`-quiet` : suppress informational messages  
+`-stdout` : write changed BUILD file to stdout
+`-buildifier` : path to buildifier binary
+`-k` : apply all commands, even if there are failures
+`-quiet` : suppress informational messages
 `-shorten_labels` : convert added labels to short form, e.g. //foo:bar => :bar
 
-See `buildozer -help` for the full list.  
-  
+See `buildozer -help` for the full list.
+
 Buildozer supports the following commands(`'command args'`):
 - `add <attr> <value(s)>`
 - `new_load <path> <symbol(s)>`
@@ -66,10 +66,10 @@ Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 for eg: `srcs`, `<values(s)>`  represents values of the attribute and so on.
 A '?' indicates that the preceding argument is optional.
 
-The fix command without a fix specified applied all eligible fixes.  
+The fix command without a fix specified applied all eligible fixes.
 Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and
-`new_rule`.  
-A transformation can be applied to all rules of a particular kind by using 
+`new_rule`.
+A transformation can be applied to all rules of a particular kind by using
 `%rule_kind` at the end of the label(see examples below).
 
 
@@ -102,11 +102,11 @@ buildozer 'add new_attr def_val' //:%cc_binary
 
 ### Source Structure
 
-`buildozer/main.go` : Entry point for the buildozer binary  
-`edit/buildozer.go` : Implementation of functions for the buildozer commands  
+`buildozer/main.go` : Entry point for the buildozer binary
+`edit/buildozer.go` : Implementation of functions for the buildozer commands
 `edit/edit.go`: Library functions to perform various operations on ASTs. These
-functions are called by the impl functions in buildozer.go  
+functions are called by the impl functions in buildozer.go
 `edit/fix.go`:  Functions for various fixes for the `buildozer 'fix <fix(es)>'`
-command, like cleaning unused loads, changing labels to canonical notation, etc.  
-`edit/types.go`: Type information for attributes  
+command, like cleaning unused loads, changing labels to canonical notation, etc.
+`edit/types.go`: Type information for attributes
 

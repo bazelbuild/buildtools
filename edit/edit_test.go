@@ -74,14 +74,13 @@ var labelsEqualTests = []struct {
 	expected bool
 }{
 	{"//devtools/buildozer:rule", "rule", "devtools/buildozer", true},
-	{"//devtools/buildozer:rule", "rule:jar","devtools", false},
+	{"//devtools/buildozer:rule", "rule:jar", "devtools", false},
 }
 
 func TestLabelsEqual(t *testing.T) {
 	for i, tt := range labelsEqualTests {
-		got := LabelsEqual(tt.label1, tt.label2, tt.pkg)
-		if got != tt.expected {
-			t.Errorf("%d. LabelsEqual(%q, %q, %q) => %q, want %q",
+		if got := LabelsEqual(tt.label1, tt.label2, tt.pkg); got != tt.expected {
+			t.Errorf("%d. LabelsEqual(%q, %q, %q) => %v, want %v",
 				i, tt.label1, tt.label2, tt.pkg, got, tt.expected)
 		}
 	}

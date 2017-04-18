@@ -10,7 +10,7 @@ linux-x86_64 | ubuntu_15.10-x86_64 | darwin-x86_64
 
 Build the tool:
 * Checkout the repo and then either via `go install` or `bazel build //buildifier`
-* If you already have 'go' installed, then build a binary via: 
+* If you already have 'go' installed, then build a binary via:
 
 `go get github.com/bazelbuild/buildifier/buildifier`
 
