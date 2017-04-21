@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bazelbuild/buildifier/tables"
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // For debugging: flag to disable certain rewrites.

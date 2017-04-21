@@ -15,8 +15,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package edit
 
 import (
-	buildpb "github.com/bazelbuild/buildifier/build_proto"
-	"github.com/bazelbuild/buildifier/lang"
+	buildpb "github.com/bazelbuild/buildtools/build_proto"
+	"github.com/bazelbuild/buildtools/lang"
 )
 
 var typeOf = lang.TypeOf

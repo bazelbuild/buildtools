@@ -19,7 +19,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bazelbuild/buildifier/edit"
+	"github.com/bazelbuild/buildtools/edit"
 )
 
 var (
@@ -43,9 +43,9 @@ var (
 func stringList(name, help string) func() []string {
 	f := flag.String(name, "", help)
 	return func() []string {
-	       if *f == "" {
-	       	  return nil
-}
+		if *f == "" {
+			return nil
+		}
 		res := strings.Split(*f, ",")
 		for i := range res {
 			res[i] = strings.TrimSpace(res[i])
