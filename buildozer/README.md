@@ -42,7 +42,7 @@ in parallel.
 
 ### Targets
 
-Targets look like Blaze labels, but there can be some differences in presence of
+Targets look like Bazel labels, but there can be some differences in presence of
 macros.
 
   * Use the label notation to refer to a rule: `//buildtools/buildozer:edit`
