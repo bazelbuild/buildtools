@@ -113,7 +113,7 @@ Buildozer supports the following commands(`'command args'`):
     rules. If it exists in the `to_rule`, no action is taken.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
-e.g.: `srcs`, `<values(s)>`  represents values of the attribute and so on.
+e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.
 A '?' indicates that the preceding argument is optional.
 
 The fix command without a fix specified applied to all eligible fixes.
