@@ -1,7 +1,0 @@
-foo.bar.baz(
-    name = "x",
-    a = 3,
-    b = 1,
-    c = 0,
-    d = 2,
-)

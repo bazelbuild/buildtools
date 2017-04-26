@@ -4,8 +4,8 @@
 str.rewrite(".", "/")
 
 str.rewrite(
-    after = "/",
     before = ".",
+    after = "/",
 )
 
 x = (1, 2, 3)
