@@ -18,6 +18,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 
 package build
 
+import "strings"
+
 // A Rule represents a single BUILD rule.
 type Rule struct {
 	Call *CallExpr
@@ -32,14 +34,11 @@ func (f *File) Rules(kind string) []*Rule {
 		if !ok {
 			continue
 		}
-		k, ok := call.X.(*LiteralExpr)
-		if !ok {
+		rule := &Rule{call}
+		if kind != "" && rule.Kind() != kind {
 			continue
 		}
-		if kind != "" && k.Token != kind {
-			continue
-		}
-		all = append(all, &Rule{call})
+		all = append(all, rule)
 	}
 	return all
 }
@@ -66,13 +65,10 @@ func (f *File) DelRules(kind, name string) int {
 	var i int
 	for _, stmt := range f.Stmt {
 		if call, ok := stmt.(*CallExpr); ok {
-			if k, ok := call.X.(*LiteralExpr); ok {
-				if kind == "" || k.Token == kind {
-					r := &Rule{call}
-					if name == "" || r.AttrString("name") == name {
-						continue
-					}
-				}
+			r := &Rule{call}
+			if (kind == "" || r.Kind() == kind) &&
+				(name == "" || r.AttrString("name") == name) {
+				continue
 			}
 		}
 		f.Stmt[i] = stmt
@@ -84,13 +80,41 @@ func (f *File) DelRules(kind, name string) int {
 }
 
 // Kind returns the rule's kind (such as "go_library").
+// The kind of the rule may be given by a literal or it may be a sequence of dot expressions that
+// begins with a literal, if the call expression does not conform to either of these forms, an
+// empty string will be returned
 func (r *Rule) Kind() string {
-	return r.Call.X.(*LiteralExpr).Token
+	var names []string
+	expr := r.Call.X
+	for {
+		x, ok := expr.(*DotExpr)
+		if !ok {
+			break
+		}
+		names = append(names, x.Name)
+		expr = x.X
+	}
+	x, ok := expr.(*LiteralExpr)
+	if !ok {
+		return ""
+	}
+	names = append(names, x.Token)
+	// Reverse the elements since the deepest expression contains the leading literal
+	for l, r := 0, len(names)-1; l < r; l, r = l+1, r-1 {
+		names[l], names[r] = names[r], names[l]
+	}
+	return strings.Join(names, ".")
 }
 
 // SetKind changes rule's kind (such as "go_library").
 func (r *Rule) SetKind(kind string) {
-	r.Call.X.(*LiteralExpr).Token = kind
+	names := strings.Split(kind, ".")
+	var expr Expr
+	expr = &LiteralExpr{Token: names[0]}
+	for _, name := range names[1:] {
+		expr = &DotExpr{X: expr, Name: name}
+	}
+	r.Call.X = expr
 }
 
 // Name returns the rule's target name.

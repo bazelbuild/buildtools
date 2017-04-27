@@ -33,8 +33,8 @@ func TestParse(t *testing.T) {
 			t.Errorf("#%d: %v", i, err)
 			continue
 		}
-		if tt.out != nil && !reflect.DeepEqual(p, tt.out) {
-			tdiff(t, toJSON(p), toJSON(tt.out))
+		if tt.out != nil {
+			compare(t, p, tt.out)
 		}
 	}
 }
@@ -67,8 +67,8 @@ func TestParseTestdata(t *testing.T) {
 
 // toJSON returns human-readable json for the given syntax tree.
 // It is used as input to diff for comparing the actual syntax tree with the expected one.
-func toJSON(f *File) string {
-	s, _ := json.MarshalIndent(f, "", "\t")
+func toJSON(v interface{}) string {
+	s, _ := json.MarshalIndent(v, "", "\t")
 	s = append(s, '\n')
 	return string(s)
 }
@@ -111,6 +111,13 @@ func tdiff(t *testing.T, a, b string) {
 	t.Error(string(data))
 }
 
+// Compare expected and actual values, failing and outputting a diff of the two values if they are not deeply equal
+func compare(t *testing.T, actual, expected interface{}) {
+	if !reflect.DeepEqual(expected, actual) {
+		tdiff(t, toJSON(expected), toJSON(actual))
+	}
+}
+
 // Small tests checking that the parser returns exactly the right syntax tree.
 // If out is nil, we only check that the parser accepts the file.
 var parseTests = []struct {
@@ -148,6 +155,48 @@ var parseTests = []struct {
 					},
 					End:            End{Pos: Position{2, 1, 21}},
 					ForceMultiLine: true,
+				},
+			},
+		},
+	},
+	{
+		in: `foo.bar.baz(name = "x")`,
+		out: &File{
+			Path: "test",
+			Stmt: []Expr{
+				&CallExpr{
+					X: &DotExpr{
+						X: &DotExpr{
+							X: &LiteralExpr{
+								Start: Position{1, 1, 0},
+								Token: "foo",
+							},
+							Dot:     Position{1, 4, 3},
+							NamePos: Position{1, 5, 4},
+							Name:    "bar",
+						},
+						Dot:     Position{1, 8, 7},
+						NamePos: Position{1, 9, 8},
+						Name:    "baz",
+					},
+					ListStart: Position{1, 12, 11},
+					List: []Expr{
+						&BinaryExpr{
+							X: &LiteralExpr{
+								Start: Position{1, 13, 12},
+								Token: "name",
+							},
+							OpStart: Position{1, 18, 17},
+							Op:      "=",
+							Y: &StringExpr{
+								Start: Position{1, 20, 19},
+								Value: "x",
+								End:   Position{1, 23, 22},
+								Token: `"x"`,
+							},
+						},
+					},
+					End: End{Pos: Position{1, 23, 22}},
 				},
 			},
 		},
