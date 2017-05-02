@@ -5,8 +5,8 @@ go_library(
     srcs = [
         "diff.go",
         "isatty_other.go",
-	# When go_library() supports build constraints, add isatty_windows.go
-	# here.
+        # When go_library() supports build constraints, add isatty_windows.go
+        # here.
     ],
     visibility = ["//visibility:public"],
 )

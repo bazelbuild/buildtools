@@ -17,8 +17,11 @@ limitations under the License.
 package config
 
 var (
-	DefaultBuildTool        = "bazel"
-	BuildToolHelp           = "the build executable (like bazel)"
+	// DefaultBuildTool should be used to build and extract deps
+	DefaultBuildTool = "bazel"
+	// BuildToolHelp message for above
+	BuildToolHelp = "the build executable (like bazel)"
+	// ExtraActionFileNameHelp help for extra actions
 	ExtraActionFileNameHelp = "When specified, just prints suspected unused deps."
 	// DefaultBinDir to look for outputs
 	DefaultBinDir = "bazel-bin"
