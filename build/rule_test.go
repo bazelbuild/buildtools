@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-var simple_call *CallExpr = &CallExpr{
+var simpleCall *CallExpr = &CallExpr{
 	X: &LiteralExpr{
 		Token: "java_library",
 	},
@@ -34,9 +34,9 @@ var simple_call *CallExpr = &CallExpr{
 	},
 }
 
-var simple_rule *Rule = &Rule{simple_call}
+var simpleRule *Rule = &Rule{simpleCall}
 
-var struct_call *CallExpr = &CallExpr{
+var structCall *CallExpr = &CallExpr{
 	X: &DotExpr{
 		X: &DotExpr{
 			X: &LiteralExpr{
@@ -59,14 +59,14 @@ var struct_call *CallExpr = &CallExpr{
 	},
 }
 
-var struct_rule *Rule = &Rule{struct_call}
+var structRule *Rule = &Rule{structCall}
 
 func TestKind(t *testing.T) {
-	if simple_rule.Kind() != "java_library" {
-		t.Errorf(`simple_rule.Kind() = %v, want "java_library"`, simple_rule.Kind())
+	if simpleRule.Kind() != "java_library" {
+		t.Errorf(`simpleRule.Kind() = %v, want "java_library"`, simpleRule.Kind())
 	}
-	if struct_rule.Kind() != "foo.bar.baz" {
-		t.Errorf(`struct_rule.Kind() = %v, want "foo.bar.baz"`, struct_rule.Kind())
+	if structRule.Kind() != "foo.bar.baz" {
+		t.Errorf(`structRule.Kind() = %v, want "foo.bar.baz"`, structRule.Kind())
 	}
 }
 
@@ -108,13 +108,13 @@ func TestSetKind(t *testing.T) {
 func TestRules(t *testing.T) {
 	f := &File{
 		Stmt: []Expr{
-			simple_call,
-			struct_call,
+			simpleCall,
+			structCall,
 		},
 	}
 
-	compare(t, f.Rules(""), []*Rule{simple_rule, struct_rule})
+	compare(t, f.Rules(""), []*Rule{simpleRule, structRule})
 	compare(t, f.Rules("java_binary"), []*Rule(nil))
-	compare(t, f.Rules("java_library"), []*Rule{simple_rule})
-	compare(t, f.Rules("foo.bar.baz"), []*Rule{struct_rule})
+	compare(t, f.Rules("java_library"), []*Rule{simpleRule})
+	compare(t, f.Rules("foo.bar.baz"), []*Rule{structRule})
 }
