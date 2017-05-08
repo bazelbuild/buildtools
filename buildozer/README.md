@@ -16,7 +16,7 @@ standard commands.
 
 ```bash
 gopath=$(go env GOPATH)
-cd $gopath/src/github.com/bazelbuild/buildifier/buildozer
+cd $gopath/src/github.com/bazelbuild/buildtools/buildozer
 ```
 
 2. Install

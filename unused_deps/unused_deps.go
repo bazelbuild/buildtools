@@ -29,11 +29,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/bazelbuild/buildifier/build"
-	"github.com/bazelbuild/buildifier/config"
-	depspb "github.com/bazelbuild/buildifier/deps_proto"
-	"github.com/bazelbuild/buildifier/edit"
-	eapb "github.com/bazelbuild/buildifier/extra_actions_base_proto"
+	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/config"
+	depspb "github.com/bazelbuild/buildtools/deps_proto"
+	"github.com/bazelbuild/buildtools/edit"
+	eapb "github.com/bazelbuild/buildtools/extra_actions_base_proto"
 	"github.com/golang/protobuf/proto"
 )
 

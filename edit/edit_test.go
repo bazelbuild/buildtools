@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bazelbuild/buildifier/build"
+	"github.com/bazelbuild/buildtools/build"
 )
 
 var parseLabelTests = []struct {

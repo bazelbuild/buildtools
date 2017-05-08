@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bazelbuild/buildifier/build"
-	"github.com/bazelbuild/buildifier/wspace"
+	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/wspace"
 )
 
 var (
