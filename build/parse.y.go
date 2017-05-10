@@ -179,7 +179,7 @@ func forceCompact(start Position, list []Expr, end Position) bool {
 		}
 		line = end.Line
 		switch x.(type) {
-		case *LiteralExpr, *StringExpr:
+		case *LiteralExpr, *StringExpr, *UnaryExpr:
 			// ok
 		default:
 			return false
