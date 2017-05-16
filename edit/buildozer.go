@@ -439,15 +439,12 @@ func getAttrValueExpr(attr string, args []string) build.Expr {
 			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
-	case IsList(attr):
-		if !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")) {
-			var list []build.Expr
-			for _, i := range args {
-				list = append(list, &build.StringExpr{Value: i})
-			}
-			return &build.ListExpr{List: list}
+	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
+		var list []build.Expr
+		for _, i := range args {
+			list = append(list, &build.StringExpr{Value: i})
 		}
-		fallthrough // `args` is a glob; fallthrough to string case.
+		return &build.ListExpr{List: list}
 	case IsString(attr):
 		return &build.StringExpr{Value: args[0]}
 	default:
