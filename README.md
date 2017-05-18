@@ -12,7 +12,7 @@ Build the tool:
 * Checkout the repo and then either via `go install` or `bazel build //buildifier`
 * If you already have 'go' installed, then build a binary via:
 
-`go get github.com/bazelbuild/buildifier/buildifier`
+`go get github.com/bazelbuild/buildtools/buildifier`
 
 ## Usage
 

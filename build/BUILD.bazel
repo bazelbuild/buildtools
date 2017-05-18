@@ -7,7 +7,7 @@ go_yacc(
 )
 
 # parse.y.go is checked in to satisfy the Go community
-# https://github.com/bazelbuild/buildifier/issues/14
+# https://github.com/bazelbuild/buildtools/issues/14
 # this test ensures it doesn't get stale.
 genfile_check_test(
     src = "parse.y.go",

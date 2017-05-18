@@ -1,7 +1,7 @@
 // Generated file, do not edit.
 package lang
 
-import buildpb "github.com/bazelbuild/buildifier/build_proto"
+import buildpb "github.com/bazelbuild/buildtools/build_proto"
 
 var TypeOf = map[string]buildpb.Attribute_Discriminator{
 	"aar":	buildpb.Attribute_LABEL,
