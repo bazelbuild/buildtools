@@ -305,11 +305,11 @@ func sortCallArgs(f *File, info *RewriteInfo) {
 // It could use the auto-generated per-rule tables but for now it just
 // falls back to the original list.
 func ruleNamePriority(rule, arg string) int {
-	return namePriority[arg]
+	return tables.NamePriority[arg]
 	/*
 		list := ruleArgOrder[rule]
 		if len(list) == 0 {
-			return namePriority[arg]
+			return tables.NamePriority[arg]
 		}
 		for i, x := range list {
 			if x == arg {
@@ -318,39 +318,6 @@ func ruleNamePriority(rule, arg string) int {
 		}
 		return len(list)
 	*/
-}
-
-// namePriority maps an argument name to its sorting priority.
-//
-// NOTE(bazel-team): These are the old buildifier rules. It is likely that this table
-// will change, perhaps swapping in a separate table for each call,
-// derived from the order used in the Build Encyclopedia.
-var namePriority = map[string]int{
-	"name":              -99,
-	"gwt_name":          -98,
-	"package_name":      -97,
-	"visible_node_name": -96, // for boq_initial_css_modules and boq_jswire_test_suite
-	"size":              -95,
-	"timeout":           -94,
-	"testonly":          -93,
-	"src":               -92,
-	"srcdir":            -91,
-	"srcs":              -90,
-	"out":               -89,
-	"outs":              -88,
-	"hdrs":              -87,
-	"has_services":      -86, // before api versions, for proto
-	"include":           -85, // before exclude, for glob
-	"of":                -84, // for check_dependencies
-	"baseline":          -83, // for searchbox_library
-	// All others sort here, at 0.
-	"destdir":        1,
-	"exports":        2,
-	"runtime_deps":   3,
-	"deps":           4,
-	"implementation": 5,
-	"implements":     6,
-	"alwayslink":     7,
 }
 
 // If x is of the form key=value, argName returns the string key.
