@@ -163,11 +163,45 @@ var SortableWhitelist = map[string]bool{
 	"java_import.constraints":  true,
 }
 
+// NamePriority maps an argument name to its sorting priority.
+//
+// NOTE(bazel-team): These are the old buildifier rules. It is likely that this table
+// will change, perhaps swapping in a separate table for each call,
+// derived from the order used in the Build Encyclopedia.
+var NamePriority = map[string]int{
+	"name":              -99,
+	"gwt_name":          -98,
+	"package_name":      -97,
+	"visible_node_name": -96, // for boq_initial_css_modules and boq_jswire_test_suite
+	"size":              -95,
+	"timeout":           -94,
+	"testonly":          -93,
+	"src":               -92,
+	"srcdir":            -91,
+	"srcs":              -90,
+	"out":               -89,
+	"outs":              -88,
+	"hdrs":              -87,
+	"has_services":      -86, // before api versions, for proto
+	"include":           -85, // before exclude, for glob
+	"of":                -84, // for check_dependencies
+	"baseline":          -83, // for searchbox_library
+	// All others sort here, at 0.
+	"destdir":        1,
+	"exports":        2,
+	"runtime_deps":   3,
+	"deps":           4,
+	"implementation": 5,
+	"implements":     6,
+	"alwayslink":     7,
+}
+
 // OverrideTables allows a user of the build package to override the special-case rules.
-func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool) {
+func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int) {
 	IsLabelArg = labelArg
 	LabelBlacklist = blacklist
 	IsSortableListArg = sortableListArg
 	SortableBlacklist = sortBlacklist
 	SortableWhitelist = sortWhitelist
+	NamePriority = namePriority
 }

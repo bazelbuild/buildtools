@@ -27,6 +27,7 @@ type Definitions struct {
 	IsSortableListArg map[string]bool
 	SortableBlacklist map[string]bool
 	SortableWhitelist map[string]bool
+	NamePriority      map[string]int
 }
 
 func ParseJsonDefinitions(file string) (Definitions, error) {
@@ -47,6 +48,6 @@ func ParseAndUpdateJsonDefinitions(file string) error {
 		return err
 	}
 
-	OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist)
+	OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
 	return nil
 }

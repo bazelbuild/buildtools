@@ -15,5 +15,8 @@
   },
   "SortableWhitelist": {
 
+  },
+  "NamePriority": {
+    "name": -1
   }
 }
