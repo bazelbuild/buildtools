@@ -581,12 +581,14 @@ func (p *printer) listFor(v *ListForExpr) {
 		}
 		p.printf(" in ")
 		p.expr(c.Expr, precLow)
+		p.comment = append(p.comment, c.Comment().Suffix...)
 	}
 
 	for _, c := range v.If {
 		space()
 		p.printf("if ")
 		p.expr(c.Cond, precLow)
+		p.comment = append(p.comment, c.Comment().Suffix...)
 	}
 
 	if multiLine {

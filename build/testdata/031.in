@@ -4,5 +4,6 @@ java_test(
     deps = [ ':instrumented_js_runner' ],
     data = TEST_SOURCES,
     tags = [ 'local',  # Cannot be run remotely.
-             'manual' ],  # Don't run coverage automatically.
+             'manual'  # Don't run coverage automatically.
+            ],
     size = 'large')
