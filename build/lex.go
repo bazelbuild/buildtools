@@ -219,8 +219,8 @@ func (in *input) Lex(val *yySymType) int {
 			// Find the last \n before this # and see if it's all
 			// spaces from there to here.
 			// If it's a suffix comment but the last non-space symbol before
-			// it is one of (, [, or {, treat is as a line comment that should
-			// exist inside the corresponding block.
+			// it is one of (, [, or {, treat it as a line comment that should be
+			// put inside the corresponding block.
 			i := bytes.LastIndex(in.complete[:in.pos.Byte], []byte("\n"))
 			prefix := bytes.TrimSpace(in.complete[i+1:in.pos.Byte])
 			isSuffix := true
