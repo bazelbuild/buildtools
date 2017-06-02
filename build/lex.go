@@ -218,8 +218,18 @@ func (in *input) Lex(val *yySymType) int {
 			// Is this comment the only thing on its line?
 			// Find the last \n before this # and see if it's all
 			// spaces from there to here.
+			// If it's a suffix comment but the last non-space symbol before
+			// it is one of (, [, or {, treat it as a line comment that should be
+			// put inside the corresponding block.
 			i := bytes.LastIndex(in.complete[:in.pos.Byte], []byte("\n"))
-			suffix := len(bytes.TrimSpace(in.complete[i+1:in.pos.Byte])) > 0
+			prefix := bytes.TrimSpace(in.complete[i+1:in.pos.Byte])
+			isSuffix := true
+			if len(prefix) == 0 ||
+					prefix[len(prefix) - 1] == '[' ||
+					prefix[len(prefix) - 1] == '(' ||
+					prefix[len(prefix) - 1] == '{' {
+				isSuffix = false
+			}
 
 			// Consume comment.
 			in.startToken(val)
@@ -242,7 +252,7 @@ func (in *input) Lex(val *yySymType) int {
 			if countNL > 1 {
 				in.comments = append(in.comments, Comment{val.pos, "", false})
 			}
-			in.comments = append(in.comments, Comment{val.pos, val.tok, suffix})
+			in.comments = append(in.comments, Comment{val.pos, val.tok, isSuffix})
 			countNL = 1
 			continue
 		}
@@ -722,25 +732,13 @@ func (in *input) assignComments() {
 	for i := len(in.post) - 1; i >= 0; i-- {
 		x := in.post[i]
 
-		// Do not assign suffix comments to call, list, end-of-list,
-		// whole file, or conditional expression.
-		// Instead assign them to the last argument, element, or rule.
+		// Do not assign suffix comments to file
 		switch x.(type) {
-		case *CallExpr, *ListExpr, *End, *File, *ConditionalExpr:
+		case *File:
 			continue
 		}
 
-		// Do not assign suffix comments to something that starts
-		// on an earlier line, so that in
-		//
-		//	tags = [ "a",
-		//		"b" ], # comment
-		//
-		// we assign the comment to "b" and not to tags = [ ... ].
-		start, end := x.Span()
-		if start.Line != end.Line {
-			continue
-		}
+		_, end := x.Span()
 		xcom := x.Comment()
 		for len(suffix) > 0 && end.Byte <= suffix[len(suffix)-1].Start.Byte {
 			xcom.Suffix = append(xcom.Suffix, suffix[len(suffix)-1])
