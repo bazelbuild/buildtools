@@ -646,10 +646,12 @@ func (in *input) order(v Expr) {
 		for _, c := range v.For {
 			in.order(c)
 		}
-		for _, c := range v.If {
+		in.order(&v.End)
+	case *ForClauseWithIfClausesOpt:
+		in.order(v.For)
+		for _, c := range v.Ifs {
 			in.order(c)
 		}
-		in.order(&v.End)
 	case *ForClause:
 		for _, name := range v.Var {
 			in.order(name)

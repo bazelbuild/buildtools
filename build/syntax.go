@@ -196,8 +196,7 @@ type ListForExpr struct {
 	Brack          string // "", "()", or "[]"
 	Start          Position
 	X              Expr
-	For            []*ForClause
-	If             []*IfClause
+	For            []*ForClauseWithIfClausesOpt
 	End
 }
 
@@ -229,6 +228,23 @@ type IfClause struct {
 func (x *IfClause) Span() (start, end Position) {
 	_, end = x.Cond.Span()
 	return x.If, end
+}
+
+// A ForClauseWithIfClausesOpt represents a for clause in a list comprehension followed by optional
+// if expressions: for ... in ... [if ... if ...]
+type ForClauseWithIfClausesOpt struct {
+	Comments
+	For  *ForClause
+	Ifs  []*IfClause
+}
+
+func (x *ForClauseWithIfClausesOpt) Span() (start, end Position) {
+	start, end = x.For.Span()
+	if len(x.Ifs) > 0 {
+		_, end = x.Ifs[len(x.Ifs) - 1].Span()
+	}
+
+	return start, end
 }
 
 // A KeyValueExpr represents a dictionary entry: Key: Value.

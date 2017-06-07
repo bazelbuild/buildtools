@@ -26,8 +26,9 @@ package build
 	expr      Expr
 	exprs     []Expr
 	forc      *ForClause
-	fors      []*ForClause
 	ifs       []*IfClause
+	forifs    *ForClauseWithIfClausesOpt
+	forsifs   []*ForClauseWithIfClausesOpt
 	string    *StringExpr
 	strings   []*StringExpr
 
@@ -94,7 +95,8 @@ package build
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
 %type	<forc>		for_clause
-%type	<fors>		for_clauses
+%type	<forifs>	for_clause_with_if_clauses_opt
+%type	<forsifs>	for_clauses_with_if_clauses_opt
 %type	<expr>		ident
 %type	<exprs>		idents
 %type	<ifs>		if_clauses_opt
@@ -243,7 +245,7 @@ expr:
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
 	}
-|	'[' expr for_clauses if_clauses_opt ']'
+|	'[' expr for_clauses_with_if_clauses_opt ']'
 	{
 		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
@@ -251,12 +253,11 @@ expr:
 			Start: $1,
 			X: $2,
 			For: $3,
-			If: $4,
-			End: End{Pos: $5},
+			End: End{Pos: $4},
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
-|	'(' expr for_clauses if_clauses_opt ')'
+|	'(' expr for_clauses_with_if_clauses_opt ')'
 	{
 		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
@@ -264,12 +265,11 @@ expr:
 			Start: $1,
 			X: $2,
 			For: $3,
-			If: $4,
-			End: End{Pos: $5},
+			End: End{Pos: $4},
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
-|	'{' keyvalue for_clauses if_clauses_opt '}'
+|	'{' keyvalue for_clauses_with_if_clauses_opt '}'
 	{
 		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
@@ -277,8 +277,7 @@ expr:
 			Start: $1,
 			X: $2,
 			For: $3,
-			If: $4,
-			End: End{Pos: $5},
+			End: End{Pos: $4},
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
@@ -333,7 +332,7 @@ expr:
 			ForceMultiLine: forceMultiLine($2, $3, $4),
 		}
 	}
-|	expr '(' expr for_clauses if_clauses_opt ')'
+|	expr '(' expr for_clauses_with_if_clauses_opt ')'
 	{
 		$$ = &CallExpr{
 			X: $1,
@@ -344,11 +343,10 @@ expr:
 					Start: $2,
 					X: $3,
 					For: $4,
-					If: $5,
-					End: End{Pos: $6},
+					End: End{Pos: $5},
 				},
 			},
-			End: End{Pos: $6},
+			End: End{Pos: $5},
 		}
 	}
 |	expr '[' expr ']'
@@ -540,14 +538,22 @@ for_clause:
 		}
 	}
 
-for_clauses:
-	for_clause
-	{
-		$$ = []*ForClause{$1}
+for_clause_with_if_clauses_opt:
+	for_clause if_clauses_opt {
+		$$ = &ForClauseWithIfClausesOpt{
+			For: $1,
+			Ifs: $2,
+		}
 	}
-|	for_clauses for_clause {
-		$$ = append($1, $2)
-	}
+
+for_clauses_with_if_clauses_opt:
+  for_clause_with_if_clauses_opt
+  {
+    $$ = []*ForClauseWithIfClausesOpt{$1}
+  }
+| for_clauses_with_if_clauses_opt for_clause_with_if_clauses_opt {
+    $$ = append($1, $2)
+  }
 
 if_clauses_opt:
 	{
