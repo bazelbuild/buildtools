@@ -250,6 +250,8 @@ func removeVarref(_ *build.File, r *build.Rule, _ string) bool {
 		}
 		fixed = true
 		str.Value = "$(" + str.Value + ")"
+		// Preserve suffix comments from the function call
+		str.Comment().Suffix = append(str.Comment().Suffix, call.Comment().Suffix...)
 		return str
 	})
 	return fixed
@@ -334,10 +336,17 @@ func usePlusEqual(f *build.File) bool {
 	return fixed
 }
 
+func isNonemptyComment(comment *build.Comments) bool {
+	return len(comment.Before) + len(comment.Suffix) + len(comment.After) > 0
+}
+
+// Checks whether a call or any of its arguments have a comment
 func hasComment(call *build.CallExpr) bool {
+	if isNonemptyComment(call.Comment()) {
+		return true
+	}
 	for _, arg := range call.List {
-		c := arg.Comment()
-		if len(c.Before)+len(c.Suffix)+len(c.After) > 0 {
+		if isNonemptyComment(arg.Comment()) {
 			return true
 		}
 	}
