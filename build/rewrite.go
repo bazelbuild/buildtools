@@ -305,6 +305,10 @@ func sortCallArgs(f *File, info *RewriteInfo) {
 // It could use the auto-generated per-rule tables but for now it just
 // falls back to the original list.
 func ruleNamePriority(rule, arg string) int {
+	rule_arg := rule + "." + arg
+	if val, ok := tables.NamePriority[rule_arg]; ok {
+		return val
+	}
 	return tables.NamePriority[arg]
 	/*
 		list := ruleArgOrder[rule]
