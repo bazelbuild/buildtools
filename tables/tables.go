@@ -196,7 +196,7 @@ var NamePriority = map[string]int{
 	"alwayslink":     7,
 }
 
-// OverrideTables allows a user of the build package to override the special-case rules.
+// OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
 func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int) {
 	IsLabelArg = labelArg
 	LabelBlacklist = blacklist
@@ -204,4 +204,26 @@ func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhi
 	SortableBlacklist = sortBlacklist
 	SortableWhitelist = sortWhitelist
 	NamePriority = namePriority
+}
+
+// MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
+func MergeTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int) {
+	for k, v := range labelArg {
+		IsLabelArg[k] = v
+	}
+	for k, v := range blacklist {
+		LabelBlacklist[k] = v
+	}
+	for k, v := range sortableListArg {
+		IsSortableListArg[k] = v
+	}
+	for k, v := range sortBlacklist {
+		SortableBlacklist[k] = v
+	}
+	for k, v := range sortWhitelist {
+		SortableWhitelist[k] = v
+	}
+	for k, v := range namePriority {
+		NamePriority[k] = v
+	}
 }

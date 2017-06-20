@@ -42,12 +42,16 @@ func ParseJsonDefinitions(file string) (Definitions, error) {
 	return definitions, err
 }
 
-func ParseAndUpdateJsonDefinitions(file string) error {
+func ParseAndUpdateJsonDefinitions(file string, merge bool) error {
 	definitions, err := ParseJsonDefinitions(file)
 	if err != nil {
 		return err
 	}
 
-	OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
+	if merge {
+		MergeTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
+	} else {
+		OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
+	}
 	return nil
 }

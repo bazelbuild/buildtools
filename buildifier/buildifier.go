@@ -39,12 +39,13 @@ var (
 	// Undocumented; for debugging.
 	showlog = flag.Bool("showlog", false, "show log in check mode")
 
-	vflag      = flag.Bool("v", false, "print verbose information on standard error")
-	dflag      = flag.Bool("d", false, "alias for -mode=diff")
-	mode       = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
-	path       = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
-	tablesPath = flag.String("tables", "", "path to JSON file with custom table definitions")
-	version    = flag.Bool("version", false, "Print the version of buildifier")
+	vflag         = flag.Bool("v", false, "print verbose information on standard error")
+	dflag         = flag.Bool("d", false, "alias for -mode=diff")
+	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
+	path          = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
+	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
+	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
+	version       = flag.Bool("version", false, "Print the version of buildifier")
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
@@ -128,8 +129,15 @@ func main() {
 	}
 
 	if *tablesPath != "" {
-		if err := tables.ParseAndUpdateJsonDefinitions(*tablesPath); err != nil {
+		if err := tables.ParseAndUpdateJsonDefinitions(*tablesPath, false); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -tables: %s\n", *tablesPath, err)
+			os.Exit(2)
+		}
+	}
+
+	if *addTablesPath != "" {
+		if err := tables.ParseAndUpdateJsonDefinitions(*addTablesPath, true); err != nil {
+			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -add_tables: %s\n", *addTablesPath, err)
 			os.Exit(2)
 		}
 	}
