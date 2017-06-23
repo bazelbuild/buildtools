@@ -674,7 +674,16 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) 
 	return vars
 }
 
-var buildFileSuffixes = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
+// When checking the filesystem, we need to look for any of the
+// possible buildFileNames. For historical reasons, the
+// parts of the tool that generate paths that we may want to examine
+// continue to assume that build files are all named "BUILD".
+var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
+var buildFileNamesSet = map[string]bool{
+	"BUILD.bazel": true,
+	"BUILD":       true,
+	"BUCK":        true,
+}
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout). g4 edit is run
@@ -692,8 +701,13 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 		}
 	} else {
 		origName := name
-		name = strings.TrimSuffix(name, "BUILD")
-		for _, suffix := range buildFileSuffixes {
+		for _, suffix := range buildFileNames {
+			if strings.HasSuffix(name, "/" + suffix) {
+				name = strings.TrimSuffix(name, suffix)
+				break
+			}
+		}
+		for _, suffix := range buildFileNames {
 			name = name + suffix
 			data, fi, err = file.ReadFile(name)
 			if err == nil {
@@ -853,7 +867,7 @@ func targetExpressionToBuildFiles(target string) []string {
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
 				searchDirs = append(searchDirs, path.Join(dir, dirFile.Name()))
-			} else if dirFile.Name() == "BUILD" {
+			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
 				buildFiles = append(buildFiles, path.Join(dir, dirFile.Name()))
 			}
 		}
