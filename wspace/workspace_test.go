@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -54,5 +55,50 @@ func TestBasic(t *testing.T) {
 		if root != tc.expectedRoot || rest != tc.expectedRest {
 			t.Errorf("FindWorkspaceRoot(%q) = %q, %q; want %q, %q", tc.input, root, rest, tc.expectedRoot, tc.expectedRest)
 		}
+	}
+}
+
+func TestFindRepoBuildfiles(t *testing.T) {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+	workspace := []byte(`
+new_git_repository(
+    name = "a",
+    build_file = "a.BUILD",
+)
+new_http_archive(
+    name = "b",
+    build_file = "b.BUILD",
+)
+new_local_repository(
+    name = "c",
+    build_file = "c.BUILD",
+)
+git_repository(
+    name = "d",
+    build_file = "d.BUILD",
+)
+new_git_repository(
+    name = "e",
+    build_file_content = "n/a",
+)
+`)
+	if err := ioutil.WriteFile(filepath.Join(tmp, workspaceFile), workspace, 0755); err != nil {
+		t.Fatal(err)
+	}
+	files, err := FindRepoBuildFiles(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := map[string]string{
+		"a": filepath.Join(tmp, "a.BUILD"),
+		"b": filepath.Join(tmp, "b.BUILD"),
+		"c": filepath.Join(tmp, "c.BUILD"),
+	}
+	if !reflect.DeepEqual(files, expected) {
+		t.Errorf("FileRepoBuildFiles(`%s`) = %q; want %q", workspace, files, expected)
 	}
 }
