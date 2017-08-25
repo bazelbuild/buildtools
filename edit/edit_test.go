@@ -30,6 +30,8 @@ var parseLabelTests = []struct {
 	{"//devtools/buildozer", "devtools/buildozer", "buildozer"},
 	{"//base", "base", "base"},
 	{"//base:", "base", "base"},
+	{":label", "", "label"},
+	{"label", "", "label"},
 }
 
 func TestParseLabel(t *testing.T) {
