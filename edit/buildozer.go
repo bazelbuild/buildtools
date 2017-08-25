@@ -17,6 +17,7 @@ package edit
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -715,6 +716,10 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 			name = strings.TrimSuffix(name, suffix)
 		}
 		if err != nil {
+			data, fi, err = file.ReadFile(name)
+		}
+		if err != nil {
+			err = errors.New("file not found or not readable")
 			return &rewriteResult{file: origName, errs: []error{err}}
 		}
 	}
@@ -734,7 +739,7 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 		target := commands.target
 		commands := commands.commands
 		_, absPkg, rule := InterpretLabelForWorkspaceLocation(Opts.RootDir, target)
-		pkg, _ := ParseLabel(target)
+		_, pkg, _ := ParseLabel(target)
 		if pkg == stdinPackageName { // Special-case: This is already absolute
 			absPkg = stdinPackageName
 		}
@@ -884,7 +889,7 @@ func appendCommands(commandMap map[string][]commandsForTarget, args []string) {
 			target = strings.TrimSuffix(target, "/BUILD") + ":__pkg__"
 		}
 		var buildFiles []string
-		pkg, _ := ParseLabel(target)
+		_, pkg, _ := ParseLabel(target)
 		if pkg == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {

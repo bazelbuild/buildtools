@@ -34,8 +34,20 @@ var (
 )
 
 // ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
-// the package (with leading slashes trimmed) and rule name (e.g. ["devtools/buildozer", "rule"]).
-func ParseLabel(target string) (string, string) {
+// the repo name ("" for the main repo), package (with leading slashes trimmed)
+// and rule name (e.g. ["", "devtools/buildozer", "rule"]).
+func ParseLabel(target string) (string, string, string) {
+	repo := ""
+	if strings.HasPrefix(target, "@") {
+		target = strings.TrimLeft(target, "@")
+		parts := strings.SplitN(target, "/", 2)
+		if len(parts) == 1 {
+			// "@foo" -> "foo", "", "foo" (ie @foo//:foo)
+			return target, "", target
+		}
+		repo = parts[0]
+		target = "/" + parts[1]
+	}
 	// TODO(bazel-team): check if the next line can now be deleted
 	target = strings.TrimRight(target, ":") // labels can end with ':'
 	parts := strings.SplitN(target, ":", 2)
@@ -43,13 +55,13 @@ func ParseLabel(target string) (string, string) {
 	if len(parts) == 1 {
 		if strings.HasPrefix(target, "//") {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
-			return parts[0], path.Base(parts[0])
+			return repo, parts[0], path.Base(parts[0])
 		} else {
 			// "relative/label" -> "", "relative/label"
-			return "", parts[0]
+			return repo, "", parts[0]
 		}
 	}
-	return parts[0], parts[1]
+	return repo, parts[0], parts[1]
 }
 
 // ShortenLabel rewrites labels to use the canonical form (the form
@@ -64,8 +76,8 @@ func ShortenLabel(label string, pkg string) string {
 		// It doesn't look like a long label, so we preserve it.
 		return label
 	}
-	labelPkg, rule := ParseLabel(label)
-	if labelPkg == pkg { // local label
+	repo, labelPkg, rule := ParseLabel(label)
+	if repo == "" && labelPkg == pkg { // local label
 		return ":" + rule
 	}
 	slash := strings.LastIndex(labelPkg, "/")
@@ -88,8 +100,17 @@ func LabelsEqual(label1, label2, pkg string) bool {
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
 func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile string, pkg string, rule string) {
-	pkg, rule = ParseLabel(target)
+	repo, pkg, rule := ParseLabel(target)
 	rootDir, relativePath := wspace.FindWorkspaceRoot(root)
+	if repo != "" {
+		files, err := wspace.FindRepoBuildFiles(rootDir)
+		if err == nil {
+			if buildFile, ok := files[repo]; ok {
+				return buildFile, pkg, rule
+			}
+		}
+		// TODO(rodrigoq): report error for other repos
+	}
 
 	if strings.HasPrefix(target, "//") {
 		buildFile = path.Join(rootDir, pkg, "BUILD")

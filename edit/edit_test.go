@@ -22,24 +22,30 @@ import (
 
 var parseLabelTests = []struct {
 	in   string
+	repo string
 	pkg  string
 	rule string
 }{
-	{"//devtools/buildozer:rule", "devtools/buildozer", "rule"},
-	{"devtools/buildozer:rule", "devtools/buildozer", "rule"},
-	{"//devtools/buildozer", "devtools/buildozer", "buildozer"},
-	{"//base", "base", "base"},
-	{"//base:", "base", "base"},
-	{":label", "", "label"},
-	{"label", "", "label"},
+	{"//devtools/buildozer:rule", "", "devtools/buildozer", "rule"},
+	{"devtools/buildozer:rule", "", "devtools/buildozer", "rule"},
+	{"//devtools/buildozer", "", "devtools/buildozer", "buildozer"},
+	{"//base", "", "base", "base"},
+	{"//base:", "", "base", "base"},
+	{"@r//devtools/buildozer:rule", "r", "devtools/buildozer", "rule"},
+	{"@r//devtools/buildozer", "r", "devtools/buildozer", "buildozer"},
+	{"@r//base", "r", "base", "base"},
+	{"@r//base:", "r", "base", "base"},
+	{"@foo", "foo", "", "foo"},
+	{":label", "", "", "label"},
+	{"label", "", "", "label"},
 }
 
 func TestParseLabel(t *testing.T) {
 	for i, tt := range parseLabelTests {
-		pkg, rule := ParseLabel(tt.in)
-		if pkg != tt.pkg || rule != tt.rule {
-			t.Errorf("%d. ParseLabel(%q) => (%q, %q), want (%q, %q)",
-				i, tt.in, pkg, rule, tt.pkg, tt.rule)
+		repo, pkg, rule := ParseLabel(tt.in)
+		if repo != tt.repo || pkg != tt.pkg || rule != tt.rule {
+			t.Errorf("%d. ParseLabel(%q) => (%q, %q, %q), want (%q, %q, %q)",
+				i, tt.in, repo, pkg, rule, tt.repo, tt.pkg, tt.rule)
 		}
 	}
 }
