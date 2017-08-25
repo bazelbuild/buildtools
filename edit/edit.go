@@ -36,18 +36,20 @@ var (
 // ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
 // the package (with leading slashes trimmed) and rule name (e.g. ["devtools/buildozer", "rule"]).
 func ParseLabel(target string) (string, string) {
-	target = strings.TrimLeft(target, "/")
 	// TODO(bazel-team): check if the next line can now be deleted
 	target = strings.TrimRight(target, ":") // labels can end with ':'
-	parts := strings.Split(target, ":")
-	if len(parts) == 2 {
-		return parts[0], parts[1]
+	parts := strings.SplitN(target, ":", 2)
+	parts[0] = strings.TrimLeft(parts[0], "/")
+	if len(parts) == 1 {
+		if strings.HasPrefix(target, "//") {
+			// "//absolute/pkg" -> "absolute/pkg", "pkg"
+			return parts[0], path.Base(parts[0])
+		} else {
+			// "relative/label" -> "", "relative/label"
+			return "", parts[0]
+		}
 	}
-	lastBackslash := strings.LastIndex(target, "/")
-	if lastBackslash >= 0 {
-		return target, target[lastBackslash+1:]
-	}
-	return target, target // eg. "//base" -> //base:base
+	return parts[0], parts[1]
 }
 
 // ShortenLabel rewrites labels to use the canonical form (the form
