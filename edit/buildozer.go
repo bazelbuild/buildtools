@@ -686,8 +686,7 @@ var buildFileNamesSet = map[string]bool{
 }
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
-// and write the changes back in the file (or on stdout). g4 edit is run
-// automatically if the file is not writeable.
+// and write the changes back in the file (or on stdout).
 func rewrite(commandsForFile commandsForFile) *rewriteResult {
 	name := commandsForFile.file
 	var data []byte
@@ -702,7 +701,7 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 	} else {
 		origName := name
 		for _, suffix := range buildFileNames {
-			if strings.HasSuffix(name, "/" + suffix) {
+			if strings.HasSuffix(name, "/"+suffix) {
 				name = strings.TrimSuffix(name, suffix)
 				break
 			}
@@ -956,8 +955,6 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 }
 
 // Buildozer loops over all arguments on the command line fixing BUILD files.
-// It runs g4 edit if the BUILD file is unwritable, but it is typically more efficient
-// to do a bulk g4 edit before starting.
 func Buildozer(args []string) int {
 	commandsByFile := make(map[string][]commandsForTarget)
 	if Opts.CommandsFile != "" {
