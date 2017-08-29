@@ -224,6 +224,7 @@ func processFiles(files []string) {
 // 1: syntax errors in input
 // 2: usage errors: invoked incorrectly
 // 3: unexpected runtime errors: file I/O problems or internal bugs
+// 4: check mode failed (reformat is needed) 
 var exitCode = 0
 
 // toRemove is a list of files to remove before exiting.
@@ -286,6 +287,7 @@ func processFile(filename string, data []byte) {
 				log = " " + strings.Join(uniq, " ")
 			}
 			fmt.Printf("%s #%s %s%s\n", filename, reformat, &info, log)
+                        exitCode = 4
 		}
 		return
 
