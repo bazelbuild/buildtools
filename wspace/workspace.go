@@ -18,8 +18,11 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package wspace
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/bazelbuild/buildtools/build"
 )
 
 const workspaceFile = "WORKSPACE"
@@ -61,4 +64,34 @@ func Find(dir string) (string, error) {
 		return "", err
 	}
 	return Find(filepath.Dir(dir))
+}
+
+// FindRepoBuildFiles parses the WORKSPACE to find BUILD files for non-Bazel
+// external repositories, specifically those defined by one of these rules:
+//   new_local_repository(), new_git_repository(), new_http_archive()
+func FindRepoBuildFiles(root string) (map[string]string, error) {
+	ws := filepath.Join(root, workspaceFile)
+	kinds := []string{
+		"new_local_repository",
+		"new_git_repository",
+		"new_http_archive",
+	}
+	data, err := ioutil.ReadFile(ws)
+	if err != nil {
+		return nil, err
+	}
+	ast, err := build.Parse(ws, data)
+	if err != nil {
+		return nil, err
+	}
+	files := make(map[string]string)
+	for _, kind := range kinds {
+		for _, r := range ast.Rules(kind) {
+			if r.AttrString("build_file") == "" {
+				continue
+			}
+			files[r.Name()] = filepath.Join(root, r.AttrString("build_file"))
+		}
+	}
+	return files, nil
 }
