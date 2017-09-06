@@ -30,7 +30,8 @@ type Definitions struct {
 	NamePriority      map[string]int
 }
 
-func ParseJsonDefinitions(file string) (Definitions, error) {
+// ParseJSONDefinitions reads and parses JSON table definitions from file.
+func ParseJSONDefinitions(file string) (Definitions, error) {
 	var definitions Definitions
 
 	data, err := ioutil.ReadFile(file)
@@ -42,8 +43,10 @@ func ParseJsonDefinitions(file string) (Definitions, error) {
 	return definitions, err
 }
 
-func ParseAndUpdateJsonDefinitions(file string, merge bool) error {
-	definitions, err := ParseJsonDefinitions(file)
+// ParseAndUpdateJSONDefinitions reads definitions from file and merges or
+// overrides the values in memory.
+func ParseAndUpdateJSONDefinitions(file string, merge bool) error {
+	definitions, err := ParseJSONDefinitions(file)
 	if err != nil {
 		return err
 	}
