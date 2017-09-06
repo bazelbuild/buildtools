@@ -129,14 +129,14 @@ func main() {
 	}
 
 	if *tablesPath != "" {
-		if err := tables.ParseAndUpdateJsonDefinitions(*tablesPath, false); err != nil {
+		if err := tables.ParseAndUpdateJSONDefinitions(*tablesPath, false); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -tables: %s\n", *tablesPath, err)
 			os.Exit(2)
 		}
 	}
 
 	if *addTablesPath != "" {
-		if err := tables.ParseAndUpdateJsonDefinitions(*addTablesPath, true); err != nil {
+		if err := tables.ParseAndUpdateJSONDefinitions(*addTablesPath, true); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -add_tables: %s\n", *addTablesPath, err)
 			os.Exit(2)
 		}
@@ -224,7 +224,7 @@ func processFiles(files []string) {
 // 1: syntax errors in input
 // 2: usage errors: invoked incorrectly
 // 3: unexpected runtime errors: file I/O problems or internal bugs
-// 4: check mode failed (reformat is needed) 
+// 4: check mode failed (reformat is needed)
 var exitCode = 0
 
 // toRemove is a list of files to remove before exiting.
@@ -287,7 +287,7 @@ func processFile(filename string, data []byte) {
 				log = " " + strings.Join(uniq, " ")
 			}
 			fmt.Printf("%s #%s %s%s\n", filename, reformat, &info, log)
-                        exitCode = 4
+			exitCode = 4
 		}
 		return
 

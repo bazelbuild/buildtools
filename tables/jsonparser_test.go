@@ -22,9 +22,9 @@ import (
 	"testing"
 )
 
-func TestParseJsonDefinitions(t *testing.T) {
+func TestParseJSONDefinitions(t *testing.T) {
 	testdata := os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/tables/testdata"
-	definitions, err := ParseJsonDefinitions(testdata + "/simple_tables.json")
+	definitions, err := ParseJSONDefinitions(testdata + "/simple_tables.json")
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,6 +38,6 @@ func TestParseJsonDefinitions(t *testing.T) {
 		NamePriority:      map[string]int{"name": -1},
 	}
 	if !reflect.DeepEqual(expected, definitions) {
-		t.Errorf("ParseJsonDefinitions() = %v; want %v", definitions, expected)
+		t.Errorf("ParseJSONDefinitions() = %v; want %v", definitions, expected)
 	}
 }

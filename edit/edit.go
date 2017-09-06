@@ -56,10 +56,9 @@ func ParseLabel(target string) (string, string, string) {
 		if strings.HasPrefix(target, "//") {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
 			return repo, parts[0], path.Base(parts[0])
-		} else {
-			// "relative/label" -> "", "relative/label"
-			return repo, "", parts[0]
 		}
+		// "relative/label" -> "", "relative/label"
+		return repo, "", parts[0]
 	}
 	return repo, parts[0], parts[1]
 }

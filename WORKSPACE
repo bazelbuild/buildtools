@@ -10,10 +10,17 @@ http_archive(
     ],
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_repositories", "new_go_repository")
+load(
+    "@io_bazel_rules_go//go:def.bzl",
+    "go_rules_dependencies",
+    "go_register_toolchains",
+    "go_repository",
+)
 load("@io_bazel_rules_go//proto:go_proto_library.bzl", "go_proto_repositories")
 
-go_repositories()
+go_rules_dependencies()
+
+go_register_toolchains()
 
 go_proto_repositories()
 
@@ -28,7 +35,7 @@ http_archive(
     ],
 )
 
-new_go_repository(
+go_repository(
     name = "org_golang_x_tools",
     commit = "3d92dd60033c312e3ae7cac319c792271cf67e37",
     importpath = "golang.org/x/tools",
