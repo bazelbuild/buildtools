@@ -402,7 +402,14 @@ func cmdReplace(env CmdEnvironment) (*build.File, error) {
 	oldV := env.Args[1]
 	newV := env.Args[2]
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
-		ListReplace(env.Rule.Attr(key), oldV, newV, env.Pkg)
+		switch e := env.Rule.Attr(key).(type) {
+		case *build.ListExpr:
+			ListReplace(e, oldV, newV, env.Pkg)
+		case *build.StringExpr:
+			if LabelsEqual(e.Value, oldV, env.Pkg) {
+				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}))
+			}
+		}
 	}
 	return env.File, nil
 }
