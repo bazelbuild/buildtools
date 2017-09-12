@@ -407,7 +407,7 @@ func cmdReplace(env CmdEnvironment) (*build.File, error) {
 				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}))
 			}
 		} else {
-			ListReplace(e, oldV, newV, env.Pkg)
+			ListReplace(env.Rule.Attr(key), oldV, newV, env.Pkg)
 		}
 	}
 	return env.File, nil
