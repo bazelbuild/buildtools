@@ -99,6 +99,10 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 		for i := range v.List {
 			walk1(&v.List[i], stack, f)
 		}
+	case *SetExpr:
+		for i := range v.List {
+			walk1(&v.List[i], stack, f)
+		}
 	case *TupleExpr:
 		for i := range v.List {
 			walk1(&v.List[i], stack, f)

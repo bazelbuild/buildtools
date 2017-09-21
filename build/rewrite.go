@@ -242,6 +242,15 @@ func fixLabels(f *File, info *RewriteInfo) {
 						joinLabel(&list.List[i])
 						shortenLabel(list.List[i])
 					}
+				}
+				if set, ok := as.Y.(*SetExpr); ok {
+					for i := range set.List {
+						if leaveAlone1(set.List[i]) {
+							continue
+						}
+						joinLabel(&set.List[i])
+						shortenLabel(set.List[i])
+					}
 				} else {
 					joinLabel(&as.Y)
 					shortenLabel(as.Y)
