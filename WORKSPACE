@@ -3,10 +3,10 @@ workspace(name = "com_github_bazelbuild_buildtools")
 # 0.5.5
 http_archive(
     name = "io_bazel_rules_go",
-    strip_prefix = "rules_go-e1c4b58c05e4a6ab67392daf28f3d57e4902f581",
+    strip_prefix = "rules_go-71cdb6fd5f887d215bdbe0e4d1eb137278b09c39",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/rules_go/archive/e1c4b58c05e4a6ab67392daf28f3d57e4902f581.tar.gz",
-        "https://github.com/bazelbuild/rules_go/archive/e1c4b58c05e4a6ab67392daf28f3d57e4902f581.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/rules_go/archive/71cdb6fd5f887d215bdbe0e4d1eb137278b09c39.tar.gz",
+        "https://github.com/bazelbuild/rules_go/archive/71cdb6fd5f887d215bdbe0e4d1eb137278b09c39.tar.gz",
     ],
 )
 
@@ -24,10 +24,10 @@ go_register_toolchains()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    strip_prefix = "bazel-0.5.4",
+    strip_prefix = "bazel-0.6.0",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.5.4.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.5.4.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.6.0.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.6.0.tar.gz",
     ],
 )
 
