@@ -2,10 +2,10 @@
 
 This repository contains developer tools for working with Google's `bazel` buildtool.
 
-* [buildifier/README.md](buildifier) For formatting BUILD, BUILD.bazel and BUCK files in a standard way
-* [buildozer/README.md](buildozer) For doing command-line operations on these files.
-* [unused_deps/README.md](unused_deps) For finding unneeded dependencies in
-[https://docs.bazel.build/versions/master/be/java.html#java_library](java_library) rules.
+* [buildifier](buildifier/README.md) For formatting BUILD, BUILD.bazel and BUCK files in a standard way
+* [buildozer](buildozer/README.md) For doing command-line operations on these files.
+* [unused_deps](unused_deps/README.md) For finding unneeded dependencies in
+[java_library](https://docs.bazel.build/versions/master/be/java.html#java_library) rules.
 
 
 linux-x86_64 | ubuntu_15.10-x86_64 | darwin-x86_64

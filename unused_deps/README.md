@@ -1,9 +1,9 @@
 # Unused Deps
 
-unused_deps is a command line tool to determine any unused depenencies
-in java_library targets in [Bazel](https://github.com/bazelbuild/bazel)
-BUILD files using.  It outputs `buildozer` commands to apply the suggested
-pruning.
+unused_deps is a command line tool to determine any unused dependencies
+in [java_library](https://docs.bazel.build/versions/master/be/java.html#java_library)
+rules. targets.  It outputs `buildozer` commands to apply the suggested
+prunings.
 
 ## Dependencies
 
@@ -32,4 +32,4 @@ go install
 unused_deps TARGET...
 ```
 
-Here, `TARGET` is a space-separated list of Bazel labels, with support for ...
+Here, `TARGET` is a space-separated list of Bazel labels, with support for `:all` and `...`
