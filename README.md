@@ -1,22 +1,17 @@
-# Buildifier
+# Buildtools for bazel
 
-buildifier is a tool for formatting bazel BUILD files with a standard convention.
+This repository contains developer tools for working with Google's `bazel` buildtool.
+
+* [buildifier](buildifier/README.md) For formatting BUILD, BUILD.bazel and BUCK files in a standard way
+* [buildozer](buildozer/README.md) For doing command-line operations on these files.
+* [unused_deps](unused_deps/README.md) For finding unneeded dependencies in
+[java_library](https://docs.bazel.build/versions/master/be/java.html#java_library) rules.
+
 
 linux-x86_64 | ubuntu_15.10-x86_64 | darwin-x86_64
 :---: | :---: | :---:
-[![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=linux-x86_64)](http://ci.bazel.io/job/buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=linux-x86_64) | [![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=ubuntu_15.10-x86_64)](http://ci.bazel.io/job/buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=ubuntu_15.10-x86_64) | [![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=darwin-x86_64)](http://ci.bazel.io/job/buildifier/BAZEL_VERSION=latest,PLATFORM_NAME=darwin-x86_64)
+[![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=linux-x86_64)](http://ci.bazel.io/job/buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=linux-x86_64) | [![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=ubuntu_15.10-x86_64)](http://ci.bazel.io/job/buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=ubuntu_15.10-x86_64) | [![Build Status](http://ci.bazel.io/buildStatus/icon?job=buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=darwin-x86_64)](http://ci.bazel.io/job/buildtools/BAZEL_VERSION=latest,PLATFORM_NAME=darwin-x86_64)
 
 ## Setup
 
-Build the tool:
-* Checkout the repo and then either via `go install` or `bazel build //buildifier`
-* If you already have 'go' installed, then build a binary via:
-
-`go get github.com/bazelbuild/buildtools/buildifier`
-
-## Usage
-
-Use buildifier to create standardized formatting for BUILD files in the
-same way that clang-format is used for source files.
-
-`$ buildifier -showlog -mode=check $(find . -iname BUILD -type f)`
+See instructions in each tool's directory.
