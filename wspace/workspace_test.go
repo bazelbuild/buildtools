@@ -28,7 +28,7 @@ type testCase struct {
 	expectedRoot, expectedRest string
 }
 
-func TestBasic(t *testing.T) {
+func runBasicTestWithRepoRootFile(t *testing.T, repoRootFile string) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -37,10 +37,10 @@ func TestBasic(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, workspaceFile), nil, 0755); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(tmp, repoRootFile), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", workspaceFile), nil, 0755); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", repoRootFile), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,6 +56,11 @@ func TestBasic(t *testing.T) {
 			t.Errorf("FindWorkspaceRoot(%q) = %q, %q; want %q, %q", tc.input, root, rest, tc.expectedRoot, tc.expectedRest)
 		}
 	}
+}
+
+func TestBasic(t *testing.T) {
+	runBasicTestWithRepoRootFile(t, ".buckconfig")
+	runBasicTestWithRepoRootFile(t, workspaceFile)
 }
 
 func TestFindRepoBuildfiles(t *testing.T) {
