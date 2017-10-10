@@ -104,7 +104,7 @@ package build
 %type	<expr>		stmt
 %type	<expr>		keyvalue
 %type	<exprs>		keyvalues
-%type	<exprs>		keyvalues_opt
+%type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
 
@@ -281,9 +281,19 @@ expr:
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
-|	'{' keyvalues_opt '}'
+|	'{' keyvalues '}'
 	{
 		$$ = &DictExpr{
+			Start: $1,
+			List: $2,
+			Comma: $<comma>2,
+			End: End{Pos: $3},
+			ForceMultiLine: forceMultiLine($1, $2, $3),
+		}
+	}
+|	'{' exprs_opt '}'
+	{
+		$$ = &SetExpr{
 			Start: $1,
 			List: $2,
 			Comma: $<comma>2,
@@ -442,23 +452,24 @@ keyvalue:
 		}
 	}
 
-keyvalues:
+keyvalues_no_comma:
 	keyvalue
 	{
 		$$ = []Expr{$1}
 	}
-|	keyvalues ',' keyvalue
+|	keyvalues_no_comma ',' keyvalue
 	{
 		$$ = append($1, $3)
 	}
 
-keyvalues_opt:
+keyvalues:
+	keyvalues_no_comma
 	{
-		$$, $<comma>$ = nil, Position{}
+		$$ = $1
 	}
-|	keyvalues comma_opt
+|	keyvalues_no_comma ','
 	{
-		$$, $<comma>$ = $1, $2
+		$$ = $1
 	}
 
 exprs:

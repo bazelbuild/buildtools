@@ -404,6 +404,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *ListExpr:
 		p.seq("[]", v.List, &v.End, modeList, false, v.ForceMultiLine)
 
+	case *SetExpr:
+		p.seq("{}", v.List, &v.End, modeList, false, v.ForceMultiLine)
+
 	case *TupleExpr:
 		p.seq("()", v.List, &v.End, modeTuple, v.ForceCompact, v.ForceMultiLine)
 

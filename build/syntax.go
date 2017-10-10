@@ -289,6 +289,20 @@ func (x *ListExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add("]")
 }
 
+// A SetExpr represents a set literal: { List }.
+type SetExpr struct {
+	Comments
+	Start Position
+	List  []Expr
+	Comma Position // position of trailing comma, if any
+	End
+	ForceMultiLine bool // force multiline form when printing
+}
+
+func (x *SetExpr) Span() (start, end Position) {
+	return x.Start, x.End.Pos.add("}")
+}
+
 // A TupleExpr represents a tuple literal: (List)
 type TupleExpr struct {
 	Comments

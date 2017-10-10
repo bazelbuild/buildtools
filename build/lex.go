@@ -647,6 +647,11 @@ func (in *input) order(v Expr) {
 			in.order(c)
 		}
 		in.order(&v.End)
+	case *SetExpr:
+		for _, x := range v.List {
+			in.order(x)
+		}
+		in.order(&v.End)
 	case *ForClauseWithIfClausesOpt:
 		in.order(v.For)
 		for _, c := range v.Ifs {
