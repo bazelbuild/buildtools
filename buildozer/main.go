@@ -24,7 +24,7 @@ import (
 
 var (
 	stdout            = flag.Bool("stdout", false, "write changed BUILD file to stdout")
-	buildifier        = flag.String("buildifier", "", "path to buildifier binary")
+	buildifier        = flag.String("buildifier", "", "format output using a specific buildifier binary. If empty, use built-in formatter")
 	parallelism       = flag.Int("P", 0, "number of cores to use for concurrent actions")
 	numio             = flag.Int("numio", 200, "number of concurrent actions")
 	commandsFile      = flag.String("f", "", "file name to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags)")
@@ -43,9 +43,9 @@ var (
 func stringList(name, help string) func() []string {
 	f := flag.String(name, "", help)
 	return func() []string {
-	       if *f == "" {
-	       	  return nil
-}
+		if *f == "" {
+			return nil
+		}
 		res := strings.Split(*f, ",")
 		for i := range res {
 			res[i] = strings.TrimSpace(res[i])
