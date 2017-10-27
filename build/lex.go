@@ -222,12 +222,12 @@ func (in *input) Lex(val *yySymType) int {
 			// it is one of (, [, or {, treat it as a line comment that should be
 			// put inside the corresponding block.
 			i := bytes.LastIndex(in.complete[:in.pos.Byte], []byte("\n"))
-			prefix := bytes.TrimSpace(in.complete[i+1:in.pos.Byte])
+			prefix := bytes.TrimSpace(in.complete[i+1 : in.pos.Byte])
 			isSuffix := true
 			if len(prefix) == 0 ||
-					prefix[len(prefix) - 1] == '[' ||
-					prefix[len(prefix) - 1] == '(' ||
-					prefix[len(prefix) - 1] == '{' {
+				prefix[len(prefix)-1] == '[' ||
+				prefix[len(prefix)-1] == '(' ||
+				prefix[len(prefix)-1] == '{' {
 				isSuffix = false
 			}
 

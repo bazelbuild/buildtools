@@ -234,14 +234,14 @@ func (x *IfClause) Span() (start, end Position) {
 // if expressions: for ... in ... [if ... if ...]
 type ForClauseWithIfClausesOpt struct {
 	Comments
-	For  *ForClause
-	Ifs  []*IfClause
+	For *ForClause
+	Ifs []*IfClause
 }
 
 func (x *ForClauseWithIfClausesOpt) Span() (start, end Position) {
 	start, end = x.For.Span()
 	if len(x.Ifs) > 0 {
-		_, end = x.Ifs[len(x.Ifs) - 1].Span()
+		_, end = x.Ifs[len(x.Ifs)-1].Span()
 	}
 
 	return start, end
