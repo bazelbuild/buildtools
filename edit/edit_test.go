@@ -174,20 +174,19 @@ func TestAddValueToListAttribute(t *testing.T) {
 }
 
 func TestUseImplicitName(t *testing.T) {
-  // TODO: add the description
 	tests := []struct {
-    description      string
 		input            string
 		expectedRuleLine int
 		wantErr          bool
 		wantRootErr      bool
+		description      string
 	}{
-		{``, `rule()`, 1, false, false},
-		{``, `rule(name="a")
+		{`rule()`, 1, false, false, `Use an implicit name for one rule.`},
+		{`rule(name="a")
 		  rule(name="b")
-		  rule()`, 3, false, false},
-		{``, `rule() rule() rule()`, 1, true, false},
-		{``, `rule()`, 1, true, true},
+		  rule()`, 3, false, false, `Use an implicit name for the one unnamed rule`},
+		{`rule() rule() rule()`, 1, true, false, `Error for multiple unnamed rules`},
+		{`rule()`, 1, true, true, `Error for the root package`},
 	}
 
 	for _, tst := range tests {
@@ -197,9 +196,7 @@ func TestUseImplicitName(t *testing.T) {
 		}
 		bld, err := build.Parse(path, []byte(tst.input))
 		if err != nil {
-			t.Error("TODO: some sort of description", err)
-      // TODO: what about combining this error down below? No that doesn't make
-      // sens
+			t.Error(tst.description, err)
 			continue
 		}
 		got := UseImplicitName(bld, "foo")
@@ -207,14 +204,11 @@ func TestUseImplicitName(t *testing.T) {
 		if !tst.wantErr {
 			want := bld.RuleAt(tst.expectedRuleLine)
 			if got.Kind() != want.Kind() || got.Name() != want.Name() {
-				t.Errorf("UseImplicitName(%s): got %s, expected %s", tst.input, got, want)
+				t.Errorf("UseImplicitName(%s): got %s, expected %s. %s", tst.input, got, want, tst.description)
 			}
 		} else {
 			if got != nil {
-      // render tst.description in the formatted string as well
-      // TODO: new line ugly?
-      // TODO: fix to tabs in VS Code
-				t.Errorf("%s \n UseImplicitName(%s): got %s, expected nil", tst.description, tst.input, got)
+				t.Errorf("UseImplicitName(%s): got %s, expected nil. %s", tst.input, got, tst.description)
 			}
 		}
 	}
