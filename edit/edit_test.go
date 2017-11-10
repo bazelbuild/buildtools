@@ -174,18 +174,20 @@ func TestAddValueToListAttribute(t *testing.T) {
 }
 
 func TestUseImplicitName(t *testing.T) {
+  // TODO: add the description
 	tests := []struct {
+    description      string
 		input            string
 		expectedRuleLine int
 		wantErr          bool
 		wantRootErr      bool
 	}{
-		{`rule()`, 1, false, false},
-		{`rule(name="a")
+		{``, `rule()`, 1, false, false},
+		{``, `rule(name="a")
 		  rule(name="b")
 		  rule()`, 3, false, false},
-		{`rule() rule() rule()`, 1, true, false},
-		{`rule()`, 1, true, true},
+		{``, `rule() rule() rule()`, 1, true, false},
+		{``, `rule()`, 1, true, true},
 	}
 
 	for _, tst := range tests {
@@ -195,7 +197,9 @@ func TestUseImplicitName(t *testing.T) {
 		}
 		bld, err := build.Parse(path, []byte(tst.input))
 		if err != nil {
-			t.Error(err)
+			t.Error("TODO: some sort of description", err)
+      // TODO: what about combining this error down below? No that doesn't make
+      // sens
 			continue
 		}
 		got := UseImplicitName(bld, "foo")
@@ -207,7 +211,10 @@ func TestUseImplicitName(t *testing.T) {
 			}
 		} else {
 			if got != nil {
-				t.Errorf("UseImplicitName(%s): got %s, expected nil", tst.input, got)
+      // render tst.description in the formatted string as well
+      // TODO: new line ugly?
+      // TODO: fix to tabs in VS Code
+				t.Errorf("%s \n UseImplicitName(%s): got %s, expected nil", tst.description, tst.input, got)
 			}
 		}
 	}

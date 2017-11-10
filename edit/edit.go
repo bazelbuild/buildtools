@@ -261,10 +261,11 @@ func FindRuleByName(f *build.File, name string) *build.Rule {
 }
 
 // UseImplicitName returns the rule in the file if it meets these conditions:
-// - It is the only rule in the file.
-// - The passed package and rule names match.
+// - It is the only unnamed rule in the file.
+// - The ending directory in the file path and passed rule name match.
 func UseImplicitName(f *build.File, rule string) *build.Rule {
-	if f.Path == "BUILD" {
+	// We disallow empty names
+  if f.Path == "BUILD" {
 		return nil
 	}
 	ruleCount := 0
