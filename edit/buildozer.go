@@ -212,7 +212,7 @@ func cmdNew(env CmdEnvironment) (*build.File, error) {
 		return nil, err
 	}
 
-	if FindRuleByName(env.File, "", name) != nil {
+	if FindRuleByName(env.File, name) != nil {
 		return nil, fmt.Errorf("rule '%s' already exists", name)
 	}
 
@@ -479,7 +479,7 @@ func cmdCopyNoOverwrite(env CmdEnvironment) (*build.File, error) {
 }
 
 func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string) (*build.File, error) {
-	fromRule := FindRuleByName(env.File, "", from)
+	fromRule := FindRuleByName(env.File, from)
 	if fromRule == nil {
 		return nil, fmt.Errorf("could not find rule '%s'", from)
 	}
@@ -537,8 +537,8 @@ var AllCommands = map[string]CommandInfo{
 	"copy_no_overwrite":  {cmdCopyNoOverwrite, 2, 2, "<attr> <from_rule>"},
 }
 
-func expandTargets(f *build.File, pkg string, rule string) ([]*build.Rule, error) {
-	if r := FindRuleByName(f, pkg, rule); r != nil {
+func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
+	if r := FindRuleByName(f, rule); r != nil {
 		return []*build.Rule{r}, nil
 	} else if r := FindExportedFile(f, rule); r != nil {
 		return []*build.Rule{r}, nil
@@ -751,7 +751,7 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 			absPkg = stdinPackageName
 		}
 
-		targets, err := expandTargets(f, pkg, rule)
+		targets, err := expandTargets(f, rule)
 		if err != nil {
 			cerr := commandError(commands, target, err)
 			errs = append(errs, cerr)

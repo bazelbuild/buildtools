@@ -172,3 +172,43 @@ func TestAddValueToListAttribute(t *testing.T) {
 		}
 	}
 }
+
+func TestUseImplicitName(t *testing.T) {
+	tests := []struct {
+		input            string
+		expectedRuleLine int
+		wantErr          bool
+		wantRootErr      bool
+	}{
+		{`rule()`, 1, false, false},
+		{`rule(name="a")
+		  rule(name="b")
+		  rule()`, 3, false, false},
+		{`rule() rule() rule()`, 1, true, false},
+		{`rule()`, 1, true, true},
+	}
+
+	for _, tst := range tests {
+		path := "foo/BUILD"
+		if tst.wantRootErr {
+			path = "BUILD"
+		}
+		bld, err := build.Parse(path, []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		got := UseImplicitName(bld, "foo")
+
+		if !tst.wantErr {
+			want := bld.RuleAt(tst.expectedRuleLine)
+			if got.Kind() != want.Kind() || got.Name() != want.Name() {
+				t.Errorf("UseImplicitName(%s): got %s, expected %s", tst.input, got, want)
+			}
+		} else {
+			if got != nil {
+				t.Errorf("UseImplicitName(%s): got %s, expected nil", tst.input, got)
+			}
+		}
+	}
+}
