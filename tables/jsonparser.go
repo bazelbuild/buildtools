@@ -28,6 +28,7 @@ type Definitions struct {
 	SortableBlacklist map[string]bool
 	SortableWhitelist map[string]bool
 	NamePriority      map[string]int
+	StripLabelLeadingSlashes bool
 }
 
 // ParseJSONDefinitions reads and parses JSON table definitions from file.
@@ -52,9 +53,9 @@ func ParseAndUpdateJSONDefinitions(file string, merge bool) error {
 	}
 
 	if merge {
-		MergeTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
+		MergeTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes)
 	} else {
-		OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority)
+		OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes)
 	}
 	return nil
 }

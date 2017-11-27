@@ -23,7 +23,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // exists reports whether the named file exists.
@@ -38,7 +41,11 @@ func TestPrintGolden(t *testing.T) {
 	outs, chdir := findTests(t, ".golden")
 	defer chdir()
 	for _, out := range outs {
+		if strings.Contains(out, ".stripslashes.") {
+			tables.StripLabelLeadingSlashes = true
+		}
 		testPrint(t, out, out, false)
+		tables.StripLabelLeadingSlashes = false
 	}
 }
 
@@ -47,8 +54,15 @@ func TestPrintRewrite(t *testing.T) {
 	ins, chdir := findTests(t, ".in")
 	defer chdir()
 	for _, in := range ins {
-		out := in[:len(in)-len(".in")] + ".golden"
+		prefix := in[:len(in)-len(".in")]
+		out := prefix + ".golden"
 		testPrint(t, in, out, true)
+		strippedOut := prefix + ".stripslashes.golden"
+		if exists(strippedOut) {
+			tables.StripLabelLeadingSlashes = true
+			testPrint(t, in, strippedOut, true)
+			tables.StripLabelLeadingSlashes = false
+		}
 	}
 }
 
@@ -105,7 +119,7 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 	ndata := Format(bld)
 
 	if !bytes.Equal(ndata, golden) {
-		t.Errorf("formatted %s incorrectly: diff shows -golden, +ours", base)
+		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))
 		tdiff(t, string(golden), string(ndata))
 		return
 	}
