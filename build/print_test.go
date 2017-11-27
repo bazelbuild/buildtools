@@ -26,12 +26,6 @@ import (
 	"testing"
 )
 
-// Test data is in $pwd/testdata.
-// The files are in pairs xxx.in and xxx.golden.
-func testpath() string {
-	return os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/build/testdata"
-}
-
 // exists reports whether the named file exists.
 func exists(name string) bool {
 	_, err := os.Stat(name)
@@ -41,10 +35,8 @@ func exists(name string) bool {
 // Test that reading and then writing the golden files
 // does not change their output.
 func TestPrintGolden(t *testing.T) {
-	outs, err := filepath.Glob(testpath() + "/*.golden")
-	if err != nil {
-		t.Fatal(err)
-	}
+	outs, chdir := findTests(t, ".golden")
+	defer chdir()
 	for _, out := range outs {
 		testPrint(t, out, out, false)
 	}
@@ -52,14 +44,34 @@ func TestPrintGolden(t *testing.T) {
 
 // Test that formatting the input files produces the golden files.
 func TestPrintRewrite(t *testing.T) {
-	ins, err := filepath.Glob(testpath() + "/*.in")
-	if err != nil {
-		t.Fatal(err)
-	}
+	ins, chdir := findTests(t, ".in")
+	defer chdir()
 	for _, in := range ins {
 		out := in[:len(in)-len(".in")] + ".golden"
 		testPrint(t, in, out, true)
 	}
+}
+
+// findTests finds all files of the passed suffix in the build/testdata directory.
+// It changes the working directory to be the directory containing the `testdata` directory,
+// and returns a function to call to change back to the current directory.
+// This allows tests to assert on alias finding between absolute and relative labels.
+func findTests(t *testing.T, suffix string) ([]string, func()) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), "build")); err != nil {
+		t.Fatal(err)
+	}
+	outs, err := filepath.Glob("testdata/*" + suffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outs) == 0 {
+		t.Fatal("Didn't find any test cases")
+	}
+	return outs, func() { os.Chdir(wd) }
 }
 
 // testPrint is a helper for testing the printer.
@@ -79,8 +91,8 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 		return
 	}
 
-	base := testpath() + "/" + filepath.Base(in)
-	bld, err := Parse(testpath(), data)
+	base := "testdata/" + filepath.Base(in)
+	bld, err := Parse(base, data)
 	if err != nil {
 		t.Error(err)
 		return
@@ -103,10 +115,8 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 // and printed and parsed again, we get the same parse tree
 // both times.
 func TestPrintParse(t *testing.T) {
-	outs, err := filepath.Glob(testpath() + "/*")
-	if err != nil {
-		t.Fatal(err)
-	}
+	outs, chdir := findTests(t, "")
+	defer chdir()
 	for _, out := range outs {
 		data, err := ioutil.ReadFile(out)
 		if err != nil {
@@ -114,7 +124,7 @@ func TestPrintParse(t *testing.T) {
 			continue
 		}
 
-		base := testpath() + "/" + filepath.Base(out)
+		base := "testdata/" + filepath.Base(out)
 		f, err := Parse(base, data)
 		if err != nil {
 			t.Errorf("parsing original: %v", err)
