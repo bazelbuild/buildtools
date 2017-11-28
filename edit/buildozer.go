@@ -255,65 +255,6 @@ func cmdNewLoad(env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
-func cmdDelSubinclude(env CmdEnvironment) (*build.File, error) {
-	name := env.Args[0]
-
-	result := env.File.Stmt[:0]
-	for _, stmt := range env.File.Stmt {
-		result = append(result, stmt)
-
-		rule, ok := ExprToRule(stmt, "subinclude")
-		if !ok {
-			rule, ok = ExprToRule(stmt, "include")
-			if !ok {
-				continue
-			}
-		}
-
-		if len(rule.Call.List) != 1 {
-			continue
-		}
-
-		l, ok := rule.Call.List[0].(*build.StringExpr)
-		if !ok || l.Value != name {
-			continue
-		}
-
-		result = result[:len(result)-1]
-	}
-	env.File.Stmt = result
-	return env.File, nil
-}
-
-func cmdReplaceSubinclude(env CmdEnvironment) (*build.File, error) {
-	name := env.Args[0]
-	loadArgs := env.Args[1:]
-
-	for i, stmt := range env.File.Stmt {
-		rule, ok := ExprToRule(stmt, "subinclude")
-		if !ok {
-			rule, ok = ExprToRule(stmt, "include")
-			if !ok {
-				continue
-			}
-		}
-
-		if len(rule.Call.List) != 1 {
-			continue
-		}
-
-		l, ok := rule.Call.List[0].(*build.StringExpr)
-		if !ok || l.Value != name {
-			continue
-		}
-
-		load := newLoad(loadArgs)
-		load.Comments = rule.Call.Comments
-		env.File.Stmt[i] = load
-	}
-	return env.File, nil
-}
-
 func cmdPrint(env CmdEnvironment) (*build.File, error) {
 	format := env.Args
 	if len(format) == 0 {
@@ -517,24 +458,22 @@ type CommandInfo struct {
 // AllCommands associates the command names with their function and number
 // of arguments.
 var AllCommands = map[string]CommandInfo{
-	"add":                {cmdAdd, 2, -1, "<attr> <value(s)>"},
-	"new_load":           {cmdNewLoad, 1, -1, "<path> <symbol(s)>"},
-	"del_subinclude":     {cmdDelSubinclude, 1, 1, "<label>"},
-	"replace_subinclude": {cmdReplaceSubinclude, 2, -1, "<label> <bzl-path> <symbol(s)>"},
-	"comment":            {cmdComment, 1, 3, "<attr>? <value>? <comment>"},
-	"print_comment":      {cmdPrintComment, 0, 2, "<attr>? <value>?"},
-	"delete":             {cmdDelete, 0, 0, ""},
-	"fix":                {cmdFix, 0, -1, "<fix(es)>?"},
-	"move":               {cmdMove, 3, -1, "<old_attr> <new_attr> <value(s)>"},
-	"new":                {cmdNew, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
-	"print":              {cmdPrint, 0, -1, "<attribute(s)>"},
-	"remove":             {cmdRemove, 1, -1, "<attr> <value(s)>"},
-	"rename":             {cmdRename, 2, 2, "<old_attr> <new_attr>"},
-	"replace":            {cmdReplace, 3, 3, "<attr> <old_value> <new_value>"},
-	"set":                {cmdSet, 2, -1, "<attr> <value(s)>"},
-	"set_if_absent":      {cmdSetIfAbsent, 2, -1, "<attr> <value(s)>"},
-	"copy":               {cmdCopy, 2, 2, "<attr> <from_rule>"},
-	"copy_no_overwrite":  {cmdCopyNoOverwrite, 2, 2, "<attr> <from_rule>"},
+	"add":               {cmdAdd, 2, -1, "<attr> <value(s)>"},
+	"new_load":          {cmdNewLoad, 1, -1, "<path> <symbol(s)>"},
+	"comment":           {cmdComment, 1, 3, "<attr>? <value>? <comment>"},
+	"print_comment":     {cmdPrintComment, 0, 2, "<attr>? <value>?"},
+	"delete":            {cmdDelete, 0, 0, ""},
+	"fix":               {cmdFix, 0, -1, "<fix(es)>?"},
+	"move":              {cmdMove, 3, -1, "<old_attr> <new_attr> <value(s)>"},
+	"new":               {cmdNew, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
+	"print":             {cmdPrint, 0, -1, "<attribute(s)>"},
+	"remove":            {cmdRemove, 1, -1, "<attr> <value(s)>"},
+	"rename":            {cmdRename, 2, 2, "<old_attr> <new_attr>"},
+	"replace":           {cmdReplace, 3, 3, "<attr> <old_value> <new_value>"},
+	"set":               {cmdSet, 2, -1, "<attr> <value(s)>"},
+	"set_if_absent":     {cmdSetIfAbsent, 2, -1, "<attr> <value(s)>"},
+	"copy":              {cmdCopy, 2, 2, "<attr> <from_rule>"},
+	"copy_no_overwrite": {cmdCopyNoOverwrite, 2, 2, "<attr> <from_rule>"},
 }
 
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
