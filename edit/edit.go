@@ -17,6 +17,7 @@ package edit
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -52,7 +53,7 @@ func ParseLabel(target string) (string, string, string) {
 	// TODO(bazel-team): check if the next line can now be deleted
 	target = strings.TrimRight(target, ":") // labels can end with ':'
 	parts := strings.SplitN(target, ":", 2)
-	parts[0] = strings.TrimLeft(parts[0], "/")
+	parts[0] = strings.TrimPrefix(parts[0], "//")
 	if len(parts) == 1 {
 		if strings.HasPrefix(target, "//") {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
@@ -96,6 +97,20 @@ func LabelsEqual(label1, label2, pkg string) bool {
 	return str1 == str2
 }
 
+// isFile returns true if the path refers to a regular file after following
+// symlinks.
+func isFile(path string) bool {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.Mode().IsRegular()
+}
+
 // InterpretLabelForWorkspaceLocation returns the name of the BUILD file to
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
@@ -114,6 +129,12 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	if strings.HasPrefix(target, "//") {
 		buildFile = path.Join(rootDir, pkg, "BUILD")
+		return
+	}
+	if isFile(pkg) {
+		// allow operation on other files like WORKSPACE
+		buildFile = pkg
+		pkg = path.Join(relativePath, filepath.Dir(pkg))
 		return
 	}
 	if pkg != "" {

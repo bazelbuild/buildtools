@@ -38,6 +38,7 @@ var parseLabelTests = []struct {
 	{"@foo", "foo", "", "foo"},
 	{":label", "", "", "label"},
 	{"label", "", "", "label"},
+	{"/abs/path/to/WORKSPACE:rule", "", "/abs/path/to/WORKSPACE", "rule"},
 }
 
 func TestParseLabel(t *testing.T) {
