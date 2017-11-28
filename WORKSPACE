@@ -24,15 +24,10 @@ go_register_toolchains()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    strip_prefix = "bazel-0.6.0",
+    strip_prefix = "bazel-0.8.0",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.6.0.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.6.0.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
     ],
 )
 
-go_repository(
-    name = "org_golang_x_tools",
-    commit = "3d92dd60033c312e3ae7cac319c792271cf67e37",
-    importpath = "golang.org/x/tools",
-)
