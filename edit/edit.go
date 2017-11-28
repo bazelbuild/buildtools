@@ -281,11 +281,11 @@ func FindRuleByName(f *build.File, name string) *build.Rule {
 	return UseImplicitName(f, name)
 }
 
-// In the Pants Build System, by pantsbuild, the use of an implicit name makes
-// creating targets easier. Therefore, for the smoother integration of Buildozer into
-// Pants, UseImplicitName returns the rule in the file if it meets these conditions:
+// UseImplicitName returns the rule in the file if it meets these conditions:
 // - It is the only unnamed rule in the file.
 // - The file path's ending directory name and the passed rule name match.
+// In the Pants Build System, by pantsbuild, the use of an implicit name makes
+// creating targets easier. This function implements such names.
 func UseImplicitName(f *build.File, rule string) *build.Rule {
 	// We disallow empty names
 	if f.Path == "BUILD" {
