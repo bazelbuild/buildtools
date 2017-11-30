@@ -4,9 +4,9 @@ go_library(
     name = "go_default_library",
     srcs = [
         "diff.go",
-        "isatty_other.go",
-        # When go_library() supports build constraints, add isatty_windows.go
-        # here.
-    ],
+    ] + select({
+        "//:windows": ["isatty_windows.go"],
+        "//conditions:default": ["isatty_other.go"],
+    }),
     visibility = ["//visibility:public"],
 )

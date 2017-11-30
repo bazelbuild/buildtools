@@ -2,6 +2,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_prefix")
 
 go_prefix("github.com/bazelbuild/buildtools")
 
+config_setting(
+    name = "windows",
+    values = {"cpu": "x64_windows"},
+)
+
 test_suite(
     name = "tests",
     tests = [
