@@ -337,7 +337,7 @@ func usePlusEqual(f *build.File) bool {
 }
 
 func isNonemptyComment(comment *build.Comments) bool {
-	return len(comment.Before) + len(comment.Suffix) + len(comment.After) > 0
+	return len(comment.Before)+len(comment.Suffix)+len(comment.After) > 0
 }
 
 // Checks whether a call or any of its arguments have a comment
