@@ -723,7 +723,8 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 			}
 		}
 	}
-	if !changed {
+	stdout := Opts.Stdout || name == stdinPackageName // True if we write to stdout instead of a file.
+	if !changed && !stdout {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
 	f = RemoveEmptyPackage(f)
@@ -732,7 +733,7 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
 	}
 
-	if Opts.Stdout || name == stdinPackageName {
+	if stdout { // print, even if the AST hasn't changed
 		os.Stdout.Write(ndata)
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}

@@ -81,8 +81,6 @@ Buildozer supports the following commands(`'command args'`):
     importing the symbols. Before using this, make sure to run
     `buildozer 'fix movePackageToTop'`. Afterwards, consider running
     `buildozer 'fix unusedLoads'`.
-  * `del_subinclude <label>`
-  * `replace_subinclude <label> <bzl-path> <symbol(s)>`
   * `comment <attr>? <value>? <comment>`: Add a comment to a rule, an attribute,
     or a specific value in a list. Spaces in the comment should be escaped with
     backslashes.
