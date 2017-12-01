@@ -18,6 +18,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -213,6 +214,17 @@ func fixLabels(f *File, info *RewriteInfo) {
 		if tables.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
 			editPerformed = true
 			str.Value = str.Value[2:]
+		}
+
+		if tables.ShortenAbsoluteLabelsToRelative {
+			thisPackage := labelPrefix + path.Dir(f.Path)
+			if str.Value == thisPackage {
+				editPerformed = true
+				str.Value = ":" + path.Base(str.Value)
+			} else if strings.HasPrefix(str.Value, thisPackage+":") {
+				editPerformed = true
+				str.Value = str.Value[len(thisPackage):]
+			}
 		}
 
 		m := labelRE.FindStringSubmatch(str.Value)

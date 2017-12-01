@@ -198,8 +198,10 @@ var NamePriority = map[string]int{
 
 var StripLabelLeadingSlashes = false
 
+var ShortenAbsoluteLabelsToRelative = false
+
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes bool) {
+func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
 	LabelBlacklist = blacklist
 	IsSortableListArg = sortableListArg
@@ -207,10 +209,11 @@ func OverrideTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhi
 	SortableWhitelist = sortWhitelist
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
+	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes bool) {
+func MergeTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -229,5 +232,6 @@ func MergeTables(labelArg, blacklist, sortableListArg, sortBlacklist, sortWhitel
 	for k, v := range namePriority {
 		NamePriority[k] = v
 	}
-	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes;
+	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
+	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
 }

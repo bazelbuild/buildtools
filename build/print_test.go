@@ -44,8 +44,13 @@ func TestPrintGolden(t *testing.T) {
 		if strings.Contains(out, ".stripslashes.") {
 			tables.StripLabelLeadingSlashes = true
 		}
+		// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
+		if strings.Contains(out, "/050.") {
+			tables.ShortenAbsoluteLabelsToRelative = true
+		}
 		testPrint(t, out, out, false)
 		tables.StripLabelLeadingSlashes = false
+		tables.ShortenAbsoluteLabelsToRelative = false
 	}
 }
 
@@ -56,6 +61,12 @@ func TestPrintRewrite(t *testing.T) {
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
 		out := prefix + ".golden"
+
+		// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
+		if strings.Contains(out, "/050.") {
+			tables.ShortenAbsoluteLabelsToRelative = true
+		}
+
 		testPrint(t, in, out, true)
 		strippedOut := prefix + ".stripslashes.golden"
 		if exists(strippedOut) {
@@ -63,6 +74,8 @@ func TestPrintRewrite(t *testing.T) {
 			testPrint(t, in, strippedOut, true)
 			tables.StripLabelLeadingSlashes = false
 		}
+
+		tables.ShortenAbsoluteLabelsToRelative = false
 	}
 }
 
