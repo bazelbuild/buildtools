@@ -28,6 +28,10 @@ import (
 // For debugging: flag to disable certain rewrites.
 var DisableRewrites []string
 
+// labelRE matches label strings, e.g. @r//x/y/z:abc
+// where $1 is @r//x/y/z, $2 is r, $3 is z, $4 is abc.
+var labelRE = regexp.MustCompile(`^((?:@(\w+))?//(?:.*/)?([^:]*))(?::([^:]+))?$`)
+
 // disabled reports whether the named rewrite is disabled.
 func disabled(name string) bool {
 	for _, x := range DisableRewrites {
@@ -160,8 +164,9 @@ func keepSorted(x Expr) bool {
 // First, it joins labels written as string addition, turning
 // "//x" + ":y" (usually split across multiple lines) into "//x:y".
 //
-// Second, it removes redundant target qualifiers, turning
-// "//third_party/m4:m4" into "//third_party/m4".
+// Second, it removes redundant target qualifiers, turning labels like
+// "//third_party/m4:m4" into "//third_party/m4" as well as ones like
+// "@foo//:foo" into "@foo".
 //
 func fixLabels(f *File, info *RewriteInfo) {
 	joinLabel := func(p *Expr) {
@@ -194,10 +199,6 @@ func fixLabels(f *File, info *RewriteInfo) {
 		*p = str1
 	}
 
-	// labelRE matches label strings //x/y/z:abc.
-	// $1 is //x/y/z, $2 is x/y/, $3 is z, $4 is :abc, and $5 is abc.
-	labelRE := regexp.MustCompile(`^(//(.*/)?([^:]+))(:([^:]+))?$`)
-
 	shortenLabel := func(v Expr) {
 		str, ok := v.(*StringExpr)
 		if !ok {
@@ -207,9 +208,12 @@ func fixLabels(f *File, info *RewriteInfo) {
 		if m == nil {
 			return
 		}
-		if m[3] == m[5] {
+		if m[3] != "" && m[3] == m[4] { // e.g. //foo:foo
 			info.EditLabel++
 			str.Value = m[1]
+		} else if m[2] != "" && m[3] == "" && m[2] == m[4] { // e.g. @foo//:foo
+			info.EditLabel++
+			str.Value = "@" + m[2]
 		}
 	}
 
