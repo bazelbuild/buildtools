@@ -31,8 +31,3 @@ http_archive(
     ],
 )
 
-go_repository(
-    name = "org_golang_x_tools",
-    commit = "3d92dd60033c312e3ae7cac319c792271cf67e37",
-    importpath = "golang.org/x/tools",
-)

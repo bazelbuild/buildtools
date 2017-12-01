@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -41,7 +42,12 @@ func (d *Differ) run(command string, args ...string) {
 	}
 
 	// Pass args to bash and reference with $@ to avoid shell injection in args.
-	cmd := exec.Command("/bin/bash", "-c", command+` "$@"`, "--")
+	var cmd *exec.Cmd
+	if command == "FC" {
+		cmd = exec.Command(command, "/T")
+	} else {
+		cmd = exec.Command("/bin/bash", "-c", command+` "$@"`, "--")
+	}
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -111,7 +117,11 @@ func Find() *Differ {
 		if d.MultiDiff {
 			d.Cmd = "tkdiff"
 		} else {
-			d.Cmd = "diff"
+			if runtime.GOOS == "windows" {
+				d.Cmd = "FC"
+			} else {
+				d.Cmd = "diff"
+			}
 		}
 	}
 	return d
