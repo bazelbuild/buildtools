@@ -61,7 +61,7 @@ macros.
 OPTIONS include the following options:
 
   * `-stdout` : write changed BUILD file to stdout
-  * `-buildifier` : path to buildifier binary
+  * `-buildifier` : format output using a specific buildifier binary. If empty, use built-in formatter.
   * `-k` : apply all commands, even if there are failures
   * `-quiet` : suppress informational messages
   * `-shorten_labels` : convert added labels to short form, e.g. //foo:bar => :bar

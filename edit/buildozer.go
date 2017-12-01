@@ -759,10 +759,9 @@ var EditFile = func(fi os.FileInfo, name string) error {
 	return nil
 }
 
-// runBuildifier formats the build file f and pipes it through /usr/bin/buildifier.
-// Buildifier is built with the same libraries as glaze, so we could invoke those
-// routines directly, but this ensures that glaze always matches /usr/bin/buildifier,
-// even if they were built at different times.
+// runBuildifier formats the build file f.
+// Runs Opts.Buildifier if it's non-empty, otherwise uses built-in formatter.
+// Opts.Buildifier is useful to force consistency with other tools that call Buildifier.
 func runBuildifier(f *build.File) ([]byte, error) {
 	if Opts.Buildifier == "" {
 		build.Rewrite(f, nil)
