@@ -23,14 +23,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
-)
 
-// Test data is in $pwd/testdata.
-// The files are in pairs xxx.in and xxx.golden.
-func testpath() string {
-	return os.Getenv("TEST_SRCDIR") + "/" + os.Getenv("TEST_WORKSPACE") + "/build/testdata"
-}
+	"github.com/bazelbuild/buildtools/tables"
+)
 
 // exists reports whether the named file exists.
 func exists(name string) bool {
@@ -41,25 +38,54 @@ func exists(name string) bool {
 // Test that reading and then writing the golden files
 // does not change their output.
 func TestPrintGolden(t *testing.T) {
-	outs, err := filepath.Glob(testpath() + "/*.golden")
-	if err != nil {
-		t.Fatal(err)
-	}
+	outs, chdir := findTests(t, ".golden")
+	defer chdir()
 	for _, out := range outs {
+		if strings.Contains(out, ".stripslashes.") {
+			tables.StripLabelLeadingSlashes = true
+		}
 		testPrint(t, out, out, false)
+		tables.StripLabelLeadingSlashes = false
 	}
 }
 
 // Test that formatting the input files produces the golden files.
 func TestPrintRewrite(t *testing.T) {
-	ins, err := filepath.Glob(testpath() + "/*.in")
+	ins, chdir := findTests(t, ".in")
+	defer chdir()
+	for _, in := range ins {
+		prefix := in[:len(in)-len(".in")]
+		out := prefix + ".golden"
+		testPrint(t, in, out, true)
+		strippedOut := prefix + ".stripslashes.golden"
+		if exists(strippedOut) {
+			tables.StripLabelLeadingSlashes = true
+			testPrint(t, in, strippedOut, true)
+			tables.StripLabelLeadingSlashes = false
+		}
+	}
+}
+
+// findTests finds all files of the passed suffix in the build/testdata directory.
+// It changes the working directory to be the directory containing the `testdata` directory,
+// and returns a function to call to change back to the current directory.
+// This allows tests to assert on alias finding between absolute and relative labels.
+func findTests(t *testing.T, suffix string) ([]string, func()) {
+	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, in := range ins {
-		out := in[:len(in)-len(".in")] + ".golden"
-		testPrint(t, in, out, true)
+	if err := os.Chdir(filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), "build")); err != nil {
+		t.Fatal(err)
 	}
+	outs, err := filepath.Glob("testdata/*" + suffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outs) == 0 {
+		t.Fatal("Didn't find any test cases")
+	}
+	return outs, func() { os.Chdir(wd) }
 }
 
 // testPrint is a helper for testing the printer.
@@ -79,8 +105,8 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 		return
 	}
 
-	base := testpath() + "/" + filepath.Base(in)
-	bld, err := Parse(testpath(), data)
+	base := "testdata/" + filepath.Base(in)
+	bld, err := Parse(base, data)
 	if err != nil {
 		t.Error(err)
 		return
@@ -93,7 +119,7 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 	ndata := Format(bld)
 
 	if !bytes.Equal(ndata, golden) {
-		t.Errorf("formatted %s incorrectly: diff shows -golden, +ours", base)
+		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))
 		tdiff(t, string(golden), string(ndata))
 		return
 	}
@@ -103,10 +129,8 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 // and printed and parsed again, we get the same parse tree
 // both times.
 func TestPrintParse(t *testing.T) {
-	outs, err := filepath.Glob(testpath() + "/*")
-	if err != nil {
-		t.Fatal(err)
-	}
+	outs, chdir := findTests(t, "")
+	defer chdir()
 	for _, out := range outs {
 		data, err := ioutil.ReadFile(out)
 		if err != nil {
@@ -114,7 +138,7 @@ func TestPrintParse(t *testing.T) {
 			continue
 		}
 
-		base := testpath() + "/" + filepath.Base(out)
+		base := "testdata/" + filepath.Base(out)
 		f, err := Parse(base, data)
 		if err != nil {
 			t.Errorf("parsing original: %v", err)

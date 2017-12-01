@@ -36,6 +36,7 @@ func TestParseJSONDefinitions(t *testing.T) {
 		SortableBlacklist: map[string]bool{"genrule.srcs": true},
 		SortableWhitelist: map[string]bool{},
 		NamePriority:      map[string]int{"name": -1},
+		StripLabelLeadingSlashes: true,
 	}
 	if !reflect.DeepEqual(expected, definitions) {
 		t.Errorf("ParseJSONDefinitions() = %v; want %v", definitions, expected)

@@ -28,10 +28,6 @@ import (
 // For debugging: flag to disable certain rewrites.
 var DisableRewrites []string
 
-// labelRE matches label strings, e.g. @r//x/y/z:abc
-// where $1 is @r//x/y/z, $2 is r, $3 is z, $4 is abc.
-var labelRE = regexp.MustCompile(`^((?:@(\w+))?//(?:.*/)?([^:]*))(?::([^:]+))?$`)
-
 // disabled reports whether the named rewrite is disabled.
 func disabled(name string) bool {
 	for _, x := range DisableRewrites {
@@ -199,21 +195,39 @@ func fixLabels(f *File, info *RewriteInfo) {
 		*p = str1
 	}
 
+	labelPrefix := "//"
+	if tables.StripLabelLeadingSlashes {
+		labelPrefix = ""
+	}
+	// labelRE matches label strings, e.g. @r//x/y/z:abc
+	// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
+	labelRE := regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
+
 	shortenLabel := func(v Expr) {
 		str, ok := v.(*StringExpr)
 		if !ok {
 			return
 		}
+		editPerformed := false
+
+		if tables.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
+			editPerformed = true
+			str.Value = str.Value[2:]
+		}
+
 		m := labelRE.FindStringSubmatch(str.Value)
 		if m == nil {
 			return
 		}
-		if m[3] != "" && m[3] == m[4] { // e.g. //foo:foo
-			info.EditLabel++
+		if m[4] != "" && m[4] == m[5] { // e.g. //foo:foo
+			editPerformed = true
 			str.Value = m[1]
-		} else if m[2] != "" && m[3] == "" && m[2] == m[4] { // e.g. @foo//:foo
+		} else if m[3] != "" && m[4] == "" && m[3] == m[5] { // e.g. @foo//:foo
+			editPerformed = true
+			str.Value = "@" + m[3]
+		}
+		if editPerformed {
 			info.EditLabel++
-			str.Value = "@" + m[2]
 		}
 	}
 
@@ -572,7 +586,7 @@ func makeSortKey(index int, x *StringExpr) stringSortKey {
 	switch {
 	case strings.HasPrefix(x.Value, ":"):
 		key.phase = 1
-	case strings.HasPrefix(x.Value, "//"):
+	case strings.HasPrefix(x.Value, "//") || (tables.StripLabelLeadingSlashes && !strings.HasPrefix(x.Value, "@")):
 		key.phase = 2
 	case strings.HasPrefix(x.Value, "@"):
 		key.phase = 3
