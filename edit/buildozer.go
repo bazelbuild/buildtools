@@ -51,10 +51,19 @@ type Options struct {
 	Quiet             bool     // suppress informational messages.
 	EditVariables     bool     // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool     // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	BuildFileNames    []string // list of build file names
 }
 
 // Opts represents the options to be used by buildozer, and can be overriden before calling Buildozer.
-var Opts = Options{NumIO: 200, PreferEOLComments: true}
+var Opts = Options{
+	NumIO: 200,
+	PreferEOLComments: true,
+	// When checking the filesystem, we need to look for any of the
+	// possible buildFileNames. For historical reasons, the
+	// parts of the tool that generate paths that we may want to examine
+	// continue to assume that build files are all named "BUILD".
+	BuildFileNames: []string{"BUILD.bazel", "BUILD", "BUCK"},
+}
 
 // Usage is a user-overriden func to print the program usage.
 var Usage = func() {}
@@ -621,15 +630,24 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) 
 	return vars
 }
 
-// When checking the filesystem, we need to look for any of the
-// possible buildFileNames. For historical reasons, the
-// parts of the tool that generate paths that we may want to examine
-// continue to assume that build files are all named "BUILD".
-var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
-var buildFileNamesSet = map[string]bool{
-	"BUILD.bazel": true,
-	"BUILD":       true,
-	"BUCK":        true,
+// For legacy reasons, lots of places assume that BUILD is a valid build file
+// name, so add it if it's not already specified.
+func fixupBuildFileNames(buildFileNames *[]string) {
+	for _, buildFileName := range *buildFileNames {
+		if buildFileName == "BUILD" {
+			return
+		}
+	}
+	*buildFileNames = append(Opts.BuildFileNames, "BUILD")
+}
+
+func isBuildFile(name string) bool {
+	for _, buildFileName := range Opts.BuildFileNames {
+		if buildFileName == name {
+			return true
+		}
+	}
+	return false
 }
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
@@ -647,13 +665,13 @@ func rewrite(commandsForFile commandsForFile) *rewriteResult {
 		}
 	} else {
 		origName := name
-		for _, suffix := range buildFileNames {
+		for _, suffix := range Opts.BuildFileNames {
 			if strings.HasSuffix(name, "/"+suffix) {
 				name = strings.TrimSuffix(name, suffix)
 				break
 			}
 		}
-		for _, suffix := range buildFileNames {
+		for _, suffix := range Opts.BuildFileNames {
 			name = name + suffix
 			data, fi, err = file.ReadFile(name)
 			if err == nil {
@@ -817,7 +835,7 @@ func targetExpressionToBuildFiles(target string) []string {
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
 				searchDirs = append(searchDirs, path.Join(dir, dirFile.Name()))
-			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
+			} else if isBuildFile(dirFile.Name()) {
 				buildFiles = append(buildFiles, path.Join(dir, dirFile.Name()))
 			}
 		}
@@ -907,6 +925,11 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 
 // Buildozer loops over all arguments on the command line fixing BUILD files.
 func Buildozer(args []string) int {
+
+	// For legacy reasons, fixup the build file names options to make sure BUILD
+	// is present.
+	fixupBuildFileNames(&Opts.BuildFileNames)
+
 	commandsByFile := make(map[string][]commandsForTarget)
 	if Opts.CommandsFile != "" {
 		appendCommandsFromFile(commandsByFile, Opts.CommandsFile)
