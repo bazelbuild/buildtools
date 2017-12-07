@@ -90,6 +90,10 @@ new_git_repository(
     name = "e",
     build_file_content = "n/a",
 )
+new_http_archive(
+    name = "f",
+    build_file = "//third_party:f.BUILD",
+)
 `)
 	if err := ioutil.WriteFile(filepath.Join(tmp, workspaceFile), workspace, 0755); err != nil {
 		t.Fatal(err)
@@ -102,6 +106,7 @@ new_git_repository(
 		"a": filepath.Join(tmp, "a.BUILD"),
 		"b": filepath.Join(tmp, "b.BUILD"),
 		"c": filepath.Join(tmp, "c.BUILD"),
+		"f": filepath.Join(tmp, "third_party/f.BUILD"),
 	}
 	if !reflect.DeepEqual(files, expected) {
 		t.Errorf("FileRepoBuildFiles(`%s`) = %q; want %q", workspace, files, expected)
