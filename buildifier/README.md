@@ -15,4 +15,4 @@ Build the tool:
 Use buildifier to create standardized formatting for BUILD files in the
 same way that clang-format is used for source files.
 
-`$ buildifier -showlog -mode=check $(find . -iname BUILD -type f)`
+`$ buildifier -showlog -mode=check $(find . -type f \( -iname BUILD -or -iname BUILD.bazel \))`
