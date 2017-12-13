@@ -5,5 +5,6 @@ cc_library(
         "testdata",
         "//testdata",
         "//testdata:testdata",
+	"//:root",
     ],
 )

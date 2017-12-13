@@ -212,8 +212,10 @@ func fixLabels(f *File, info *RewriteInfo) {
 		editPerformed := false
 
 		if tables.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
-			editPerformed = true
-			str.Value = str.Value[2:]
+			if path.Dir(f.Path) == "." || !strings.HasPrefix(str.Value, "//:") {
+				editPerformed = true
+				str.Value = str.Value[2:]
+			}
 		}
 
 		if tables.ShortenAbsoluteLabelsToRelative {

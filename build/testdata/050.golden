@@ -3,5 +3,6 @@ cc_library(
     deps = [
         "testdata",
         ":testdata",
+        "//:root",
     ],
 )
