@@ -278,7 +278,7 @@ func FindRuleByName(f *build.File, name string) *build.Rule {
 	if i != -1 {
 		return &build.Rule{Call: f.Stmt[i].(*build.CallExpr)}
 	}
-	return UseImplicitName(f, name)
+	return nil
 }
 
 // UseImplicitName returns the rule in the file if it meets these conditions:
