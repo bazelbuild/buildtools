@@ -27,7 +27,17 @@ import (
 
 const workspaceFile = "WORKSPACE"
 
-var repoRootFiles = [...]string{workspaceFile, ".buckconfig"}
+func alwaysTrue(fi os.FileInfo) bool {
+	return true
+}
+
+var repoRootFiles = map[string]func(os.FileInfo) bool{
+	workspaceFile: alwaysTrue,
+	".buckconfig": alwaysTrue,
+	"pants": func(fi os.FileInfo) bool {
+		return fi.Mode()&os.ModeType == 0 && fi.Mode()&0100 == 0100
+	},
+}
 
 // findContextPath finds the context path inside of a WORKSPACE-rooted source tree.
 func findContextPath(rootDir string) (string, error) {
@@ -60,8 +70,8 @@ func Find(dir string) (string, error) {
 	if dir == "" || dir == "/" || dir == "." {
 		return "", os.ErrNotExist
 	}
-	for _, repoRootFile := range repoRootFiles {
-		if _, err := os.Stat(filepath.Join(dir, repoRootFile)); err == nil {
+	for repoRootFile, fiFunc := range repoRootFiles {
+		if fi, err := os.Stat(filepath.Join(dir, repoRootFile)); err == nil && fiFunc(fi) {
 			return dir, nil
 		} else if !os.IsNotExist(err) {
 			return "", err
