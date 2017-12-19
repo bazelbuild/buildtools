@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
 )
@@ -101,10 +102,12 @@ func FindRepoBuildFiles(root string) (map[string]string, error) {
 	files := make(map[string]string)
 	for _, kind := range kinds {
 		for _, r := range ast.Rules(kind) {
-			if r.AttrString("build_file") == "" {
+			buildFile := r.AttrString("build_file")
+			if buildFile == "" {
 				continue
 			}
-			files[r.Name()] = filepath.Join(root, r.AttrString("build_file"))
+			buildFile = strings.Replace(buildFile, ":", "/", -1)
+			files[r.Name()] = filepath.Join(root, buildFile)
 		}
 	}
 	return files, nil
