@@ -1,4 +1,7 @@
 cc_library(
     name = "foo",
-    deps = [":testdata"],
+    deps = [
+        ":testdata",
+        "//:root",
+    ],
 )
