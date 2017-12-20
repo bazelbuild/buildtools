@@ -4,7 +4,10 @@ go_library(
     name = "go_default_library",
     srcs = ["main.go"],
     visibility = ["//visibility:private"],
-    deps = ["//edit:go_default_library"],
+    deps = [
+        "//edit:go_default_library",
+        "//tables:go_default_library",
+    ],
 )
 
 go_binary(
