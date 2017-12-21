@@ -62,11 +62,12 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-path=path] [files...]
 
 Buildifier applies a standard formatting to the named BUILD files.
-The mode flag selects the processing: check, diff, or fix.
+The mode flag selects the processing: check, diff, fix, or print_if_changed.
 In check mode, buildifier prints a list of files that need reformatting.
 In diff mode, buildifier shows the diffs that it would make.
 In fix mode, buildifier updates the files that need reformatting and,
 if the -v flag is given, prints their names to standard error.
+In print_if_changed mode, buildifier shows the file contents it would write.
 The default mode is fix. -d is an alias for -mode=diff.
 
 If no files are listed, buildifier reads a BUILD file from standard input. In
@@ -117,14 +118,14 @@ func main() {
 	case "":
 		*mode = "fix"
 
-	case "check", "diff", "fix":
+	case "check", "diff", "fix", "print_if_changed":
 		// ok
 	}
 
 	// If the path flag is set, must only be formatting a single file.
 	// It doesn't make sense for multiple files to have the same path.
-	if *path != "" && len(args) > 1 {
-		fmt.Fprintf(os.Stderr, "buildifier: can only format one file when using -path flag\n")
+	if (*path != "" || *mode == "print_if_changed") && len(args) > 1 {
+		fmt.Fprintf(os.Stderr, "buildifier: can only format one file when using -path flag or -mode=print_if_changed\n")
 		os.Exit(2)
 	}
 
@@ -336,6 +337,16 @@ func processFile(filename string, data []byte) {
 
 		if *vflag {
 			fmt.Fprintf(os.Stderr, "fixed %s\n", filename)
+		}
+	case "print_if_changed":
+		if bytes.Equal(data, ndata) {
+			return
+		}
+
+		if _, err := os.Stdout.Write(ndata); err != nil {
+			fmt.Fprintf(os.Stderr, "buildifier: error writing output: %v\n", err)
+			exitCode = 3
+			return
 		}
 	}
 }
