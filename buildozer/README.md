@@ -109,6 +109,9 @@ Buildozer supports the following commands(`'command args'`):
     exists in the `to_rule`, it will be overwritten.
   * `copy_no_overwrite <attr> <from_rule>`:  Copies the value of `attr` between
     rules. If it exists in the `to_rule`, no action is taken.
+  * `copy_merge <attr> <from_rule>`:  Copies the value of `attr` between
+    rules. If it exists in the `to_rule`, values from both rules are merged.
+  * `merge <from_rule>`:  Merges all attributes between rules.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.
@@ -155,6 +158,12 @@ buildozer 'new cc_binary new_bin before tests' //:__pkg__
 
 # Copy an attribute from `protolib` to `py_protolib`.
 buildozer 'copy testonly protolib' //pkg:py_protolib
+
+# Merge an attribute from `protolib` to `py_protolib`.
+buildozer 'copy_merge testonly protolib' //pkg:py_protolib
+
+# Merge rule `protolib` to `py_protolib`.
+buildozer 'merge protolib' //pkg:py_protolib
 
 # Set two attributes in the same rule
 buildozer 'set compile 1' 'set srcmap 1' //pkg:rule
