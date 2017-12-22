@@ -652,6 +652,21 @@ func MoveAllListAttributeValues(rule *build.Rule, oldAttr, newAttr, pkg string, 
 	return fmt.Errorf("%s already exists and %s is not a simple list", newAttr, oldAttr)
 }
 
+// MergeAllListAttributeValues merges all values from one rule's list attribute attr to another rule's list attribute attr,
+// and keeps original rule's attr.
+func MergeAllListAttributeValues(origRule *build.Rule, destRule *build.Rule, attr, pkg string, vars *map[string]*build.BinaryExpr) error {
+	if origRule.Attr(attr) == nil {
+		return fmt.Errorf("no attribute %s found in %s", attr, origRule.Name())
+	}
+	if listExpr, ok := origRule.Attr(attr).(*build.ListExpr); ok {
+		for _, val := range listExpr.List {
+			AddValueToListAttribute(destRule, attr, pkg, val, vars)
+		}
+		return nil
+	}
+	return fmt.Errorf("%s already exists and %s is not a simple list", attr, attr)
+}
+
 // DictionarySet looks for the key in the dictionary expression. If value is not nil,
 // it replaces the current value with it. In all cases, it returns the current value.
 func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Expr {
