@@ -438,6 +438,39 @@ func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string)
 	return env.File, nil
 }
 
+func cmdCopyMerge(env CmdEnvironment) (*build.File, error) {
+	attrName := env.Args[0]
+	from := env.Args[1]
+
+     fromRule := FindRuleByName(env.File, from)
+	if fromRule == nil {
+		return nil, fmt.Errorf("could not find rule '%s'", from)
+	}
+	attr := fromRule.Attr(attrName)
+	if attr == nil {
+		return nil, fmt.Errorf("rule '%s' does not have attribute '%s'", from, attrName)
+	}
+
+     MergeAllListAttributeValues(fromRule, env.Rule, attrName, env.Pkg, &env.Vars)
+
+	return env.File, nil
+}
+
+func cmdMerge(env CmdEnvironment) (*build.File, error) {
+	from := env.Args[0]
+
+     fromRule := FindRuleByName(env.File, from)
+	if fromRule == nil {
+		return nil, fmt.Errorf("could not find rule '%s'", from)
+	}
+
+     for _, attrName := range attrKeysForPattern(fromRule, "*") {
+          MergeAllListAttributeValues(fromRule, env.Rule, attrName, env.Pkg, &env.Vars)
+	}
+
+	return env.File, nil
+}
+
 func cmdFix(env CmdEnvironment) (*build.File, error) {
 	// Fix the whole file
 	if env.Rule.Kind() == "package" {
@@ -472,6 +505,8 @@ var AllCommands = map[string]CommandInfo{
 	"replace":           {cmdReplace, 3, 3, "<attr> <old_value> <new_value>"},
 	"set":               {cmdSet, 2, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, 2, -1, "<attr> <value(s)>"},
+	"copy":              {cmdCopy, 2, 2, "<attr> <from_rule>"},
+	"copy_no_overwrite": {cmdCopyNoOverwrite, 2, 2, "<attr> <from_rule>"},
 	"copy":              {cmdCopy, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, 2, 2, "<attr> <from_rule>"},
 }
