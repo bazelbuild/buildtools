@@ -38,6 +38,7 @@ var (
 	editVariables     = flag.Bool("edit-variables", false, "For attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.")
 	isPrintingProto   = flag.Bool("output_proto", false, "output serialized devtools.buildozer.Output protos instead of human-readable strings.")
 	tablesPath        = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
+	addTablesPath     = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 
 	shortenLabelsFlag  = flag.Bool("shorten_labels", true, "convert added labels to short form, e.g. //foo:bar => :bar")
 	deleteWithComments = flag.Bool("delete_with_comments", true, "If a list attribute should be deleted even if there is a comment attached to it")
@@ -63,6 +64,14 @@ func main() {
 	if *tablesPath != "" {
 		if err := tables.ParseAndUpdateJSONDefinitions(*tablesPath, false); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -tables: %s\n", *tablesPath, err)
+			os.Exit(2)
+		}
+	}
+
+
+	if *addTablesPath != "" {
+		if err := tables.ParseAndUpdateJSONDefinitions(*addTablesPath, true); err != nil {
+			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -add_tables: %s\n", *addTablesPath, err)
 			os.Exit(2)
 		}
 	}
