@@ -15,6 +15,7 @@ go_library(
         "//build_proto:go_default_library",
         "//file:go_default_library",
         "//lang:go_default_library",
+        "//tables:go_default_library",
         "//wspace:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
