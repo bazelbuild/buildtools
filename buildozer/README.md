@@ -92,6 +92,7 @@ Buildozer supports the following commands(`'command args'`):
   * `new <rule_kind> <rule_name> [(before|after) <relative_rule_name>]`: Add a
     new rule at the end of the BUILD file (before/after `<relative_rule>`).
   * `print <attr(s)>`
+  * `remove <attr>`: Removes attribute `attr`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
     wildcard `*` matches all attributes. Lists containing none of the `value(s)` are
     not modified.
