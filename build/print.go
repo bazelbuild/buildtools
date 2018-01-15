@@ -327,12 +327,18 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
 		p.printf("[")
-		if v.Y != nil {
-			p.expr(v.Y, precLow)
+		if v.From != nil {
+			p.expr(v.From, precLow)
 		}
 		p.printf(":")
-		if v.Z != nil {
-			p.expr(v.Z, precLow)
+		if v.To != nil {
+			p.expr(v.To, precLow)
+		}
+		if v.SecondColon.Byte != 0 {
+			p.printf(":")
+			if v.Step != nil {
+				p.expr(v.Step, precLow)
+			}
 		}
 		p.printf("]")
 

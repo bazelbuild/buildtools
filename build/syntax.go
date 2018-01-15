@@ -360,15 +360,17 @@ func (x *ParenExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add(")")
 }
 
-// A SliceExpr represents a slice expression: X[Y:Z].
+// A SliceExpr represents a slice expression: expr[from:to] or expr[from:to:step] .
 type SliceExpr struct {
 	Comments
-	X          Expr
-	SliceStart Position
-	Y          Expr
-	Colon      Position
-	Z          Expr
-	End        Position
+	X            Expr
+	SliceStart   Position
+	From         Expr
+	FirstColon   Position
+	To           Expr
+	SecondColon  Position
+	Step         Expr
+	End          Position
 }
 
 func (x *SliceExpr) Span() (start, end Position) {

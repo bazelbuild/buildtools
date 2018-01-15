@@ -691,8 +691,9 @@ func (in *input) order(v Expr) {
 		in.order(&v.End)
 	case *SliceExpr:
 		in.order(v.X)
-		in.order(v.Y)
-		in.order(v.Z)
+		in.order(v.From)
+		in.order(v.To)
+		in.order(v.Step)
 	case *IndexExpr:
 		in.order(v.X)
 		in.order(v.Y)

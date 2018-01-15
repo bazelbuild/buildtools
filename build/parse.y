@@ -373,10 +373,23 @@ expr:
 		$$ = &SliceExpr{
 			X: $1,
 			SliceStart: $2,
-			Y: $3,
-			Colon: $4,
-			Z: $5,
+			From: $3,
+			FirstColon: $4,
+			To: $5,
 			End: $6,
+		}
+	}
+|	expr '[' expr_opt ':' expr_opt ':' expr_opt ']'
+	{
+		$$ = &SliceExpr{
+			X: $1,
+			SliceStart: $2,
+			From: $3,
+			FirstColon: $4,
+			To: $5,
+			SecondColon: $6,
+			Step: $7,
+			End: $8,
 		}
 	}
 |	_LAMBDA exprs ':' expr
