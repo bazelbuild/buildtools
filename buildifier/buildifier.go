@@ -46,9 +46,13 @@ var (
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 	version       = flag.Bool("version", false, "Print the version of buildifier")
+
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
+
+	// Experimental flags
+	formatBzlFiles = flag.Bool("format_bzl", false, "format bzl-specific blocks (experimental)")
 )
 
 func stringList(name, help string) func() []string {
@@ -100,6 +104,8 @@ func main() {
 	// Pass down debug flags into build package
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
+
+	tables.FormatBzlFiles = *formatBzlFiles
 
 	if *dflag {
 		if *mode != "" {

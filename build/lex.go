@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // Parse parses the input data and returns the corresponding parse tree.
@@ -457,6 +459,10 @@ var keywordToken = map[string]int{
 // hasPythonPrefix reports whether p begins with a keyword that would
 // introduce an uninterpreted Python block.
 func hasPythonPrefix(p []byte) bool {
+	if tables.FormatBzlFiles {
+		return false
+	}
+
 	for _, pre := range prefixes {
 		if hasPrefixSpace(p, pre) {
 			return true
