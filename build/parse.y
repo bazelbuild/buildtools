@@ -532,21 +532,21 @@ ident:
 		$$ = &LiteralExpr{Start: $1, Token: $<tok>1}
 	}
 | '(' idents comma_opt ')'
-  {
+	{
 		if len($2) == 1 && $3.Line == 0 {
 			// Just a parenthesized expression, not a tuple.
 			$$ = $2[0]
 		} else {
-      $$ = &TupleExpr{
-        Start: $1,
-        List: $2,
-        Comma: $<comma>2,
-        End: End{Pos: $4},
-        ForceCompact: forceCompact($1, $2, $4),
-        ForceMultiLine: forceMultiLine($1, $2, $4),
-      }
-    }
-  }
+			$$ = &TupleExpr{
+				Start: $1,
+				List: $2,
+				Comma: $<comma>2,
+				End: End{Pos: $4},
+				ForceCompact: forceCompact($1, $2, $4),
+				ForceMultiLine: forceMultiLine($1, $2, $4),
+			}
+		}
+	}
 
 idents:
 	ident
