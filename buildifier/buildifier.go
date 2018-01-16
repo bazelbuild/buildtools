@@ -52,7 +52,7 @@ var (
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
 
 	// Experimental flags
-	formatBzlFiles = flag.Bool("formatbzl", false, "format bzl-specific blocks")
+	formatBzlFiles = flag.Bool("format_bzl", false, "format bzl-specific blocks")
 )
 
 func stringList(name, help string) func() []string {
