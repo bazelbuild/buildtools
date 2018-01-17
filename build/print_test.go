@@ -44,6 +44,9 @@ func TestPrintGolden(t *testing.T) {
 		if strings.Contains(out, ".stripslashes.") {
 			tables.StripLabelLeadingSlashes = true
 		}
+		if strings.Contains(out, ".formatbzl.") {
+			tables.FormatBzlFiles = true
+		}
 		// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
 		if strings.Contains(out, "/050.") {
 			tables.ShortenAbsoluteLabelsToRelative = true
@@ -51,6 +54,7 @@ func TestPrintGolden(t *testing.T) {
 		testPrint(t, out, out, false)
 		tables.StripLabelLeadingSlashes = false
 		tables.ShortenAbsoluteLabelsToRelative = false
+		tables.FormatBzlFiles = false
 	}
 }
 
@@ -73,6 +77,13 @@ func TestPrintRewrite(t *testing.T) {
 			tables.StripLabelLeadingSlashes = true
 			testPrint(t, in, strippedOut, true)
 			tables.StripLabelLeadingSlashes = false
+		}
+
+		bzl := prefix + ".formatbzl.golden"
+		if exists(bzl) {
+			tables.FormatBzlFiles = true
+			testPrint(t, in, bzl, true)
+			tables.FormatBzlFiles = false
 		}
 
 		tables.ShortenAbsoluteLabelsToRelative = false

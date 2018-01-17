@@ -363,14 +363,14 @@ func (x *ParenExpr) Span() (start, end Position) {
 // A SliceExpr represents a slice expression: expr[from:to] or expr[from:to:step] .
 type SliceExpr struct {
 	Comments
-	X            Expr
-	SliceStart   Position
-	From         Expr
-	FirstColon   Position
-	To           Expr
-	SecondColon  Position
-	Step         Expr
-	End          Position
+	X           Expr
+	SliceStart  Position
+	From        Expr
+	FirstColon  Position
+	To          Expr
+	SecondColon Position
+	Step        Expr
+	End         Position
 }
 
 func (x *SliceExpr) Span() (start, end Position) {
@@ -422,4 +422,32 @@ func (x *ConditionalExpr) Span() (start, end Position) {
 	start, _ = x.Then.Span()
 	_, end = x.Else.Span()
 	return start, end
+}
+
+// A CodeBlock represents an indented code block.
+type CodeBlock struct {
+	Statements []Expr
+	Start      Position
+	End
+}
+
+func (x *CodeBlock) Span() (start, end Position) {
+	return x.Start, x.End.Pos
+}
+
+// A FuncDef represents a function definition expression: def foo(List):.
+type FuncDef struct {
+	Comments
+	Start          Position // position of def
+	Name           string
+	ListStart      Position // position of (
+	Args           []Expr
+	Body           CodeBlock
+	End                 // position of the end
+	ForceCompact   bool // force compact (non-multiline) form when printing
+	ForceMultiLine bool // force multiline form when printing
+}
+
+func (x *FuncDef) Span() (start, end Position) {
+	return x.Start, x.End.Pos.add(":")
 }
