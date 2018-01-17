@@ -40,11 +40,13 @@ dict_comprehension = {
     (b, c),
 ) in d]
 
-[a for a in b]
+[a for (a) in b]
 
 [a for (a,) in b]
 
-[a for a in b]
+[a for (
+    a
+) in b]
 
 [a for (
     a,
