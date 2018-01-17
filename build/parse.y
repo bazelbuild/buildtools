@@ -92,13 +92,14 @@ package build
 %type	<pos>		comma_opt
 %type	<expr>		expr
 %type	<expr>		expr_opt
+%type	<expr>		primary_expr
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
+%type	<exprs>		primary_exprs
 %type	<forc>		for_clause
 %type	<forifs>	for_clause_with_if_clauses_opt
 %type	<forsifs>	for_clauses_with_if_clauses_opt
 %type	<expr>		ident
-%type	<exprs>		idents
 %type	<ifs>		if_clauses_opt
 %type	<exprs>		stmts
 %type	<expr>		stmt
@@ -220,15 +221,84 @@ stmt:
 semi_opt:
 |	semi_opt ';'
 
-expr:
+primary_expr:
 	ident
+|	primary_expr '.' _IDENT
+	{
+		$$ = &DotExpr{
+			X: $1,
+			Dot: $2,
+			NamePos: $3,
+			Name: $<tok>3,
+		}
+	}
+|	primary_expr '(' exprs_opt ')'
+	{
+		$$ = &CallExpr{
+			X: $1,
+			ListStart: $2,
+			List: $3,
+			End: End{Pos: $4},
+			ForceCompact: forceCompact($2, $3, $4),
+			ForceMultiLine: forceMultiLine($2, $3, $4),
+		}
+	}
+|	primary_expr '[' expr ']'
+	{
+		$$ = &IndexExpr{
+			X: $1,
+			IndexStart: $2,
+			Y: $3,
+			End: $4,
+		}
+	}
+|	primary_expr '[' expr_opt ':' expr_opt ']'
+	{
+		$$ = &SliceExpr{
+			X: $1,
+			SliceStart: $2,
+			From: $3,
+			FirstColon: $4,
+			To: $5,
+			End: $6,
+		}
+	}
+|	primary_expr '[' expr_opt ':' expr_opt ':' expr_opt ']'
+	{
+		$$ = &SliceExpr{
+			X: $1,
+			SliceStart: $2,
+			From: $3,
+			FirstColon: $4,
+			To: $5,
+			SecondColon: $6,
+			Step: $7,
+			End: $8,
+		}
+	}
+|	primary_expr '(' expr for_clauses_with_if_clauses_opt ')'
+	{
+		$$ = &CallExpr{
+			X: $1,
+			ListStart: $2,
+			List: []Expr{
+				&ListForExpr{
+					Brack: "",
+					Start: $2,
+					X: $3,
+					For: $4,
+					End: End{Pos: $5},
+				},
+			},
+			End: End{Pos: $5},
+		}
+	}
 |	strings %prec ShiftInstead
 	{
 		if len($1) == 1 {
 			$$ = $1[0]
 			break
 		}
-
 		$$ = $1[0]
 		for _, x := range $1[1:] {
 			_, end := $$.Span()
@@ -322,76 +392,10 @@ expr:
 			}
 		}
 	}
-|	expr '.' _IDENT
-	{
-		$$ = &DotExpr{
-			X: $1,
-			Dot: $2,
-			NamePos: $3,
-			Name: $<tok>3,
-		}
-	}
-|	expr '(' exprs_opt ')'
-	{
-		$$ = &CallExpr{
-			X: $1,
-			ListStart: $2,
-			List: $3,
-			End: End{Pos: $4},
-			ForceCompact: forceCompact($2, $3, $4),
-			ForceMultiLine: forceMultiLine($2, $3, $4),
-		}
-	}
-|	expr '(' expr for_clauses_with_if_clauses_opt ')'
-	{
-		$$ = &CallExpr{
-			X: $1,
-			ListStart: $2,
-			List: []Expr{
-				&ListForExpr{
-					Brack: "",
-					Start: $2,
-					X: $3,
-					For: $4,
-					End: End{Pos: $5},
-				},
-			},
-			End: End{Pos: $5},
-		}
-	}
-|	expr '[' expr ']'
-	{
-		$$ = &IndexExpr{
-			X: $1,
-			IndexStart: $2,
-			Y: $3,
-			End: $4,
-		}
-	}
-|	expr '[' expr_opt ':' expr_opt ']'
-	{
-		$$ = &SliceExpr{
-			X: $1,
-			SliceStart: $2,
-			From: $3,
-			FirstColon: $4,
-			To: $5,
-			End: $6,
-		}
-	}
-|	expr '[' expr_opt ':' expr_opt ':' expr_opt ']'
-	{
-		$$ = &SliceExpr{
-			X: $1,
-			SliceStart: $2,
-			From: $3,
-			FirstColon: $4,
-			To: $5,
-			SecondColon: $6,
-			Step: $7,
-			End: $8,
-		}
-	}
+|	'-' primary_expr  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
+
+expr:
+	primary_expr
 |	_LAMBDA exprs ':' expr
 	{
 		$$ = &LambdaExpr{
@@ -401,7 +405,6 @@ expr:
 			Expr: $4,
 		}
 	}
-|	'-' expr  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
 |	_NOT expr %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
 |	'*' expr  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
 |	expr '*' expr      { $$ = binary($1, $2, $<tok>2, $3) }
@@ -504,6 +507,16 @@ exprs_opt:
 		$$, $<comma>$ = $1, $2
 	}
 
+primary_exprs:
+	primary_expr
+	{
+		$$ = []Expr{$1}
+	}
+|	primary_exprs ',' primary_expr
+	{
+		$$ = append($1, $3)
+	}
+
 string:
 	_STRING
 	{
@@ -532,33 +545,14 @@ ident:
 		$$ = &LiteralExpr{Start: $1, Token: $<tok>1}
 	}
 
-idents:
-	ident
-	{
-		$$ = []Expr{$1}
-	}
-|	idents ',' ident
-	{
-		$$ = append($1, $3)
-	}
-
 for_clause:
-	_FOR idents _IN expr
+	_FOR primary_exprs _IN expr
 	{
 		$$ = &ForClause{
 			For: $1,
 			Var: $2,
 			In: $3,
 			Expr: $4,
-		}
-	}
-|	_FOR '(' idents ')' _IN expr
-	{
-		$$ = &ForClause{
-			For: $1,
-			Var: $3,
-			In: $5,
-			Expr: $6,
 		}
 	}
 
