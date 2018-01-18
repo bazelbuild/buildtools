@@ -510,6 +510,7 @@ var keywordToken = map[string]int{
 	"not":    _NOT,
 	"or":     _OR,
 	"def":    _DEF,
+	"return": _RETURN,
 }
 
 // Python scanning.
@@ -777,6 +778,10 @@ func (in *input) order(v Expr) {
 			in.order(name)
 		}
 		in.order(v.Expr)
+	case *ReturnExpr:
+		if v.X != nil {
+			in.order(v.X)
+		}
 	case *FuncDef:
 		for _, x := range v.Args {
 			in.order(x)

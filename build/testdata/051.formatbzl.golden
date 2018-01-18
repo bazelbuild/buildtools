@@ -32,14 +32,14 @@ def function(
 
     def i():
       def j():
-        h(
+        return h(
             [1],
             [2],
-        )
+        )  # returns h
 
-  u()
+  return u()
 
 bar
 
 def a():
-  b
+  return
