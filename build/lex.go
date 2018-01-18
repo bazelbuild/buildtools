@@ -44,7 +44,7 @@ type input struct {
 	lastToken string    // most recently returned token, for error messages
 	pos       Position  // current input position
 	comments  []Comment // accumulated comments
-	endStmt   int       // position of end of current rule
+	endStmt   int       // position of the end of the current statement
 	depth     int       // nesting of [ ] { } ( )
 	cleanLine bool      // true if the current line only contains whitespace before the current position
 	indent    int       // current line indentation in spaces
