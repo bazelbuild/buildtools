@@ -31,6 +31,7 @@ package build
 	forsifs   []*ForClauseWithIfClausesOpt
 	string    *StringExpr
 	strings   []*StringExpr
+	block     CodeBlock
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
@@ -88,6 +89,9 @@ package build
 %token	<pos>	_OR      // keyword or
 %token	<pos>	_PYTHON  // uninterpreted Python block
 %token	<pos>	_STRING  // quoted string
+%token	<pos>	_DEF     // keyword def
+%token	<pos>	_INDENT  // indentation
+%token	<pos>	_UNINDENT // unindentation
 
 %type	<pos>		comma_opt
 %type	<expr>		expr
@@ -108,6 +112,7 @@ package build
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
+%type	<block>		block
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -155,6 +160,16 @@ file:
 		yylex.(*input).file = &File{Stmt: $1}
 		return 0
 	}
+
+block:
+  _INDENT stmts _UNINDENT
+  {
+		$$ = CodeBlock{
+			Start: $1,
+			Statements: $2,
+			End: End{Pos: $3},
+		}
+  }
 
 stmts:
 	{
@@ -432,7 +447,7 @@ expr:
 			$$ = binary($1, $2, $<tok>2, $3)
 		}
 	}
-|       expr _IF expr _ELSE expr
+| expr _IF expr _ELSE expr
 	{
                 $$ = &ConditionalExpr{
                         Then: $1,
@@ -442,6 +457,20 @@ expr:
                         Else: $5,
                 }
 	}
+| _DEF _IDENT '(' exprs_opt ')' ':' block
+	// TODO: support one-line function definitions
+	{
+ 		$$ = &FuncDef{
+ 			Start: $1,
+ 			Name: $<tok>2,
+ 			ListStart: $3,
+ 			Args: $4,
+ 			Body: $7,
+ 			End: $7.End,
+ 			ForceCompact: forceCompact($3, $4, $5),
+ 			ForceMultiLine: forceMultiLine($3, $4, $5),
+ 		}
+ 	}
 
 expr_opt:
 	{
