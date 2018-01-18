@@ -229,6 +229,18 @@ stmts:
 
 stmt:
 	expr %prec ShiftInstead
+|	_RETURN expr
+	{
+		_, end := $2.Span()
+		$$ = &ReturnExpr{
+			X: $2,
+			End: end,
+		}
+	}
+|	_RETURN
+	{
+		$$ = &ReturnExpr{End: $1}
+	}
 |	_PYTHON
 	{
 		$$ = &PythonBlock{Start: $1, Token: $<tok>1}
@@ -412,18 +424,6 @@ primary_expr:
 
 expr:
 	primary_expr
-|	_RETURN expr
-	{
-		_, end := $2.Span()
-		$$ = &ReturnExpr{
-			X: $2,
-			End: end,
-		}
-	}
-|	_RETURN
-	{
-		$$ = &ReturnExpr{End: $1}
-	}
 |	_LAMBDA exprs ':' expr
 	{
 		$$ = &LambdaExpr{
