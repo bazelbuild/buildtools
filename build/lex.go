@@ -219,7 +219,7 @@ func (in *input) Lex(val *yySymType) int {
 				in.indent = 0
 				in.cleanLine = true
 				if in.endStmt == 0 {
-					// Not in a rule. Tell parser about top-level blank line.
+					// Not in a statememt. Tell parser about top-level blank line.
 					in.startToken(val)
 					in.readRune()
 					in.endToken(val)
