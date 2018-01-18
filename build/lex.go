@@ -641,16 +641,15 @@ func (in *input) skipStmt(p []byte) []byte {
 			if tables.FormatBzlFiles {
 				// In the bzl files mode we only care about the end of the statement, we've found it.
 				return rest
-			} else {
-				// In the legacy mode we need to find where the current block ends
-				if !isBlankOrComment(p[i:]) {
-					if !hasPythonContinuation(p[i:]) && c != ' ' && c != '\t' {
-						// Yes, stop here.
-						return rest
-					}
-					// Not a stopping point after all.
-					rest = nil
+			}
+			// In the legacy mode we need to find where the current block ends
+			if !isBlankOrComment(p[i:]) {
+				if !hasPythonContinuation(p[i:]) && c != ' ' && c != '\t' {
+					// Yes, stop here.
+					return rest
 				}
+				// Not a stopping point after all.
+				rest = nil
 			}
 		}
 
