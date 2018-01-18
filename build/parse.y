@@ -90,8 +90,8 @@ package build
 %token	<pos>	_PYTHON  // uninterpreted Python block
 %token	<pos>	_STRING  // quoted string
 %token	<pos>	_DEF     // keyword def
-%token  <pos> _INDENT  // indentation
-%token  <pos> _UNINDENT // unindentation
+%token	<pos>	_INDENT  // indentation
+%token	<pos>	_UNINDENT // unindentation
 
 %type	<pos>		comma_opt
 %type	<expr>		expr
@@ -112,7 +112,7 @@ package build
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
-%type <block>   block
+%type	<block>		block
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -458,6 +458,7 @@ expr:
                 }
 	}
 | _DEF _IDENT '(' exprs_opt ')' ':' block
+	// TODO: support one-line function definitions
 	{
  		$$ = &FuncDef{
  			Start: $1,
