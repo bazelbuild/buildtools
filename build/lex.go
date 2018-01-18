@@ -594,6 +594,12 @@ func (in *input) skipStmt(p []byte) []byte {
 	depth := 0           // nesting depth for ( ) [ ] { }
 	var rest []byte      // data after the Python block
 
+	defer func() {
+		if quote != 0 {
+			in.Error("EOF scanning Python quoted string")
+		}
+	}()
+
 	// Scan over input one byte at a time until we find
 	// an unindented, non-blank, non-comment line
 	// outside quoted strings and brackets.
@@ -634,13 +640,13 @@ func (in *input) skipStmt(p []byte) []byte {
 
 			if tables.FormatBzlFiles {
 				// In the bzl files mode we only care about the end of the statement, we've found it.
-				break
+				return rest
 			} else {
 				// In the legacy mode we need to find where the current block ends
 				if !isBlankOrComment(p[i:]) {
 					if !hasPythonContinuation(p[i:]) && c != ' ' && c != '\t' {
 						// Yes, stop here.
-						break
+						return rest
 					}
 					// Not a stopping point after all.
 					rest = nil
@@ -661,9 +667,6 @@ func (in *input) skipStmt(p []byte) []byte {
 		case ')', ']', '}':
 			depth--
 		}
-	}
-	if quote != 0 {
-		in.Error("EOF scanning Python quoted string")
 	}
 	return rest
 }
