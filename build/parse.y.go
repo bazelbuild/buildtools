@@ -149,12 +149,8 @@ func isSimpleExpression(expr *Expr) bool {
 	case *LiteralExpr, *StringExpr:
 		return true
 	case *UnaryExpr:
-		switch x.X.(type) {
-		case *LiteralExpr:
-			return true
-		default:
-			return false
-		}
+		_, ok := x.X.(*LiteralExpr)
+		return ok
 	case *ListExpr:
 		return len(x.List) == 0
 	case *TupleExpr:
