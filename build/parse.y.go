@@ -140,6 +140,30 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 	}
 }
 
+// isSimpleExpression returns whether an expression is simple and allowed to exist in
+// compact forms of sequences.
+// The formal criteria are the following: an expression is considered simple if it's
+// a literal (variable, string or a number), a literal with a unary operator or an empty sequence.
+func isSimpleExpression(expr *Expr) bool {
+	switch x := (*expr).(type) {
+	case *LiteralExpr, *StringExpr:
+		return true
+	case *UnaryExpr:
+		_, ok := x.X.(*LiteralExpr)
+		return ok
+	case *ListExpr:
+		return len(x.List) == 0
+	case *TupleExpr:
+		return len(x.List) == 0
+	case *DictExpr:
+		return len(x.List) == 0
+	case *SetExpr:
+		return len(x.List) == 0
+	default:
+		return false
+	}
+}
+
 // forceCompact returns the setting for the ForceCompact field for a call or tuple.
 //
 // NOTE 1: The field is called ForceCompact, not ForceSingleLine,
@@ -188,10 +212,7 @@ func forceCompact(start Position, list []Expr, end Position) bool {
 			return false
 		}
 		line = end.Line
-		switch x.(type) {
-		case *LiteralExpr, *StringExpr, *UnaryExpr:
-			// ok
-		default:
+		if !isSimpleExpression(&x) {
 			return false
 		}
 	}
