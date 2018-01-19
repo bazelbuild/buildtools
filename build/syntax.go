@@ -451,3 +451,15 @@ type FuncDef struct {
 func (x *FuncDef) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add(":")
 }
+
+// A ReturnExpr represents a return statement: return f(x).
+type ReturnExpr struct {
+	Comments
+	Start    Position
+	X        Expr
+	End      Position
+}
+
+func (x *ReturnExpr) Span() (start, end Position) {
+	return x.Start, x.End
+}

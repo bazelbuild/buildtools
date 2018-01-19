@@ -90,6 +90,7 @@ package build
 %token	<pos>	_PYTHON  // uninterpreted Python block
 %token	<pos>	_STRING  // quoted string
 %token	<pos>	_DEF     // keyword def
+%token	<pos>	_RETURN  // keyword return
 %token	<pos>	_INDENT  // indentation
 %token	<pos>	_UNINDENT // unindentation
 
@@ -228,6 +229,18 @@ stmts:
 
 stmt:
 	expr %prec ShiftInstead
+|	_RETURN expr
+	{
+		_, end := $2.Span()
+		$$ = &ReturnExpr{
+			X: $2,
+			End: end,
+		}
+	}
+|	_RETURN
+	{
+		$$ = &ReturnExpr{End: $1}
+	}
 |	_PYTHON
 	{
 		$$ = &PythonBlock{Start: $1, Token: $<tok>1}
