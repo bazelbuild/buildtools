@@ -143,7 +143,8 @@ func (p *printer) statements(stmts []Expr) {
 				p.printf("%s", strings.TrimSpace(com.Token))
 				p.newline()
 			}
-			p.printf("%s", stmt.Token) // includes trailing newline
+			p.printf("%s", stmt.Token)
+			p.newline()
 
 		default:
 			p.expr(stmt, precLow)
@@ -472,7 +473,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *FuncDef:
 		p.printf("def ")
 		p.printf(v.Name)
-		p.seq("()", v.Args, &v.End, modeTuple, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", v.Args, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
 		p.margin += nestedIndentation
 		p.newline()
