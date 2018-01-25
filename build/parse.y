@@ -137,19 +137,19 @@ package build
 // 'if' and 'else' which have lower precedence than all other operators.
 // e.g. "a, b if c > 0 else 'foo'" is either a tuple of (a,b) or 'foo'
 // and not a tuple of "(a, (b if ... ))"
-%left	'=' _ADDEQ
-%left   _IF _ELSE
-%left	','
-%left	':'
-%left	_IN _NOT _IS
-%left	_OR
-%left	_AND
-%left	'<' '>' _EQ _NE _LE _GE
-%left	'+' '-'
-%left	'*' '/' '%'
-%left	'.' '[' '('
-%right  _UNARY
-%left	_STRING
+%left  '=' _ADDEQ
+%left  _IF _ELSE
+%left  ','
+%left  ':'
+%left  _IN _NOT _IS
+%left  _OR
+%left  _AND
+%left  '<' '>' _EQ _NE _LE _GE
+%left  '+' '-'
+%left  '*' '/' '%'
+%left  '.' '[' '('
+%right _UNARY
+%left  _STRING
 
 %%
 
@@ -518,13 +518,13 @@ expr:
 	}
 | expr _IF expr _ELSE expr
 	{
-                $$ = &ConditionalExpr{
-                        Then: $1,
-                        IfStart: $2,
-                        Test: $3,
-                        ElseStart: $4,
-                        Else: $5,
-                }
+		$$ = &ConditionalExpr{
+			Then: $1,
+			IfStart: $2,
+			Test: $3,
+			ElseStart: $4,
+			Else: $5,
+		}
 	}
 
 expr_opt:
@@ -649,13 +649,13 @@ for_clause_with_if_clauses_opt:
 	}
 
 for_clauses_with_if_clauses_opt:
-  for_clause_with_if_clauses_opt
-  {
-    $$ = []*ForClauseWithIfClausesOpt{$1}
-  }
+	for_clause_with_if_clauses_opt
+	{
+		$$ = []*ForClauseWithIfClausesOpt{$1}
+	}
 | for_clauses_with_if_clauses_opt for_clause_with_if_clauses_opt {
-    $$ = append($1, $2)
-  }
+		$$ = append($1, $2)
+	}
 
 if_clauses_opt:
 	{
