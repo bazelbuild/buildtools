@@ -335,9 +335,7 @@ func (in *input) Lex(val *yySymType) int {
 		return _EOF
 	}
 
-	// If endStmt is 0, we need to recompute where the end
-	// of the next statement is, so that we can
-	// generate a virtual end-of-rule semicolon (see above).
+	// If endStmt is 0, we need to recompute where the end of the next statement is.
 	if in.endStmt == -1 {
 		in.endStmt = len(in.skipStmt(in.remaining))
 	}
@@ -592,8 +590,8 @@ var continuations = []string{
 	"else",
 }
 
-// skipStmt returns the data remaining after the uninterpreted
-// Python block beginning at p. It does not advance the input position.
+// skipStmt returns the data remaining after the statement  beginning at p.
+// It does not advance the input position.
 // (The only reason for the input receiver is to be able to call in.Error.)
 func (in *input) skipStmt(p []byte) []byte {
 	quote := byte(0)     // if non-zero, the kind of quote we're in
