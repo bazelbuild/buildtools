@@ -25,12 +25,12 @@ var typeOf = lang.TypeOf
 // IsList returns true for all attributes whose type is a list.
 func IsList(attr string) bool {
 	overrideValue, isOverridden := tables.IsListArg[attr]
-	if (isOverridden) {
+	if isOverridden {
 		return overrideValue
 	}
 	// It stands to reason that a sortable list must be a list.
 	isSortableList := tables.IsSortableListArg[attr]
-	if (isSortableList) {
+	if isSortableList {
 		return true
 	}
 	ty := typeOf[attr]

@@ -100,8 +100,7 @@ var LabelBlacklist = map[string]bool{
 // By default, edit.types.IsList consults lang.TypeOf to determine if an arg is a list.
 // You may override this using IsListArg. Specifying a name here overrides any value
 // in lang.TypeOf.
-var IsListArg = map[string]bool{
-}
+var IsListArg = map[string]bool{}
 
 // IsSortableListArg: a named argument to a rule call is considered to be a sortable list
 // if the name is one of these names. There is a separate blacklist for

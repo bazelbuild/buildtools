@@ -68,7 +68,6 @@ func main() {
 		}
 	}
 
-
 	if *addTablesPath != "" {
 		if err := tables.ParseAndUpdateJSONDefinitions(*addTablesPath, true); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -add_tables: %s\n", *addTablesPath, err)
