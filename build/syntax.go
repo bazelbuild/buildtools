@@ -455,9 +455,9 @@ func (x *FuncDef) Span() (start, end Position) {
 // A ReturnExpr represents a return statement: return f(x).
 type ReturnExpr struct {
 	Comments
-	Start    Position
-	X        Expr
-	End      Position
+	Start Position
+	X     Expr
+	End   Position
 }
 
 func (x *ReturnExpr) Span() (start, end Position) {

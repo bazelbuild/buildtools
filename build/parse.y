@@ -107,13 +107,17 @@ package build
 %type	<expr>		ident
 %type	<ifs>		if_clauses_opt
 %type	<exprs>		stmts
-%type	<expr>		stmt
+%type	<exprs>		stmt        // a simple_stmt or a for/if/def block
+%type	<expr>		block_stmt  // a single for/if/def statement
+%type	<exprs>		simple_stmt // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
+%type	<expr>		small_stmt  // A single statement, e.g. 'a = f(x)'
+%type <exprs>		small_stmts_continuation  // A sequence of `';' small_stmt`
 %type	<expr>		keyvalue
 %type	<exprs>		keyvalues
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
-%type	<block>		block
+%type	<block>		suite
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -162,36 +166,46 @@ file:
 		return 0
 	}
 
-block:
-  _INDENT stmts _UNINDENT
-  {
+suite:
+	'\n' _INDENT stmts _UNINDENT
+	{
 		$$ = CodeBlock{
-			Start: $1,
-			Statements: $2,
-			End: End{Pos: $3},
+			Start: $2,
+			Statements: $3,
+			End: End{Pos: $4},
 		}
-  }
+	}
+| simple_stmt
+	{
+		// simple_stmt is never empty
+		start, _ := $1[0].Span()
+		_, end := $1[len($1)-1].Span()
+		$$ = CodeBlock{
+			Start: start,
+			Statements: $1,
+			End: End{Pos: end},
+		}
+	}
 
 stmts:
 	{
 		$$ = nil
 		$<lastRule>$ = nil
 	}
-|	stmts stmt comma_opt semi_opt
+|	stmts stmt
 	{
 		// If this statement follows a comment block,
 		// attach the comments to the statement.
 		if cb, ok := $<lastRule>1.(*CommentBlock); ok {
-			$$ = $1
-			$$[len($1)-1] = $2
-			$2.Comment().Before = cb.After
-			$<lastRule>$ = $2
+			$$ = append($1[:len($1)-1], $2...)
+			$2[0].Comment().Before = cb.After
+			$<lastRule>$ = $2[len($2)-1]
 			break
 		}
 
 		// Otherwise add to list.
-		$$ = append($1, $2)
-		$<lastRule>$ = $2
+		$$ = append($1, $2...)
+		$<lastRule>$ = $2[len($2)-1]
 
 		// Consider this input:
 		//
@@ -204,7 +218,8 @@ stmts:
 		// for baz() instead.
 		if x := $<lastRule>1; x != nil {
 			com := x.Comment()
-			$2.Comment().Before = com.After
+			// stmt is never empty
+			$2[0].Comment().Before = com.After
 			com.After = nil
 		}
 	}
@@ -214,7 +229,7 @@ stmts:
 		$$ = $1
 		$<lastRule>$ = nil
 	}
-|	stmts _COMMENT
+|	stmts _COMMENT '\n'
 	{
 		$$ = $1
 		$<lastRule>$ = $<lastRule>1
@@ -228,6 +243,47 @@ stmts:
 	}
 
 stmt:
+	simple_stmt
+	{
+		$$ = $1
+	}
+|	block_stmt
+	{
+		$$ = []Expr{$1}
+	}
+
+block_stmt:
+	_DEF _IDENT '(' exprs_opt ')' ':' suite
+	{
+		$$ = &FuncDef{
+			Start: $1,
+			Name: $<tok>2,
+			ListStart: $3,
+			Args: $4,
+			Body: $7,
+			End: $7.End,
+			ForceCompact: forceCompact($3, $4, $5),
+			ForceMultiLine: forceMultiLine($3, $4, $5),
+		}
+	}
+
+simple_stmt:
+	small_stmt small_stmts_continuation semi_opt '\n'
+	{
+		$$ = append([]Expr{$1}, $2...)
+		$<lastRule>$ = $$[len($$)-1]
+	}
+
+small_stmts_continuation:
+	{
+		$$ = []Expr{}
+	}
+| small_stmts_continuation ';' small_stmt
+	{
+		$$ = append($1, $3)
+	}
+
+small_stmt:
 	expr %prec ShiftInstead
 |	_RETURN expr
 	{
@@ -247,7 +303,7 @@ stmt:
 	}
 
 semi_opt:
-|	semi_opt ';'
+|	';'
 
 primary_expr:
 	ident
@@ -470,20 +526,6 @@ expr:
                         Else: $5,
                 }
 	}
-| _DEF _IDENT '(' exprs_opt ')' ':' block
-	// TODO: support one-line function definitions
-	{
- 		$$ = &FuncDef{
- 			Start: $1,
- 			Name: $<tok>2,
- 			ListStart: $3,
- 			Args: $4,
- 			Body: $7,
- 			End: $7.End,
- 			ForceCompact: forceCompact($3, $4, $5),
- 			ForceMultiLine: forceMultiLine($3, $4, $5),
- 		}
- 	}
 
 expr_opt:
 	{

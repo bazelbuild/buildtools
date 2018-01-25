@@ -184,9 +184,11 @@ func TestUseImplicitName(t *testing.T) {
 	}{
 		{`rule()`, 1, false, false, `Use an implicit name for one rule.`},
 		{`rule(name="a")
-		  rule(name="b")
-		  rule()`, 3, false, false, `Use an implicit name for the one unnamed rule`},
-		{`rule() rule() rule()`, 1, true, false, `Error for multiple unnamed rules`},
+rule(name="b")
+rule()`, 3, false, false, `Use an implicit name for the one unnamed rule`},
+		{`rule()
+rule()
+rule()`, 1, true, false, `Error for multiple unnamed rules`},
 		{`rule()`, 1, true, true, `Error for the root package`},
 	}
 

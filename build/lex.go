@@ -60,6 +60,11 @@ type input struct {
 }
 
 func newInput(filename string, data []byte) *input {
+	// The syntax requires that each simple statement ends with '\n', however it's optional at EOF.
+	// If `data` doesn't end with '\n' we add it here to keep parser simple.
+	// It shouldn't affect neither the parsed tree nor its formatting.
+	data = append(data, '\n')
+
 	return &input{
 		filename:  filename,
 		complete:  data,
@@ -67,6 +72,7 @@ func newInput(filename string, data []byte) *input {
 		pos:       Position{Line: 1, LineRune: 1, Byte: 0},
 		cleanLine: true,
 		indents:   []int{0},
+		endStmt:   -1, // -1 denotes it's not inside a statement
 	}
 }
 
@@ -190,24 +196,13 @@ func (in *input) Lex(val *yySymType) int {
 		//  # Actual indentation is from 0 to 2 spaces here
 		//  return x
 		//
-		// If the --format_bzl flag is set to false, for legacy reason we track the end of each
-		// code block defined at the top level instead the end of the current statement.
+		// To handle this case, when we reach the beginning of a statement  we scan forward to see where
+		// it should end and record the number of input bytes remaining at that endpoint.
 		//
-		// To handle these cases, when we reach the beginning of a statement (or
-		// top-level code block), we scan forward to see where
-		// it should end and record the number of input bytes remaining
-		// at that endpoint. When we reach that point in the input, we
-		// insert an implicit semicolon to force the two expressions
-		// to stay separate (only if --format_bzl is set to false, for legacy reasons).
-		// We also set in.endStmt = 0 as a signal that we nee to track indentation levels.
-		//
-		if in.endStmt != 0 && len(in.remaining) == in.endStmt {
-			in.endStmt = 0
-			if !tables.FormatBzlFiles {
-				in.lastToken = "implicit ;"
-				val.tok = ";"
-				return ';'
-			}
+		// If --format_bzl is set to false, top level blocks (e.g. an entire function definition)
+		// is considered as a single statement.
+		if in.endStmt != -1 && len(in.remaining) == in.endStmt {
+			in.endStmt = -1
 		}
 
 		// Skip over spaces. Count newlines so we can give the parser
@@ -218,7 +213,7 @@ func (in *input) Lex(val *yySymType) int {
 			if c == '\n' {
 				in.indent = 0
 				in.cleanLine = true
-				if in.endStmt == 0 {
+				if in.endStmt == -1 {
 					// Not in a statememt. Tell parser about top-level blank line.
 					in.startToken(val)
 					in.readRune()
@@ -256,10 +251,12 @@ func (in *input) Lex(val *yySymType) int {
 				isSuffix = false
 			}
 
-			// Consume comment.
+			// Consume comment without the \n it ends with.
 			in.startToken(val)
-			for len(in.remaining) > 0 && in.readRune() != '\n' {
+			for len(in.remaining) > 0 && in.peekRune() != '\n' {
+				in.readRune()
 			}
+
 			in.endToken(val)
 
 			val.tok = strings.TrimRight(val.tok, "\n")
@@ -268,7 +265,7 @@ func (in *input) Lex(val *yySymType) int {
 			// If we are at top level (not in a rule), hand the comment to
 			// the parser as a _COMMENT token. The grammar is written
 			// to handle top-level comments itself.
-			if in.endStmt == 0 {
+			if in.endStmt == -1 {
 				// Not in a statement. Tell parser about top-level comment.
 				return _COMMENT
 			}
@@ -278,12 +275,13 @@ func (in *input) Lex(val *yySymType) int {
 				in.comments = append(in.comments, Comment{val.pos, "", false})
 			}
 			in.comments = append(in.comments, Comment{val.pos, val.tok, isSuffix})
-			countNL = 1
+			countNL = 0
 			continue
 		}
 
 		if c == '\\' && len(in.remaining) >= 2 && in.remaining[1] == '\n' {
-			// We can ignore a trailing \ at end of line.
+			// We can ignore a trailing \ at end of line together with the \n.
+			in.readRune()
 			in.readRune()
 			continue
 		}
@@ -295,7 +293,7 @@ func (in *input) Lex(val *yySymType) int {
 	// Check for changes in indentation
 	// Skip if --format_bzl is set to false, if we're inside a statement, or if there were non-space
 	// characters before in the current line.
-	if tables.FormatBzlFiles && in.endStmt == 0 && in.cleanLine {
+	if tables.FormatBzlFiles && in.endStmt == -1 && in.cleanLine {
 		if in.indent > in.currentIndent() {
 			// A new indentation block starts
 			in.indents = append(in.indents, in.indent)
@@ -337,16 +335,9 @@ func (in *input) Lex(val *yySymType) int {
 		return _EOF
 	}
 
-	// If endStmt is 0, we need to recompute where the end
-	// of the next statement is, so that we can
-	// generate a virtual end-of-rule semicolon (see above).
-	if in.endStmt == 0 {
+	// If endStmt is 0, we need to recompute where the end of the next statement is.
+	if in.endStmt == -1 {
 		in.endStmt = len(in.skipStmt(in.remaining))
-		if in.endStmt == 0 {
-			// skipStmt got confused.
-			// No more virtual semicolons.
-			in.endStmt = -1
-		}
 	}
 
 	// Punctuation tokens.
@@ -557,13 +548,26 @@ func hasPrefixSpace(p []byte, pre string) bool {
 	return true
 }
 
-func isBlankOrComment(b []byte) bool {
+// A utility function for the legacy formatter.
+// Returns whether a given code starts with a top-level statement (maybe with some preceeding
+// comments and blank lines)
+func isOutsideBlock(b []byte) bool {
+	isBlankLine := true
+	isComment := false
 	for _, c := range b {
-		if c == '#' || c == '\n' {
-			return true
-		}
-		if c != ' ' && c != '\t' && c != '\r' {
-			return false
+		switch {
+		case c == ' ' || c == '\t' || c == '\r':
+			isBlankLine = false
+		case c == '#':
+			isBlankLine = false
+			isComment = true
+		case c == '\n':
+			isBlankLine = true
+			isComment = false
+		default:
+			if !isComment {
+				return isBlankLine
+			}
 		}
 	}
 	return true
@@ -586,8 +590,8 @@ var continuations = []string{
 	"else",
 }
 
-// skipStmt returns the data remaining after the uninterpreted
-// Python block beginning at p. It does not advance the input position.
+// skipStmt returns the data remaining after the statement  beginning at p.
+// It does not advance the input position.
 // (The only reason for the input receiver is to be able to call in.Error.)
 func (in *input) skipStmt(p []byte) []byte {
 	quote := byte(0)     // if non-zero, the kind of quote we're in
@@ -633,7 +637,7 @@ func (in *input) skipStmt(p []byte) []byte {
 			continue
 		}
 
-		if depth == 0 && i > 0 && p[i-1] == '\n' && (i < 2 || p[i-2] != '\\') {
+		if depth == 0 && i > 0 && p[i] == '\n' && p[i-1] != '\\' {
 			// Possible stopping point. Save the earliest one we find.
 			if rest == nil {
 				rest = p[i:]
@@ -644,14 +648,15 @@ func (in *input) skipStmt(p []byte) []byte {
 				return rest
 			}
 			// In the legacy mode we need to find where the current block ends
-			if !isBlankOrComment(p[i:]) {
-				if !hasPythonContinuation(p[i:]) && c != ' ' && c != '\t' {
+			if isOutsideBlock(p[i+1:]) {
+				if !hasPythonContinuation(p[i+1:]) && c != ' ' && c != '\t' {
 					// Yes, stop here.
 					return rest
 				}
-				// Not a stopping point after all.
-				rest = nil
 			}
+			// Not a stopping point after all.
+			rest = nil
+
 		}
 
 		switch c {
@@ -660,6 +665,8 @@ func (in *input) skipStmt(p []byte) []byte {
 			for i < len(p) && p[i] != '\n' {
 				i++
 			}
+			// Rewind 1 position back because \n should be handled at the next iteration
+			i--
 
 		case '(', '[', '{':
 			depth++

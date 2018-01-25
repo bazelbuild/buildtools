@@ -10,7 +10,7 @@ bbb
 ccc
 
 def function(
-    # This shouldn't mess with indendation counting
+    # This shouldn't mess with indentation counting
     x, y = z
 ):
   aaa
@@ -22,6 +22,8 @@ def function(
     ddd
     def h(a, s = d):   # this is h
       eee
+
+    def k(g): g += 1; return g
 
     def i():
       def j():
