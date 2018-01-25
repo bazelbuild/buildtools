@@ -266,6 +266,16 @@ block_stmt:
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
 	}
+| _FOR primary_exprs _IN expr ':' suite
+	{
+		$$ = &ForLoop{
+			Start: $1,
+			LoopVars: $2,
+			Iterable: $4,
+			Body: $6,
+			End: $6.End,
+		}
+	}
 
 simple_stmt:
 	small_stmt small_stmts_continuation semi_opt '\n'

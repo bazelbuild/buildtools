@@ -34,6 +34,9 @@ def function(
       g += 1
       return g
 
+    for x in y:
+      print(y)
+
     def i():
       def j():
         return h(
@@ -42,6 +45,14 @@ def function(
         )  # returns h
 
   return u()
+
+for b in a:  # first
+  for c, d in b:  # second
+    for (
+        (e, f),
+        g,
+    ) in zip(c, d):  # third
+      pass
 
 bar
 

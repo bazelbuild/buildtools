@@ -796,6 +796,14 @@ func (in *input) order(v Expr) {
 		for _, x := range v.Body.Statements {
 			in.order(x)
 		}
+	case *ForLoop:
+		for _, x := range v.LoopVars {
+			in.order(x)
+		}
+		in.order(v.Iterable)
+		for _, x := range v.Body.Statements {
+			in.order(x)
+		}
 	}
 	if v != nil {
 		in.post = append(in.post, v)
