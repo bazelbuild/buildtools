@@ -35,27 +35,39 @@ func exists(name string) bool {
 	return err == nil
 }
 
+func testIdempotence(t *testing.T, file string) {
+	if strings.Contains(file, ".stripslashes.") {
+		tables.StripLabelLeadingSlashes = true
+	}
+	// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
+	if strings.Contains(file, "/050.") {
+		tables.ShortenAbsoluteLabelsToRelative = true
+	}
+	testPrint(t, file, file, false)
+	tables.StripLabelLeadingSlashes = false
+	tables.ShortenAbsoluteLabelsToRelative = false
+}
+
 // Test that reading and then writing the golden files
 // does not change their output.
 func TestPrintGolden(t *testing.T) {
 	outs, chdir := findTests(t, ".golden")
 	defer chdir()
 	for _, out := range outs {
-		if strings.Contains(out, ".stripslashes.") {
-			tables.StripLabelLeadingSlashes = true
-		}
-		if strings.Contains(out, ".formatbzl.") {
-			tables.FormatBzlFiles = true
-		}
-		// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
-		if strings.Contains(out, "/050.") {
-			tables.ShortenAbsoluteLabelsToRelative = true
-		}
-		testPrint(t, out, out, false)
-		tables.StripLabelLeadingSlashes = false
-		tables.ShortenAbsoluteLabelsToRelative = false
-		tables.FormatBzlFiles = false
+		testIdempotence(t, out)
 	}
+
+	// Run the same tests with --format_bzl
+	tables.FormatBzlFiles = true
+	for _, out := range outs {
+		prefix := out[:len(out)-len(".golden")]
+		if exists(prefix + ".formatbzl.golden") {
+			// There's a special golden file counterpart for this test for .bzl formatting, skip this one
+			continue
+		}
+		testIdempotence(t, out)
+	}
+	tables.FormatBzlFiles = false
 }
 
 // Test that formatting the input files produces the golden files.
@@ -80,11 +92,13 @@ func TestPrintRewrite(t *testing.T) {
 		}
 
 		bzl := prefix + ".formatbzl.golden"
+		tables.FormatBzlFiles = true
 		if exists(bzl) {
-			tables.FormatBzlFiles = true
 			testPrint(t, in, bzl, true)
-			tables.FormatBzlFiles = false
+		} else {
+			testPrint(t, in, out, true)
 		}
+		tables.FormatBzlFiles = false
 
 		tables.ShortenAbsoluteLabelsToRelative = false
 	}
