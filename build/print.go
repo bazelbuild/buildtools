@@ -201,6 +201,8 @@ func isCodeBlock(x Expr) bool {
 	switch x.(type) {
 	case *FuncDef:
 		return true
+	case *ForLoop:
+		return true
 	default:
 		return false
 	}
@@ -479,6 +481,22 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.newline()
 		p.statements(v.Body.Statements)
 		p.margin -= nestedIndentation
+
+	case *ForLoop:
+		p.printf("for ")
+		for i, loopVar := range v.LoopVars {
+			if i > 0 {
+				p.printf(", ")
+			}
+			p.expr(loopVar, precLow)
+		}
+		p.printf(" in ")
+		p.expr(v.Iterable, precLow)
+		p.printf(":")
+		p.margin += nestedIndentation
+		p.newline()
+		p.statements(v.Body.Statements)
+		p.margin -= nestedIndentation
 	}
 
 	// Add closing parenthesis if needed.
@@ -504,6 +522,7 @@ const (
 	modeTuple // (x,)
 	modeParen // (x)
 	modeDict  // {x:y}
+	modeSeq   // x, y
 )
 
 // seq formats a list of values inside a given bracket pair (brack = "()", "[]", "{}").

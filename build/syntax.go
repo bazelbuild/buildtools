@@ -449,7 +449,7 @@ type FuncDef struct {
 }
 
 func (x *FuncDef) Span() (start, end Position) {
-	return x.Start, x.End.Pos.add(":")
+	return x.Start, x.End.Pos
 }
 
 // A ReturnExpr represents a return statement: return f(x).
@@ -462,4 +462,18 @@ type ReturnExpr struct {
 
 func (x *ReturnExpr) Span() (start, end Position) {
 	return x.Start, x.End
+}
+
+// A ForLoop represents a for loop block: for x in range(10):.
+type ForLoop struct {
+	Comments
+	Start          Position   // position of def
+	LoopVars       []Expr
+	Iterable       Expr
+	Body           CodeBlock
+	End                       // position of the end
+}
+
+func (x *ForLoop) Span() (start, end Position) {
+	return x.Start, x.End.Pos
 }
