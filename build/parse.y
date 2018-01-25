@@ -198,7 +198,6 @@ stmts:
 		// attach the comments to the statement.
 		if cb, ok := $<lastRule>1.(*CommentBlock); ok {
 			$$ = append($1[:len($1)-1], $2...)
-			//$$[len($1)-1] = $2
 			$2[0].Comment().Before = cb.After
 			$<lastRule>$ = $2[len($2)-1]
 			break
