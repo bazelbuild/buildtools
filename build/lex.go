@@ -495,6 +495,7 @@ var keywordToken = map[string]int{
 	"for":    _FOR,
 	"if":     _IF,
 	"else":   _ELSE,
+	"elif":   _ELIF,
 	"in":     _IN,
 	"is":     _IS,
 	"lambda": _LAMBDA,
@@ -533,10 +534,14 @@ var prefixes = []string{
 	"for",
 	"if",
 	"try",
+	"else",
+	"elif",
+	"except",
 }
 
 // hasPrefixSpace reports whether p begins with pre followed by a space or colon.
 func hasPrefixSpace(p []byte, pre string) bool {
+
 	if len(p) <= len(pre) || p[len(pre)] != ' ' && p[len(pre)] != '\t' && p[len(pre)] != ':' {
 		return false
 	}
@@ -571,23 +576,6 @@ func isOutsideBlock(b []byte) bool {
 		}
 	}
 	return true
-}
-
-// hasPythonContinuation reports whether p begins with a keyword that
-// continues an uninterpreted Python block.
-func hasPythonContinuation(p []byte) bool {
-	for _, pre := range continuations {
-		if hasPrefixSpace(p, pre) {
-			return true
-		}
-	}
-	return false
-}
-
-// These keywords continue uninterpreted Python blocks.
-var continuations = []string{
-	"except",
-	"else",
 }
 
 // skipStmt returns the data remaining after the statement  beginning at p.
@@ -649,10 +637,7 @@ func (in *input) skipStmt(p []byte) []byte {
 			}
 			// In the legacy mode we need to find where the current block ends
 			if isOutsideBlock(p[i+1:]) {
-				if !hasPythonContinuation(p[i+1:]) && c != ' ' && c != '\t' {
-					// Yes, stop here.
-					return rest
-				}
+				return rest
 			}
 			// Not a stopping point after all.
 			rest = nil
@@ -803,6 +788,13 @@ func (in *input) order(v Expr) {
 		in.order(v.Iterable)
 		for _, x := range v.Body.Statements {
 			in.order(x)
+		}
+	case *IfElse:
+		for _, condition := range v.Conditions {
+			in.order(condition.If)
+			for _, x := range condition.Then.Statements {
+				in.order(x)
+			}
 		}
 	}
 	if v != nil {

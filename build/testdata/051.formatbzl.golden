@@ -37,6 +37,17 @@ def function(
     for x in y:
       print(y)
 
+    if x:
+      print(x)
+
+    elif y:
+      print(y)
+
+    else:
+      print(z)
+      print(y)
+      print(x)
+
     def i():
       def j():
         return h(
@@ -53,6 +64,19 @@ for b in a:  # first
         g,
     ) in zip(c, d):  # third
       pass
+
+if foo in bar:
+  for f in foo:
+    f()
+
+elif True:
+  a = b
+
+elif False:
+  b = a
+
+else:
+  (a, b) = (b, a)
 
 bar
 

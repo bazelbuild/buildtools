@@ -467,13 +467,30 @@ func (x *ReturnExpr) Span() (start, end Position) {
 // A ForLoop represents a for loop block: for x in range(10):.
 type ForLoop struct {
 	Comments
-	Start          Position   // position of def
-	LoopVars       []Expr
-	Iterable       Expr
-	Body           CodeBlock
-	End                       // position of the end
+	Start    Position // position of for
+	LoopVars []Expr
+	Iterable Expr
+	Body     CodeBlock
+	End      // position of the end
 }
 
 func (x *ForLoop) Span() (start, end Position) {
+	return x.Start, x.End.Pos
+}
+
+// An IfElse represents an if-else blocks sequence: if x: ... elif y: ... else: ... .
+type IfElse struct {
+	Comments
+	Start      Position // position of if
+	Conditions []Condition
+	End        // position of the end
+}
+
+type Condition struct {
+	If   Expr
+	Then CodeBlock
+}
+
+func (x *IfElse) Span() (start, end Position) {
 	return x.Start, x.End.Pos
 }
