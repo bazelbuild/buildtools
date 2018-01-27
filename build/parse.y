@@ -80,6 +80,7 @@ package build
 %token	<pos>	_IDENT   // non-keyword identifier or number
 %token	<pos>	_IF      // keyword if
 %token	<pos>	_ELSE    // keyword else
+%token	<pos>	_ELIF    // keyword elif
 %token	<pos>	_IN      // keyword in
 %token	<pos>	_IS      // keyword is
 %token	<pos>	_LAMBDA  // keyword lambda
@@ -107,10 +108,11 @@ package build
 %type	<expr>		ident
 %type	<ifs>		if_clauses_opt
 %type	<exprs>		stmts
-%type	<exprs>		stmt        // a simple_stmt or a for/if/def block
-%type	<expr>		block_stmt  // a single for/if/def statement
-%type	<exprs>		simple_stmt // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
-%type	<expr>		small_stmt  // A single statement, e.g. 'a = f(x)'
+%type	<exprs>		stmt          // a simple_stmt or a for/if/def block
+%type	<expr>		block_stmt    // a single for/if/def statement
+%type	<expr>		if_else_block // a single if-else statement
+%type	<exprs>		simple_stmt   // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
+%type	<expr>		small_stmt    // A single statement, e.g. 'a = f(x)'
 %type <exprs>		small_stmts_continuation  // A sequence of `';' small_stmt`
 %type	<expr>		keyvalue
 %type	<exprs>		keyvalues
@@ -138,7 +140,7 @@ package build
 // e.g. "a, b if c > 0 else 'foo'" is either a tuple of (a,b) or 'foo'
 // and not a tuple of "(a, (b if ... ))"
 %left  '=' _ADDEQ
-%left  _IF _ELSE
+%left  _IF _ELSE _ELIF
 %left  ','
 %left  ':'
 %left  _IN _NOT _IS
@@ -266,7 +268,7 @@ block_stmt:
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
 	}
-| _FOR primary_exprs _IN expr ':' suite
+|	_FOR primary_exprs _IN expr ':' suite
 	{
 		$$ = &ForLoop{
 			Start: $1,
@@ -276,6 +278,48 @@ block_stmt:
 			End: $6.End,
 		}
 	}
+| if_else_block
+	{
+		$$ = $1
+	}
+
+if_else_block:
+	_IF expr ':' suite
+	{
+		$$ = &IfElse{
+			Start: $1,
+			Conditions: []Condition{
+				Condition{
+					If: $2,
+					Then: $4,
+				},
+			},
+			End: $4.End,
+		}
+	}
+| if_else_block elif expr ':' suite
+	{
+		block := $1.(*IfElse)
+		block.Conditions = append(block.Conditions, Condition{
+			If: $3,
+			Then: $5,
+		})
+		block.End = $5.End
+		$$ = block
+	}
+| if_else_block _ELSE ':' suite
+	{
+		block := $1.(*IfElse)
+		block.Conditions = append(block.Conditions, Condition{
+			Then: $4,
+		})
+		block.End = $4.End
+		$$ = block
+	}
+
+elif:
+	_ELSE _IF
+|	_ELIF
 
 simple_stmt:
 	small_stmt small_stmts_continuation semi_opt '\n'

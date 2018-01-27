@@ -203,6 +203,8 @@ func isCodeBlock(x Expr) bool {
 		return true
 	case *ForLoop:
 		return true
+	case *IfElse:
+		return true
 	default:
 		return false
 	}
@@ -497,6 +499,28 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.newline()
 		p.statements(v.Body.Statements)
 		p.margin -= nestedIndentation
+
+	case *IfElse:
+		for i, block := range v.Conditions {
+			if i == 0 {
+				p.printf("if ")
+			} else if block.If == nil {
+				p.newline()
+				p.printf("else")
+			} else {
+				p.newline()
+				p.printf("elif ")
+			}
+
+			if block.If != nil {
+				p.expr(block.If, precLow)
+			}
+			p.printf(":")
+			p.margin += nestedIndentation
+			p.newline()
+			p.statements(block.Then.Statements)
+			p.margin -= nestedIndentation
+		}
 	}
 
 	// Add closing parenthesis if needed.
