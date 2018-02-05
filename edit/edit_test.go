@@ -220,38 +220,38 @@ rule()`, 1, true, false, `Error for multiple unnamed rules`},
 
 func TestListSubstitute(t *testing.T) {
 	tests := []struct {
-		desc, input, oldPattern, newTemplate, expected string
+		desc, input, oldPattern, newTemplate, want string
 	}{
 		{
 			desc:        "no_match",
 			input:       `["abc"]`,
 			oldPattern:  `!!`,
 			newTemplate: `xx`,
-			expected:    `["abc"]`,
+			want:        `["abc"]`,
 		}, {
 			desc:        "full_match",
 			input:       `["abc"]`,
 			oldPattern:  `.*`,
 			newTemplate: `xx`,
-			expected:    `["xx"]`,
+			want:        `["xx"]`,
 		}, {
 			desc:        "partial_match",
 			input:       `["abcde"]`,
 			oldPattern:  `bcd`,
 			newTemplate: `xyz`,
-			expected:    `["axyze"]`,
+			want:        `["axyze"]`,
 		}, {
 			desc:        "number_group",
 			input:       `["abcde"]`,
 			oldPattern:  `a(bcd)`,
 			newTemplate: `$1 $1`,
-			expected:    `["bcd bcde"]`,
+			want:        `["bcd bcde"]`,
 		}, {
 			desc:        "name_group",
 			input:       `["abcde"]`,
 			oldPattern:  `a(?P<x>bcd)`,
 			newTemplate: `$x $x`,
-			expected:    `["bcd bcde"]`,
+			want:        `["bcd bcde"]`,
 		},
 	}
 
@@ -259,14 +259,16 @@ func TestListSubstitute(t *testing.T) {
 		t.Run(tst.desc, func(t *testing.T) {
 			f, err := build.Parse("BUILD", []byte(tst.input))
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("parse error: %v", err)
 			}
 			lst := f.Stmt[0]
-			oldRegexp := regexp.MustCompile(tst.oldPattern)
+			oldRegexp, err := regexp.Compile(tst.oldPattern)
+			if err != nil {
+				t.Fatalf("error compiling regexp %q: %v", tst.oldPattern, err)
+			}
 			ListSubstitute(lst, oldRegexp, tst.newTemplate)
-			got := build.FormatString(lst)
-			if got != tst.expected {
-				t.Fatalf("got %s ; want %s", got, tst.expected)
+			if got := build.FormatString(lst); got != tst.want {
+				t.Errorf("ListSubstitute(%q, %q, %q) = %q ; want %q", tst.input, tst.oldPattern, tst.newTemplate, got, tst.want)
 			}
 		})
 	}

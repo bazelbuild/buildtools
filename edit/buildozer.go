@@ -363,13 +363,13 @@ func cmdSubstitute(env CmdEnvironment) (*build.File, error) {
 	newTemplate := env.Args[2]
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
-		if e, ok := attr.(*build.StringExpr); ok {
-			newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate)
-			if ok {
-				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}))
-			}
-		} else {
+		e, ok := attr.(*build.StringExpr)
+		if !ok {
 			ListSubstitute(attr, oldRegexp, newTemplate)
+			continue
+		}
+		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
+			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}))
 		}
 	}
 	return env.File, nil
