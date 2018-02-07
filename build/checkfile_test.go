@@ -28,18 +28,18 @@ func TestFilesMatch(t *testing.T) {
 
 	generated, err := ioutil.ReadFile(path.Join(testdata, "parse.y.baz.go"))
 	if err != nil {
-		t.Fatalf("Unexpected error reading generated file: %v", err)
+		t.Fatalf("ReadFile(%q) = %v", "parse.y.baz.go", err)
 	}
 	checkedIn, err := ioutil.ReadFile(path.Join(testdata, "parse.y.go"))
 	if err != nil {
-		t.Fatalf("Unexpected error reading checked-in file: %v", err)
+		t.Fatalf("ReadFile(%q) = %v", "parse.y.go", err)
 	}
 
 	d, err := diff(generated, checkedIn)
 	if err != nil {
-		t.Fatalf("Unexpected error diffing files: %v", err)
+		t.Fatalf("diff(generated, checkedIn) = %v", err)
 	}
 	if len(d) != 0 {
-		t.Errorf("Mismatch! diff: %v", string(d))
+		t.Errorf("diff(generated, checkedIn) = %v", string(d))
 	}
 }

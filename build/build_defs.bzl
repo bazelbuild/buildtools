@@ -30,4 +30,22 @@ def go_yacc(src, out, visibility=None):
       visibility = visibility,
       local = 1,
   )
-      
+
+def genfile_check_test(src, gen):
+  """Asserts that any checked-in generated code matches regen."""
+  if not src:
+    fail("src is required", "src")
+  if not gen:
+    fail("gen is required", "gen")
+  native.genrule(
+      name = src + "_checksh",
+      outs = [src + "_check.sh"],
+      cmd = "echo 'diff $$@' > $@",
+  )
+  native.sh_test(
+      name = src + "_checkshtest",
+      size = "small",
+      srcs = [src + "_check.sh"],
+      data = [src, gen],
+      args = ["$(location " + src + ")", "$(location " + gen + ")"],
+  )
