@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/tables"
 	"github.com/bazelbuild/buildtools/wspace"
 )
 
@@ -55,7 +56,7 @@ func ParseLabel(target string) (string, string, string) {
 	parts := strings.SplitN(target, ":", 2)
 	parts[0] = strings.TrimPrefix(parts[0], "//")
 	if len(parts) == 1 {
-		if strings.HasPrefix(target, "//") {
+		if strings.HasPrefix(target, "//") || tables.StripLabelLeadingSlashes {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
 			return repo, parts[0], path.Base(parts[0])
 		}
