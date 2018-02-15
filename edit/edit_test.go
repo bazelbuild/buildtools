@@ -175,49 +175,6 @@ func TestAddValueToListAttribute(t *testing.T) {
 	}
 }
 
-func TestUseImplicitName(t *testing.T) {
-	tests := []struct {
-		input            string
-		expectedRuleLine int
-		wantErr          bool
-		wantRootErr      bool
-		description      string
-	}{
-		{`rule()`, 1, false, false, `Use an implicit name for one rule.`},
-		{`rule(name="a")
-rule(name="b")
-rule()`, 3, false, false, `Use an implicit name for the one unnamed rule`},
-		{`rule()
-rule()
-rule()`, 1, true, false, `Error for multiple unnamed rules`},
-		{`rule()`, 1, true, true, `Error for the root package`},
-	}
-
-	for _, tst := range tests {
-		path := "foo/BUILD"
-		if tst.wantRootErr {
-			path = "BUILD"
-		}
-		bld, err := build.Parse(path, []byte(tst.input))
-		if err != nil {
-			t.Error(tst.description, err)
-			continue
-		}
-		got := UseImplicitName(bld, "foo")
-
-		if !tst.wantErr {
-			want := bld.RuleAt(tst.expectedRuleLine)
-			if got.Kind() != want.Kind() || got.Name() != want.Name() {
-				t.Errorf("UseImplicitName(%s): got %s, expected %s. %s", tst.input, got, want, tst.description)
-			}
-		} else {
-			if got != nil {
-				t.Errorf("UseImplicitName(%s): got %s, expected nil. %s", tst.input, got, tst.description)
-			}
-		}
-	}
-}
-
 func TestListSubstitute(t *testing.T) {
 	tests := []struct {
 		desc, input, oldPattern, newTemplate, want string

@@ -86,12 +86,12 @@ type File struct {
 	Stmt []Expr
 }
 
-func (x *File) Span() (start, end Position) {
-	if len(x.Stmt) == 0 {
+func (f *File) Span() (start, end Position) {
+	if len(f.Stmt) == 0 {
 		return
 	}
-	start, _ = x.Stmt[0].Span()
-	_, end = x.Stmt[len(x.Stmt)-1].Span()
+	start, _ = f.Stmt[0].Span()
+	_, end = f.Stmt[len(f.Stmt)-1].Span()
 	return start, end
 }
 

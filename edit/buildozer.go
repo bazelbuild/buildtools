@@ -219,7 +219,7 @@ func cmdNew(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	call := &build.CallExpr{X: &build.LiteralExpr{Token: kind}}
-	rule := &build.Rule{Call: call}
+	rule := &build.Rule{call, ""}
 	rule.SetAttr("name", &build.StringExpr{Value: name})
 
 	if addAtEOF {
@@ -237,7 +237,7 @@ func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 	}
 
 	relativeToRuleName := env.Args[3]
-	ruleIdx := IndexOfRuleByName(env.File, relativeToRuleName)
+	ruleIdx, _ := IndexOfRuleByName(env.File, relativeToRuleName)
 	if ruleIdx == -1 {
 		return true, 0, nil
 	}
@@ -268,8 +268,10 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 		value := env.Rule.Attr(str)
 		if str == "kind" {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Kind()}}
+		} else if str == "name" {
+			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Name()}}
 		} else if str == "label" {
-			if env.Rule.Attr("name") != nil {
+			if env.Rule.Name() != "" {
 				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{fmt.Sprintf("//%s:%s", env.Pkg, env.Rule.Name())}}
 			} else {
 				return nil, nil
