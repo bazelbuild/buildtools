@@ -77,7 +77,7 @@ func main() {
 
 	edit.ShortenLabelsFlag = *shortenLabelsFlag
 	edit.DeleteWithComments = *deleteWithComments
-	edit.Opts = edit.Options{
+	opts := &edit.Options{
 		Stdout:            *stdout,
 		Buildifier:        *buildifier,
 		Parallelism:       *parallelism,
@@ -91,5 +91,5 @@ func main() {
 		EditVariables:     *editVariables,
 		IsPrintingProto:   *isPrintingProto,
 	}
-	os.Exit(edit.Buildozer(flag.Args()))
+	os.Exit(edit.Buildozer(opts, flag.Args()))
 }
