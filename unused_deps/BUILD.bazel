@@ -16,6 +16,6 @@ go_library(
 
 go_binary(
     name = "unused_deps",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )
