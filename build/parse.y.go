@@ -29,7 +29,7 @@ type yySymType struct {
 	lastRule Expr     // most recent rule, to attach line comments to
 }
 
-const _ADDEQ = 57346
+const _AUGM = 57346
 const _AND = 57347
 const _COMMENT = 57348
 const _EOF = 57349
@@ -78,7 +78,7 @@ var yyToknames = [...]string{
 	"']'",
 	"'{'",
 	"'}'",
-	"_ADDEQ",
+	"_AUGM",
 	"_AND",
 	"_COMMENT",
 	"_EOF",

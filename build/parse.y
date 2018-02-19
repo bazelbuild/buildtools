@@ -70,7 +70,7 @@ package build
 // However, we do not want to export them from the Go package
 // we are creating, so prefix them all with underscores.
 
-%token	<pos>	_ADDEQ   // operator +=
+%token	<pos>	_AUGM    // augmented assignment
 %token	<pos>	_AND     // keyword and
 %token	<pos>	_COMMENT // top-level # comment
 %token	<pos>	_EOF     // end of file
@@ -133,13 +133,13 @@ package build
 
 %left	'\n'
 %left	_ASSERT
-// '=' and '+=' have the lowest precedence
+// '=' and augmented assignments have the lowest precedence
 // e.g. "x = a if c > 0 else 'bar'"
 // followed by
 // 'if' and 'else' which have lower precedence than all other operators.
 // e.g. "a, b if c > 0 else 'foo'" is either a tuple of (a,b) or 'foo'
 // and not a tuple of "(a, (b if ... ))"
-%left  '=' _ADDEQ
+%left  '=' _AUGM
 %left  _IF _ELSE _ELIF
 %left  ','
 %left  ':'
@@ -557,7 +557,7 @@ expr:
 |	expr _NE expr      { $$ = binary($1, $2, $<tok>2, $3) }
 |	expr _GE expr      { $$ = binary($1, $2, $<tok>2, $3) }
 |	expr '=' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _ADDEQ expr   { $$ = binary($1, $2, $<tok>2, $3) }
+|	expr _AUGM expr    { $$ = binary($1, $2, $<tok>2, $3) }
 |	expr _IN expr      { $$ = binary($1, $2, $<tok>2, $3) }
 |	expr _NOT _IN expr { $$ = binary($1, $2, "not in", $4) }
 |	expr _OR expr      { $$ = binary($1, $2, $<tok>2, $3) }

@@ -352,11 +352,11 @@ func (in *input) Lex(val *yySymType) int {
 		in.readRune()
 		return c
 
-	case '.', '-', '%', ':', ';', ',', '/', '*': // single-char tokens
+	case '.', ':', ';', ',': // single-char tokens
 		in.readRune()
 		return c
 
-	case '<', '>', '=', '!', '+': // possibly followed by =
+	case '<', '>', '=', '!', '+', '-', '*', '/', '%': // possibly followed by =
 		in.readRune()
 		if in.peekRune() == '=' {
 			in.readRune()
@@ -369,8 +369,8 @@ func (in *input) Lex(val *yySymType) int {
 				return _EQ
 			case '!':
 				return _NE
-			case '+':
-				return _ADDEQ
+			default:
+				return _AUGM
 			}
 		}
 		return c
