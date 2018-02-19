@@ -358,6 +358,11 @@ func (in *input) Lex(val *yySymType) int {
 
 	case '<', '>', '=', '!', '+', '-', '*', '/', '%': // possibly followed by =
 		in.readRune()
+		if c == '/' && in.peekRune() == '/' {
+			// integer division
+			in.readRune()
+		}
+
 		if in.peekRune() == '=' {
 			in.readRune()
 			switch c {

@@ -1,5 +1,17 @@
+# Binary operators
+
+foo=bar+baz
+foo=bar-baz
+foo=bar*baz
+foo=bar/baz
+foo=bar//baz
+foo=bar%baz
+
+# Augmented assignments
+
 foo+=bar
 foo-=bar
 foo*=bar
 foo/=bar
+foo//=bar
 foo%=bar
