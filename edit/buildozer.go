@@ -357,6 +357,26 @@ func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
+	oldRegexp, err := regexp.Compile(env.Args[1])
+	if err != nil {
+		return nil, err
+	}
+	newTemplate := env.Args[2]
+	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
+		attr := env.Rule.Attr(key)
+		e, ok := attr.(*build.StringExpr)
+		if !ok {
+			ListSubstitute(attr, oldRegexp, newTemplate)
+			continue
+		}
+		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
+			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}))
+		}
+	}
+	return env.File, nil
+}
+
 func cmdSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	args := env.Args[1:]
@@ -472,6 +492,7 @@ var AllCommands = map[string]CommandInfo{
 	"remove":            {cmdRemove, 1, -1, "<attr> <value(s)>"},
 	"rename":            {cmdRename, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, 3, 3, "<attr> <old_value> <new_value>"},
+	"substitute":        {cmdSubstitute, 3, 3, "<attr> <old_regexp> <new_template>"},
 	"set":               {cmdSet, 2, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, 2, -1, "<attr> <value(s)>"},
 	"copy":              {cmdCopy, 2, 2, "<attr> <from_rule>"},

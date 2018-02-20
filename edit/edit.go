@@ -20,6 +20,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -536,6 +537,42 @@ func ListReplace(e build.Expr, old, value, pkg string) bool {
 		}
 	}
 	return replaced
+}
+
+// ListSubstitute replaces strings matching a regular expression in all lists
+// in e and returns a Boolean to indicate whether the replacement was
+// successful.
+func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) bool {
+	substituted := false
+	for _, li := range AllLists(e) {
+		for k, elem := range li.List {
+			str, ok := elem.(*build.StringExpr)
+			if !ok {
+				continue
+			}
+			newValue, ok := stringSubstitute(str.Value, oldRegexp, newTemplate)
+			if ok {
+				li.List[k] = &build.StringExpr{Value: newValue, Comments: *elem.Comment()}
+				substituted = true
+			}
+		}
+	}
+	return substituted
+}
+
+func stringSubstitute(oldValue string, oldRegexp *regexp.Regexp, newTemplate string) (string, bool) {
+	match := oldRegexp.FindStringSubmatchIndex(oldValue)
+	if match == nil {
+		return oldValue, false
+	}
+	newValue := string(oldRegexp.ExpandString(nil, newTemplate, oldValue, match))
+	if match[0] > 0 {
+		newValue = oldValue[:match[0]] + newValue
+	}
+	if match[1] < len(oldValue) {
+		newValue = newValue + oldValue[match[1]:]
+	}
+	return newValue, true
 }
 
 // isExprLessThan compares two Expr statements. Currently, only labels are supported.
