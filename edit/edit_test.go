@@ -191,6 +191,7 @@ rule()`, 3, false, false, `Use an implicit name for the one unnamed rule`},
 rule()
 rule()`, 1, true, false, `Error for multiple unnamed rules`},
 		{`rule()`, 1, true, true, `Error for the root package`},
+		{`load()`, 1, true, false, `Error for load statement`},
 	}
 
 	for _, tst := range tests {

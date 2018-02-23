@@ -272,6 +272,8 @@ func InsertAtEnd(stmt []build.Expr, expr build.Expr) []build.Expr {
 
 // FindRuleByName returns the rule in the file that has the given name.
 // If the name is "__pkg__", it returns the global package declaration.
+// If the name is that of the package and the file contains a single unnamed
+// rule, the unnamed rule is returned. (Implicit Naming)
 func FindRuleByName(f *build.File, name string) *build.Rule {
 	if name == "__pkg__" {
 		return PackageDeclaration(f)
@@ -296,6 +298,10 @@ func UseImplicitName(f *build.File, rule string) *build.Rule {
 	ruleCount := 0
 	var temp, found *build.Rule
 	pkg := filepath.Base(filepath.Dir(f.Path))
+	invalidKinds := map[string]bool{
+		"":     true,
+		"load": true,
+	}
 
 	for _, stmt := range f.Stmt {
 		call, ok := stmt.(*build.CallExpr)
@@ -303,7 +309,7 @@ func UseImplicitName(f *build.File, rule string) *build.Rule {
 			continue
 		}
 		temp = &build.Rule{Call: call}
-		if temp.Kind() != "" && temp.Name() == "" {
+		if !invalidKinds[temp.Kind()] && temp.Name() == "" {
 			ruleCount++
 			found = temp
 		}
