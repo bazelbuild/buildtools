@@ -509,6 +509,7 @@ var keywordToken = map[string]int{
 	"in":     _IN,
 	"is":     _IS,
 	"lambda": _LAMBDA,
+	"load":   _LOAD,
 	"not":    _NOT,
 	"or":     _OR,
 	"def":    _DEF,
