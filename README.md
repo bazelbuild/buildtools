@@ -7,8 +7,7 @@ This repository contains developer tools for working with Google's `bazel` build
 * [unused_deps](unused_deps/README.md) For finding unneeded dependencies in
 [java_library](https://docs.bazel.build/versions/master/be/java.html#java_library) rules.
 
-
-[![Build Status](https://ci.bazel.io/buildStatus/icon?job=buildtools)](https://ci.bazel.io/job/buildtools)
+[![Build status](https://badge.buildkite.com/6a80fcf7909883296cada2e474286ea627994b9130aed110e2.svg)](https://buildkite.com/bazel/buildtools-postsubmit)
 
 ## Setup
 
