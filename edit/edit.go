@@ -166,7 +166,7 @@ func ExprToRule(expr build.Expr, kind string) (*build.Rule, bool) {
 	if !ok || k.Token != kind {
 		return nil, false
 	}
-	return &build.Rule{Call: call}, true
+	return &build.Rule{call, ""}, true
 }
 
 // ExistingPackageDeclaration returns the package declaration, or nil if there is none.
@@ -202,7 +202,7 @@ func PackageDeclaration(f *build.File) *build.Rule {
 		all = append(all, call)
 	}
 	f.Stmt = all
-	return &build.Rule{Call: call}
+	return &build.Rule{call, ""}
 }
 
 // RemoveEmptyPackage removes empty package declarations from the file, i.e.:
@@ -276,49 +276,12 @@ func FindRuleByName(f *build.File, name string) *build.Rule {
 	if name == "__pkg__" {
 		return PackageDeclaration(f)
 	}
-	i := IndexOfRuleByName(f, name)
-	if i != -1 {
-		return &build.Rule{Call: f.Stmt[i].(*build.CallExpr)}
-	}
-	return nil
-}
-
-// UseImplicitName returns the rule in the file if it meets these conditions:
-// - It is the only unnamed rule in the file.
-// - The file path's ending directory name and the passed rule name match.
-// In the Pants Build System, by pantsbuild, the use of an implicit name makes
-// creating targets easier. This function implements such names.
-func UseImplicitName(f *build.File, rule string) *build.Rule {
-	// We disallow empty names
-	if f.Path == "BUILD" {
-		return nil
-	}
-	ruleCount := 0
-	var temp, found *build.Rule
-	pkg := filepath.Base(filepath.Dir(f.Path))
-
-	for _, stmt := range f.Stmt {
-		call, ok := stmt.(*build.CallExpr)
-		if !ok {
-			continue
-		}
-		temp = &build.Rule{Call: call}
-		if temp.Kind() != "" && temp.Name() == "" {
-			ruleCount++
-			found = temp
-		}
-	}
-
-	if ruleCount == 1 {
-		if rule == pkg {
-			return found
-		}
-	}
-	return nil
+	_, rule := IndexOfRuleByName(f, name)
+	return rule
 }
 
 // IndexOfRuleByName returns the index (in f.Stmt) of the CallExpr which defines a rule named `name`, or -1 if it doesn't exist.
-func IndexOfRuleByName(f *build.File, name string) int {
+func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 	linenum := -1
 	if strings.HasPrefix(name, "%") {
 		// "%<LINENUM>" will match the rule which begins at LINENUM.
@@ -333,13 +296,13 @@ func IndexOfRuleByName(f *build.File, name string) int {
 		if !ok {
 			continue
 		}
-		r := &build.Rule{Call: call}
+		r := f.Rule(call)
 		start, _ := call.X.Span()
 		if r.Name() == name || start.Line == linenum {
-			return i
+			return i, r
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 // FindExportedFile returns the first exports_files call which contains the
@@ -379,7 +342,7 @@ func DeleteRuleByName(f *build.File, name string) *build.File {
 			all = append(all, stmt)
 			continue
 		}
-		r := &build.Rule{Call: call}
+		r := f.Rule(call)
 		if r.Name() != name {
 			all = append(all, stmt)
 		}

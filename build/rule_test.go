@@ -34,7 +34,7 @@ var simpleCall *CallExpr = &CallExpr{
 	},
 }
 
-var simpleRule *Rule = &Rule{simpleCall}
+var simpleRule *Rule = &Rule{simpleCall, ""}
 
 var structCall *CallExpr = &CallExpr{
 	X: &DotExpr{
@@ -59,7 +59,7 @@ var structCall *CallExpr = &CallExpr{
 	},
 }
 
-var structRule *Rule = &Rule{structCall}
+var structRule *Rule = &Rule{structCall, ""}
 
 func TestKind(t *testing.T) {
 	if simpleRule.Kind() != "java_library" {
@@ -88,6 +88,7 @@ func TestSetKind(t *testing.T) {
 				},
 			},
 		},
+		"",
 	}
 
 	rule.SetKind("java_binary")
@@ -117,4 +118,34 @@ func TestRules(t *testing.T) {
 	compare(t, f.Rules("java_binary"), []*Rule(nil))
 	compare(t, f.Rules("java_library"), []*Rule{simpleRule})
 	compare(t, f.Rules("foo.bar.baz"), []*Rule{structRule})
+}
+
+func TestImplicitName(t *testing.T) {
+	tests := []struct {
+		path string
+		input            string
+		want string
+		description      string
+	}{
+		{"foo/BUILD", `rule()`, "foo", `Use an implicit name for one rule.`},
+		{"foo/BUILD", `rule(name="a")
+rule(name="b")
+rule()`, "foo", `Use an implicit name for the one unnamed rule`},
+		{"foo/BUILD", `rule()
+rule()
+rule()`, "", `No implicit name for multiple unnamed rules`},
+		{"BUILD", `rule()`, "", `No implicit name for root package`},
+	}
+
+	for _, tst := range tests {
+		file, err := Parse(tst.path, []byte(tst.input))
+		if err != nil {
+			t.Error(tst.description, err)
+			continue
+		}
+
+		if got := file.implicitRuleName(); got != tst.want {
+			t.Errorf("TestImplicitName(%s): got %s, want %s. %s", tst.description, got, tst.want)
+		}
+	}
 }
