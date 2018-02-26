@@ -18,13 +18,13 @@ import (
 )
 
 var simpleCall *CallExpr = &CallExpr{
-	X: &LiteralExpr{
-		Token: "java_library",
+	X: &Ident{
+		Name: "java_library",
 	},
 	List: []Expr{
 		&BinaryExpr{
-			X: &LiteralExpr{
-				Token: "name",
+			X: &Ident{
+				Name: "name",
 			},
 			Op: "=",
 			Y: &StringExpr{
@@ -39,8 +39,8 @@ var simpleRule *Rule = &Rule{simpleCall, ""}
 var structCall *CallExpr = &CallExpr{
 	X: &DotExpr{
 		X: &DotExpr{
-			X: &LiteralExpr{
-				Token: "foo",
+			X: &Ident{
+				Name: "foo",
 			},
 			Name: "bar",
 		},
@@ -48,8 +48,8 @@ var structCall *CallExpr = &CallExpr{
 	},
 	List: []Expr{
 		&BinaryExpr{
-			X: &LiteralExpr{
-				Token: "name",
+			X: &Ident{
+				Name: "name",
 			},
 			Op: "=",
 			Y: &StringExpr{
@@ -73,13 +73,13 @@ func TestKind(t *testing.T) {
 func TestSetKind(t *testing.T) {
 	rule := &Rule{
 		&CallExpr{
-			X: &LiteralExpr{
-				Token: "java_library",
+			X: &Ident{
+				Name: "java_library",
 			},
 			List: []Expr{
 				&BinaryExpr{
-					X: &LiteralExpr{
-						Token: "name",
+					X: &Ident{
+						Name: "name",
 					},
 					Op: "=",
 					Y: &StringExpr{
@@ -92,13 +92,13 @@ func TestSetKind(t *testing.T) {
 	}
 
 	rule.SetKind("java_binary")
-	compare(t, rule.Call.X, &LiteralExpr{Token: "java_binary"})
+	compare(t, rule.Call.X, &Ident{Name: "java_binary"})
 
 	rule.SetKind("foo.bar.baz")
 	compare(t, rule.Call.X, &DotExpr{
 		X: &DotExpr{
-			X: &LiteralExpr{
-				Token: "foo",
+			X: &Ident{
+				Name: "foo",
 			},
 			Name: "bar",
 		},

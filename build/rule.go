@@ -145,11 +145,11 @@ func (r *Rule) Kind() string {
 		names = append(names, x.Name)
 		expr = x.X
 	}
-	x, ok := expr.(*LiteralExpr)
+	x, ok := expr.(*Ident)
 	if !ok {
 		return ""
 	}
-	names = append(names, x.Token)
+	names = append(names, x.Name)
 	// Reverse the elements since the deepest expression contains the leading literal
 	for l, r := 0, len(names)-1; l < r; l, r = l+1, r-1 {
 		names[l], names[r] = names[r], names[l]
@@ -161,7 +161,7 @@ func (r *Rule) Kind() string {
 func (r *Rule) SetKind(kind string) {
 	names := strings.Split(kind, ".")
 	var expr Expr
-	expr = &LiteralExpr{Token: names[0]}
+	expr = &Ident{Name: names[0]}
 	for _, name := range names[1:] {
 		expr = &DotExpr{X: expr, Name: name}
 	}
@@ -183,8 +183,8 @@ func (r *Rule) AttrKeys() []string {
 	var keys []string
 	for _, expr := range r.Call.List {
 		if binExpr, ok := expr.(*BinaryExpr); ok && binExpr.Op == "=" {
-			if keyExpr, ok := binExpr.X.(*LiteralExpr); ok {
-				keys = append(keys, keyExpr.Token)
+			if keyExpr, ok := binExpr.X.(*Ident); ok {
+				keys = append(keys, keyExpr.Name)
 			}
 		}
 	}
@@ -200,8 +200,8 @@ func (r *Rule) AttrDefn(key string) *BinaryExpr {
 		if !ok || as.Op != "=" {
 			continue
 		}
-		k, ok := as.X.(*LiteralExpr)
-		if !ok || k.Token != key {
+		k, ok := as.X.(*Ident)
+		if !ok || k.Name != key {
 			continue
 		}
 		return as
@@ -229,8 +229,8 @@ func (r *Rule) DelAttr(key string) Expr {
 		if !ok || as.Op != "=" {
 			continue
 		}
-		k, ok := as.X.(*LiteralExpr)
-		if !ok || k.Token != key {
+		k, ok := as.X.(*Ident)
+		if !ok || k.Name != key {
 			continue
 		}
 		copy(list[i:], list[i+1:])
@@ -265,11 +265,11 @@ func (r *Rule) SetAttr(key string, val Expr) {
 // If the rule has no such attribute or the attribute is not an identifier or number,
 // AttrLiteral returns "".
 func (r *Rule) AttrLiteral(key string) string {
-	lit, ok := r.Attr(key).(*LiteralExpr)
+	lit, ok := r.Attr(key).(*Ident)
 	if !ok {
 		return ""
 	}
-	return lit.Token
+	return lit.Name
 }
 
 // AttrString returns the value of the rule's attribute

@@ -315,7 +315,7 @@ func usePlusEqual(f *build.File) bool {
 		if !ok || len(call.List) != 1 {
 			continue
 		}
-		obj, ok := dot.X.(*build.LiteralExpr)
+		obj, ok := dot.X.(*build.Ident)
 		if !ok {
 			continue
 		}
