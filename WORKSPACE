@@ -1,14 +1,10 @@
 workspace(name = "com_github_bazelbuild_buildtools")
 
-# 0.5.5
+# 0.10.0
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "51bc38fd56e61ffd83f455e3083858ca3cc307d76fa1387b2ae2baae379afcc2",
-    strip_prefix = "rules_go-71cdb6fd5f887d215bdbe0e4d1eb137278b09c39",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/archive/71cdb6fd5f887d215bdbe0e4d1eb137278b09c39.tar.gz",
-        "https://github.com/bazelbuild/rules_go/archive/71cdb6fd5f887d215bdbe0e4d1eb137278b09c39.tar.gz",
-    ],
+    url = "https://github.com/bazelbuild/rules_go/releases/download/0.10.0/rules_go-0.10.0.tar.gz",
+    sha256 = "53c8222c6eab05dd49c40184c361493705d4234e60c42c4cd13ab4898da4c6be",
 )
 
 load(
