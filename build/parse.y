@@ -84,6 +84,7 @@ package build
 %token	<pos>	_IN      // keyword in
 %token	<pos>	_IS      // keyword is
 %token	<pos>	_LAMBDA  // keyword lambda
+%token	<pos>	_LOAD    // keyword load
 %token	<pos>	_LE      // operator <=
 %token	<pos>	_NE      // operator !=
 %token	<pos>	_NOT     // keyword not
@@ -368,6 +369,17 @@ primary_expr:
 			Dot: $2,
 			NamePos: $3,
 			Name: $<tok>3,
+		}
+	}
+|	_LOAD '(' exprs_opt ')'
+	{
+		$$ = &CallExpr{
+                        X: &LiteralExpr{Start: $1, Token: "load"},
+			ListStart: $2,
+			List: $3,
+			End: End{Pos: $4},
+			ForceCompact: forceCompact($2, $3, $4),
+			ForceMultiLine: forceMultiLine($2, $3, $4),
 		}
 	}
 |	primary_expr '(' exprs_opt ')'
