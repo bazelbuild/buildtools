@@ -189,11 +189,11 @@ func isCall(x Expr, name string) bool {
 	if !ok {
 		return false
 	}
-	nam, ok := c.X.(*Ident)
+	nam, ok := c.X.(*LiteralExpr)
 	if !ok {
 		return false
 	}
-	return nam.Name == name
+	return nam.Token == name
 }
 
 // isCodeBlock checks if the statement is a code block (def, if, for, etc.)
@@ -329,9 +329,6 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *LiteralExpr:
 		p.printf("%s", v.Token)
-
-	case *Ident:
-		p.printf("%s", v.Name)
 
 	case *StringExpr:
 		// If the Token is a correct quoting of Value, use it.

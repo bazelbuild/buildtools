@@ -162,8 +162,8 @@ func ExprToRule(expr build.Expr, kind string) (*build.Rule, bool) {
 	if !ok {
 		return nil, false
 	}
-	k, ok := call.X.(*build.Ident)
-	if !ok || k.Name != kind {
+	k, ok := call.X.(*build.LiteralExpr)
+	if !ok || k.Token != kind {
 		return nil, false
 	}
 	return &build.Rule{call, ""}, true
@@ -188,7 +188,7 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	}
 	all := []build.Expr{}
 	added := false
-	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
+	call := &build.CallExpr{X: &build.LiteralExpr{Token: "package"}}
 	// Skip CommentBlocks and find a place to insert the package declaration.
 	for _, stmt := range f.Stmt {
 		_, ok := stmt.(*build.CommentBlock)
@@ -213,8 +213,8 @@ func RemoveEmptyPackage(f *build.File) *build.File {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		if call, ok := stmt.(*build.CallExpr); ok {
-			functionName, ok := call.X.(*build.Ident)
-			if ok && functionName.Name == "package" && len(call.List) == 0 {
+			functionName, ok := call.X.(*build.LiteralExpr)
+			if ok && functionName.Token == "package" && len(call.List) == 0 {
 				continue
 			}
 		}
@@ -241,8 +241,8 @@ func IndexOfLast(stmt []build.Expr, Kind string) int {
 		if !ok {
 			continue
 		}
-		literal, ok := sAsCallExpr.X.(*build.Ident)
-		if ok && literal.Name == Kind {
+		literal, ok := sAsCallExpr.X.(*build.LiteralExpr)
+		if ok && literal.Token == Kind {
 			lastIndex = i
 		}
 	}
@@ -251,7 +251,7 @@ func IndexOfLast(stmt []build.Expr, Kind string) int {
 
 // InsertAfterLastOfSameKind inserts an expression after the last expression of the same kind.
 func InsertAfterLastOfSameKind(stmt []build.Expr, expr *build.CallExpr) []build.Expr {
-	index := IndexOfLast(stmt, expr.X.(*build.Ident).Name)
+	index := IndexOfLast(stmt, expr.X.(*build.LiteralExpr).Token)
 	if index == -1 {
 		return InsertAtEnd(stmt, expr)
 	}
@@ -360,8 +360,8 @@ func DeleteRuleByKind(f *build.File, kind string) *build.File {
 			all = append(all, stmt)
 			continue
 		}
-		k, ok := call.X.(*build.Ident)
-		if !ok || k.Name != kind {
+		k, ok := call.X.(*build.LiteralExpr)
+		if !ok || k.Token != kind {
 			all = append(all, stmt)
 		}
 	}
@@ -587,8 +587,8 @@ func getVariable(expr build.Expr, vars *map[string]*build.BinaryExpr) (varAssign
 		return nil
 	}
 
-	if literal, ok := expr.(*build.Ident); ok {
-		if varAssignment = (*vars)[literal.Name]; varAssignment != nil {
+	if literal, ok := expr.(*build.LiteralExpr); ok {
+		if varAssignment = (*vars)[literal.Token]; varAssignment != nil {
 			return varAssignment
 		}
 	}
@@ -682,11 +682,11 @@ func RenameAttribute(r *build.Rule, oldName, newName string) error {
 		if !ok || as.Op != "=" {
 			continue
 		}
-		k, ok := as.X.(*build.Ident)
-		if !ok || k.Name != oldName {
+		k, ok := as.X.(*build.LiteralExpr)
+		if !ok || k.Token != oldName {
 			continue
 		}
-		k.Name = newName
+		k.Token = newName
 		return nil
 	}
 	return fmt.Errorf("no attribute %s found in rule %s", oldName, r.Name())
@@ -700,8 +700,8 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 		if !ok {
 			return nil
 		}
-		fct, ok := call.X.(*build.Ident)
-		if !ok || fct.Name != name {
+		fct, ok := call.X.(*build.LiteralExpr)
+		if !ok || fct.Token != name {
 			return nil
 		}
 		return f(call, stk)
@@ -712,7 +712,7 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 func UsedSymbols(f *build.File) map[string]bool {
 	symbols := make(map[string]bool)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		literal, ok := expr.(*build.Ident)
+		literal, ok := expr.(*build.LiteralExpr)
 		if !ok {
 			return
 		}
@@ -724,15 +724,15 @@ func UsedSymbols(f *build.File) map[string]bool {
 				}
 			}
 		}
-		symbols[literal.Name] = true
+		symbols[literal.Token] = true
 	})
 	return symbols
 }
 
 func newLoad(args []string) *build.CallExpr {
 	load := &build.CallExpr{
-		X: &build.Ident{
-			Name: "load",
+		X: &build.LiteralExpr{
+			Token: "load",
 		},
 		List:         []build.Expr{},
 		ForceCompact: true,
@@ -759,7 +759,7 @@ func appendLoad(stmts []build.Expr, args []string) bool {
 		if !ok {
 			continue
 		}
-		if l, ok := call.X.(*build.Ident); !ok || l.Name != "load" {
+		if l, ok := call.X.(*build.LiteralExpr); !ok || l.Token != "load" {
 			continue
 		}
 		if len(call.List) < 2 {

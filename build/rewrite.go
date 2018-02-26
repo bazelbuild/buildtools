@@ -259,8 +259,8 @@ func fixLabels(f *File, info *RewriteInfo) {
 				if !ok || as.Op != "=" {
 					continue
 				}
-				key, ok := as.X.(*Ident)
-				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelBlacklist[callName(v)+"."+key.Name] {
+				key, ok := as.X.(*LiteralExpr)
+				if !ok || !tables.IsLabelArg[key.Token] || tables.LabelBlacklist[callName(v)+"."+key.Token] {
 					continue
 				}
 				if leaveAlone1(as.Y) {
@@ -295,11 +295,11 @@ func fixLabels(f *File, info *RewriteInfo) {
 // callName returns the name of the rule being called by call.
 // If the call is not to a literal rule name, callName returns "".
 func callName(call *CallExpr) string {
-	rule, ok := call.X.(*Ident)
+	rule, ok := call.X.(*LiteralExpr)
 	if !ok {
 		return ""
 	}
-	return rule.Name
+	return rule.Token
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
@@ -369,8 +369,8 @@ func ruleNamePriority(rule, arg string) int {
 // Otherwise argName returns "".
 func argName(x Expr) string {
 	if as, ok := x.(*BinaryExpr); ok && as.Op == "=" {
-		if id, ok := as.X.(*Ident); ok {
-			return id.Name
+		if id, ok := as.X.(*LiteralExpr); ok {
+			return id.Token
 		}
 	}
 	return ""
@@ -420,12 +420,12 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				if !ok || as.Op != "=" || leaveAlone1(as) || doNotSort(as) {
 					continue
 				}
-				key, ok := as.X.(*Ident)
+				key, ok := as.X.(*LiteralExpr)
 				if !ok {
 					continue
 				}
-				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] {
+				context := rule + "." + key.Token
+				if !tables.IsSortableListArg[key.Token] || tables.SortableBlacklist[context] {
 					continue
 				}
 				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
@@ -569,11 +569,11 @@ func callArgName(stk []Expr) string {
 	if !ok {
 		return ""
 	}
-	rule, ok := call.X.(*Ident)
+	rule, ok := call.X.(*LiteralExpr)
 	if !ok {
 		return ""
 	}
-	return rule.Name + "." + arg
+	return rule.Token + "." + arg
 }
 
 // A stringSortKey records information about a single string literal to be

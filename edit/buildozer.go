@@ -81,7 +81,7 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	for _, val := range env.Args[1:] {
 		if IsIntList(attr) {
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
+			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
 			continue
 		}
 		strVal := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
@@ -218,7 +218,7 @@ func cmdNew(opts *Options, env CmdEnvironment) (*build.File, error) {
 		return nil, fmt.Errorf("rule '%s' already exists", name)
 	}
 
-	call := &build.CallExpr{X: &build.Ident{Name: kind}}
+	call := &build.CallExpr{X: &build.LiteralExpr{Token: kind}}
 	rule := &build.Rule{call, ""}
 	rule.SetAttr("name", &build.StringExpr{Value: name})
 
@@ -288,8 +288,8 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 			fmt.Fprintf(os.Stderr, "rule \"//%s:%s\" has no attribute \"%s\"\n",
 				env.Pkg, env.Rule.Name(), str)
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}}
-		} else if lit, ok := value.(*build.Ident); ok {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Name}}
+		} else if lit, ok := value.(*build.LiteralExpr); ok {
+			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Token}}
 		} else if string, ok := value.(*build.StringExpr); ok {
 			fields[i] = &apipb.Output_Record_Field{
 				Value:             &apipb.Output_Record_Field_Text{string.Value},
@@ -409,7 +409,7 @@ func getAttrValueExpr(attr string, args []string) build.Expr {
 	case IsIntList(attr):
 		var list []build.Expr
 		for _, i := range args {
-			list = append(list, &build.Ident{Name: i})
+			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
@@ -421,7 +421,7 @@ func getAttrValueExpr(attr string, args []string) build.Expr {
 	case IsString(attr):
 		return &build.StringExpr{Value: args[0]}
 	default:
-		return &build.Ident{Name: args[0]}
+		return &build.LiteralExpr{Token: args[0]}
 	}
 }
 
@@ -638,8 +638,8 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) 
 			if binExpr.Op != "=" {
 				continue
 			}
-			if lhs, ok := binExpr.X.(*build.Ident); ok {
-				vars[lhs.Name] = binExpr
+			if lhs, ok := binExpr.X.(*build.LiteralExpr); ok {
+				vars[lhs.Token] = binExpr
 			}
 		}
 	}
