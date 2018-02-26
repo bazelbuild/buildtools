@@ -77,7 +77,8 @@ package build
 %token	<pos>	_EQ      // operator ==
 %token	<pos>	_FOR     // keyword for
 %token	<pos>	_GE      // operator >=
-%token	<pos>	_IDENT   // non-keyword identifier or number
+%token	<pos>	_IDENT   // non-keyword identifier
+%token	<pos>	_NUMBER  // number
 %token	<pos>	_IF      // keyword if
 %token	<pos>	_ELSE    // keyword else
 %token	<pos>	_ELIF    // keyword elif
@@ -107,6 +108,7 @@ package build
 %type	<forifs>	for_clause_with_if_clauses_opt
 %type	<forsifs>	for_clauses_with_if_clauses_opt
 %type	<expr>		ident
+%type	<expr>		number
 %type	<ifs>		if_clauses_opt
 %type	<exprs>		stmts
 %type	<exprs>		stmt          // a simple_stmt or a for/if/def block
@@ -362,6 +364,7 @@ semi_opt:
 
 primary_expr:
 	ident
+|	number
 |	primary_expr '.' _IDENT
 	{
 		$$ = &DotExpr{
@@ -374,7 +377,7 @@ primary_expr:
 |	_LOAD '(' exprs_opt ')'
 	{
 		$$ = &CallExpr{
-                        X: &LiteralExpr{Start: $1, Token: "load"},
+                        X: &Ident{NamePos: $1, Name: "load"},
 			ListStart: $2,
 			List: $3,
 			End: End{Pos: $4},
@@ -692,6 +695,12 @@ strings:
 ident:
 	_IDENT
 	{
+		$$ = &Ident{NamePos: $1, Name: $<tok>1}
+	}
+
+number:
+	_NUMBER
+	{
 		$$ = &LiteralExpr{Start: $1, Token: $<tok>1}
 	}
 
@@ -769,11 +778,10 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 // a literal (variable, string or a number), a literal with a unary operator or an empty sequence.
 func isSimpleExpression(expr *Expr) bool {
 	switch x := (*expr).(type) {
-	case *LiteralExpr, *StringExpr:
+	case *Ident, *LiteralExpr, *StringExpr:
 		return true
 	case *UnaryExpr:
-		_, ok := x.X.(*LiteralExpr)
-		return ok
+                return isSimpleExpression(&x.X)
 	case *ListExpr:
 		return len(x.List) == 0
 	case *TupleExpr:
