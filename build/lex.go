@@ -485,9 +485,6 @@ func (in *input) Lex(val *yySymType) int {
 		return k
 	}
 
-	if '0' <= val.tok[0] && val.tok[0] <= '9' {
-		return _NUMBER
-	}
 	return _IDENT
 }
 
@@ -711,8 +708,6 @@ func (in *input) order(v Expr) {
 		}
 		in.order(&v.End)
 	case *PythonBlock:
-		// nothing
-	case *Ident:
 		// nothing
 	case *LiteralExpr:
 		// nothing

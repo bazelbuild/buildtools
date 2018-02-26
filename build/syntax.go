@@ -117,18 +117,7 @@ func (x *PythonBlock) Span() (start, end Position) {
 	return x.Start, x.Start.add(x.Token)
 }
 
-// An Ident represents an identifier.
-type Ident struct {
-	Comments
-	NamePos Position
-	Name    string
-}
-
-func (x *Ident) Span() (start, end Position) {
-	return x.NamePos, x.NamePos.add(x.Name)
-}
-
-// A LiteralExpr represents a literal number.
+// A LiteralExpr represents a literal identifier or number.
 type LiteralExpr struct {
 	Comments
 	Start Position
