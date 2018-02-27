@@ -473,11 +473,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(" else ")
 		p.expr(v.Else, precSuffix)
 
-	case *ReturnExpr:
+	case *ReturnStmt:
 		p.printf("return")
-		if v.X != nil {
+		if v.Result != nil {
 			p.printf(" ")
-			p.expr(v.X, precSuffix)
+			p.expr(v.Result, precSuffix)
 		}
 
 	case *FuncDef:

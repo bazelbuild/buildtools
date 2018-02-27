@@ -781,9 +781,9 @@ func (in *input) order(v Expr) {
 			in.order(name)
 		}
 		in.order(v.Expr)
-	case *ReturnExpr:
-		if v.X != nil {
-			in.order(v.X)
+	case *ReturnStmt:
+		if v.Result != nil {
+			in.order(v.Result)
 		}
 	case *FuncDef:
 		for _, x := range v.Args {
