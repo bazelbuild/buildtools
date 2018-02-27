@@ -451,16 +451,19 @@ func (x *FuncDef) Span() (start, end Position) {
 	return x.Start, x.End.Pos
 }
 
-// A ReturnExpr represents a return statement: return f(x).
-type ReturnExpr struct {
+// A ReturnStmt represents a return statement: return f(x).
+type ReturnStmt struct {
 	Comments
-	Start Position
-	X     Expr
-	End   Position
+	Return Position
+	Result Expr  // may be nil
 }
 
-func (x *ReturnExpr) Span() (start, end Position) {
-	return x.Start, x.End
+func (x *ReturnStmt) Span() (start, end Position) {
+	if x.Result == nil {
+		return x.Return, x.Return.add("return")
+	}
+	_, end = x.Result.Span()
+	return x.Return, end
 }
 
 // A ForLoop represents a for loop block: for x in range(10):.

@@ -342,15 +342,16 @@ small_stmt:
 	expr %prec ShiftInstead
 |	_RETURN expr
 	{
-		_, end := $2.Span()
-		$$ = &ReturnExpr{
-			X: $2,
-			End: end,
+		$$ = &ReturnStmt{
+			Return: $1,
+			Result: $2,
 		}
 	}
 |	_RETURN
 	{
-		$$ = &ReturnExpr{End: $1}
+		$$ = &ReturnStmt{
+			Return: $1,
+		}
 	}
 |	_PYTHON
 	{
