@@ -117,7 +117,18 @@ func (x *PythonBlock) Span() (start, end Position) {
 	return x.Start, x.Start.add(x.Token)
 }
 
-// A LiteralExpr represents a literal identifier or number.
+// An Ident represents an identifier.
+type Ident struct {
+	Comments
+	NamePos Position
+	Name    string
+}
+
+func (x *Ident) Span() (start, end Position) {
+	return x.NamePos, x.NamePos.add(x.Name)
+}
+
+// A LiteralExpr represents a literal number.
 type LiteralExpr struct {
 	Comments
 	Start Position
@@ -432,6 +443,27 @@ type CodeBlock struct {
 
 func (x *CodeBlock) Span() (start, end Position) {
 	return x.Start, x.End.Pos
+}
+
+// A LoadStmt loads another module and binds names from it:
+// load(Module, "x", y="foo").
+//
+// The AST is slightly unfaithful to the concrete syntax here because
+// Skylark's load statement, so that it can be implemented in Python,
+// binds some names (like y above) with an identifier and some (like x)
+// without.  For consistency we create fake identifiers for all the
+// strings.
+type LoadStmt struct {
+	Comments
+	Load   Position
+	Module *StringExpr
+	From   []*Ident // name defined in loading module
+	To     []*Ident // name in loaded module
+	Rparen Position
+}
+
+func (x *LoadStmt) Span() (start, end Position) {
+	return x.Load, x.Rparen
 }
 
 // A FuncDef represents a function definition expression: def foo(List):.
