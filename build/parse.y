@@ -116,7 +116,7 @@ package build
 %type	<ifstmt>	if_block      // a single if block
 %type	<ifstmt>	else_block    // a single else block
 %type	<ifstmt>	elif_chain    // an elif-elif-else chain
-%type <pos>     elif          // `elif` or `else if` token(s)
+%type <pos>		elif          // `elif` or `else if` token(s)
 %type	<exprs>		simple_stmt   // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
 %type	<expr>		small_stmt    // A single statement, e.g. 'a = f(x)'
 %type <exprs>		small_stmts_continuation  // A sequence of `';' small_stmt`
