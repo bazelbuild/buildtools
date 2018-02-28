@@ -455,7 +455,7 @@ func (x *FuncDef) Span() (start, end Position) {
 type ReturnStmt struct {
 	Comments
 	Return Position
-	Result Expr  // may be nil
+	Result Expr // may be nil
 }
 
 func (x *ReturnStmt) Span() (start, end Position) {
@@ -486,9 +486,9 @@ type IfStmt struct {
 	Comments
 	If      Position // position of if
 	Cond    Expr
-	True    []Expr   // position of else or elif
+	True    []Expr // position of else or elif
 	ElsePos Position
-	False   []Expr   // optional
+	False   []Expr // optional
 }
 
 func (x *IfStmt) Span() (start, end Position) {
