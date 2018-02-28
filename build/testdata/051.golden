@@ -50,11 +50,11 @@ if foo in bar:
 else if True:
   a = b
 
-elif False:
-    b=a
-
 else:
- (a,b)=(b,a)
+  if False:
+    b=a
+  else:
+   (a,b)=(b,a)
 
 bar
 

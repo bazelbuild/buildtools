@@ -32,6 +32,7 @@ package build
 	string    *StringExpr
 	strings   []*StringExpr
 	block     CodeBlock
+	ifstmt    *IfStmt
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
@@ -111,7 +112,11 @@ package build
 %type	<exprs>		stmts
 %type	<exprs>		stmt          // a simple_stmt or a for/if/def block
 %type	<expr>		block_stmt    // a single for/if/def statement
-%type	<expr>		if_else_block // a single if-else statement
+%type	<ifstmt>	if_else_block // a complete if-elif-else block
+%type	<ifstmt>	if_block      // a single if block
+%type	<ifstmt>	else_block    // a single else block
+%type	<ifstmt>	elif_chain    // an elif-elif-else chain
+%type <pos>		elif          // `elif` or `else if` token(s)
 %type	<exprs>		simple_stmt   // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
 %type	<expr>		small_stmt    // A single statement, e.g. 'a = f(x)'
 %type <exprs>		small_stmts_continuation  // A sequence of `';' small_stmt`
@@ -284,38 +289,50 @@ block_stmt:
 		$$ = $1
 	}
 
-if_else_block:
-	_IF expr ':' suite
+// A single else-statement
+else_block:
+	_ELSE ':' suite
 	{
-		$$ = &IfElse{
-			Start: $1,
-			Conditions: []Condition{
-				Condition{
-					If: $2,
-					Then: $4,
-				},
-			},
-			End: $4.End,
+		$$ = &IfStmt{
+			ElsePos: $1,
+			False: $3.Statements,
 		}
 	}
-| if_else_block elif expr ':' suite
+
+// One or several elif-elif-else statements
+elif_chain:
+	else_block
+| elif expr ':' suite elif_chain
 	{
-		block := $1.(*IfElse)
-		block.Conditions = append(block.Conditions, Condition{
-			If: $3,
-			Then: $5,
-		})
-		block.End = $5.End
-		$$ = block
+		inner := $5
+		inner.If = $1
+		inner.Cond = $2
+		inner.True = $4.Statements
+		$$ = &IfStmt{
+			ElsePos: $1,
+			False: []Expr{inner},
+		}
 	}
-| if_else_block _ELSE ':' suite
+
+// A single if-block
+if_block:
+	_IF expr ':' suite
 	{
-		block := $1.(*IfElse)
-		block.Conditions = append(block.Conditions, Condition{
-			Then: $4,
-		})
-		block.End = $4.End
-		$$ = block
+		$$ = &IfStmt{
+			If: $1,
+			Cond: $2,
+			True: $4.Statements,
+		}
+	}
+
+// A complete if-elif-elif-else chain
+if_else_block:
+	if_block
+| if_block elif_chain
+	{
+		$$ = $1
+		$$.ElsePos = $2.ElsePos
+		$$.False = $2.False
 	}
 
 elif:

@@ -45,10 +45,11 @@ if foo in bar:
   f()
 else if True:
   a = b
-elif False:
-    b=a
 else:
- (a,b)=(b,a)
+  if False:
+    b=a
+  else:
+   (a,b)=(b,a)
 
 bar
 def a():

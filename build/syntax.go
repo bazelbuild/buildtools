@@ -455,7 +455,7 @@ func (x *FuncDef) Span() (start, end Position) {
 type ReturnStmt struct {
 	Comments
 	Return Position
-	Result Expr  // may be nil
+	Result Expr // may be nil
 }
 
 func (x *ReturnStmt) Span() (start, end Position) {
@@ -480,19 +480,22 @@ func (x *ForLoop) Span() (start, end Position) {
 	return x.Start, x.End.Pos
 }
 
-// An IfElse represents an if-else blocks sequence: if x: ... elif y: ... else: ... .
-type IfElse struct {
+// An IfStmt represents an if-else block: if x: ... else: ... .
+// `elif`s are treated as a chain of `IfStmt`s.
+type IfStmt struct {
 	Comments
-	Start      Position // position of if
-	Conditions []Condition
-	End        // position of the end
+	If      Position // position of if
+	Cond    Expr
+	True    []Expr // position of else or elif
+	ElsePos Position
+	False   []Expr // optional
 }
 
-type Condition struct {
-	If   Expr
-	Then CodeBlock
-}
-
-func (x *IfElse) Span() (start, end Position) {
-	return x.Start, x.End.Pos
+func (x *IfStmt) Span() (start, end Position) {
+	body := x.False
+	if body == nil {
+		body = x.True
+	}
+	_, end = body[len(body)-1].Span()
+	return x.If, end
 }
