@@ -800,12 +800,13 @@ func (in *input) order(v Expr) {
 		for _, x := range v.Body.Statements {
 			in.order(x)
 		}
-	case *IfElse:
-		for _, condition := range v.Conditions {
-			in.order(condition.If)
-			for _, x := range condition.Then.Statements {
-				in.order(x)
-			}
+	case *IfStmt:
+		in.order(v.Cond)
+		for _, s := range v.True {
+			in.order(s)
+		}
+		for _, s := range v.False {
+			in.order(s)
 		}
 	}
 	if v != nil {

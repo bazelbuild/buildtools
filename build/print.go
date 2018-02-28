@@ -203,7 +203,7 @@ func isCodeBlock(x Expr) bool {
 		return true
 	case *ForLoop:
 		return true
-	case *IfElse:
+	case *IfStmt:
 		return true
 	default:
 		return false
@@ -506,25 +506,39 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.statements(v.Body.Statements)
 		p.margin -= nestedIndentation
 
-	case *IfElse:
-		for i, block := range v.Conditions {
-			if i == 0 {
-				p.printf("if ")
-			} else if block.If == nil {
+	case *IfStmt:
+		block := v
+		isFirst := true
+		for {
+			if !isFirst {
 				p.newline()
-				p.printf("else")
-			} else {
-				p.newline()
-				p.printf("elif ")
+				p.printf("el")
 			}
-
-			if block.If != nil {
-				p.expr(block.If, precLow)
-			}
+			p.printf("if ")
+			p.expr(block.Cond, precLow)
 			p.printf(":")
 			p.margin += nestedIndentation
 			p.newline()
-			p.statements(block.Then.Statements)
+			p.statements(block.True)
+			p.margin -= nestedIndentation
+
+			isFirst = false
+			if len(block.False) == 1 {
+				next, ok := block.False[0].(*IfStmt)
+				if ok {
+					block = next
+					continue
+				}
+			}
+			break
+		}
+
+		if len(block.False) > 0 {
+			p.newline()
+			p.printf("else:")
+			p.margin += nestedIndentation
+			p.newline()
+			p.statements(block.False)
 			p.margin -= nestedIndentation
 		}
 	}
