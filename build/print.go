@@ -244,8 +244,8 @@ const (
 	precCmp
 	precAdd
 	precMultiply
-	precSuffix
 	precUnary
+	precSuffix
 	precConcat
 )
 
@@ -453,7 +453,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("{}", v.List, &v.End, modeList, false, v.ForceMultiLine)
 
 	case *TupleExpr:
-		p.seq("()", v.List, &v.End, modeTuple, v.ForceCompact, v.ForceMultiLine)
+		mode := modeTuple
+		if !v.Start.IsValid() {
+			mode = modeSeq
+		}
+		p.seq("()", v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
 
 	case *DictExpr:
 		var list []Expr
@@ -576,7 +580,9 @@ const (
 // If multiLine is true, seq avoids the compact form even
 // for 0- and 1-element sequences.
 func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
-	p.printf("%s", brack[:1])
+	if mode != modeSeq {
+		p.printf("%s", brack[:1])
+	}
 	p.depth++
 
 	// If there are line comments, force multiline
@@ -647,7 +653,9 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 		p.newline()
 	}
 	p.depth--
-	p.printf("%s", brack[1:])
+	if mode != modeSeq {
+		p.printf("%s", brack[1:])
+	}
 }
 
 // listFor formats a ListForExpr (list comprehension).
