@@ -152,18 +152,6 @@ func (x *StringExpr) Span() (start, end Position) {
 	return x.Start, x.End
 }
 
-// A MultiExpr represents a several expressions separated by a comma.
-type MultiExpr struct {
-	Comments
-	Start       Position
-	Expressions []Expr
-	End         Position
-}
-
-func (x *MultiExpr) Span() (start, end Position) {
-	return x.Start, x.End
-}
-
 // An End represents the end of a parenthesized or bracketed expression.
 // It is a place to hang comments.
 type End struct {
