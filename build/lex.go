@@ -369,7 +369,6 @@ func (in *input) Lex(val *yySymType) int {
 			return _STAR_STAR
 		}
 
-
 		if c == '/' && in.peekRune() == '/' {
 			// integer division
 			in.readRune()
