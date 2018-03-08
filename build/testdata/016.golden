@@ -61,3 +61,11 @@ baz([
     1,
     2,
 ])
+
+# Implicit tuples
+
+True, False = False, True
+
+a, b = c
+
+c = d, e

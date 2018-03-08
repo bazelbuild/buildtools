@@ -1,0 +1,15 @@
+# Function definitions and calls
+
+def foo(a,b,c,* args,** kwargs):
+  return bar(a,b,c,* args,** kwargs)
+def foo(* args,** kwargs):
+  return bar(* args,** kwargs)
+def foo(* args):
+  return bar(* args)
+def foo(** kwargs):
+  return bar(** kwargs)
+
+bar(a,b,c,* args,** kwargs)
+bar(* args,** kwargs)
+bar(* args)
+bar(** kwargs)

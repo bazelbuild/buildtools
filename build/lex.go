@@ -363,6 +363,12 @@ func (in *input) Lex(val *yySymType) int {
 
 	case '<', '>', '=', '!', '+', '-', '*', '/', '%': // possibly followed by =
 		in.readRune()
+		if c == '*' && in.peekRune() == '*' {
+			// double asterisk
+			in.readRune()
+			return _STAR_STAR
+		}
+
 		if c == '/' && in.peekRune() == '/' {
 			// integer division
 			in.readRune()

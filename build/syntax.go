@@ -43,6 +43,11 @@ func (p Position) add(s string) Position {
 	return p
 }
 
+// IsValid reports whether the position is valid (non-zero).
+func (p Position) IsValid() bool {
+	return p.Line >= 1
+}
+
 // An Expr represents an input element.
 type Expr interface {
 	// Span returns the start and end position of the expression,
@@ -316,7 +321,7 @@ func (x *SetExpr) Span() (start, end Position) {
 // A TupleExpr represents a tuple literal: (List)
 type TupleExpr struct {
 	Comments
-	Start Position
+	Start Position // can be empty if the tuple has no brackets, e.g. `a, b = x`
 	List  []Expr
 	Comma Position // position of trailing comma, if any
 	End
@@ -325,7 +330,12 @@ type TupleExpr struct {
 }
 
 func (x *TupleExpr) Span() (start, end Position) {
-	return x.Start, x.End.Pos.add(")")
+	if x.Start.IsValid() {
+		return x.Start, x.End.Pos.add(")")
+	}
+	start, _ = x.List[0].Span()
+	_, end = x.List[len(x.List)-1].Span()
+	return start, end
 }
 
 // A UnaryExpr represents a unary expression: Op X.

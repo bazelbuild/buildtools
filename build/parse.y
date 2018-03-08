@@ -88,6 +88,7 @@ package build
 %token	<pos>	_LOAD    // keyword load
 %token	<pos>	_LE      // operator <=
 %token	<pos>	_NE      // operator !=
+%token	<pos>	_STAR_STAR // operator **
 %token	<pos>	_NOT     // keyword not
 %token	<pos>	_OR      // keyword or
 %token	<pos>	_PYTHON  // uninterpreted Python block
@@ -98,12 +99,22 @@ package build
 %token	<pos>	_UNINDENT // unindentation
 
 %type	<pos>		comma_opt
+%type	<expr>		argument
+%type	<exprs>		arguments
+%type	<exprs>		arguments_opt
+%type	<expr>		parameter
+%type	<exprs>		parameters
+%type	<exprs>		parameters_opt
+%type	<expr>		test
+%type	<expr>		test_opt
+%type	<exprs>		tests_opt
+%type	<expr>		primary_expr
 %type	<expr>		expr
 %type	<expr>		expr_opt
-%type	<expr>		primary_expr
+%type <exprs>		tests
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
-%type	<exprs>		primary_exprs
+%type	<exprs>		loop_vars
 %type	<forc>		for_clause
 %type	<forifs>	for_clause_with_if_clauses_opt
 %type	<forsifs>	for_clauses_with_if_clauses_opt
@@ -183,7 +194,7 @@ suite:
 			End: End{Pos: $4},
 		}
 	}
-| simple_stmt
+|	simple_stmt
 	{
 		// simple_stmt is never empty
 		start, _ := $1[0].Span()
@@ -261,7 +272,7 @@ stmt:
 	}
 
 block_stmt:
-	_DEF _IDENT '(' exprs_opt ')' ':' suite
+	_DEF _IDENT '(' parameters_opt ')' ':' suite
 	{
 		$$ = &FuncDef{
 			Start: $1,
@@ -274,7 +285,7 @@ block_stmt:
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
 	}
-|	_FOR primary_exprs _IN expr ':' suite
+|	_FOR loop_vars _IN expr ':' suite
 	{
 		$$ = &ForLoop{
 			Start: $1,
@@ -284,7 +295,7 @@ block_stmt:
 			End: $6.End,
 		}
 	}
-| if_else_block
+|	if_else_block
 	{
 		$$ = $1
 	}
@@ -302,7 +313,7 @@ else_block:
 // One or several elif-elif-else statements
 elif_chain:
 	else_block
-| elif expr ':' suite elif_chain
+|	elif expr ':' suite elif_chain
 	{
 		inner := $5
 		inner.If = $1
@@ -328,7 +339,7 @@ if_block:
 // A complete if-elif-elif-else chain
 if_else_block:
 	if_block
-| if_block elif_chain
+|	if_block elif_chain
 	{
 		$$ = $1
 		$$.ElsePos = $2.ElsePos
@@ -350,7 +361,7 @@ small_stmts_continuation:
 	{
 		$$ = []Expr{}
 	}
-| small_stmts_continuation ';' small_stmt
+|	small_stmts_continuation ';' small_stmt
 	{
 		$$ = append($1, $3)
 	}
@@ -370,6 +381,8 @@ small_stmt:
 			Return: $1,
 		}
 	}
+|	expr '=' expr      { $$ = binary($1, $2, $<tok>2, $3) }
+|	expr _AUGM expr    { $$ = binary($1, $2, $<tok>2, $3) }
 |	_PYTHON
 	{
 		$$ = &PythonBlock{Start: $1, Token: $<tok>1}
@@ -389,7 +402,7 @@ primary_expr:
 			Name: $<tok>3,
 		}
 	}
-|	_LOAD '(' exprs_opt ')'
+|	_LOAD '(' arguments_opt ')'
 	{
 		$$ = &CallExpr{
                         X: &LiteralExpr{Start: $1, Token: "load"},
@@ -400,7 +413,7 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($2, $3, $4),
 		}
 	}
-|	primary_expr '(' exprs_opt ')'
+|	primary_expr '(' arguments_opt ')'
 	{
 		$$ = &CallExpr{
 			X: $1,
@@ -420,7 +433,7 @@ primary_expr:
 			End: $4,
 		}
 	}
-|	primary_expr '[' expr_opt ':' expr_opt ']'
+|	primary_expr '[' expr_opt ':' test_opt ']'
 	{
 		$$ = &SliceExpr{
 			X: $1,
@@ -431,7 +444,7 @@ primary_expr:
 			End: $6,
 		}
 	}
-|	primary_expr '[' expr_opt ':' expr_opt ':' expr_opt ']'
+|	primary_expr '[' expr_opt ':' test_opt ':' test_opt ']'
 	{
 		$$ = &SliceExpr{
 			X: $1,
@@ -444,7 +457,7 @@ primary_expr:
 			End: $8,
 		}
 	}
-|	primary_expr '(' expr for_clauses_with_if_clauses_opt ')'
+|	primary_expr '(' expr for_clauses_with_if_clauses_opt ')'  // TODO: remove, not supported
 	{
 		$$ = &CallExpr{
 			X: $1,
@@ -473,7 +486,7 @@ primary_expr:
 			$$ = binary($$, end, "+", x)
 		}
 	}
-|	'[' exprs_opt ']'
+|	'[' tests_opt ']'
 	{
 		$$ = &ListExpr{
 			Start: $1,
@@ -483,7 +496,7 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
 	}
-|	'[' expr for_clauses_with_if_clauses_opt ']'
+|	'[' test for_clauses_with_if_clauses_opt ']'
 	{
 		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
@@ -495,7 +508,7 @@ primary_expr:
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
 	}
-|	'(' expr for_clauses_with_if_clauses_opt ')'
+|	'(' test for_clauses_with_if_clauses_opt ')'
 	{
 		exprStart, _ := $2.Span()
 		$$ = &ListForExpr{
@@ -529,7 +542,7 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
 	}
-|	'{' exprs_opt '}'
+|	'{' tests_opt '}'  // TODO: remove, not supported
 	{
 		$$ = &SetExpr{
 			Start: $1,
@@ -539,7 +552,7 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
 	}
-|	'(' exprs_opt ')'
+|	'(' tests_opt ')'
 	{
 		if len($2) == 1 && $<comma>2.Line == 0 {
 			// Just a parenthesized expression, not a tuple.
@@ -560,11 +573,120 @@ primary_expr:
 			}
 		}
 	}
-|	'-' primary_expr  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
+
+arguments_opt:
+	{
+		$$, $<comma>$ = nil, Position{}
+	}
+|	arguments comma_opt
+	{
+		$$, $<comma>$ = $1, $2
+	}
+
+arguments:
+	argument
+	{
+		$$ = []Expr{$1}
+	}
+|	arguments ',' argument
+	{
+		$$ = append($1, $3)
+	}
+
+argument:
+	test
+|	ident '=' test
+	{
+		$$ = binary($1, $2, $<tok>2, $3)
+	}
+|	'*' test
+	{
+		$$ = unary($1, $<tok>1, $2)
+	}
+|	_STAR_STAR test
+	{
+		$$ = unary($1, $<tok>1, $2)
+	}
+
+parameters_opt:
+	{
+		$$, $<comma>$ = nil, Position{}
+	}
+|	parameters comma_opt
+	{
+		$$, $<comma>$ = $1, $2
+	}
+
+parameters:
+	parameter
+	{
+		$$ = []Expr{$1}
+	}
+|	parameters ',' parameter
+	{
+		$$ = append($1, $3)
+	}
+
+parameter:
+	ident
+|	ident '=' test
+	{
+		$$ = binary($1, $2, $<tok>2, $3)
+	}
+|	'*' ident
+	{
+		$$ = unary($1, $<tok>1, $2)
+	}
+|	_STAR_STAR ident
+	{
+		$$ = unary($1, $<tok>1, $2)
+	}
 
 expr:
+	test
+|	expr ',' test
+	{
+		tuple, ok := $1.(*TupleExpr)
+		if !ok || !tuple.Start.IsValid() {
+			tuple = &TupleExpr{
+				List: []Expr{$1},
+				Comma: Position{},
+				ForceCompact: true,
+				ForceMultiLine: false,
+			}
+		}
+		tuple.List = append(tuple.List, $3)
+		$$ = tuple
+	}
+
+expr_opt:
+	{
+		$$ = nil
+	}
+|	expr
+
+exprs:
+	expr
+	{
+		$$ = []Expr{$1}
+	}
+|	exprs ',' expr
+	{
+		$$ = append($1, $3)
+	}
+
+exprs_opt:
+	{
+		$$, $<comma>$ = nil, Position{}
+	}
+|	exprs comma_opt
+	{
+		$$, $<comma>$ = $1, $2
+	}
+
+test:
 	primary_expr
-|	_LAMBDA exprs ':' expr
+|	_LAMBDA exprs_opt ':' expr  // TODO: remove, not supported
 	{
 		$$ = &LambdaExpr{
 			Lambda: $1,
@@ -573,26 +695,24 @@ expr:
 			Expr: $4,
 		}
 	}
-|	_NOT expr %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
-|	'*' expr  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
-|	expr '*' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '%' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '/' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '+' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '-' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '<' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '>' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _EQ expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _LE expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _NE expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _GE expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr '=' expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _AUGM expr    { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _IN expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _NOT _IN expr { $$ = binary($1, $2, "not in", $4) }
-|	expr _OR expr      { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _AND expr     { $$ = binary($1, $2, $<tok>2, $3) }
-|	expr _IS expr
+|	_NOT test %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
+|	'-' test  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
+|	test '*' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '%' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '/' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '+' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '-' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '<' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '>' test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _EQ test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _LE test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _NE test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _GE test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _IN test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _NOT _IN test { $$ = binary($1, $2, "not in", $4) }
+|	test _OR test      { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _AND test     { $$ = binary($1, $2, $<tok>2, $3) }
+|	test _IS test
 	{
 		if b, ok := $3.(*UnaryExpr); ok && b.Op == "not" {
 			$$ = binary($1, $2, "is not", b.X)
@@ -600,7 +720,7 @@ expr:
 			$$ = binary($1, $2, $<tok>2, $3)
 		}
 	}
-| expr _IF expr _ELSE expr
+|	test _IF test _ELSE test
 	{
 		$$ = &ConditionalExpr{
 			Then: $1,
@@ -611,11 +731,30 @@ expr:
 		}
 	}
 
-expr_opt:
+tests:
+	test
+	{
+		$$ = []Expr{$1}
+	}
+|	tests ',' test
+	{
+		$$ = append($1, $3)
+	}
+
+test_opt:
 	{
 		$$ = nil
 	}
-|	expr
+|	test
+
+tests_opt:
+	{
+		$$, $<comma>$ = nil, Position{}
+	}
+|	tests comma_opt
+	{
+		$$, $<comma>$ = $1, $2
+	}
 
 // comma_opt is an optional comma. If the comma is present,
 // the rule's value is the position of the comma. Otherwise
@@ -628,7 +767,7 @@ comma_opt:
 |	','
 
 keyvalue:
-	expr ':' expr  {
+	test ':' test  {
 		$$ = &KeyValueExpr{
 			Key: $1,
 			Colon: $2,
@@ -656,31 +795,12 @@ keyvalues:
 		$$ = $1
 	}
 
-exprs:
-	expr
-	{
-		$$ = []Expr{$1}
-	}
-|	exprs ',' expr
-	{
-		$$ = append($1, $3)
-	}
-
-exprs_opt:
-	{
-		$$, $<comma>$ = nil, Position{}
-	}
-|	exprs comma_opt
-	{
-		$$, $<comma>$ = $1, $2
-	}
-
-primary_exprs:
+loop_vars:
 	primary_expr
 	{
 		$$ = []Expr{$1}
 	}
-|	primary_exprs ',' primary_expr
+|	loop_vars ',' primary_expr
 	{
 		$$ = append($1, $3)
 	}
@@ -714,7 +834,7 @@ ident:
 	}
 
 for_clause:
-	_FOR primary_exprs _IN expr
+	_FOR loop_vars _IN test
 	{
 		$$ = &ForClause{
 			For: $1,
@@ -737,7 +857,7 @@ for_clauses_with_if_clauses_opt:
 	{
 		$$ = []*ForClauseWithIfClausesOpt{$1}
 	}
-| for_clauses_with_if_clauses_opt for_clause_with_if_clauses_opt {
+|	for_clauses_with_if_clauses_opt for_clause_with_if_clauses_opt {
 		$$ = append($1, $2)
 	}
 
@@ -745,7 +865,7 @@ if_clauses_opt:
 	{
 		$$ = nil
 	}
-|	if_clauses_opt _IF expr
+|	if_clauses_opt _IF test
 	{
 		$$ = append($1, &IfClause{
 			If: $2,
