@@ -649,10 +649,8 @@ expr:
 		tuple, ok := $1.(*TupleExpr)
 		if !ok || !tuple.Start.IsValid() {
 			tuple = &TupleExpr{
-				Start: Position{},
 				List: []Expr{$1},
 				Comma: Position{},
-				End: End{Pos: Position{}},
 				ForceCompact: true,
 				ForceMultiLine: false,
 			}

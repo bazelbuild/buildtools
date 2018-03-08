@@ -324,7 +324,7 @@ func (x *TupleExpr) Span() (start, end Position) {
 	}
 	start, _ = x.List[0].Span()
 	_, end = x.List[len(x.List)-1].Span()
-	return
+	return start, end
 }
 
 // A UnaryExpr represents a unary expression: Op X.
