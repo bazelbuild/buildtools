@@ -12,6 +12,8 @@ foo = bar // baz
 
 foo = bar % baz
 
+not foo < bar > baz <= foo >= bar != baz in foo
+
 # Augmented assignments
 
 foo += bar
