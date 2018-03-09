@@ -12,7 +12,7 @@ foo = bar // baz
 
 foo = bar % baz
 
-not foo < bar > baz <= foo >= bar != baz in foo
+not foo < bar > baz <= foo >= bar != baz in foo == bar
 
 # Augmented assignments
 
