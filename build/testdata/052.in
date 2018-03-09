@@ -6,6 +6,8 @@ foo=bar*baz
 foo=bar/baz
 foo=bar//baz
 foo=bar%baz
+
+# Logic operators
 not  foo<bar>baz<=foo>=bar!=baz  in  foo==bar
 
 # Augmented assignments
