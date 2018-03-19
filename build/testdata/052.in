@@ -7,8 +7,8 @@ foo=bar/baz
 foo=bar//baz
 foo=bar%baz
 
-# Unary operators precedence
--1 if  not  a  else - 2
+# If-else operator precedence
+- 1 if  not  a  else 2+3
 
 # Logic operators
 not  foo<bar>baz<=foo>=bar!=baz  in  foo==bar  or  baz
