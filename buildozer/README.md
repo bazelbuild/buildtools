@@ -4,25 +4,12 @@ Buildozer is a command line tool to rewrite multiple
 [Bazel](https://github.com/bazelbuild/bazel) BUILD files using
 standard commands.
 
-## Dependencies
-
-1. Protobuf go runtime: to download
-`go get -u github.com/golang/protobuf/{proto,protoc-gen-go}`
-
-
 ## Installation
 
-1. Change directory to the buildifier/buildozer
+1. Build a binary and put it into your $GOPATH/bin:
 
 ```bash
-gopath=$(go env GOPATH)
-cd $gopath/src/github.com/bazelbuild/buildtools/buildozer
-```
-
-2. Install
-
-```bash
-go install
+go get github.com/bazelbuild/buildtools/buildozer
 ```
 
 ## Usage
