@@ -244,9 +244,9 @@ const (
 	precCmp
 	precAdd
 	precMultiply
+	precIfElse
 	precUnary
 	precSuffix
-	precConcat
 )
 
 // opPrec gives the precedence for operators found in a BinaryExpr.
@@ -471,11 +471,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *ConditionalExpr:
 		addParen(precSuffix)
-		p.expr(v.Then, precSuffix)
+		p.expr(v.Then, precIfElse)
 		p.printf(" if ")
-		p.expr(v.Test, precSuffix)
+		p.expr(v.Test, precIfElse)
 		p.printf(" else ")
-		p.expr(v.Else, precSuffix)
+		p.expr(v.Else, precIfElse)
 
 	case *ReturnStmt:
 		p.printf("return")
