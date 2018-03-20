@@ -52,7 +52,7 @@ var (
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
 
 	// Experimental flags
-	formatBzlFiles = flag.Bool("format_bzl", false, "format bzl-specific blocks (experimental)")
+	inputType = flag.String("type", "build", "input file type: build (default, for BUILD files) or bzl (for .bzl files).")
 )
 
 func stringList(name, help string) func() []string {
@@ -105,7 +105,18 @@ func main() {
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
 
-	tables.FormatBzlFiles = *formatBzlFiles
+	// Check input type.
+	switch *inputType {
+	default:
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, default\n", *inputType)
+		os.Exit(2)
+
+	case "bzl":
+		tables.FormatBzlFiles = true
+
+	case "build", "":
+		tables.FormatBzlFiles = false
+	}
 
 	if *dflag {
 		if *mode != "" {
