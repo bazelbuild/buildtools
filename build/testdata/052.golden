@@ -12,6 +12,9 @@ foo = bar // baz
 
 foo = bar % baz
 
+# If-else operator precedence
+-f(1) if not a else (2 + 3)
+
 # Logic operators
 not foo < bar > baz <= foo >= bar != baz in foo == bar or baz
 
