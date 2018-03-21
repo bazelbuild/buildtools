@@ -205,8 +205,12 @@ var StripLabelLeadingSlashes = false
 
 var ShortenAbsoluteLabelsToRelative = false
 
-// BuildMode = true formats a file in a BUILD mode (as opposed to .bzl mode)
-var BuildMode = false
+// BuildMode formats a file in a BUILD mode (as opposed to the default .bzl mode)
+const (
+	DefaultMode = iota
+	BuildMode
+)
+var FormattingMode = DefaultMode
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
 func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {

@@ -62,7 +62,7 @@ func main() {
 	flag.Parse()
 
 	// Buildozer works with BUILD files
-	tables.BuildMode = true
+	tables.FormattingMode = tables.BuildMode
 
 	if *tablesPath != "" {
 		if err := tables.ParseAndUpdateJSONDefinitions(*tablesPath, false); err != nil {

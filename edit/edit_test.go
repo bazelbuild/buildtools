@@ -234,6 +234,6 @@ func TestListSubstitute(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	tables.BuildMode = true
+	tables.FormattingMode = tables.BuildMode
 	os.Exit(m.Run())
 }
