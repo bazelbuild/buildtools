@@ -205,10 +205,9 @@ var StripLabelLeadingSlashes = false
 
 var ShortenAbsoluteLabelsToRelative = false
 
-// BuildMode formats a file in a BUILD mode (as opposed to the default .bzl mode)
 const (
-	DefaultMode = iota
-	BuildMode
+	DefaultMode = iota  // format files preserving the semantics and partially the original formatting (suitable for .bzl files)
+	BuildMode  // format BUILD files (with stricter formatting rules, sorted lists in arguments)
 )
 var FormattingMode = DefaultMode
 
