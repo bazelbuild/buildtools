@@ -34,6 +34,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
+	"github.com/bazelbuild/buildtools/tables"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -931,6 +932,9 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 
 // Buildozer loops over all arguments on the command line fixing BUILD files.
 func Buildozer(opts *Options, args []string) int {
+	// Buildozer works with BUILD files
+	tables.FormattingMode = tables.BuildMode
+
 	commandsByFile := make(map[string][]commandsForTarget)
 	if opts.CommandsFile != "" {
 		appendCommandsFromFile(opts, commandsByFile, opts.CommandsFile)

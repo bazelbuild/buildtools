@@ -61,9 +61,6 @@ func stringList(name, help string) func() []string {
 func main() {
 	flag.Parse()
 
-	// Buildozer works with BUILD files
-	tables.FormattingMode = tables.BuildMode
-
 	if *tablesPath != "" {
 		if err := tables.ParseAndUpdateJSONDefinitions(*tablesPath, false); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: failed to parse %s for -tables: %s\n", *tablesPath, err)
