@@ -298,7 +298,7 @@ func (in *input) Lex(val *yySymType) int {
 	// Check for changes in indentation
 	// Skip if --format_bzl is set to false, if we're inside a statement, or if there were non-space
 	// characters before in the current line.
-	if tables.FormatBzlFiles && in.endStmt == -1 && in.cleanLine {
+	if tables.FormattingMode == tables.DefaultMode && in.endStmt == -1 && in.cleanLine {
 		if in.indent > in.currentIndent() {
 			// A new indentation block starts
 			in.indents = append(in.indents, in.indent)
@@ -462,7 +462,7 @@ func (in *input) Lex(val *yySymType) int {
 		in.Error(fmt.Sprintf("unexpected input character %#q", c))
 	}
 
-	if !tables.FormatBzlFiles {
+	if tables.FormattingMode == tables.BuildMode {
 		// Look for raw Python block (class, def, if, etc at beginning of line) and pass through.
 		if in.depth == 0 && in.pos.LineRune == 1 && hasPythonPrefix(in.remaining) {
 			// Find end of Python block and advance input beyond it.
@@ -530,7 +530,7 @@ var keywordToken = map[string]int{
 // hasPythonPrefix reports whether p begins with a keyword that would
 // introduce an uninterpreted Python block.
 func hasPythonPrefix(p []byte) bool {
-	if tables.FormatBzlFiles {
+	if tables.FormattingMode == tables.DefaultMode {
 		return false
 	}
 
@@ -648,7 +648,7 @@ func (in *input) skipStmt(p []byte) []byte {
 				rest = p[i:]
 			}
 
-			if tables.FormatBzlFiles {
+			if tables.FormattingMode == tables.DefaultMode {
 				// In the bzl files mode we only care about the end of the statement, we've found it.
 				return rest
 			}

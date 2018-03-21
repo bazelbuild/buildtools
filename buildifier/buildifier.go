@@ -108,10 +108,10 @@ func main() {
 	// Check input type.
 	switch *inputType {
 	case "bzl":
-		tables.FormatBzlFiles = true
+		tables.FormattingMode = tables.DefaultMode
 
 	case "build", "":
-		tables.FormatBzlFiles = false
+		tables.FormattingMode = tables.BuildMode
 
 	default:
 		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl\n", *inputType)

@@ -53,12 +53,15 @@ func testIdempotence(t *testing.T, file string) {
 func TestPrintGolden(t *testing.T) {
 	outs, chdir := findTests(t, ".golden")
 	defer chdir()
+	// Run the tests with --type=build
+	tables.FormattingMode = tables.BuildMode
+
 	for _, out := range outs {
 		testIdempotence(t, out)
 	}
 
-	// Run the same tests with --format_bzl
-	tables.FormatBzlFiles = true
+	// Run the same tests with --type=bzl
+	tables.FormattingMode = tables.DefaultMode
 	for _, out := range outs {
 		prefix := out[:len(out)-len(".golden")]
 		if exists(prefix + ".formatbzl.golden") {
@@ -67,13 +70,15 @@ func TestPrintGolden(t *testing.T) {
 		}
 		testIdempotence(t, out)
 	}
-	tables.FormatBzlFiles = false
+	tables.FormattingMode = tables.BuildMode
 }
 
 // Test that formatting the input files produces the golden files.
 func TestPrintRewrite(t *testing.T) {
 	ins, chdir := findTests(t, ".in")
 	defer chdir()
+	// The tests by default use --type=build, the same .golden file is used for --type=bzl unless there's a special .formatbzl.golden file
+	tables.FormattingMode = tables.BuildMode
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
 		out := prefix + ".golden"
@@ -92,13 +97,13 @@ func TestPrintRewrite(t *testing.T) {
 		}
 
 		bzl := prefix + ".formatbzl.golden"
-		tables.FormatBzlFiles = true
+		tables.FormattingMode = tables.DefaultMode
 		if exists(bzl) {
 			testPrint(t, in, bzl, true)
 		} else {
 			testPrint(t, in, out, true)
 		}
-		tables.FormatBzlFiles = false
+		tables.FormattingMode = tables.BuildMode
 
 		tables.ShortenAbsoluteLabelsToRelative = false
 	}
