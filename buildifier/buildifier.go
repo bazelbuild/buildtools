@@ -52,7 +52,7 @@ var (
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
 
 	// Experimental flags
-	inputType = flag.String("type", "build", "input file type: build (default, for BUILD files) or bzl (for .bzl files).")
+	inputType = flag.String("type", "build", "Experimental: input file type: build (default, for BUILD files) or bzl (for .bzl files).")
 )
 
 func stringList(name, help string) func() []string {
@@ -107,15 +107,15 @@ func main() {
 
 	// Check input type.
 	switch *inputType {
-	default:
-		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, default\n", *inputType)
-		os.Exit(2)
-
 	case "bzl":
 		tables.FormatBzlFiles = true
 
 	case "build", "":
 		tables.FormatBzlFiles = false
+
+	default:
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl\n", *inputType)
+		os.Exit(2)
 	}
 
 	if *dflag {
@@ -128,15 +128,15 @@ func main() {
 
 	// Check mode.
 	switch *mode {
-	default:
-		fmt.Fprintf(os.Stderr, "buildifier: unrecognized mode %s; valid modes are check, diff, fix\n", *mode)
-		os.Exit(2)
-
 	case "":
 		*mode = "fix"
 
 	case "check", "diff", "fix", "print_if_changed":
 		// ok
+
+	default:
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized mode %s; valid modes are check, diff, fix\n", *mode)
+		os.Exit(2)
 	}
 
 	// If the path flag is set, must only be formatting a single file.
