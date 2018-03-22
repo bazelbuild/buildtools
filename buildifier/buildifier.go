@@ -161,7 +161,7 @@ func main() {
 	diff = differ.Find()
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
-		if *inputType  == "auto" {
+		if *inputType == "auto" {
 			fmt.Fprintf(os.Stderr, "buildifier: --type=auto can't be used with stdin\n")
 			os.Exit(2)
 		}
@@ -278,7 +278,7 @@ func processFile(filename string, data []byte, inputType string) {
 		base := filepath.Base(filename)
 		if base == "BUILD" || base == "BUILD.bazel" || base == "WORKSPACE" {
 			tables.FormattingMode = tables.BuildMode
-		} else if strings.HasSuffix(filename,".bzl") {
+		} else if strings.HasSuffix(filename, ".bzl") {
 			tables.FormattingMode = tables.DefaultMode
 		}
 	}
