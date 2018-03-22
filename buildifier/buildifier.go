@@ -263,25 +263,8 @@ func processFile(filename string, data []byte, inputType string) {
 			exitCode = 3
 		}
 	}()
-
-	defaultMode := tables.FormattingMode
-	defer func() {
-		tables.FormattingMode = defaultMode
-	}()
-
-	switch inputType {
-	case "build":
-		tables.FormattingMode = tables.BuildMode
-	case "bzl":
-		tables.FormattingMode = tables.DefaultMode
-	case "auto":
-		base := filepath.Base(filename)
-		if base == "BUILD" || base == "BUILD.bazel" || base == "WORKSPACE" {
-			tables.FormattingMode = tables.BuildMode
-		} else if strings.HasSuffix(filename, ".bzl") {
-			tables.FormattingMode = tables.DefaultMode
-		}
-	}
+	
+	defer setFormattingMode(inputType, filename)()
 
 	f, err := build.Parse(filename, data)
 	if err != nil {
@@ -387,6 +370,28 @@ func processFile(filename string, data []byte, inputType string) {
 			exitCode = 3
 			return
 		}
+	}
+}
+
+func setFormattingMode(inputType, filename string) func() {
+	defaultMode := tables.FormattingMode
+	
+	switch inputType {
+	case "build":
+		tables.FormattingMode = tables.BuildMode
+	case "bzl":
+		tables.FormattingMode = tables.DefaultMode
+	case "auto":
+		base := filepath.Base(filename)
+		if base == "BUILD" || base == "BUILD.bazel" || base == "WORKSPACE" {
+			tables.FormattingMode = tables.BuildMode
+		} else if strings.HasSuffix(filename, ".bzl") {
+			tables.FormattingMode = tables.DefaultMode
+		}
+	}
+	
+	return func() {
+		tables.FormattingMode = defaultMode
 	}
 }
 
