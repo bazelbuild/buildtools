@@ -45,6 +45,7 @@ for b in a:               # first
 
 if foo in bar:
  for f in foo:
+  # loop
   f()
 
 else if True:
@@ -52,11 +53,15 @@ else if True:
 
 else:
   if False:
+
+    #assign
     b=a
   else:
+
    (a,b)=(b,a)
 
 bar
 
 def a():
+# comment here
   return

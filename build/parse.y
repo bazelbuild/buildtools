@@ -137,6 +137,7 @@ package build
 %type	<string>	string
 %type	<strings>	strings
 %type	<block>		suite
+%type	<exprs>		comments
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -186,12 +187,27 @@ file:
 	}
 
 suite:
-	'\n' _INDENT stmts _UNINDENT
+	'\n' comments _INDENT stmts _UNINDENT
 	{
+		statements := $4
+		if $2 != nil {
+			// $2 can only contain *CommentBlock objects, each of them contains a non-empty After slice
+			cb := $2[len($2)-1].(*CommentBlock)
+			// $4 can't be empty and can't start with a comment
+			stmt := $4[0]
+			start, _ := stmt.Span()
+			if start.Line - cb.After[len(cb.After)-1].Start.Line == 1 {
+				// The first statement of $4 starts on the next line after the last comment of $2.
+				// Attach the last comment to the first statement
+				stmt.Comment().Before = cb.After
+				$2 = $2[:len($2)-1]
+			}
+			statements = append($2, $4...)
+		}
 		$$ = CodeBlock{
-			Start: $2,
-			Statements: $3,
-			End: End{Pos: $4},
+			Start: $3,
+			Statements: statements,
+			End: End{Pos: $5},
 		}
 	}
 |	simple_stmt
@@ -204,6 +220,29 @@ suite:
 			Statements: $1,
 			End: End{Pos: end},
 		}
+	}
+
+comments:
+	{
+		$$ = nil
+		$<lastRule>$ = nil
+	}
+|	comments _COMMENT '\n'
+	{
+		$$ = $1
+		$<lastRule>$ = $<lastRule>1
+		if $<lastRule>$ == nil {
+			cb := &CommentBlock{Start: $2}
+			$$ = append($$, cb)
+			$<lastRule>$ = cb
+		}
+		com := $<lastRule>$.Comment()
+		com.After = append(com.After, Comment{Start: $2, Token: $<tok>2})
+	}
+|	comments '\n'
+	{
+		$$ = $1
+		$<lastRule>$ = nil
 	}
 
 stmts:
