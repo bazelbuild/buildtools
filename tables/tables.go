@@ -205,7 +205,6 @@ var StripLabelLeadingSlashes = false
 
 var ShortenAbsoluteLabelsToRelative = false
 
-
 const (
 	// DefaultMode formats files preserving the semantics and partially the original formatting (suitable for .bzl files)
 	DefaultMode = iota
