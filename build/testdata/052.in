@@ -13,6 +13,14 @@ foo=bar%baz
 # Logic operators
 not  foo<bar>baz<=foo>=bar!=baz  in  foo==bar  or  baz
 
+x = "abc" in copts or "def" in copts
+
+x2 = "abc" not in copts and "def" not in copts
+
+y = "abc" in (copts or []) == False
+
+a = 1 + 2 if 3 + 4 else 5 + 6
+
 # Augmented assignments
 
 foo+=bar

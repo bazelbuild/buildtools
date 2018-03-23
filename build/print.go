@@ -238,40 +238,41 @@ const (
 	precAssign
 	precComma
 	precColon
-	precIn
+	precIfElse
 	precOr
 	precAnd
 	precCmp
 	precAdd
 	precMultiply
-	precIfElse
 	precUnary
 	precSuffix
 )
 
 // opPrec gives the precedence for operators found in a BinaryExpr.
 var opPrec = map[string]int{
-	"=":   precAssign,
-	"+=":  precAssign,
-	"-=":  precAssign,
-	"*=":  precAssign,
-	"/=":  precAssign,
-	"//=": precAssign,
-	"%=":  precAssign,
-	"or":  precOr,
-	"and": precAnd,
-	"<":   precCmp,
-	">":   precCmp,
-	"==":  precCmp,
-	"!=":  precCmp,
-	"<=":  precCmp,
-	">=":  precCmp,
-	"+":   precAdd,
-	"-":   precAdd,
-	"*":   precMultiply,
-	"/":   precMultiply,
-	"//":  precMultiply,
-	"%":   precMultiply,
+	"=":      precAssign,
+	"+=":     precAssign,
+	"-=":     precAssign,
+	"*=":     precAssign,
+	"/=":     precAssign,
+	"//=":    precAssign,
+	"%=":     precAssign,
+	"or":     precOr,
+	"and":    precAnd,
+	"in":     precCmp,
+	"not in": precCmp,
+	"<":      precCmp,
+	">":      precCmp,
+	"==":     precCmp,
+	"!=":     precCmp,
+	"<=":     precCmp,
+	">=":     precCmp,
+	"+":      precAdd,
+	"-":      precAdd,
+	"*":      precMultiply,
+	"/":      precMultiply,
+	"//":     precMultiply,
+	"%":      precMultiply,
 }
 
 // expr prints the expression v to the print buffer.
