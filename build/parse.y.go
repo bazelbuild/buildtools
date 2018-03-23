@@ -1359,7 +1359,7 @@ yydefault:
 		//line build/parse.y:670
 		{
 			tuple, ok := yyDollar[1].expr.(*TupleExpr)
-			if !ok || !tuple.Start.IsValid() {
+			if !ok || tuple.Start.IsValid() {
 				tuple = &TupleExpr{
 					List:           []Expr{yyDollar[1].expr},
 					ForceCompact:   true,

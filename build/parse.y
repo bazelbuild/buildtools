@@ -669,7 +669,7 @@ expr:
 |	expr ',' test
 	{
 		tuple, ok := $1.(*TupleExpr)
-		if !ok || !tuple.Start.IsValid() {
+		if !ok || tuple.Start.IsValid() {
 			tuple = &TupleExpr{
 				List: []Expr{$1},
 				ForceCompact: true,
