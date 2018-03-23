@@ -161,10 +161,10 @@ package build
 %left  _IF _ELSE _ELIF
 %left  ','
 %left  ':'
-%left  _IN _NOT _IS
+%left  _IS
 %left  _OR
 %left  _AND
-%left  '<' '>' _EQ _NE _LE _GE
+%left  '<' '>' _EQ _NE _LE _GE _NOT _IN
 %left  '+' '-'
 %left  '*' '/' '%'
 %left  '.' '[' '('
