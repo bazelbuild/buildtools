@@ -530,7 +530,6 @@ primary_expr:
 		$$ = &ListExpr{
 			Start: $1,
 			List: $2,
-			Comma: $<comma>2,
 			End: End{Pos: $3},
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
@@ -576,7 +575,6 @@ primary_expr:
 		$$ = &DictExpr{
 			Start: $1,
 			List: $2,
-			Comma: $<comma>2,
 			End: End{Pos: $3},
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
@@ -586,7 +584,6 @@ primary_expr:
 		$$ = &SetExpr{
 			Start: $1,
 			List: $2,
-			Comma: $<comma>2,
 			End: End{Pos: $3},
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
@@ -605,7 +602,6 @@ primary_expr:
 			$$ = &TupleExpr{
 				Start: $1,
 				List: $2,
-				Comma: $<comma>2,
 				End: End{Pos: $3},
 				ForceCompact: forceCompact($1, $2, $3),
 				ForceMultiLine: forceMultiLine($1, $2, $3),
@@ -615,11 +611,11 @@ primary_expr:
 
 arguments_opt:
 	{
-		$$, $<comma>$ = nil, Position{}
+		$$ = nil
 	}
 |	arguments comma_opt
 	{
-		$$, $<comma>$ = $1, $2
+		$$ = $1
 	}
 
 arguments:
@@ -649,11 +645,11 @@ argument:
 
 parameters_opt:
 	{
-		$$, $<comma>$ = nil, Position{}
+		$$ = nil
 	}
 |	parameters comma_opt
 	{
-		$$, $<comma>$ = $1, $2
+		$$ = $1
 	}
 
 parameters:
@@ -689,7 +685,6 @@ expr:
 		if !ok || !tuple.Start.IsValid() {
 			tuple = &TupleExpr{
 				List: []Expr{$1},
-				Comma: Position{},
 				ForceCompact: true,
 				ForceMultiLine: false,
 			}
@@ -716,11 +711,11 @@ exprs:
 
 exprs_opt:
 	{
-		$$, $<comma>$ = nil, Position{}
+		$$ = nil
 	}
 |	exprs comma_opt
 	{
-		$$, $<comma>$ = $1, $2
+		$$ = $1
 	}
 
 test:

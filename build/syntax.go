@@ -280,8 +280,7 @@ func (x *KeyValueExpr) Span() (start, end Position) {
 type DictExpr struct {
 	Comments
 	Start Position
-	List  []Expr   // all *KeyValueExprs
-	Comma Position // position of trailing comma, if any
+	List  []Expr // all *KeyValueExprs
 	End
 	ForceMultiLine bool // force multiline form when printing
 }
@@ -295,7 +294,6 @@ type ListExpr struct {
 	Comments
 	Start Position
 	List  []Expr
-	Comma Position // position of trailing comma, if any
 	End
 	ForceMultiLine bool // force multiline form when printing
 }
@@ -309,7 +307,6 @@ type SetExpr struct {
 	Comments
 	Start Position
 	List  []Expr
-	Comma Position // position of trailing comma, if any
 	End
 	ForceMultiLine bool // force multiline form when printing
 }
@@ -323,7 +320,6 @@ type TupleExpr struct {
 	Comments
 	Start Position // can be empty if the tuple has no brackets, e.g. `a, b = x`
 	List  []Expr
-	Comma Position // position of trailing comma, if any
 	End
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
