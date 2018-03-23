@@ -382,10 +382,10 @@ func setFormattingMode(inputType, filename string) func() {
 	case "bzl":
 		tables.FormattingMode = tables.DefaultMode
 	case "auto":
-		base := filepath.Base(filename)
-		if base == "BUILD" || base == "BUILD.bazel" || base == "WORKSPACE" {
+		switch base := filepath.Base(filename); base {
+		case "BUILD", "BUILD.bazel", "WORKSPACE":
 			tables.FormattingMode = tables.BuildMode
-		} else if strings.HasSuffix(filename, ".bzl") {
+		default:
 			tables.FormattingMode = tables.DefaultMode
 		}
 	}
