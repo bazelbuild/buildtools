@@ -122,10 +122,10 @@ func TestRules(t *testing.T) {
 
 func TestImplicitName(t *testing.T) {
 	tests := []struct {
-		path string
-		input            string
-		want string
-		description      string
+		path        string
+		input       string
+		want        string
+		description string
 	}{
 		{"foo/BUILD", `rule()`, "foo", `Use an implicit name for one rule.`},
 		{"foo/BUILD", `rule(name="a")

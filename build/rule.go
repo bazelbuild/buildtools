@@ -19,8 +19,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
-	"strings"
 	"path/filepath"
+	"strings"
 )
 
 // A Rule represents a single BUILD rule.
