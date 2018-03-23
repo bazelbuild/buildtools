@@ -1,10 +1,9 @@
 workspace(name = "com_github_bazelbuild_buildtools")
 
-# 0.10.0
-http_archive(
+git_repository(
     name = "io_bazel_rules_go",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.10.0/rules_go-0.10.0.tar.gz",
-    sha256 = "53c8222c6eab05dd49c40184c361493705d4234e60c42c4cd13ab4898da4c6be",
+    commit = "9b3a85e62cc8c00d4b356bfb2035ca0657703187",
+    remote = "https://github.com/bazelbuild/rules_go.git",
 )
 
 load(
@@ -27,4 +26,10 @@ http_archive(
         "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
         "https://github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
     ],
+)
+
+go_repository(
+    name = "skylark_syntax",
+    commit = "f11011f2887ba17f71cf974fc319dbb550a48ed5",
+    importpath = "github.com/google/skylark",
 )
