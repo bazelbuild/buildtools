@@ -497,12 +497,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *ForStmt:
 		p.printf("for ")
-		for i, loopVar := range v.Vars {
-			if i > 0 {
-				p.printf(", ")
-			}
-			p.expr(loopVar, precLow)
-		}
+		p.expr(v.Vars, precLow)
 		p.printf(" in ")
 		p.expr(v.X, precLow)
 		p.printf(":")
@@ -702,12 +697,7 @@ func (p *printer) listFor(v *ListForExpr) {
 	for _, c := range v.For {
 		space()
 		p.printf("for ")
-		for i, name := range c.For.Var {
-			if i > 0 {
-				p.printf(", ")
-			}
-			p.expr(name, precLow)
-		}
+		p.expr(c.For.Var, precLow)
 		p.printf(" in ")
 		p.expr(c.For.Expr, precLow)
 		p.comment = append(p.comment, c.For.Comment().Suffix...)

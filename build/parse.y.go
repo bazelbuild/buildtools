@@ -118,7 +118,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line build/parse.y:895
+//line build/parse.y:901
 
 // Go helper code.
 
@@ -957,7 +957,7 @@ yydefault:
 		{
 			yyVAL.expr = &ForStmt{
 				For:  yyDollar[1].pos,
-				Vars: yyDollar[2].exprs,
+				Vars: yyDollar[2].expr,
 				X:    yyDollar[4].expr,
 				Body: yyDollar[6].exprs,
 			}
@@ -1602,21 +1602,24 @@ yydefault:
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
-	case 109:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:819
-		{
-			yyVAL.exprs = []Expr{yyDollar[1].expr}
-		}
 	case 110:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:823
+		//line build/parse.y:820
 		{
-			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
+			tuple, ok := yyDollar[1].expr.(*TupleExpr)
+			if !ok || tuple.Start.IsValid() {
+				tuple = &TupleExpr{
+					List:           []Expr{yyDollar[1].expr},
+					ForceCompact:   true,
+					ForceMultiLine: false,
+				}
+			}
+			tuple.List = append(tuple.List, yyDollar[3].expr)
+			yyVAL.expr = tuple
 		}
 	case 111:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:829
+		//line build/parse.y:835
 		{
 			yyVAL.string = &StringExpr{
 				Start:       yyDollar[1].pos,
@@ -1628,36 +1631,36 @@ yydefault:
 		}
 	case 112:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:841
+		//line build/parse.y:847
 		{
 			yyVAL.strings = []*StringExpr{yyDollar[1].string}
 		}
 	case 113:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:845
+		//line build/parse.y:851
 		{
 			yyVAL.strings = append(yyDollar[1].strings, yyDollar[2].string)
 		}
 	case 114:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:851
+		//line build/parse.y:857
 		{
 			yyVAL.expr = &LiteralExpr{Start: yyDollar[1].pos, Token: yyDollar[1].tok}
 		}
 	case 115:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:857
+		//line build/parse.y:863
 		{
 			yyVAL.forc = &ForClause{
 				For:  yyDollar[1].pos,
-				Var:  yyDollar[2].exprs,
+				Var:  yyDollar[2].expr,
 				In:   yyDollar[3].pos,
 				Expr: yyDollar[4].expr,
 			}
 		}
 	case 116:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:867
+		//line build/parse.y:873
 		{
 			yyVAL.forifs = &ForClauseWithIfClausesOpt{
 				For: yyDollar[1].forc,
@@ -1666,25 +1669,25 @@ yydefault:
 		}
 	case 117:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:876
+		//line build/parse.y:882
 		{
 			yyVAL.forsifs = []*ForClauseWithIfClausesOpt{yyDollar[1].forifs}
 		}
 	case 118:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:879
+		//line build/parse.y:885
 		{
 			yyVAL.forsifs = append(yyDollar[1].forsifs, yyDollar[2].forifs)
 		}
 	case 119:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:884
+		//line build/parse.y:890
 		{
 			yyVAL.ifs = nil
 		}
 	case 120:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:888
+		//line build/parse.y:894
 		{
 			yyVAL.ifs = append(yyDollar[1].ifs, &IfClause{
 				If:   yyDollar[2].pos,

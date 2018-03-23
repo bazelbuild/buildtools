@@ -113,7 +113,7 @@ package build
 %type <exprs>		tests
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
-%type	<exprs>		loop_vars
+%type	<expr>		loop_vars
 %type	<forc>		for_clause
 %type	<forifs>	for_clause_with_if_clauses_opt
 %type	<forsifs>	for_clauses_with_if_clauses_opt
@@ -816,12 +816,18 @@ keyvalues:
 
 loop_vars:
 	primary_expr
-	{
-		$$ = []Expr{$1}
-	}
 |	loop_vars ',' primary_expr
 	{
-		$$ = append($1, $3)
+		tuple, ok := $1.(*TupleExpr)
+		if !ok || tuple.Start.IsValid() {
+			tuple = &TupleExpr{
+				List: []Expr{$1},
+				ForceCompact: true,
+				ForceMultiLine: false,
+			}
+		}
+		tuple.List = append(tuple.List, $3)
+		$$ = tuple
 	}
 
 string:

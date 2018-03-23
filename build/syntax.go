@@ -223,7 +223,7 @@ func (x *ListForExpr) Span() (start, end Position) {
 type ForClause struct {
 	Comments
 	For  Position
-	Var  []Expr
+	Var  Expr
 	In   Position
 	Expr Expr
 }
@@ -496,7 +496,7 @@ func (x *ReturnStmt) Span() (start, end Position) {
 type ForStmt struct {
 	Comments
 	For  Position // position of for
-	Vars []Expr
+	Vars Expr
 	X    Expr
 	Body []Expr
 }

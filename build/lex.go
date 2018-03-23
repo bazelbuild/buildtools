@@ -743,9 +743,7 @@ func (in *input) order(v Expr) {
 			in.order(c)
 		}
 	case *ForClause:
-		for _, name := range v.Var {
-			in.order(name)
-		}
+		in.order(v.Var)
 		in.order(v.Expr)
 	case *IfClause:
 		in.order(v.Cond)
@@ -761,7 +759,9 @@ func (in *input) order(v Expr) {
 		for _, x := range v.List {
 			in.order(x)
 		}
-		in.order(&v.End)
+		if v.Start.IsValid() {
+			in.order(&v.End)
+		}
 	case *UnaryExpr:
 		in.order(v.X)
 	case *BinaryExpr:
@@ -799,9 +799,7 @@ func (in *input) order(v Expr) {
 			in.order(x)
 		}
 	case *ForStmt:
-		for _, x := range v.Vars {
-			in.order(x)
-		}
+		in.order(v.Vars)
 		in.order(v.X)
 		for _, x := range v.Body {
 			in.order(x)
@@ -846,13 +844,7 @@ func (in *input) assignComments() {
 
 		// Do not assign suffix comments to file or to block statements
 		switch x.(type) {
-		case *File:
-			continue
-		case *DefStmt:
-			continue
-		case *IfStmt:
-			continue
-		case *ForStmt:
+		case *File, *DefStmt, *IfStmt, *ForStmt:
 			continue
 		}
 
