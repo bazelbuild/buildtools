@@ -35,7 +35,8 @@ func exists(name string) bool {
 	return err == nil
 }
 
-func testIdempotence(t *testing.T, file string) {
+// setFlags sets flags based on the test file name (except the --type flag)
+func setFlags(file string) func() {
 	if strings.Contains(file, ".stripslashes.") {
 		tables.StripLabelLeadingSlashes = true
 	}
@@ -43,9 +44,20 @@ func testIdempotence(t *testing.T, file string) {
 	if strings.Contains(file, "/050.") {
 		tables.ShortenAbsoluteLabelsToRelative = true
 	}
+	return func() {
+		tables.StripLabelLeadingSlashes = false
+		tables.ShortenAbsoluteLabelsToRelative = false
+	}
+}
+
+func testIdempotence(t *testing.T, file string) {
+	defer setFlags(file)()
 	testPrint(t, file, file, false)
-	tables.StripLabelLeadingSlashes = false
-	tables.ShortenAbsoluteLabelsToRelative = false
+}
+
+func testFormat(t *testing.T, input, output string) {
+	defer setFlags(output)()
+	testPrint(t, input, output, true)
 }
 
 // Test that reading and then writing the golden files
@@ -53,19 +65,20 @@ func testIdempotence(t *testing.T, file string) {
 func TestPrintGolden(t *testing.T) {
 	outs, chdir := findTests(t, ".golden")
 	defer chdir()
+
 	// Run the tests with --type=build
 	tables.FormattingMode = tables.BuildMode
-
 	for _, out := range outs {
+		if strings.HasSuffix(out, ".bzl.golden") {
+			continue
+		}
 		testIdempotence(t, out)
 	}
 
 	// Run the same tests with --type=bzl
 	tables.FormattingMode = tables.DefaultMode
 	for _, out := range outs {
-		prefix := out[:len(out)-len(".golden")]
-		if exists(prefix + ".formatbzl.golden") {
-			// There's a special golden file counterpart for this test for .bzl formatting, skip this one
+		if strings.HasSuffix(out, ".build.golden") {
 			continue
 		}
 		testIdempotence(t, out)
@@ -77,35 +90,20 @@ func TestPrintGolden(t *testing.T) {
 func TestPrintRewrite(t *testing.T) {
 	ins, chdir := findTests(t, ".in")
 	defer chdir()
-	// The tests by default use --type=build, the same .golden file is used for --type=bzl unless there's a special .formatbzl.golden file
-	tables.FormattingMode = tables.BuildMode
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
-		out := prefix + ".golden"
+		outBzl := prefix + ".golden"
+		outBuild := prefix + ".golden"
 
-		// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
-		if strings.Contains(out, "/050.") {
-			tables.ShortenAbsoluteLabelsToRelative = true
+		if !exists(outBzl) {
+			outBzl = prefix + ".bzl.golden"
+			outBuild = prefix + ".build.golden"
 		}
 
-		testPrint(t, in, out, true)
-		strippedOut := prefix + ".stripslashes.golden"
-		if exists(strippedOut) {
-			tables.StripLabelLeadingSlashes = true
-			testPrint(t, in, strippedOut, true)
-			tables.StripLabelLeadingSlashes = false
-		}
-
-		bzl := prefix + ".formatbzl.golden"
 		tables.FormattingMode = tables.DefaultMode
-		if exists(bzl) {
-			testPrint(t, in, bzl, true)
-		} else {
-			testPrint(t, in, out, true)
-		}
+		testFormat(t, in, outBzl)
 		tables.FormattingMode = tables.BuildMode
-
-		tables.ShortenAbsoluteLabelsToRelative = false
+		testFormat(t, in, outBuild)
 	}
 }
 
