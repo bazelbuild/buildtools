@@ -1,3 +1,5 @@
+set -e
+
 INPUT="def f(): pass"  # formatted differently in build and bzl modes
 BUILD_OUTPUT="def f(): pass"
 BZL_OUTPUT="def f():\n  pass"
