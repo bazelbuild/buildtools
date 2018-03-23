@@ -199,9 +199,9 @@ func isCall(x Expr, name string) bool {
 // isCodeBlock checks if the statement is a code block (def, if, for, etc.)
 func isCodeBlock(x Expr) bool {
 	switch x.(type) {
-	case *FuncDef:
+	case *DefStmt:
 		return true
-	case *ForLoop:
+	case *ForStmt:
 		return true
 	case *IfStmt:
 		return true
@@ -394,14 +394,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *LambdaExpr:
 		addParen(precColon)
 		p.printf("lambda ")
-		for i, name := range v.Var {
+		for i, param := range v.Params {
 			if i > 0 {
 				p.printf(", ")
 			}
-			p.expr(name, precLow)
+			p.expr(param, precLow)
 		}
 		p.printf(": ")
-		p.expr(v.Expr, precColon)
+		p.expr(v.Body[0], precLow) // lambdas should have exactly one statement
 
 	case *BinaryExpr:
 		// Precedence: use the precedence of the operator.
@@ -485,30 +485,25 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.expr(v.Result, precSuffix)
 		}
 
-	case *FuncDef:
+	case *DefStmt:
 		p.printf("def ")
 		p.printf(v.Name)
-		p.seq("()", v.Args, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", v.Params, nil, modeCall, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
 		p.margin += nestedIndentation
 		p.newline()
-		p.statements(v.Body.Statements)
+		p.statements(v.Body)
 		p.margin -= nestedIndentation
 
-	case *ForLoop:
+	case *ForStmt:
 		p.printf("for ")
-		for i, loopVar := range v.LoopVars {
-			if i > 0 {
-				p.printf(", ")
-			}
-			p.expr(loopVar, precLow)
-		}
+		p.expr(v.Vars, precLow)
 		p.printf(" in ")
-		p.expr(v.Iterable, precLow)
+		p.expr(v.X, precLow)
 		p.printf(":")
 		p.margin += nestedIndentation
 		p.newline()
-		p.statements(v.Body.Statements)
+		p.statements(v.Body)
 		p.margin -= nestedIndentation
 
 	case *IfStmt:
@@ -593,7 +588,7 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 			forceMultiLine = true
 		}
 	}
-	if len(end.Before) > 0 {
+	if end != nil && len(end.Before) > 0 {
 		forceMultiLine = true
 	}
 
@@ -646,9 +641,11 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 			}
 		}
 		// Final comments.
-		for _, com := range end.Before {
-			p.newline()
-			p.printf("%s", strings.TrimSpace(com.Token))
+		if end != nil {
+			for _, com := range end.Before {
+				p.newline()
+				p.printf("%s", strings.TrimSpace(com.Token))
+			}
 		}
 		p.margin -= listIndentation
 		p.newline()
@@ -700,12 +697,7 @@ func (p *printer) listFor(v *ListForExpr) {
 	for _, c := range v.For {
 		space()
 		p.printf("for ")
-		for i, name := range c.For.Var {
-			if i > 0 {
-				p.printf(", ")
-			}
-			p.expr(name, precLow)
-		}
+		p.expr(c.For.Var, precLow)
 		p.printf(" in ")
 		p.expr(c.For.Expr, precLow)
 		p.comment = append(p.comment, c.For.Comment().Suffix...)

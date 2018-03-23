@@ -89,10 +89,12 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 		walk1(&v.X, stack, f)
 		walk1(&v.Y, stack, f)
 	case *LambdaExpr:
-		for i := range v.Var {
-			walk1(&v.Var[i], stack, f)
+		for i := range v.Params {
+			walk1(&v.Params[i], stack, f)
 		}
-		walk1(&v.Expr, stack, f)
+		for i := range v.Body {
+			walk1(&v.Body[i], stack, f)
+		}
 	case *CallExpr:
 		walk1(&v.X, stack, f)
 		for i := range v.List {
@@ -117,9 +119,7 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	case *ListForExpr:
 		walk1(&v.X, stack, f)
 		for _, c := range v.For {
-			for j := range c.For.Var {
-				walk1(&c.For.Var[j], stack, f)
-			}
+			walk1(&c.For.Var, stack, f)
 			walk1(&c.For.Expr, stack, f)
 			for _, i := range c.Ifs {
 				walk1(&i.Cond, stack, f)

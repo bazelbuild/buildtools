@@ -223,7 +223,7 @@ func (x *ListForExpr) Span() (start, end Position) {
 type ForClause struct {
 	Comments
 	For  Position
-	Var  []Expr
+	Var  Expr
 	In   Position
 	Expr Expr
 }
@@ -408,18 +408,27 @@ func (x *IndexExpr) Span() (start, end Position) {
 	return start, x.End
 }
 
+// A Function represents the common parts of LambdaExpr and DefStmt
+type Function struct {
+	Comments
+	StartPos Position // position of DEF or LAMBDA token
+	Params   []Expr
+	Body     []Expr
+}
+
+func (x *Function) Span() (start, end Position) {
+	_, end = x.Body[len(x.Body)-1].Span()
+	return x.StartPos, end
+}
+
 // A LambdaExpr represents a lambda expression: lambda Var: Expr.
 type LambdaExpr struct {
 	Comments
-	Lambda Position
-	Var    []Expr
-	Colon  Position
-	Expr   Expr
+	Function
 }
 
 func (x *LambdaExpr) Span() (start, end Position) {
-	_, end = x.Expr.Span()
-	return x.Lambda, end
+	return x.Function.Span()
 }
 
 // ConditionalExpr represents the conditional: X if TEST else ELSE.
@@ -438,17 +447,6 @@ func (x *ConditionalExpr) Span() (start, end Position) {
 	start, _ = x.Then.Span()
 	_, end = x.Else.Span()
 	return start, end
-}
-
-// A CodeBlock represents an indented code block.
-type CodeBlock struct {
-	Statements []Expr
-	Start      Position
-	End
-}
-
-func (x *CodeBlock) Span() (start, end Position) {
-	return x.Start, x.End.Pos
 }
 
 // A LoadStmt loads another module and binds names from it:
@@ -472,21 +470,17 @@ func (x *LoadStmt) Span() (start, end Position) {
 	return x.Load, x.Rparen
 }
 
-// A FuncDef represents a function definition expression: def foo(List):.
-type FuncDef struct {
+// A DefStmt represents a function definition expression: def foo(List):.
+type DefStmt struct {
 	Comments
-	Start          Position // position of def
+	Function
 	Name           string
-	ListStart      Position // position of (
-	Args           []Expr
-	Body           CodeBlock
-	End                 // position of the end
-	ForceCompact   bool // force compact (non-multiline) form when printing
-	ForceMultiLine bool // force multiline form when printing
+	ForceCompact   bool // force compact (non-multiline) form when printing the arguments
+	ForceMultiLine bool // force multiline form when printing the arguments
 }
 
-func (x *FuncDef) Span() (start, end Position) {
-	return x.Start, x.End.Pos
+func (x *DefStmt) Span() (start, end Position) {
+	return x.Function.Span()
 }
 
 // A ReturnStmt represents a return statement: return f(x).
@@ -504,18 +498,19 @@ func (x *ReturnStmt) Span() (start, end Position) {
 	return x.Return, end
 }
 
-// A ForLoop represents a for loop block: for x in range(10):.
-type ForLoop struct {
+// A ForStmt represents a for loop block: for x in range(10):.
+type ForStmt struct {
 	Comments
-	Start    Position // position of for
-	LoopVars []Expr
-	Iterable Expr
-	Body     CodeBlock
-	End      // position of the end
+	Function
+	For  Position // position of for
+	Vars Expr
+	X    Expr
+	Body []Expr
 }
 
-func (x *ForLoop) Span() (start, end Position) {
-	return x.Start, x.End.Pos
+func (x *ForStmt) Span() (start, end Position) {
+	_, end = x.Body[len(x.Body)-1].Span()
+	return x.For, end
 }
 
 // An IfStmt represents an if-else block: if x: ... else: ... .

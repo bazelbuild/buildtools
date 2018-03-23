@@ -743,9 +743,7 @@ func (in *input) order(v Expr) {
 			in.order(c)
 		}
 	case *ForClause:
-		for _, name := range v.Var {
-			in.order(name)
-		}
+		in.order(v.Var)
 		in.order(v.Expr)
 	case *IfClause:
 		in.order(v.Cond)
@@ -761,7 +759,9 @@ func (in *input) order(v Expr) {
 		for _, x := range v.List {
 			in.order(x)
 		}
-		in.order(&v.End)
+		if v.Start.IsValid() {
+			in.order(&v.End)
+		}
 	case *UnaryExpr:
 		in.order(v.X)
 	case *BinaryExpr:
@@ -783,27 +783,27 @@ func (in *input) order(v Expr) {
 		in.order(v.X)
 		in.order(v.Y)
 	case *LambdaExpr:
-		for _, name := range v.Var {
-			in.order(name)
+		for _, param := range v.Params {
+			in.order(param)
 		}
-		in.order(v.Expr)
+		for _, expr := range v.Body {
+			in.order(expr)
+		}
 	case *ReturnStmt:
 		if v.Result != nil {
 			in.order(v.Result)
 		}
-	case *FuncDef:
-		for _, x := range v.Args {
+	case *DefStmt:
+		for _, x := range v.Params {
 			in.order(x)
 		}
-		for _, x := range v.Body.Statements {
+		for _, x := range v.Body {
 			in.order(x)
 		}
-	case *ForLoop:
-		for _, x := range v.LoopVars {
-			in.order(x)
-		}
-		in.order(v.Iterable)
-		for _, x := range v.Body.Statements {
+	case *ForStmt:
+		in.order(v.Vars)
+		in.order(v.X)
+		for _, x := range v.Body {
 			in.order(x)
 		}
 	case *IfStmt:
@@ -844,9 +844,9 @@ func (in *input) assignComments() {
 	for i := len(in.post) - 1; i >= 0; i-- {
 		x := in.post[i]
 
-		// Do not assign suffix comments to file
+		// Do not assign suffix comments to file or to block statements
 		switch x.(type) {
-		case *File:
+		case *File, *DefStmt, *IfStmt, *ForStmt:
 			continue
 		}
 

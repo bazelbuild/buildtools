@@ -31,7 +31,6 @@ package build
 	forsifs   []*ForClauseWithIfClausesOpt
 	string    *StringExpr
 	strings   []*StringExpr
-	block     CodeBlock
 	ifstmt    *IfStmt
 
 	// supporting information
@@ -114,7 +113,7 @@ package build
 %type <exprs>		tests
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
-%type	<exprs>		loop_vars
+%type	<expr>		loop_vars
 %type	<forc>		for_clause
 %type	<forifs>	for_clause_with_if_clauses_opt
 %type	<forsifs>	for_clauses_with_if_clauses_opt
@@ -136,7 +135,7 @@ package build
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
-%type	<block>		suite
+%type	<exprs>		suite
 %type	<exprs>		comments
 
 // Operator precedence.
@@ -204,22 +203,11 @@ suite:
 			}
 			statements = append($2, $4...)
 		}
-		$$ = CodeBlock{
-			Start: $3,
-			Statements: statements,
-			End: End{Pos: $5},
-		}
+		$$ = statements
 	}
 |	simple_stmt
 	{
-		// simple_stmt is never empty
-		start, _ := $1[0].Span()
-		_, end := $1[len($1)-1].Span()
-		$$ = CodeBlock{
-			Start: start,
-			Statements: $1,
-			End: End{Pos: end},
-		}
+		$$ = $1
 	}
 
 comments:
@@ -313,25 +301,24 @@ stmt:
 block_stmt:
 	_DEF _IDENT '(' parameters_opt ')' ':' suite
 	{
-		$$ = &FuncDef{
-			Start: $1,
+		$$ = &DefStmt{
+			Function: Function{
+				StartPos: $1,
+				Params: $4,
+				Body: $7,
+			},
 			Name: $<tok>2,
-			ListStart: $3,
-			Args: $4,
-			Body: $7,
-			End: $7.End,
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
-		$$ = &ForLoop{
-			Start: $1,
-			LoopVars: $2,
-			Iterable: $4,
+		$$ = &ForStmt{
+			For: $1,
+			Vars: $2,
+			X: $4,
 			Body: $6,
-			End: $6.End,
 		}
 	}
 |	if_else_block
@@ -345,7 +332,7 @@ else_block:
 	{
 		$$ = &IfStmt{
 			ElsePos: $1,
-			False: $3.Statements,
+			False: $3,
 		}
 	}
 
@@ -357,7 +344,7 @@ elif_chain:
 		inner := $5
 		inner.If = $1
 		inner.Cond = $2
-		inner.True = $4.Statements
+		inner.True = $4
 		$$ = &IfStmt{
 			ElsePos: $1,
 			False: []Expr{inner},
@@ -371,7 +358,7 @@ if_block:
 		$$ = &IfStmt{
 			If: $1,
 			Cond: $2,
-			True: $4.Statements,
+			True: $4,
 		}
 	}
 
@@ -444,7 +431,7 @@ primary_expr:
 |	_LOAD '(' arguments_opt ')'
 	{
 		$$ = &CallExpr{
-                        X: &LiteralExpr{Start: $1, Token: "load"},
+			X: &LiteralExpr{Start: $1, Token: "load"},
 			ListStart: $2,
 			List: $3,
 			End: End{Pos: $4},
@@ -682,7 +669,7 @@ expr:
 |	expr ',' test
 	{
 		tuple, ok := $1.(*TupleExpr)
-		if !ok || !tuple.Start.IsValid() {
+		if !ok || tuple.Start.IsValid() {
 			tuple = &TupleExpr{
 				List: []Expr{$1},
 				ForceCompact: true,
@@ -723,10 +710,11 @@ test:
 |	_LAMBDA exprs_opt ':' expr  // TODO: remove, not supported
 	{
 		$$ = &LambdaExpr{
-			Lambda: $1,
-			Var: $2,
-			Colon: $3,
-			Expr: $4,
+			Function: Function{
+				StartPos: $1,
+				Params: $2,
+				Body: []Expr{$4},
+			},
 		}
 	}
 |	_NOT test %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
@@ -831,12 +819,18 @@ keyvalues:
 
 loop_vars:
 	primary_expr
-	{
-		$$ = []Expr{$1}
-	}
 |	loop_vars ',' primary_expr
 	{
-		$$ = append($1, $3)
+		tuple, ok := $1.(*TupleExpr)
+		if !ok || tuple.Start.IsValid() {
+			tuple = &TupleExpr{
+				List: []Expr{$1},
+				ForceCompact: true,
+				ForceMultiLine: false,
+			}
+		}
+		tuple.List = append(tuple.List, $3)
+		$$ = tuple
 	}
 
 string:
