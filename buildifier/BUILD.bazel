@@ -11,3 +11,12 @@ go_binary(
         "//tables:go_default_library",
     ],
 )
+
+# Test that the buildifier binary works
+sh_test(
+    name = "buildifier_integration_test",
+    size = "small",
+    srcs = ["integration_test.sh"],
+    data = [":buildifier"],
+    args = ["$(location :buildifier)"],
+)
