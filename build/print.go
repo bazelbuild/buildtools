@@ -394,14 +394,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *LambdaExpr:
 		addParen(precColon)
 		p.printf("lambda ")
-		for i, name := range v.Var {
+		for i, param := range v.Params {
 			if i > 0 {
 				p.printf(", ")
 			}
-			p.expr(name, precLow)
+			p.expr(param, precLow)
 		}
 		p.printf(": ")
-		p.expr(v.Expr, precColon)
+		p.expr(v.Body[0], precLow) // lambdas should have exactly one statement
 
 	case *BinaryExpr:
 		// Precedence: use the precedence of the operator.

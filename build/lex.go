@@ -783,10 +783,12 @@ func (in *input) order(v Expr) {
 		in.order(v.X)
 		in.order(v.Y)
 	case *LambdaExpr:
-		for _, name := range v.Var {
-			in.order(name)
+		for _, param := range v.Params {
+			in.order(param)
 		}
-		in.order(v.Expr)
+		for _, expr := range v.Body {
+			in.order(expr)
+		}
 	case *ReturnStmt:
 		if v.Result != nil {
 			in.order(v.Result)

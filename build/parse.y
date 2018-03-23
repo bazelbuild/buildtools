@@ -302,10 +302,12 @@ block_stmt:
 	_DEF _IDENT '(' parameters_opt ')' ':' suite
 	{
 		$$ = &DefStmt{
-			StartPos: $1,
+			Function: Function{
+				StartPos: $1,
+				Params: $4,
+				Body: $7,
+			},
 			Name: $<tok>2,
-			Params: $4,
-			Body: $7,
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
@@ -708,10 +710,11 @@ test:
 |	_LAMBDA exprs_opt ':' expr  // TODO: remove, not supported
 	{
 		$$ = &LambdaExpr{
-			Lambda: $1,
-			Var: $2,
-			Colon: $3,
-			Expr: $4,
+			Function: Function{
+				StartPos: $1,
+				Params: $2,
+				Body: []Expr{$4},
+			},
 		}
 	}
 |	_NOT test %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
