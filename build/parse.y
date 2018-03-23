@@ -31,7 +31,6 @@ package build
 	forsifs   []*ForClauseWithIfClausesOpt
 	string    *StringExpr
 	strings   []*StringExpr
-	block     CodeBlock
 	ifstmt    *IfStmt
 
 	// supporting information
@@ -136,7 +135,7 @@ package build
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
 %type	<strings>	strings
-%type	<block>		suite
+%type	<exprs>		suite
 %type	<exprs>		comments
 
 // Operator precedence.
@@ -204,22 +203,11 @@ suite:
 			}
 			statements = append($2, $4...)
 		}
-		$$ = CodeBlock{
-			Start: $3,
-			Statements: statements,
-			End: End{Pos: $5},
-		}
+		$$ = statements
 	}
 |	simple_stmt
 	{
-		// simple_stmt is never empty
-		start, _ := $1[0].Span()
-		_, end := $1[len($1)-1].Span()
-		$$ = CodeBlock{
-			Start: start,
-			Statements: $1,
-			End: End{Pos: end},
-		}
+		$$ = $1
 	}
 
 comments:
@@ -313,25 +301,22 @@ stmt:
 block_stmt:
 	_DEF _IDENT '(' parameters_opt ')' ':' suite
 	{
-		$$ = &FuncDef{
-			Start: $1,
+		$$ = &DefStmt{
+			StartPos: $1,
 			Name: $<tok>2,
-			ListStart: $3,
-			Args: $4,
+			Params: $4,
 			Body: $7,
-			End: $7.End,
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
-		$$ = &ForLoop{
-			Start: $1,
-			LoopVars: $2,
-			Iterable: $4,
+		$$ = &ForStmt{
+			For: $1,
+			Vars: $2,
+			X: $4,
 			Body: $6,
-			End: $6.End,
 		}
 	}
 |	if_else_block
@@ -345,7 +330,7 @@ else_block:
 	{
 		$$ = &IfStmt{
 			ElsePos: $1,
-			False: $3.Statements,
+			False: $3,
 		}
 	}
 
@@ -357,7 +342,7 @@ elif_chain:
 		inner := $5
 		inner.If = $1
 		inner.Cond = $2
-		inner.True = $4.Statements
+		inner.True = $4
 		$$ = &IfStmt{
 			ElsePos: $1,
 			False: []Expr{inner},
@@ -371,7 +356,7 @@ if_block:
 		$$ = &IfStmt{
 			If: $1,
 			Cond: $2,
-			True: $4.Statements,
+			True: $4,
 		}
 	}
 
@@ -444,7 +429,7 @@ primary_expr:
 |	_LOAD '(' arguments_opt ')'
 	{
 		$$ = &CallExpr{
-                        X: &LiteralExpr{Start: $1, Token: "load"},
+			X: &LiteralExpr{Start: $1, Token: "load"},
 			ListStart: $2,
 			List: $3,
 			End: End{Pos: $4},

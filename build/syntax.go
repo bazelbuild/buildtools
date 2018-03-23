@@ -444,17 +444,6 @@ func (x *ConditionalExpr) Span() (start, end Position) {
 	return start, end
 }
 
-// A CodeBlock represents an indented code block.
-type CodeBlock struct {
-	Statements []Expr
-	Start      Position
-	End
-}
-
-func (x *CodeBlock) Span() (start, end Position) {
-	return x.Start, x.End.Pos
-}
-
 // A LoadStmt loads another module and binds names from it:
 // load(Module, "x", y="foo").
 //
@@ -476,21 +465,20 @@ func (x *LoadStmt) Span() (start, end Position) {
 	return x.Load, x.Rparen
 }
 
-// A FuncDef represents a function definition expression: def foo(List):.
-type FuncDef struct {
+// A DefStmt represents a function definition expression: def foo(List):.
+type DefStmt struct {
 	Comments
-	Start          Position // position of def
+	StartPos       Position // position of def
 	Name           string
-	ListStart      Position // position of (
-	Args           []Expr
-	Body           CodeBlock
-	End                 // position of the end
+	Params         []Expr
+	Body           []Expr
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
 }
 
-func (x *FuncDef) Span() (start, end Position) {
-	return x.Start, x.End.Pos
+func (x *DefStmt) Span() (start, end Position) {
+	_, end = x.Body[len(x.Body)-1].Span()
+	return x.StartPos, end
 }
 
 // A ReturnStmt represents a return statement: return f(x).
@@ -508,18 +496,18 @@ func (x *ReturnStmt) Span() (start, end Position) {
 	return x.Return, end
 }
 
-// A ForLoop represents a for loop block: for x in range(10):.
-type ForLoop struct {
+// A ForStmt represents a for loop block: for x in range(10):.
+type ForStmt struct {
 	Comments
-	Start    Position // position of for
-	LoopVars []Expr
-	Iterable Expr
-	Body     CodeBlock
-	End      // position of the end
+	For  Position // position of for
+	Vars []Expr
+	X    Expr
+	Body []Expr
 }
 
-func (x *ForLoop) Span() (start, end Position) {
-	return x.Start, x.End.Pos
+func (x *ForStmt) Span() (start, end Position) {
+	_, end = x.Body[len(x.Body)-1].Span()
+	return x.For, end
 }
 
 // An IfStmt represents an if-else block: if x: ... else: ... .

@@ -791,19 +791,19 @@ func (in *input) order(v Expr) {
 		if v.Result != nil {
 			in.order(v.Result)
 		}
-	case *FuncDef:
-		for _, x := range v.Args {
+	case *DefStmt:
+		for _, x := range v.Params {
 			in.order(x)
 		}
-		for _, x := range v.Body.Statements {
+		for _, x := range v.Body {
 			in.order(x)
 		}
-	case *ForLoop:
-		for _, x := range v.LoopVars {
+	case *ForStmt:
+		for _, x := range v.Vars {
 			in.order(x)
 		}
-		in.order(v.Iterable)
-		for _, x := range v.Body.Statements {
+		in.order(v.X)
+		for _, x := range v.Body {
 			in.order(x)
 		}
 	case *IfStmt:
@@ -844,9 +844,15 @@ func (in *input) assignComments() {
 	for i := len(in.post) - 1; i >= 0; i-- {
 		x := in.post[i]
 
-		// Do not assign suffix comments to file
+		// Do not assign suffix comments to file or to block statements
 		switch x.(type) {
 		case *File:
+			continue
+		case *DefStmt:
+			continue
+		case *IfStmt:
+			continue
+		case *ForStmt:
 			continue
 		}
 
