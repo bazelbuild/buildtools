@@ -16,9 +16,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/buildifier2/convertast"
 	"github.com/google/skylark/syntax"
 )
 
@@ -27,16 +27,14 @@ func main() {
 
 	switch len(flag.Args()) {
 	case 0:
-		fmt.Println("Argument missing")
-		os.Exit(1)
+		log.Fatal("Argument missing")
 	case 1:
 		filename := flag.Args()[0]
 		ast, err := syntax.Parse(filename, nil, syntax.RetainComments)
 		if err != nil {
-			fmt.Printf("%+v", err)
-			os.Exit(1)
+			log.Fatalf("%+v\n", err)
 		}
-		newAst := convFile(ast)
+		newAst := convertast.ConvFile(ast)
 		fmt.Print(build.FormatString(newAst))
 
 	default:

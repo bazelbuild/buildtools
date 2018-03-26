@@ -1,16 +1,23 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_binary(
     name = "buildifier2",
-    srcs = [
-        "buildifier2.go",
-        "convert_ast.go",
-    ],
+    srcs = ["buildifier2.go"],
     visibility = ["//buildifier:__pkg__"],  # experimental
     deps = [
+        ":convertast",
         "//build:go_default_library",
         "//differ:go_default_library",
         "//tables:go_default_library",
+        "@skylark_syntax//syntax:go_default_library",
+    ],
+)
+
+go_library(
+    name = "convertast",
+    srcs = ["convert_ast.go"],
+    deps = [
+        "//build:go_default_library",
         "@skylark_syntax//syntax:go_default_library",
     ],
 )
