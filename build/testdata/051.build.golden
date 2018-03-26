@@ -9,6 +9,16 @@ bbb
 
 ccc
 
+ddd
+
+# multiline
+# comment
+eee
+
+fff
+
+ggg
+
 def function(
     # This shouldn't mess with indentation counting
     x, y = z
@@ -59,6 +69,15 @@ else:
   else:
 
    (a,b)=(b,a)
+
+if foo:
+  bar
+
+if foo:
+  bar
+
+#comment
+bar
 
 bar
 

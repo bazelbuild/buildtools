@@ -66,6 +66,6 @@ baz([
 
 True, False = False, True
 
-a, b = c
+(a, b), c = d
 
-c = d, e
+c = d, (e, f)

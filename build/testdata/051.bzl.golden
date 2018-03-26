@@ -4,10 +4,17 @@ foo(
 )
 
 aaa
-
 bbb
-
 ccc
+
+ddd
+
+# multiline
+# comment
+eee
+
+fff
+ggg
 
 def function(
     # This shouldn't mess with indentation counting
@@ -39,10 +46,8 @@ def function(
 
     if x:
       print(x)
-
     elif y:
       print(y)
-
     else:
       print(z)
       print(y)
@@ -69,16 +74,22 @@ if foo in bar:
   for f in foo:
     # loop
     f()
-
 elif True:
   a = b
 
 elif False:
   #assign
   b = a
-
 else:
   (a, b) = (b, a)
+
+if foo:
+  bar
+if foo:
+  bar
+  #comment
+
+bar
 
 bar
 

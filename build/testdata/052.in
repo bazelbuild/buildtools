@@ -1,10 +1,15 @@
 # Binary operators
 
 foo=bar+baz
+
 foo=bar-baz
+
 foo=bar*baz
+
 foo=bar/baz
+
 foo=bar//baz
+
 foo=bar%baz
 
 # If-else operator precedence
@@ -24,8 +29,13 @@ a = 1 + 2 if 3 + 4 else 5 + 6
 # Augmented assignments
 
 foo+=bar
+
 foo-=bar
+
 foo*=bar
+
 foo/=bar
+
 foo//=bar
+
 foo%=bar

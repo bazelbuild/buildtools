@@ -13,9 +13,6 @@ def foo(**kwargs):
   return bar(**kwargs)
 
 bar(a, b, c, *args, **kwargs)
-
 bar(*args, **kwargs)
-
 bar(*args)
-
 bar(**kwargs)
