@@ -519,9 +519,9 @@ type IfStmt struct {
 	Comments
 	If      Position // position of if
 	Cond    Expr
-	True    []Expr // position of else or elif
-	ElsePos Position
-	False   []Expr // optional
+	True    []Expr
+	ElsePos Position // position of else or elif
+	False   []Expr   // optional
 }
 
 func (x *IfStmt) Span() (start, end Position) {

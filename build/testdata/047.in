@@ -23,20 +23,28 @@ dict_comprehension = {
 # Comprehensions with tuple unpacking
 
 [a + b + c for a, b in c]
+
 [a + b + c for (a, b) in c]
+
 [a + b + c for a, (b, c) in d]
+
 [a + b + c for (a, b), c in d]
+
 [a + b + c for (a, (b, c)) in d]
+
 [a + b + c for (
     a,
     (b, c)
 ) in d]
 
 [a for (a) in b]
+
 [a for (a,) in b]
+
 [a for (
     a
 ) in b]
+
 [a for (
     a,
 ) in b]
