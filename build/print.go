@@ -467,7 +467,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		}
 		p.seq("{}", list, &v.End, modeDict, false, v.ForceMultiLine)
 
-	case *ListForExpr:
+	case *Comprehension:
 		p.listFor(v)
 
 	case *ConditionalExpr:
@@ -667,7 +667,7 @@ func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCo
 //	    if c
 //	]
 //
-func (p *printer) listFor(v *ListForExpr) {
+func (p *printer) listFor(v *Comprehension) {
 	multiLine := v.ForceMultiLine || len(v.End.Before) > 0
 
 	// space breaks the line in multiline mode
@@ -680,36 +680,33 @@ func (p *printer) listFor(v *ListForExpr) {
 		}
 	}
 
-	if v.Brack != "" {
-		p.depth++
-		p.printf("%s", v.Brack[:1])
+	open, close := "[", "]"
+	if v.Curly {
+		open, close = "{", "}"
 	}
+	p.depth++
+	p.printf("%s", open)
 
 	if multiLine {
-		if v.Brack != "" {
-			p.margin += listIndentation
-		}
+		p.margin += listIndentation
 		p.newline()
 	}
 
-	p.expr(v.X, precLow)
+	p.expr(v.Body, precLow)
 
-	for _, c := range v.For {
+	for _, c := range v.Clauses {
 		space()
-		p.printf("for ")
-		p.expr(c.For.Var, precLow)
-		p.printf(" in ")
-		p.expr(c.For.Expr, precLow)
-		p.comment = append(p.comment, c.For.Comment().Suffix...)
-
-		for _, i := range c.Ifs {
-			space()
+		switch clause := c.(type) {
+		case *ForClause:
+			p.printf("for ")
+			p.expr(clause.Vars, precLow)
+			p.printf(" in ")
+			p.expr(clause.X, precLow)
+		case *IfClause:
 			p.printf("if ")
-			p.expr(i.Cond, precLow)
-			p.comment = append(p.comment, i.Comment().Suffix...)
+			p.expr(clause.Cond, precLow)
 		}
 		p.comment = append(p.comment, c.Comment().Suffix...)
-
 	}
 
 	if multiLine {
@@ -717,16 +714,12 @@ func (p *printer) listFor(v *ListForExpr) {
 			p.newline()
 			p.printf("%s", strings.TrimSpace(com.Token))
 		}
-		if v.Brack != "" {
-			p.margin -= listIndentation
-		}
+		p.margin -= listIndentation
 		p.newline()
 	}
 
-	if v.Brack != "" {
-		p.printf("%s", v.Brack[1:])
-		p.depth--
-	}
+	p.printf("%s", close)
+	p.depth--
 }
 
 func (p *printer) isTopLevel() bool {

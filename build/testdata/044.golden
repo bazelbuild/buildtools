@@ -7,11 +7,6 @@ GLOB_resources_legacy_txt2 = [
     for filename_and_some_extra_to_make_this_long in GLOB_resources_legacy_txt
 ]
 
-GLOB_resources_legacy_txt_tuple = (
-    filename_and_some_extra_to_make_this_long
-    for filename_and_some_extra_to_make_this_long in GLOB_resources_legacy_txt
-)
-
 legacy_txt_name_to_filename = {
     filename.split("/")[-1][:-len(".txt")].lower(): filename
     for filename in GLOB_resources_legacy_txt_tuple

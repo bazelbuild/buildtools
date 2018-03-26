@@ -726,9 +726,9 @@ func (in *input) order(v Expr) {
 			in.order(x)
 		}
 		in.order(&v.End)
-	case *ListForExpr:
-		in.order(v.X)
-		for _, c := range v.For {
+	case *Comprehension:
+		in.order(v.Body)
+		for _, c := range v.Clauses {
 			in.order(c)
 		}
 		in.order(&v.End)
@@ -737,14 +737,9 @@ func (in *input) order(v Expr) {
 			in.order(x)
 		}
 		in.order(&v.End)
-	case *ForClauseWithIfClausesOpt:
-		in.order(v.For)
-		for _, c := range v.Ifs {
-			in.order(c)
-		}
 	case *ForClause:
-		in.order(v.Var)
-		in.order(v.Expr)
+		in.order(v.Vars)
+		in.order(v.X)
 	case *IfClause:
 		in.order(v.Cond)
 	case *KeyValueExpr:
