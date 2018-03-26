@@ -25,10 +25,6 @@ package build
 	// partial syntax trees
 	expr      Expr
 	exprs     []Expr
-	forc      *ForClause
-	ifs       []*IfClause
-	forifs    *ForClauseWithIfClausesOpt
-	forsifs   []*ForClauseWithIfClausesOpt
 	string    *StringExpr
 	strings   []*StringExpr
 	ifstmt    *IfStmt
@@ -114,11 +110,10 @@ package build
 %type	<exprs>		exprs
 %type	<exprs>		exprs_opt
 %type	<expr>		loop_vars
-%type	<forc>		for_clause
-%type	<forifs>	for_clause_with_if_clauses_opt
-%type	<forsifs>	for_clauses_with_if_clauses_opt
+%type	<expr>		for_clause
+%type	<exprs>		for_clause_with_if_clauses_opt
+%type	<exprs>		for_clauses_with_if_clauses_opt
 %type	<expr>		ident
-%type	<ifs>		if_clauses_opt
 %type	<exprs>		stmts
 %type	<exprs>		stmt          // a simple_stmt or a for/if/def block
 %type	<expr>		block_stmt    // a single for/if/def statement
@@ -483,23 +478,6 @@ primary_expr:
 			End: $8,
 		}
 	}
-|	primary_expr '(' expr for_clauses_with_if_clauses_opt ')'  // TODO: remove, not supported
-	{
-		$$ = &CallExpr{
-			X: $1,
-			ListStart: $2,
-			List: []Expr{
-				&ListForExpr{
-					Brack: "",
-					Start: $2,
-					X: $3,
-					For: $4,
-					End: End{Pos: $5},
-				},
-			},
-			End: End{Pos: $5},
-		}
-	}
 |	strings %prec ShiftInstead
 	{
 		if len($1) == 1 {
@@ -524,23 +502,11 @@ primary_expr:
 |	'[' test for_clauses_with_if_clauses_opt ']'
 	{
 		exprStart, _ := $2.Span()
-		$$ = &ListForExpr{
-			Brack: "[]",
-			Start: $1,
-			X: $2,
-			For: $3,
-			End: End{Pos: $4},
-			ForceMultiLine: $1.Line != exprStart.Line,
-		}
-	}
-|	'(' test for_clauses_with_if_clauses_opt ')'
-	{
-		exprStart, _ := $2.Span()
-		$$ = &ListForExpr{
-			Brack: "()",
-			Start: $1,
-			X: $2,
-			For: $3,
+		$$ = &Comprehension{
+			Curly: false,
+			Lbrack: $1,
+			Body: $2,
+			Clauses: $3,
 			End: End{Pos: $4},
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
@@ -548,11 +514,11 @@ primary_expr:
 |	'{' keyvalue for_clauses_with_if_clauses_opt '}'
 	{
 		exprStart, _ := $2.Span()
-		$$ = &ListForExpr{
-			Brack: "{}",
-			Start: $1,
-			X: $2,
-			For: $3,
+		$$ = &Comprehension{
+			Curly: true,
+			Lbrack: $1,
+			Body: $2,
+			Clauses: $3,
 			End: End{Pos: $4},
 			ForceMultiLine: $1.Line != exprStart.Line,
 		}
@@ -866,39 +832,30 @@ for_clause:
 	{
 		$$ = &ForClause{
 			For: $1,
-			Var: $2,
+			Vars: $2,
 			In: $3,
-			Expr: $4,
+			X: $4,
 		}
 	}
 
 for_clause_with_if_clauses_opt:
-	for_clause if_clauses_opt {
-		$$ = &ForClauseWithIfClausesOpt{
-			For: $1,
-			Ifs: $2,
-		}
+	for_clause {
+		$$ = []Expr{$1}
+	}
+|	for_clause_with_if_clauses_opt _IF test {
+		$$ = append($1, &IfClause{
+			If: $2,
+			Cond: $3,
+		})
 	}
 
 for_clauses_with_if_clauses_opt:
 	for_clause_with_if_clauses_opt
 	{
-		$$ = []*ForClauseWithIfClausesOpt{$1}
+		$$ = $1
 	}
 |	for_clauses_with_if_clauses_opt for_clause_with_if_clauses_opt {
-		$$ = append($1, $2)
-	}
-
-if_clauses_opt:
-	{
-		$$ = nil
-	}
-|	if_clauses_opt _IF test
-	{
-		$$ = append($1, &IfClause{
-			If: $2,
-			Cond: $3,
-		})
+		$$ = append($1, $2...)
 	}
 
 %%

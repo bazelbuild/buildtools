@@ -116,15 +116,16 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 		for i := range v.List {
 			walk1(&v.List[i], stack, f)
 		}
-	case *ListForExpr:
-		walk1(&v.X, stack, f)
-		for _, c := range v.For {
-			walk1(&c.For.Var, stack, f)
-			walk1(&c.For.Expr, stack, f)
-			for _, i := range c.Ifs {
-				walk1(&i.Cond, stack, f)
-			}
+	case *Comprehension:
+		walk1(&v.Body, stack, f)
+		for _, c := range v.Clauses {
+			walk1(&c, stack, f)
 		}
+	case *IfClause:
+		walk1(&v.Cond, stack, f)
+	case *ForClause:
+		walk1(&v.Vars, stack, f)
+		walk1(&v.X, stack, f)
 	case *ConditionalExpr:
 		walk1(&v.Then, stack, f)
 		walk1(&v.Test, stack, f)

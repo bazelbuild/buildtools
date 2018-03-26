@@ -204,32 +204,32 @@ func (x *DotExpr) Span() (start, end Position) {
 	return start, x.NamePos.add(x.Name)
 }
 
-// A ListForExpr represents a list comprehension expression: [X for ... if ...].
-type ListForExpr struct {
+// A Comprehension represents a list comprehension expression: [X for ... if ...].
+type Comprehension struct {
 	Comments
+	Curly          bool // curly braces (as opposed to square brackets)
+	Lbrack         Position
+	Body           Expr
+	Clauses        []Expr // = *ForClause | *IfClause
 	ForceMultiLine bool   // split expression across multiple lines
-	Brack          string // "", "()", or "[]"
-	Start          Position
-	X              Expr
-	For            []*ForClauseWithIfClausesOpt
 	End
 }
 
-func (x *ListForExpr) Span() (start, end Position) {
-	return x.Start, x.End.Pos.add("]")
+func (x *Comprehension) Span() (start, end Position) {
+	return x.Lbrack, x.End.Pos.add("]")
 }
 
 // A ForClause represents a for clause in a list comprehension: for Var in Expr.
 type ForClause struct {
 	Comments
 	For  Position
-	Var  Expr
+	Vars Expr
 	In   Position
-	Expr Expr
+	X    Expr
 }
 
 func (x *ForClause) Span() (start, end Position) {
-	_, end = x.Expr.Span()
+	_, end = x.X.Span()
 	return x.For, end
 }
 
@@ -243,23 +243,6 @@ type IfClause struct {
 func (x *IfClause) Span() (start, end Position) {
 	_, end = x.Cond.Span()
 	return x.If, end
-}
-
-// A ForClauseWithIfClausesOpt represents a for clause in a list comprehension followed by optional
-// if expressions: for ... in ... [if ... if ...]
-type ForClauseWithIfClausesOpt struct {
-	Comments
-	For *ForClause
-	Ifs []*IfClause
-}
-
-func (x *ForClauseWithIfClausesOpt) Span() (start, end Position) {
-	start, end = x.For.Span()
-	if len(x.Ifs) > 0 {
-		_, end = x.Ifs[len(x.Ifs)-1].Span()
-	}
-
-	return start, end
 }
 
 // A KeyValueExpr represents a dictionary entry: Key: Value.
