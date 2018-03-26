@@ -105,12 +105,12 @@ func (p *printer) newline() {
 //
 // the last statement (`pass`) doesn't end with a newline, each block ends with a lazy newline
 // which actually gets printed only once when right before the next statement (`foo()`) is printed.
-func(p *printer) softNewline() {
+func (p *printer) softNewline() {
 	p.needsNewLine = true
 }
 
 // newlineIfNeeded calls newline if softNewline() has previously been called
-func(p *printer) newlineIfNeeded() {
+func (p *printer) newlineIfNeeded() {
 	if p.needsNewLine == true {
 		p.newline()
 	}
@@ -188,7 +188,7 @@ func (p *printer) statements(stmts []Expr) {
 
 		// Print an empty line break after the statement unless it's the last statement in the sequence.
 		// In that case a line break should be printed when the block or the file ends.
-		if i < len(stmts) - 1 {
+		if i < len(stmts)-1 {
 			p.newline()
 		}
 
@@ -580,7 +580,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 			isFirst = false
 			_, end := block.True[len(block.True)-1].Span()
-			needsEmptyLine = block.ElsePos.Line - end.Line > 1
+			needsEmptyLine = block.ElsePos.Line-end.Line > 1
 
 			if len(block.False) == 1 {
 				next, ok := block.False[0].(*IfStmt)
