@@ -25,7 +25,7 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-const nestedIndentation = 2 // Indentation of nested blocks
+const nestedIndentation = 4 // Indentation of nested blocks
 const listIndentation = 4   // Indentation of multiline expressions
 
 // Format returns the formatted form of the given BUILD file.
