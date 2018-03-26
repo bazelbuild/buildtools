@@ -2,9 +2,10 @@
 // Input: AST from github.com/google/skylark/syntax
 // Output: AST from github.com/bazelbuild/buildtools/build
 
-package main
+package convertast
 
 import (
+	"log"
 	"strconv"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/google/skylark/syntax"
 )
 
-func convFile(f *syntax.File) *build.File {
+func ConvFile(f *syntax.File) *build.File {
 	stmts := []build.Expr{}
 	for _, stmt := range f.Stmts {
 		stmts = append(stmts, convStmt(stmt))
@@ -163,7 +164,7 @@ func convExpr(e syntax.Expr) build.Expr {
 				Token:    strconv.FormatInt(e.Value.(int64), 10),
 				Comments: convComments(e.Comments())}
 		case syntax.FLOAT:
-			panic("float")
+			log.Fatal("float not yet supported")
 		case syntax.STRING:
 			return &build.StringExpr{
 				Value:       e.Value.(string),
