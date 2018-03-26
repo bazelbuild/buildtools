@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -107,14 +108,11 @@ func main() {
 
 	// Check input type.
 	switch *inputType {
-	case "bzl":
-		tables.FormattingMode = tables.DefaultMode
-
-	case "build", "":
-		tables.FormattingMode = tables.BuildMode
+	case "build", "bzl", "auto":
+		// ok
 
 	default:
-		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl\n", *inputType)
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, auto\n", *inputType)
 		os.Exit(2)
 	}
 
@@ -163,6 +161,11 @@ func main() {
 	diff = differ.Find()
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
+		if *inputType == "auto" {
+			fmt.Fprintf(os.Stderr, "buildifier: --type=auto can't be used with stdin\n")
+			os.Exit(2)
+		}
+
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -172,9 +175,9 @@ func main() {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("stdin", data)
+		processFile("stdin", data, *inputType)
 	} else {
-		processFiles(args)
+		processFiles(args, *inputType)
 	}
 
 	diff.Run()
@@ -186,7 +189,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func processFiles(files []string) {
+func processFiles(files []string, inputType string) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -231,7 +234,7 @@ func processFiles(files []string) {
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data)
+		processFile(file, res.data, inputType)
 	}
 }
 
@@ -253,13 +256,15 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte) {
+func processFile(filename string, data []byte, inputType string) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
 			exitCode = 3
 		}
 	}()
+	
+	defer setFormattingMode(inputType, filename)()
 
 	f, err := build.Parse(filename, data)
 	if err != nil {
@@ -365,6 +370,28 @@ func processFile(filename string, data []byte) {
 			exitCode = 3
 			return
 		}
+	}
+}
+
+func setFormattingMode(inputType, filename string) func() {
+	defaultMode := tables.FormattingMode
+	
+	switch inputType {
+	case "build":
+		tables.FormattingMode = tables.BuildMode
+	case "bzl":
+		tables.FormattingMode = tables.DefaultMode
+	case "auto":
+		switch base := filepath.Base(filename); base {
+		case "BUILD", "BUILD.bazel", "WORKSPACE":
+			tables.FormattingMode = tables.BuildMode
+		default:
+			tables.FormattingMode = tables.DefaultMode
+		}
+	}
+	
+	return func() {
+		tables.FormattingMode = defaultMode
 	}
 }
 
