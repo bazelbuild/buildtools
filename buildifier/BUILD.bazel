@@ -17,6 +17,27 @@ sh_test(
     name = "buildifier_integration_test",
     size = "small",
     srcs = ["integration_test.sh"],
-    data = [":buildifier"],
-    args = ["$(location :buildifier)"],
+    args = [
+        "$(location :buildifier)",
+        "$(location :buildifier2)",
+    ],
+    data = [
+        ":buildifier",
+        ":buildifier2",
+    ],
+)
+
+go_binary(
+    name = "buildifier2",
+    srcs = [
+        "buildifier2.go",
+        "convert_ast.go",
+    ],
+    visibility = ["//visibility:private"],  # experimental
+    deps = [
+        "//build:go_default_library",
+        "//differ:go_default_library",
+        "//tables:go_default_library",
+        "@skylark_syntax//syntax:go_default_library",
+    ],
 )
