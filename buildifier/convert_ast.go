@@ -133,25 +133,21 @@ func singleLine(n syntax.Node) bool {
 	return start.Line == end.Line
 }
 
-func convClauses(list []syntax.Node) []*build.ForClauseWithIfClausesOpt {
-	res := []*build.ForClauseWithIfClausesOpt{}
-	var current *build.ForClauseWithIfClausesOpt
+func convClauses(list []syntax.Node) []build.Expr {
+	res := []build.Expr{}
 	for _, c := range list {
 		switch stmt := c.(type) {
 		case *syntax.ForClause:
-			if current != nil {
-				res = append(res, current)
-			}
-			f := &build.ForClause{
-				Var:  convExpr(stmt.Vars),
-				Expr: convExpr(stmt.X),
-			}
-			current = &build.ForClauseWithIfClausesOpt{For: f}
+			res = append(res, &build.ForClause{
+				Vars: convExpr(stmt.Vars),
+				X:    convExpr(stmt.X),
+			})
 		case *syntax.IfClause:
-			current.Ifs = append(current.Ifs, &build.IfClause{Cond: convExpr(stmt.Cond)})
+			res = append(res, &build.IfClause{
+				Cond: convExpr(stmt.Cond),
+			})
 		}
 	}
-	res = append(res, current)
 	return res
 }
 
@@ -226,15 +222,11 @@ func convExpr(e syntax.Expr) build.Expr {
 			Comments: convComments(e.Comments()),
 		}
 	case *syntax.Comprehension:
-		brack := "[]"
-		if e.Curly {
-			brack = "{}"
-		}
-		return &build.ListForExpr{
-			X:        convExpr(e.Body),
-			For:      convClauses(e.Clauses),
+		return &build.Comprehension{
+			Body:     convExpr(e.Body),
+			Clauses:  convClauses(e.Clauses),
 			Comments: convComments(e.Comments()),
-			Brack:    brack,
+			Curly:    e.Curly,
 		}
 	case *syntax.ParenExpr:
 		return &build.ParenExpr{

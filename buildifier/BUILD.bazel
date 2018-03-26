@@ -17,8 +17,15 @@ sh_test(
     name = "buildifier_integration_test",
     size = "small",
     srcs = ["integration_test.sh"],
-    data = [":buildifier"],
-    args = ["$(location :buildifier)"],
+    args = [
+        "$(location :buildifier)",
+        "$(location :buildifier2)",
+    ],
+    data = [
+        ":buildifier",
+        ":buildifier2",
+    ],
+)
 
 go_binary(
     name = "buildifier2",
