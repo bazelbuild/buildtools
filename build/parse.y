@@ -200,10 +200,13 @@ suite:
 		}
 		$$ = statements
 	}
-|	simple_stmt
+|	simple_stmt linebreaks_opt
 	{
 		$$ = $1
 	}
+
+linebreaks_opt:
+| linebreaks_opt '\n'
 
 comments:
 	{
