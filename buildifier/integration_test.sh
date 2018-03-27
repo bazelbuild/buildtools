@@ -1,8 +1,8 @@
 set -e
 
-INPUT="def f(): pass"  # formatted differently in build and bzl modes
-BUILD_OUTPUT="def f(): pass"
-BZL_OUTPUT="def f():\n    pass"
+INPUT="foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
+BUILD_OUTPUT="foo(\n    srcs = [\n        \"c\",\n        \"d\",\n    ],\n    tags = [\n        \"a\",\n        \"b\",\n    ],\n)"
+BZL_OUTPUT="foo(\n    tags = [\n        \"b\",\n        \"a\",\n    ],\n    srcs = [\n        \"d\",\n        \"c\",\n    ],\n)"
 
 mkdir test
 echo -e "$INPUT" > test/BUILD

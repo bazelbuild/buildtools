@@ -52,12 +52,12 @@ func setFlags(file string) func() {
 
 func testIdempotence(t *testing.T, file string) {
 	defer setFlags(file)()
-	testPrint(t, file, file, false)
+	testPrint(t, file, file)
 }
 
 func testFormat(t *testing.T, input, output string) {
 	defer setFlags(output)()
-	testPrint(t, input, output, true)
+	testPrint(t, input, output)
 }
 
 // Test that reading and then writing the golden files
@@ -104,6 +104,12 @@ func TestPrintRewrite(t *testing.T) {
 		testFormat(t, in, outBzl)
 		tables.FormattingMode = tables.BuildMode
 		testFormat(t, in, outBuild)
+
+		stripslashesBuild := prefix + ".stripslashes.golden"
+		if exists(stripslashesBuild) {
+			// Test this file in BUILD mode only
+			testFormat(t, in, stripslashesBuild)
+		}
 	}
 }
 
@@ -133,7 +139,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out. If rewrite is true, the
 // reformatting includes buildifier's higher-level rewrites.
-func testPrint(t *testing.T, in, out string, rewrite bool) {
+func testPrint(t *testing.T, in, out string) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -153,7 +159,7 @@ func testPrint(t *testing.T, in, out string, rewrite bool) {
 		return
 	}
 
-	if rewrite {
+	if tables.FormattingMode == tables.BuildMode {
 		Rewrite(bld, nil)
 	}
 
