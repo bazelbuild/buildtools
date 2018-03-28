@@ -732,8 +732,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 
 		p.newline()
 		p.expr(x, precLow)
-		// Don't print a comma after the last element in modeParen and in modeDef if the closing
-		// bracket will be placed on the same line
+		// Don't print a comma after the last element in modeParen and in modeDef
 		if !(mode == modeDef || mode == modeParen) || i+1 < len(*list) {
 			p.printf(",")
 		}
