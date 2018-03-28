@@ -23,3 +23,11 @@ x = (1,2,
 3, 4)
 
 d.get(key, [])
+
+myfunc(1, 2, foo(x, key = y))
+myfunc(
+  1, 2, foo(x, key = y))
+myfunc(1, 2, foo(x, key = y)
+)
+myfunc(1, 2, foo(x,
+                 key = y))

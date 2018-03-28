@@ -2,34 +2,16 @@
 # Single-line tuples are also okay.
 
 str.rewrite(".", "/")
-str.rewrite(
-    before = ".",
-    after = "/",
-)
+str.rewrite(before = ".", after = "/")
 
 x = (1, 2, 3)
 x = (1, "2", -3, [], {}, (), not b)
 
-y = (
-    1,
-    [2],
-)
-y = (
-    1,
-    {2: 3},
-)
-y = (
-    1,
-    (2, 3),
-)
-y = (
-    1,
-    -(a + b),
-)
-y = (
-    1,
-    not (a or b),
-)
+y = (1, [2])
+y = (1, {2: 3})
+y = (1, (2, 3))
+y = (1, -(a + b))
+y = (1, not (a or b))
 
 x = (
     1,
@@ -45,3 +27,19 @@ x = (
 )
 
 d.get(key, [])
+
+myfunc(1, 2, foo(x, key = y))
+myfunc(
+    1,
+    2,
+    foo(x, key = y),
+)
+myfunc(
+    1,
+    2,
+    foo(x, key = y),
+)
+myfunc(1, 2, foo(
+    x,
+    key = y,
+))

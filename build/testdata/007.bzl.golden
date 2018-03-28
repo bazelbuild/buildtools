@@ -5,7 +5,4 @@ exports_files([
 
 package(default_visibility = ["//foo:bar"])
 
-package(default_visibility = [
-    "//foo:bar",
-    "//bar:baz",
-])
+package(default_visibility = ["//foo:bar", "//bar:baz"])
