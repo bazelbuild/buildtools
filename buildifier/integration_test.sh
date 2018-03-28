@@ -21,16 +21,7 @@ foo(
 )
 EOF
 cat > test/test.bzl.golden <<EOF
-foo(
-    tags = [
-        "b",
-        "a",
-    ],
-    srcs = [
-        "d",
-        "c",
-    ],
-)
+foo(tags = ["b", "a"], srcs = ["d", "c"])
 EOF
 
 diff test/BUILD test/BUILD.golden

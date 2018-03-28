@@ -31,10 +31,7 @@ def function(
         # are not a syntax error
         ddd
 
-        def h(
-            a,
-            s = d,  # this is h
-        ):
+        def h(a, s = d):  # this is h
             eee
 
         def k(g):
@@ -75,10 +72,7 @@ def function(
 
 for b in a:  # first
     for c, d in b:  # second
-        for (
-            (e, f),
-            g,
-        ) in zip(c, d):  # third
+        for ((e, f), g) in zip(c, d):  # third
             pass
 
 if foo in bar:

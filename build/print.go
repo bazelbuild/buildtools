@@ -492,32 +492,32 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.margin = m
 
 	case *ParenExpr:
-		p.seq("()", []Expr{v.X}, &v.End, modeParen, false, v.ForceMultiLine)
+		p.seq("()", &v.Start, &[]Expr{v.X}, &v.End, modeParen, false, v.ForceMultiLine)
 
 	case *CallExpr:
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
-		p.seq("()", v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
 
 	case *ListExpr:
-		p.seq("[]", v.List, &v.End, modeList, false, v.ForceMultiLine)
+		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
 
 	case *SetExpr:
-		p.seq("{}", v.List, &v.End, modeList, false, v.ForceMultiLine)
+		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
 
 	case *TupleExpr:
 		mode := modeTuple
 		if !v.Start.IsValid() {
 			mode = modeSeq
 		}
-		p.seq("()", v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
 
 	case *DictExpr:
 		var list []Expr
 		for _, x := range v.List {
 			list = append(list, x)
 		}
-		p.seq("{}", list, &v.End, modeDict, false, v.ForceMultiLine)
+		p.seq("{}", &v.Start, &list, &v.End, modeDict, false, v.ForceMultiLine)
 
 	case *Comprehension:
 		p.listFor(v)
@@ -540,7 +540,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *DefStmt:
 		p.printf("def ")
 		p.printf(v.Name)
-		p.seq("()", v.Params, nil, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.StartPos, &v.Params, nil, modeCall, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
 		p.margin += nestedIndentation
 		p.newline()
@@ -631,91 +631,112 @@ const (
 	modeSeq   // x, y
 )
 
+// useCompactMode reports whether a sequence should be formatted in a compact mode
+func useCompactMode(start *Position, list *[]Expr, end *End, forceCompact, forceMultiLine bool) bool {
+	// If there are line comments, use multiline
+	// so we can print the comments before the closing bracket.
+	for _, x := range *list {
+		if len(x.Comment().Before) > 0 {
+			return false
+		}
+	}
+	if end != nil && len(end.Before) > 0 {
+		return false
+	}
+
+	// Implicit tuples are always compact
+	if !start.IsValid() {
+		return true
+	}
+
+	// In Default printing mode try to keep the original printing style
+	if tables.FormattingMode == tables.DefaultMode {
+		// If every element (including the brackets) ends on the same line where the next element starts,
+		// use the compact mode, otherwise use multiline mode
+		previousEnd := start.Line
+		for _, x := range *list {
+			start, end := x.Span()
+			if start.Line != previousEnd {
+				return false
+			}
+			previousEnd = end.Line
+		}
+		if end != nil && previousEnd != end.Pos.Line {
+			return false
+		}
+		return true
+	}
+	// In Build mode, use the forceMultiline and forceCompact values
+	if forceMultiLine {
+		return false
+	}
+	if forceCompact {
+		return true
+	}
+	// If neither of the flags are set, use compact mode only for empty or 1-element sequences
+	return len(*list) <= 1
+}
+
 // seq formats a list of values inside a given bracket pair (brack = "()", "[]", "{}").
 // The end node holds any trailing comments to be printed just before the
 // closing bracket.
 // The mode parameter specifies the sequence mode (see above).
 // If multiLine is true, seq avoids the compact form even
 // for 0- and 1-element sequences.
-func (p *printer) seq(brack string, list []Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
+func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
 	p.depth++
-
-	// If there are line comments, force multiline
-	// so we can print the comments before the closing bracket.
-	for _, x := range list {
-		if len(x.Comment().Before) > 0 {
-			forceMultiLine = true
+	defer func() {
+		p.depth--
+		if mode != modeSeq {
+			p.printf("%s", brack[1:])
 		}
-	}
-	if end != nil && len(end.Before) > 0 {
-		forceMultiLine = true
-	}
+	}()
 
-	// Resolve possibly ambiguous call arguments explicitly
-	// instead of depending on implicit resolution in logic below.
-	if forceMultiLine {
-		forceCompact = false
-	}
-
-	switch {
-	case len(list) == 0 && !forceMultiLine:
-		// Compact form: print nothing.
-
-	case len(list) == 1 && !forceMultiLine:
-		// Compact form.
-		p.expr(list[0], precLow)
-		// Tuple must end with comma, to mark it as a tuple.
-		if mode == modeTuple {
-			p.printf(",")
-		}
-
-	case forceCompact:
-		// Compact form but multiple elements.
-		for i, x := range list {
+	if useCompactMode(start, list, end, forceCompact, forceMultiLine) {
+		for i, x := range *list {
 			if i > 0 {
 				p.printf(", ")
 			}
 			p.expr(x, precLow)
 		}
-
-	default:
-		// Multi-line form.
-		p.margin += listIndentation
-		for i, x := range list {
-			// If we are about to break the line before the first
-			// element and there are trailing end-of-line comments
-			// waiting to be printed, delay them and print them as
-			// whole-line comments preceding that element.
-			// Do this by printing a newline ourselves and positioning
-			// so that the end-of-line comment, with the two spaces added,
-			// will line up with the current margin.
-			if i == 0 && len(p.comment) > 0 {
-				p.printf("\n%*s", p.margin-2, "")
-			}
-
-			p.newline()
-			p.expr(x, precLow)
-			if mode != modeParen || i+1 < len(list) {
-				p.printf(",")
-			}
+		// Single-element tuple must end with comma, to mark it as a tuple.
+		if len(*list) == 1 && mode == modeTuple {
+			p.printf(",")
 		}
-		// Final comments.
-		if end != nil {
-			for _, com := range end.Before {
-				p.newline()
-				p.printf("%s", strings.TrimSpace(com.Token))
-			}
+		return
+	}
+	// Multi-line form.
+	p.margin += listIndentation
+	for i, x := range *list {
+		// If we are about to break the line before the first
+		// element and there are trailing end-of-line comments
+		// waiting to be printed, delay them and print them as
+		// whole-line comments preceding that element.
+		// Do this by printing a newline ourselves and positioning
+		// so that the end-of-line comment, with the two spaces added,
+		// will line up with the current margin.
+		if i == 0 && len(p.comment) > 0 {
+			p.printf("\n%*s", p.margin-2, "")
 		}
-		p.margin -= listIndentation
+
 		p.newline()
+		p.expr(x, precLow)
+		if mode != modeParen || i+1 < len(*list) {
+			p.printf(",")
+		}
 	}
-	p.depth--
-	if mode != modeSeq {
-		p.printf("%s", brack[1:])
+	// Final comments.
+	if end != nil {
+		for _, com := range end.Before {
+			p.newline()
+			p.printf("%s", strings.TrimSpace(com.Token))
+		}
 	}
+	p.margin -= listIndentation
+	p.newline()
 }
 
 // listFor formats a ListForExpr (list comprehension).
