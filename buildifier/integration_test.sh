@@ -1,21 +1,40 @@
 set -e
 
-INPUT="def f(): pass"  # formatted differently in build and bzl modes
-BUILD_OUTPUT="def f(): pass"
-BZL_OUTPUT="def f():\n    pass"
-
 mkdir test
+INPUT="foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
 echo -e "$INPUT" > test/BUILD
 echo -e "$INPUT" > test/test.bzl
 
+$1 --type=auto test/*
 $2 test/test.bzl > test/test.bzl.out
 
-$1 --type=auto test/*
-
-echo -e "$BUILD_OUTPUT" > test/BUILD.golden
-echo -e "$BZL_OUTPUT" > test/test.bzl.golden
+cat > test/BUILD.golden <<EOF
+foo(
+    srcs = [
+        "c",
+        "d",
+    ],
+    tags = [
+        "a",
+        "b",
+    ],
+)
+EOF
+cat > test/test.bzl.golden <<EOF
+foo(
+    tags = [
+        "b",
+        "a",
+    ],
+    srcs = [
+        "d",
+        "c",
+    ],
+)
+EOF
 
 diff test/BUILD test/BUILD.golden
 diff test/test.bzl test/test.bzl.golden
 
 diff test/test.bzl.out test/test.bzl.golden
+

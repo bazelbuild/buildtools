@@ -283,7 +283,10 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 	beforeRewrite := build.Format(f)
 	var info build.RewriteInfo
-	build.Rewrite(f, &info)
+	if tables.FormattingMode == tables.BuildMode {
+		build.Rewrite(f, &info)
+	}
+
 	ndata := build.Format(f)
 
 	switch *mode {
