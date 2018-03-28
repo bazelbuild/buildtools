@@ -702,8 +702,6 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		if len(*list) == 1 && mode == modeTuple {
 			p.printf(",")
 		}
-
-
 	} else {
 		// Multi-line form.
 		p.margin += listIndentation
