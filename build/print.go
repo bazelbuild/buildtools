@@ -745,8 +745,8 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}
 	p.margin -= indentation
-	// in modeDef print the closing bracket on the same line unless there are pending suffix comments
-	if mode != modeDef || len(p.comment) != 0 {
+	// in modeDef print the closing bracket on the same line
+	if mode != modeDef {
 		p.newline()
 	}
 }
