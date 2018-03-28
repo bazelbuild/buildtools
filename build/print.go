@@ -665,17 +665,16 @@ func useCompactMode(start *Position, list *[]Expr, end *End, forceCompact, force
 			return false
 		}
 		return true
-	} else {
-		// In Build mode, use the forceMultiline and forceCompact values
-		if forceMultiLine {
-			return false
-		}
-		if forceCompact {
-			return true
-		}
-		// If neither of the flags are set, use compact mode only for empty or 1-element sequences
-		return len(*list) <= 1
 	}
+	// In Build mode, use the forceMultiline and forceCompact values
+	if forceMultiLine {
+		return false
+	}
+	if forceCompact {
+		return true
+	}
+	// If neither of the flags are set, use compact mode only for empty or 1-element sequences
+	return len(*list) <= 1
 }
 
 // seq formats a list of values inside a given bracket pair (brack = "()", "[]", "{}").
