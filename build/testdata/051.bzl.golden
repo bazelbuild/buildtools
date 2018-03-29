@@ -17,14 +17,17 @@ fff
 ggg
 
 def function(
-    # This shouldn't mess with indentation counting
-    x,
-    y = z,
-):
+        # This shouldn't mess with indentation counting
+        x,
+        y = z):
     aaa
     bbb
 
-    def g(a, s, d):
+    def g(
+            a,
+            s,
+            d):  # this is d
+        # this is function definition
         ccc
 
         # Misalingned comments

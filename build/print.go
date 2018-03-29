@@ -25,8 +25,11 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-const nestedIndentation = 4 // Indentation of nested blocks
-const listIndentation = 4   // Indentation of multiline expressions
+const (
+	nestedIndentation = 4 // Indentation of nested blocks
+	listIndentation = 4   // Indentation of multiline expressions
+	defIndentation = 8    // Indentation of multiline function definitions
+)
 
 // Format returns the formatted form of the given BUILD file.
 func Format(f *File) []byte {
@@ -540,7 +543,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *DefStmt:
 		p.printf("def ")
 		p.printf(v.Name)
-		p.seq("()", &v.StartPos, &v.Params, nil, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
 		p.margin += nestedIndentation
 		p.newline()
@@ -629,6 +632,7 @@ const (
 	modeParen // (x)
 	modeDict  // {x:y}
 	modeSeq   // x, y
+	modeDef   // def f(x, y)
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
@@ -709,7 +713,11 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		return
 	}
 	// Multi-line form.
-	p.margin += listIndentation
+	indentation := listIndentation
+	if mode == modeDef {
+		indentation = defIndentation
+	}
+	p.margin += indentation
 	for i, x := range *list {
 		// If we are about to break the line before the first
 		// element and there are trailing end-of-line comments
@@ -724,7 +732,8 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 
 		p.newline()
 		p.expr(x, precLow)
-		if mode != modeParen || i+1 < len(*list) {
+		// Don't print a comma after the last element in modeParen and in modeDef
+		if !(mode == modeDef || mode == modeParen) || i+1 < len(*list) {
 			p.printf(",")
 		}
 	}
@@ -735,8 +744,11 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 			p.printf("%s", strings.TrimSpace(com.Token))
 		}
 	}
-	p.margin -= listIndentation
-	p.newline()
+	p.margin -= indentation
+	// in modeDef print the closing bracket on the same line
+	if mode != modeDef {
+		p.newline()
+	}
 }
 
 // listFor formats a ListForExpr (list comprehension).

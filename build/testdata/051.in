@@ -18,7 +18,9 @@ def function(
 ):
   aaa
   bbb
-  def g(a, s, d):
+  def g(a, s,
+    d # this is d
+  ): # this is function definition
     ccc
 # Misalingned comments
       # are not a syntax error
