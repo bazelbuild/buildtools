@@ -289,7 +289,6 @@ func isFunctionDefinition(x Expr) bool {
 const (
 	precLow = iota
 	precAssign
-	precComma
 	precColon
 	precIfElse
 	precOr
@@ -326,6 +325,7 @@ var opPrec = map[string]int{
 	"/":      precMultiply,
 	"//":     precMultiply,
 	"%":      precMultiply,
+	"|":      precMultiply,
 }
 
 // expr prints the expression v to the print buffer.

@@ -12,6 +12,8 @@ foo=bar//baz
 
 foo=bar%baz
 
+foo=bar|baz
+
 # If-else operator precedence
 - f(1) if  not  a  else 2+3
 
@@ -39,3 +41,5 @@ foo/=bar
 foo//=bar
 
 foo%=bar
+
+foo|=bar

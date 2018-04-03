@@ -76,6 +76,7 @@ var yyToknames = [...]string{
 	"']'",
 	"'{'",
 	"'}'",
+	"'|'",
 	"_AUGM",
 	"_AND",
 	"_COMMENT",
@@ -114,7 +115,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line build/parse.y:866
+//line build/parse.y:868
 
 // Go helper code.
 
@@ -249,104 +250,101 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 606
+const yyLast = 576
 
 var yyAct = [...]int{
 
-	17, 153, 190, 2, 7, 144, 151, 41, 116, 125,
-	77, 129, 19, 35, 9, 23, 128, 114, 85, 200,
-	208, 202, 70, 71, 36, 140, 32, 75, 80, 83,
-	31, 44, 45, 170, 107, 29, 113, 34, 131, 136,
-	91, 199, 88, 74, 201, 88, 146, 95, 96, 97,
-	98, 99, 100, 101, 102, 103, 104, 105, 106, 13,
-	108, 109, 110, 111, 173, 193, 117, 29, 87, 93,
-	131, 79, 82, 117, 40, 168, 211, 147, 63, 30,
-	69, 118, 135, 131, 204, 94, 133, 39, 118, 203,
-	126, 127, 28, 37, 134, 180, 160, 89, 90, 38,
-	141, 149, 145, 92, 26, 73, 27, 39, 154, 39,
-	39, 65, 194, 183, 150, 29, 163, 64, 164, 156,
-	161, 162, 24, 66, 47, 158, 121, 46, 49, 31,
-	50, 39, 48, 172, 47, 112, 123, 46, 174, 176,
-	169, 179, 48, 159, 36, 171, 169, 148, 39, 175,
-	138, 132, 124, 178, 177, 167, 187, 184, 157, 139,
-	117, 189, 181, 182, 86, 191, 72, 84, 188, 186,
-	1, 192, 185, 25, 81, 118, 78, 33, 43, 42,
-	16, 196, 12, 165, 166, 195, 8, 4, 130, 67,
-	197, 68, 198, 76, 205, 145, 122, 142, 143, 28,
-	115, 206, 0, 207, 22, 191, 0, 209, 0, 7,
-	0, 26, 0, 27, 0, 0, 0, 6, 0, 0,
-	11, 0, 29, 18, 0, 0, 0, 28, 20, 24,
-	0, 0, 22, 21, 0, 15, 31, 10, 14, 26,
-	210, 27, 5, 0, 0, 6, 3, 0, 11, 0,
-	29, 18, 0, 0, 0, 28, 20, 24, 0, 0,
-	22, 21, 0, 15, 31, 10, 14, 26, 0, 27,
-	5, 0, 0, 0, 0, 0, 0, 0, 29, 0,
-	0, 0, 0, 0, 20, 24, 0, 0, 0, 21,
-	0, 15, 31, 47, 14, 0, 46, 49, 152, 50,
-	0, 48, 137, 51, 0, 52, 0, 0, 0, 0,
-	0, 60, 0, 0, 53, 0, 56, 0, 62, 0,
-	0, 57, 61, 0, 0, 54, 55, 47, 58, 59,
-	46, 49, 0, 50, 0, 48, 0, 51, 0, 52,
-	0, 0, 0, 0, 0, 60, 0, 0, 53, 0,
-	56, 0, 62, 155, 0, 57, 61, 0, 0, 54,
-	55, 47, 58, 59, 46, 49, 0, 50, 0, 48,
-	0, 51, 0, 52, 0, 0, 0, 0, 0, 60,
-	0, 0, 53, 131, 56, 0, 62, 0, 0, 57,
-	61, 0, 0, 54, 55, 47, 58, 59, 46, 49,
+	17, 155, 192, 2, 7, 146, 153, 41, 118, 127,
+	78, 131, 19, 35, 130, 23, 116, 9, 86, 202,
+	210, 204, 71, 72, 36, 142, 32, 76, 81, 84,
+	31, 44, 45, 172, 108, 29, 115, 148, 34, 133,
+	92, 201, 89, 75, 203, 61, 89, 96, 97, 98,
+	99, 100, 101, 102, 103, 104, 105, 106, 107, 29,
+	109, 110, 111, 112, 113, 138, 195, 119, 94, 149,
+	88, 80, 83, 175, 119, 170, 137, 213, 206, 39,
+	133, 129, 120, 205, 133, 95, 13, 135, 165, 120,
+	128, 47, 30, 136, 46, 49, 182, 50, 162, 48,
+	39, 40, 151, 147, 143, 64, 37, 70, 61, 156,
+	196, 166, 47, 38, 28, 46, 125, 179, 74, 22,
+	48, 158, 163, 164, 90, 91, 26, 160, 27, 61,
+	93, 66, 39, 181, 161, 174, 185, 65, 29, 39,
+	176, 178, 171, 67, 20, 24, 36, 173, 171, 21,
+	140, 177, 31, 39, 123, 180, 134, 152, 189, 186,
+	28, 126, 119, 191, 183, 184, 169, 193, 159, 141,
+	190, 87, 26, 194, 27, 150, 39, 120, 73, 85,
+	114, 188, 1, 198, 29, 187, 25, 197, 82, 79,
+	28, 24, 199, 33, 200, 22, 207, 147, 31, 43,
+	42, 16, 26, 208, 27, 209, 12, 193, 8, 211,
+	28, 7, 167, 168, 29, 22, 4, 132, 68, 69,
+	20, 24, 26, 77, 27, 21, 124, 15, 31, 6,
+	14, 144, 11, 145, 29, 18, 117, 0, 0, 28,
+	20, 24, 0, 0, 22, 21, 0, 15, 31, 10,
+	14, 26, 212, 27, 5, 0, 0, 0, 6, 3,
+	0, 11, 0, 29, 18, 0, 0, 0, 28, 20,
+	24, 0, 0, 22, 21, 0, 15, 31, 10, 14,
+	26, 0, 27, 5, 0, 47, 0, 0, 46, 49,
+	0, 50, 29, 48, 139, 51, 0, 52, 20, 24,
+	0, 0, 61, 21, 60, 15, 31, 53, 14, 56,
+	0, 63, 154, 0, 57, 62, 0, 0, 54, 55,
+	47, 58, 59, 46, 49, 0, 50, 0, 48, 0,
+	51, 0, 52, 0, 0, 0, 0, 61, 0, 60,
+	0, 0, 53, 0, 56, 0, 63, 157, 0, 57,
+	62, 0, 0, 54, 55, 47, 58, 59, 46, 49,
 	0, 50, 0, 48, 0, 51, 0, 52, 0, 0,
-	0, 0, 0, 60, 0, 0, 53, 0, 56, 0,
-	62, 0, 0, 57, 61, 0, 0, 54, 55, 47,
-	58, 59, 46, 49, 0, 50, 0, 48, 0, 51,
-	0, 52, 0, 0, 0, 0, 0, 60, 0, 0,
-	53, 0, 56, 0, 0, 0, 0, 57, 61, 0,
-	0, 54, 55, 47, 58, 59, 46, 49, 0, 50,
-	0, 48, 0, 51, 0, 52, 0, 0, 28, 0,
-	0, 60, 0, 22, 53, 0, 56, 0, 0, 0,
-	26, 57, 27, 0, 0, 54, 55, 0, 58, 59,
-	0, 29, 0, 0, 28, 0, 119, 20, 24, 22,
-	0, 0, 21, 0, 15, 31, 26, 14, 27, 0,
-	0, 0, 0, 0, 0, 0, 0, 29, 0, 0,
-	0, 0, 0, 20, 24, 0, 47, 120, 21, 46,
-	49, 31, 50, 0, 48, 0, 51, 0, 52, 0,
-	0, 0, 0, 0, 60, 0, 0, 53, 0, 56,
-	0, 0, 0, 0, 57, 0, 0, 28, 54, 55,
-	47, 58, 22, 46, 49, 0, 50, 0, 48, 26,
-	51, 27, 52, 0, 0, 0, 0, 0, 0, 0,
-	29, 53, 0, 56, 0, 0, 20, 24, 57, 0,
-	0, 21, 54, 55, 31, 58,
+	0, 0, 61, 0, 60, 0, 0, 53, 133, 56,
+	0, 63, 0, 0, 57, 62, 0, 0, 54, 55,
+	47, 58, 59, 46, 49, 0, 50, 0, 48, 0,
+	51, 0, 52, 0, 0, 0, 0, 61, 0, 60,
+	0, 0, 53, 0, 56, 0, 63, 0, 0, 57,
+	62, 0, 0, 54, 55, 47, 58, 59, 46, 49,
+	0, 50, 0, 48, 0, 51, 0, 52, 0, 0,
+	0, 0, 61, 0, 60, 0, 0, 53, 0, 56,
+	0, 0, 0, 0, 57, 62, 0, 0, 54, 55,
+	47, 58, 59, 46, 49, 0, 50, 0, 48, 0,
+	51, 0, 52, 0, 0, 0, 0, 61, 0, 60,
+	0, 0, 53, 0, 56, 0, 0, 0, 0, 57,
+	0, 0, 0, 54, 55, 47, 58, 59, 46, 49,
+	0, 50, 0, 48, 0, 51, 28, 52, 121, 0,
+	0, 22, 61, 0, 60, 0, 0, 53, 26, 56,
+	27, 0, 0, 0, 57, 0, 0, 0, 54, 55,
+	29, 58, 0, 0, 0, 0, 20, 24, 0, 47,
+	122, 21, 46, 49, 31, 50, 0, 48, 0, 51,
+	0, 52, 0, 0, 0, 0, 61, 0, 0, 0,
+	0, 53, 0, 56, 0, 0, 0, 0, 57, 0,
+	0, 0, 54, 55, 0, 58,
 }
 var yyPact = [...]int{
 
-	-1000, -1000, 222, -1000, -1000, -1000, -22, -1000, -1000, -1000,
-	9, 87, -1000, 78, 562, -1000, 1, 391, 562, 106,
-	562, 562, 562, -1000, 161, -12, 562, 562, 562, -1000,
-	-1000, -1000, -1000, -33, 159, 36, 106, 562, 562, 562,
-	139, -1000, -1000, 562, 56, -1000, 562, 562, 562, 562,
-	562, 562, 562, 562, 562, 562, 562, 562, 2, 562,
-	562, 562, 562, 122, 8, 499, 562, 123, 143, 139,
-	-1000, -1000, 499, -1000, 73, 357, 142, 12, 62, 19,
-	289, 141, 153, 391, -23, 473, 39, 562, 87, 139,
-	139, 425, 101, 250, -1000, -1000, -1000, -1000, 130, 130,
-	120, 120, 120, 120, 120, 120, 120, 562, 532, 566,
-	459, 323, 250, -1000, 152, 134, -1000, 391, 81, 562,
-	562, 98, 105, 562, 562, -1000, 149, -1000, 57, 4,
-	-1000, 87, 562, -1000, 44, -1000, -1000, 562, 562, -1000,
-	-1000, -1000, 148, 132, -1000, 80, 7, 7, 100, 106,
-	250, -1000, -1000, -1000, 120, 562, -1000, -1000, -1000, 499,
-	562, 391, 391, -1000, 562, -1000, -1000, -1000, -1000, 4,
-	562, 33, 391, -1000, 391, -1000, 289, 99, -1000, 39,
-	562, -1000, -1000, 250, 1, -4, -27, 425, -1000, 391,
-	71, 391, 425, 562, 250, -1000, 391, -1000, -1000, -1000,
-	-28, -1000, -1000, -1000, 562, 425, -1000, 194, -1000, 58,
-	-1000, -1000,
+	-1000, -1000, 234, -1000, -1000, -1000, -23, -1000, -1000, -1000,
+	9, 155, -1000, 91, 109, -1000, 0, 386, 109, 126,
+	109, 109, 109, -1000, 173, -13, 109, 109, 109, -1000,
+	-1000, -1000, -1000, -34, 166, 37, 126, 109, 109, 109,
+	130, -1000, -1000, 109, 55, -1000, 109, 109, 109, 109,
+	109, 109, 109, 109, 109, 109, 109, 109, 1, 109,
+	109, 109, 109, 109, 167, 7, 501, 109, 103, 152,
+	130, 24, 24, 501, -1000, 63, 351, 147, 12, 56,
+	45, 281, 141, 163, 386, -24, 185, 30, 109, 155,
+	130, 130, 421, 144, 263, -1000, 24, 24, 24, 108,
+	108, 87, 87, 87, 87, 87, 87, 87, 109, 491,
+	535, 386, 456, 316, 263, -1000, 162, 125, -1000, 386,
+	83, 109, 109, 70, 98, 109, 109, -1000, 160, -1000,
+	57, 3, -1000, 155, 109, -1000, 53, -1000, -1000, 109,
+	109, -1000, -1000, -1000, 111, 124, -1000, 81, 6, 6,
+	123, 126, 263, -1000, -1000, -1000, 87, 109, -1000, -1000,
+	-1000, 501, 109, 386, 386, -1000, 109, -1000, -1000, -1000,
+	-1000, 3, 109, 33, 386, -1000, 386, -1000, 281, 97,
+	-1000, 30, 109, -1000, -1000, 263, 0, -5, -28, 421,
+	-1000, 386, 65, 386, 421, 109, 263, -1000, 386, -1000,
+	-1000, -1000, -29, -1000, -1000, -1000, 109, 421, -1000, 205,
+	-1000, 59, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 9, 8, 200, 17, 5, 198, 197, 0, 2,
-	43, 12, 59, 196, 193, 191, 189, 13, 188, 11,
-	16, 15, 3, 187, 186, 182, 180, 179, 7, 178,
-	1, 14, 177, 10, 176, 174, 79, 173, 6, 172,
-	170, 169, 167,
+	0, 9, 8, 236, 16, 5, 233, 231, 0, 2,
+	43, 12, 86, 226, 223, 219, 218, 13, 217, 11,
+	14, 15, 3, 216, 208, 206, 201, 200, 7, 199,
+	1, 17, 193, 10, 189, 188, 92, 186, 6, 185,
+	182, 181, 179,
 }
 var yyR1 = [...]int{
 
@@ -359,9 +357,10 @@ var yyR1 = [...]int{
 	7, 6, 6, 5, 5, 5, 5, 12, 12, 13,
 	13, 15, 15, 16, 16, 8, 8, 8, 8, 8,
 	8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-	8, 8, 8, 8, 8, 8, 14, 14, 9, 9,
-	10, 10, 1, 1, 33, 35, 35, 34, 34, 17,
-	17, 36, 37, 37, 21, 18, 19, 19, 20, 20,
+	8, 8, 8, 8, 8, 8, 8, 14, 14, 9,
+	9, 10, 10, 1, 1, 33, 35, 35, 34, 34,
+	17, 17, 36, 37, 37, 21, 18, 19, 19, 20,
+	20,
 }
 var yyR2 = [...]int{
 
@@ -374,82 +373,83 @@ var yyR2 = [...]int{
 	2, 1, 3, 1, 3, 2, 2, 1, 3, 0,
 	1, 1, 3, 0, 2, 1, 4, 2, 2, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 4, 3, 3, 3, 5, 1, 3, 0, 1,
-	0, 2, 0, 1, 3, 1, 3, 1, 2, 1,
-	3, 1, 1, 2, 1, 4, 1, 3, 1, 2,
+	3, 4, 3, 3, 3, 3, 5, 1, 3, 0,
+	1, 0, 2, 0, 1, 3, 1, 3, 1, 2,
+	1, 3, 1, 1, 2, 1, 4, 1, 3, 1,
+	2,
 }
 var yyChk = [...]int{
 
-	-1000, -40, -22, 24, -23, 48, 23, -30, -24, -31,
-	43, 26, -25, -12, 44, 41, -26, -8, 29, -11,
-	34, 39, 10, -21, 35, -37, 17, 19, 5, 28,
-	-36, 42, 48, -32, 28, -17, -11, 15, 21, 9,
-	-12, -28, -27, -29, 30, 31, 7, 4, 12, 8,
-	10, 14, 16, 25, 36, 37, 27, 32, 39, 40,
-	22, 33, 29, -12, 11, 5, 17, -16, -15, -12,
-	-8, -8, 5, -36, -10, -8, -14, -33, -34, -10,
-	-8, -35, -10, -8, -42, 51, 5, 32, 9, -12,
-	-12, -8, -12, 13, 29, -8, -8, -8, -8, -8,
-	-8, -8, -8, -8, -8, -8, -8, 32, -8, -8,
-	-8, -8, 13, 28, -4, -3, -2, -8, -21, 7,
-	38, -12, -13, 13, 9, -1, -4, 18, -20, -19,
-	-18, 26, 9, -1, -20, 20, 20, 13, 9, 6,
-	48, -31, -7, -6, -5, -21, 7, 38, -12, -11,
-	13, -38, 48, -30, -8, 30, -38, 6, -1, 9,
-	15, -8, -8, 18, 13, -12, -12, 6, 18, -19,
-	29, -17, -8, 20, -8, -33, -8, 6, -1, 9,
-	15, -21, -21, 13, -38, -39, -41, -8, -2, -8,
-	-9, -8, -8, 32, 13, -5, -8, -38, -28, 45,
-	23, 48, 48, 18, 13, -8, -38, -22, 48, -9,
-	46, 18,
+	-1000, -40, -22, 25, -23, 49, 24, -30, -24, -31,
+	44, 27, -25, -12, 45, 42, -26, -8, 30, -11,
+	35, 40, 10, -21, 36, -37, 17, 19, 5, 29,
+	-36, 43, 49, -32, 29, -17, -11, 15, 22, 9,
+	-12, -28, -27, -29, 31, 32, 7, 4, 12, 8,
+	10, 14, 16, 26, 37, 38, 28, 33, 40, 41,
+	23, 21, 34, 30, -12, 11, 5, 17, -16, -15,
+	-12, -8, -8, 5, -36, -10, -8, -14, -33, -34,
+	-10, -8, -35, -10, -8, -42, 52, 5, 33, 9,
+	-12, -12, -8, -12, 13, 30, -8, -8, -8, -8,
+	-8, -8, -8, -8, -8, -8, -8, -8, 33, -8,
+	-8, -8, -8, -8, 13, 29, -4, -3, -2, -8,
+	-21, 7, 39, -12, -13, 13, 9, -1, -4, 18,
+	-20, -19, -18, 27, 9, -1, -20, 20, 20, 13,
+	9, 6, 49, -31, -7, -6, -5, -21, 7, 39,
+	-12, -11, 13, -38, 49, -30, -8, 31, -38, 6,
+	-1, 9, 15, -8, -8, 18, 13, -12, -12, 6,
+	18, -19, 30, -17, -8, 20, -8, -33, -8, 6,
+	-1, 9, 15, -21, -21, 13, -38, -39, -41, -8,
+	-2, -8, -9, -8, -8, 33, 13, -5, -8, -38,
+	-28, 46, 24, 49, 49, 18, 13, -8, -38, -22,
+	49, -9, 47, 18,
 }
 var yyDef = [...]int{
 
 	9, -2, 0, 1, 10, 11, 0, 13, 14, 27,
 	0, 0, 17, 29, 31, 34, 22, 67, 0, 75,
-	73, 0, 0, 37, 0, 44, 100, 100, 100, 114,
-	112, 111, 12, 35, 0, 0, 109, 0, 0, 0,
+	73, 0, 0, 37, 0, 44, 101, 101, 101, 115,
+	113, 112, 12, 35, 0, 0, 110, 0, 0, 0,
 	30, 23, 19, 0, 0, 25, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 51, 69, 0, 102, 71,
-	77, 78, 51, 113, 0, 96, 102, 105, 0, 0,
-	96, 107, 0, 96, 0, 36, 59, 0, 0, 32,
-	33, 68, 0, 0, 24, 79, 80, 81, 82, 83,
-	84, 85, 86, 87, 88, 89, 90, 0, 92, 93,
-	94, 0, 0, 38, 0, 102, 53, 55, 37, 0,
-	0, 70, 0, 0, 103, 74, 0, 45, 0, 118,
-	116, 0, 103, 101, 0, 48, 49, 0, 108, 50,
-	26, 28, 0, 102, 61, 63, 0, 0, 0, 110,
-	0, 18, 6, 4, 91, 0, 21, 40, 52, 103,
-	0, 57, 58, 41, 98, 76, 72, 39, 46, 119,
-	0, 0, 97, 47, 104, 106, 0, 0, 60, 103,
-	0, 65, 66, 0, 0, 0, 3, 95, 54, 56,
-	0, 99, 117, 0, 0, 62, 64, 16, 20, 9,
-	0, 8, 5, 42, 98, 115, 15, 0, 7, 0,
-	2, 43,
+	0, 0, 0, 0, 0, 0, 51, 69, 0, 103,
+	71, 77, 78, 51, 114, 0, 97, 103, 106, 0,
+	0, 97, 108, 0, 97, 0, 36, 59, 0, 0,
+	32, 33, 68, 0, 0, 24, 79, 80, 81, 82,
+	83, 84, 85, 86, 87, 88, 89, 90, 0, 92,
+	93, 94, 95, 0, 0, 38, 0, 103, 53, 55,
+	37, 0, 0, 70, 0, 0, 104, 74, 0, 45,
+	0, 119, 117, 0, 104, 102, 0, 48, 49, 0,
+	109, 50, 26, 28, 0, 103, 61, 63, 0, 0,
+	0, 111, 0, 18, 6, 4, 91, 0, 21, 40,
+	52, 104, 0, 57, 58, 41, 99, 76, 72, 39,
+	46, 120, 0, 0, 98, 47, 105, 107, 0, 0,
+	60, 104, 0, 65, 66, 0, 0, 0, 3, 96,
+	54, 56, 0, 100, 118, 0, 0, 62, 64, 16,
+	20, 9, 0, 8, 5, 42, 99, 116, 15, 0,
+	7, 0, 2, 43,
 }
 var yyTok1 = [...]int{
 
 	1, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	48, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	49, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 4, 3, 3,
 	5, 6, 7, 8, 9, 10, 11, 12, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 13, 51,
+	3, 3, 3, 3, 3, 3, 3, 3, 13, 52,
 	14, 15, 16, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 17, 3, 18, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 19, 3, 20,
+	3, 3, 3, 19, 21, 20,
 }
 var yyTok2 = [...]int{
 
-	2, 3, 21, 22, 23, 24, 25, 26, 27, 28,
-	29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-	39, 40, 41, 42, 43, 44, 45, 46, 47, 49,
-	50,
+	2, 3, 22, 23, 24, 25, 26, 27, 28, 29,
+	30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+	40, 41, 42, 43, 44, 45, 46, 47, 48, 50,
+	51,
 }
 var yyTok3 = [...]int{
 	0,
@@ -794,14 +794,14 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:178
+		//line build/parse.y:179
 		{
 			yylex.(*input).file = &File{Stmt: yyDollar[1].exprs}
 			return 0
 		}
 	case 2:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line build/parse.y:185
+		//line build/parse.y:186
 		{
 			statements := yyDollar[4].exprs
 			if yyDollar[2].exprs != nil {
@@ -822,20 +822,20 @@ yydefault:
 		}
 	case 3:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:204
+		//line build/parse.y:205
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 6:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:212
+		//line build/parse.y:213
 		{
 			yyVAL.exprs = nil
 			yyVAL.lastRule = nil
 		}
 	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:217
+		//line build/parse.y:218
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 			yyVAL.lastRule = yyDollar[1].lastRule
@@ -849,21 +849,21 @@ yydefault:
 		}
 	case 8:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:229
+		//line build/parse.y:230
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 			yyVAL.lastRule = nil
 		}
 	case 9:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:235
+		//line build/parse.y:236
 		{
 			yyVAL.exprs = nil
 			yyVAL.lastRule = nil
 		}
 	case 10:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:240
+		//line build/parse.y:241
 		{
 			// If this statement follows a comment block,
 			// attach the comments to the statement.
@@ -896,7 +896,7 @@ yydefault:
 		}
 	case 11:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:271
+		//line build/parse.y:272
 		{
 			// Blank line; sever last rule from future comments.
 			yyVAL.exprs = yyDollar[1].exprs
@@ -904,7 +904,7 @@ yydefault:
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:277
+		//line build/parse.y:278
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 			yyVAL.lastRule = yyDollar[1].lastRule
@@ -918,19 +918,19 @@ yydefault:
 		}
 	case 13:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:291
+		//line build/parse.y:292
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 14:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:295
+		//line build/parse.y:296
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
 	case 15:
 		yyDollar = yyS[yypt-7 : yypt+1]
-		//line build/parse.y:301
+		//line build/parse.y:302
 		{
 			yyVAL.expr = &DefStmt{
 				Function: Function{
@@ -945,7 +945,7 @@ yydefault:
 		}
 	case 16:
 		yyDollar = yyS[yypt-6 : yypt+1]
-		//line build/parse.y:314
+		//line build/parse.y:315
 		{
 			yyVAL.expr = &ForStmt{
 				For:  yyDollar[1].pos,
@@ -956,13 +956,13 @@ yydefault:
 		}
 	case 17:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:323
+		//line build/parse.y:324
 		{
 			yyVAL.expr = yyDollar[1].ifstmt
 		}
 	case 18:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:330
+		//line build/parse.y:331
 		{
 			yyVAL.ifstmt = &IfStmt{
 				ElsePos: yyDollar[1].pos,
@@ -971,7 +971,7 @@ yydefault:
 		}
 	case 20:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line build/parse.y:341
+		//line build/parse.y:342
 		{
 			inner := yyDollar[5].ifstmt
 			inner.If = yyDollar[1].pos
@@ -984,7 +984,7 @@ yydefault:
 		}
 	case 21:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:355
+		//line build/parse.y:356
 		{
 			yyVAL.ifstmt = &IfStmt{
 				If:   yyDollar[1].pos,
@@ -994,7 +994,7 @@ yydefault:
 		}
 	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:367
+		//line build/parse.y:368
 		{
 			yyVAL.ifstmt = yyDollar[1].ifstmt
 			yyVAL.ifstmt.ElsePos = yyDollar[2].ifstmt.ElsePos
@@ -1002,26 +1002,26 @@ yydefault:
 		}
 	case 26:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:379
+		//line build/parse.y:380
 		{
 			yyVAL.exprs = append([]Expr{yyDollar[1].expr}, yyDollar[2].exprs...)
 			yyVAL.lastRule = yyVAL.exprs[len(yyVAL.exprs)-1]
 		}
 	case 27:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:385
+		//line build/parse.y:386
 		{
 			yyVAL.exprs = []Expr{}
 		}
 	case 28:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:389
+		//line build/parse.y:390
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
 	case 30:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:396
+		//line build/parse.y:397
 		{
 			yyVAL.expr = &ReturnStmt{
 				Return: yyDollar[1].pos,
@@ -1030,7 +1030,7 @@ yydefault:
 		}
 	case 31:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:403
+		//line build/parse.y:404
 		{
 			yyVAL.expr = &ReturnStmt{
 				Return: yyDollar[1].pos,
@@ -1038,25 +1038,25 @@ yydefault:
 		}
 	case 32:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:408
+		//line build/parse.y:409
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 33:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:409
+		//line build/parse.y:410
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 34:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:411
+		//line build/parse.y:412
 		{
 			yyVAL.expr = &PythonBlock{Start: yyDollar[1].pos, Token: yyDollar[1].tok}
 		}
 	case 38:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:421
+		//line build/parse.y:422
 		{
 			yyVAL.expr = &DotExpr{
 				X:       yyDollar[1].expr,
@@ -1067,7 +1067,7 @@ yydefault:
 		}
 	case 39:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:430
+		//line build/parse.y:431
 		{
 			yyVAL.expr = &CallExpr{
 				X:              &LiteralExpr{Start: yyDollar[1].pos, Token: "load"},
@@ -1080,7 +1080,7 @@ yydefault:
 		}
 	case 40:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:441
+		//line build/parse.y:442
 		{
 			yyVAL.expr = &CallExpr{
 				X:              yyDollar[1].expr,
@@ -1093,7 +1093,7 @@ yydefault:
 		}
 	case 41:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:452
+		//line build/parse.y:453
 		{
 			yyVAL.expr = &IndexExpr{
 				X:          yyDollar[1].expr,
@@ -1104,7 +1104,7 @@ yydefault:
 		}
 	case 42:
 		yyDollar = yyS[yypt-6 : yypt+1]
-		//line build/parse.y:461
+		//line build/parse.y:462
 		{
 			yyVAL.expr = &SliceExpr{
 				X:          yyDollar[1].expr,
@@ -1117,7 +1117,7 @@ yydefault:
 		}
 	case 43:
 		yyDollar = yyS[yypt-8 : yypt+1]
-		//line build/parse.y:472
+		//line build/parse.y:473
 		{
 			yyVAL.expr = &SliceExpr{
 				X:           yyDollar[1].expr,
@@ -1132,7 +1132,7 @@ yydefault:
 		}
 	case 44:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:485
+		//line build/parse.y:486
 		{
 			if len(yyDollar[1].strings) == 1 {
 				yyVAL.expr = yyDollar[1].strings[0]
@@ -1146,7 +1146,7 @@ yydefault:
 		}
 	case 45:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:497
+		//line build/parse.y:498
 		{
 			yyVAL.expr = &ListExpr{
 				Start:          yyDollar[1].pos,
@@ -1157,7 +1157,7 @@ yydefault:
 		}
 	case 46:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:506
+		//line build/parse.y:507
 		{
 			exprStart, _ := yyDollar[2].expr.Span()
 			yyVAL.expr = &Comprehension{
@@ -1171,7 +1171,7 @@ yydefault:
 		}
 	case 47:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:518
+		//line build/parse.y:519
 		{
 			exprStart, _ := yyDollar[2].expr.Span()
 			yyVAL.expr = &Comprehension{
@@ -1185,7 +1185,7 @@ yydefault:
 		}
 	case 48:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:530
+		//line build/parse.y:531
 		{
 			yyVAL.expr = &DictExpr{
 				Start:          yyDollar[1].pos,
@@ -1196,7 +1196,7 @@ yydefault:
 		}
 	case 49:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:539
+		//line build/parse.y:540
 		{
 			yyVAL.expr = &SetExpr{
 				Start:          yyDollar[1].pos,
@@ -1207,7 +1207,7 @@ yydefault:
 		}
 	case 50:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:548
+		//line build/parse.y:549
 		{
 			if len(yyDollar[2].exprs) == 1 && yyDollar[2].comma.Line == 0 {
 				// Just a parenthesized expression, not a tuple.
@@ -1229,91 +1229,91 @@ yydefault:
 		}
 	case 51:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:569
+		//line build/parse.y:570
 		{
 			yyVAL.exprs = nil
 		}
 	case 52:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:573
+		//line build/parse.y:574
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 53:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:579
+		//line build/parse.y:580
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
 	case 54:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:583
+		//line build/parse.y:584
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
 	case 56:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:590
+		//line build/parse.y:591
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 57:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:594
+		//line build/parse.y:595
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 58:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:598
+		//line build/parse.y:599
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 59:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:603
+		//line build/parse.y:604
 		{
 			yyVAL.exprs = nil
 		}
 	case 60:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:607
+		//line build/parse.y:608
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 61:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:613
+		//line build/parse.y:614
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
 	case 62:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:617
+		//line build/parse.y:618
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
 	case 64:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:624
+		//line build/parse.y:625
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 65:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:628
+		//line build/parse.y:629
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 66:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:632
+		//line build/parse.y:633
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 68:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:639
+		//line build/parse.y:640
 		{
 			tuple, ok := yyDollar[1].expr.(*TupleExpr)
 			if !ok || !tuple.NoBrackets {
@@ -1329,37 +1329,37 @@ yydefault:
 		}
 	case 69:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:654
+		//line build/parse.y:655
 		{
 			yyVAL.expr = nil
 		}
 	case 71:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:661
+		//line build/parse.y:662
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
 	case 72:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:665
+		//line build/parse.y:666
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
 	case 73:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:670
+		//line build/parse.y:671
 		{
 			yyVAL.exprs = nil
 		}
 	case 74:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:674
+		//line build/parse.y:675
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 76:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:681
+		//line build/parse.y:682
 		{
 			yyVAL.expr = &LambdaExpr{
 				Function: Function{
@@ -1371,103 +1371,103 @@ yydefault:
 		}
 	case 77:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:690
+		//line build/parse.y:691
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 78:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:691
+		//line build/parse.y:692
 		{
 			yyVAL.expr = unary(yyDollar[1].pos, yyDollar[1].tok, yyDollar[2].expr)
 		}
 	case 79:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:692
+		//line build/parse.y:693
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 80:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:693
+		//line build/parse.y:694
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 81:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:694
+		//line build/parse.y:695
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 82:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:695
+		//line build/parse.y:696
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 83:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:696
+		//line build/parse.y:697
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 84:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:697
+		//line build/parse.y:698
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 85:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:698
+		//line build/parse.y:699
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 86:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:699
+		//line build/parse.y:700
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 87:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:700
+		//line build/parse.y:701
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 88:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:701
+		//line build/parse.y:702
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 89:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:702
+		//line build/parse.y:703
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 90:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:703
+		//line build/parse.y:704
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 91:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:704
+		//line build/parse.y:705
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, "not in", yyDollar[4].expr)
 		}
 	case 92:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:705
+		//line build/parse.y:706
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
 	case 93:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:706
+		//line build/parse.y:707
 		{
 			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 		}
@@ -1475,15 +1475,21 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line build/parse.y:708
 		{
+			yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
+		}
+	case 95:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line build/parse.y:710
+		{
 			if b, ok := yyDollar[3].expr.(*UnaryExpr); ok && b.Op == "not" {
 				yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, "is not", b.X)
 			} else {
 				yyVAL.expr = binary(yyDollar[1].expr, yyDollar[2].pos, yyDollar[2].tok, yyDollar[3].expr)
 			}
 		}
-	case 95:
+	case 96:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line build/parse.y:716
+		//line build/parse.y:718
 		{
 			yyVAL.expr = &ConditionalExpr{
 				Then:      yyDollar[1].expr,
@@ -1493,45 +1499,45 @@ yydefault:
 				Else:      yyDollar[5].expr,
 			}
 		}
-	case 96:
+	case 97:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:728
+		//line build/parse.y:730
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
-	case 97:
+	case 98:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:732
+		//line build/parse.y:734
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
-	case 98:
+	case 99:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:737
+		//line build/parse.y:739
 		{
 			yyVAL.expr = nil
 		}
-	case 100:
+	case 101:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:743
+		//line build/parse.y:745
 		{
 			yyVAL.exprs, yyVAL.comma = nil, Position{}
 		}
-	case 101:
+	case 102:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:747
+		//line build/parse.y:749
 		{
 			yyVAL.exprs, yyVAL.comma = yyDollar[1].exprs, yyDollar[2].pos
 		}
-	case 102:
+	case 103:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line build/parse.y:756
+		//line build/parse.y:758
 		{
 			yyVAL.pos = Position{}
 		}
-	case 104:
+	case 105:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:762
+		//line build/parse.y:764
 		{
 			yyVAL.expr = &KeyValueExpr{
 				Key:   yyDollar[1].expr,
@@ -1539,33 +1545,33 @@ yydefault:
 				Value: yyDollar[3].expr,
 			}
 		}
-	case 105:
+	case 106:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:772
+		//line build/parse.y:774
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
-	case 106:
+	case 107:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:776
+		//line build/parse.y:778
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].expr)
 		}
-	case 107:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:782
-		{
-			yyVAL.exprs = yyDollar[1].exprs
-		}
 	case 108:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:786
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line build/parse.y:784
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
-	case 110:
+	case 109:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line build/parse.y:788
+		{
+			yyVAL.exprs = yyDollar[1].exprs
+		}
+	case 111:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:793
+		//line build/parse.y:795
 		{
 			tuple, ok := yyDollar[1].expr.(*TupleExpr)
 			if !ok || !tuple.NoBrackets {
@@ -1579,9 +1585,9 @@ yydefault:
 			tuple.List = append(tuple.List, yyDollar[3].expr)
 			yyVAL.expr = tuple
 		}
-	case 111:
+	case 112:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:809
+		//line build/parse.y:811
 		{
 			yyVAL.string = &StringExpr{
 				Start:       yyDollar[1].pos,
@@ -1591,27 +1597,27 @@ yydefault:
 				Token:       yyDollar[1].tok,
 			}
 		}
-	case 112:
+	case 113:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:821
+		//line build/parse.y:823
 		{
 			yyVAL.strings = []*StringExpr{yyDollar[1].string}
 		}
-	case 113:
+	case 114:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:825
+		//line build/parse.y:827
 		{
 			yyVAL.strings = append(yyDollar[1].strings, yyDollar[2].string)
 		}
-	case 114:
+	case 115:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:831
+		//line build/parse.y:833
 		{
 			yyVAL.expr = &LiteralExpr{Start: yyDollar[1].pos, Token: yyDollar[1].tok}
 		}
-	case 115:
+	case 116:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line build/parse.y:837
+		//line build/parse.y:839
 		{
 			yyVAL.expr = &ForClause{
 				For:  yyDollar[1].pos,
@@ -1620,30 +1626,30 @@ yydefault:
 				X:    yyDollar[4].expr,
 			}
 		}
-	case 116:
+	case 117:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:847
+		//line build/parse.y:849
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
-	case 117:
+	case 118:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line build/parse.y:850
+		//line build/parse.y:852
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, &IfClause{
 				If:   yyDollar[2].pos,
 				Cond: yyDollar[3].expr,
 			})
 		}
-	case 118:
+	case 119:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line build/parse.y:859
+		//line build/parse.y:861
 		{
 			yyVAL.exprs = yyDollar[1].exprs
 		}
-	case 119:
+	case 120:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line build/parse.y:862
+		//line build/parse.y:864
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[2].exprs...)
 		}
