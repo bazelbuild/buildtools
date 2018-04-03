@@ -43,11 +43,6 @@ func (p Position) add(s string) Position {
 	return p
 }
 
-// IsValid reports whether the position is valid (non-zero).
-func (p Position) IsValid() bool {
-	return p.Line >= 1
-}
-
 // An Expr represents an input element.
 type Expr interface {
 	// Span returns the start and end position of the expression,
@@ -301,15 +296,16 @@ func (x *SetExpr) Span() (start, end Position) {
 // A TupleExpr represents a tuple literal: (List)
 type TupleExpr struct {
 	Comments
-	Start Position // can be empty if the tuple has no brackets, e.g. `a, b = x`
-	List  []Expr
+	NoBrackets bool // true if a tuple has no brackets, e.g. `a, b = x`
+	Start      Position
+	List       []Expr
 	End
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
 }
 
 func (x *TupleExpr) Span() (start, end Position) {
-	if x.Start.IsValid() {
+	if !x.NoBrackets {
 		return x.Start, x.End.Pos.add(")")
 	}
 	start, _ = x.List[0].Span()

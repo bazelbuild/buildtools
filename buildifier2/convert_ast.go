@@ -237,6 +237,7 @@ func convExpr(e syntax.Expr) build.Expr {
 	case *syntax.TupleExpr:
 		return &build.TupleExpr{
 			List:         convExprs(e.List),
+			NoBrackets:   !e.Lparen.IsValid(),
 			Comments:     convComments(e.Comments()),
 			ForceCompact: singleLine(e),
 		}

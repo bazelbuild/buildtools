@@ -638,9 +638,10 @@ expr:
 |	expr ',' test
 	{
 		tuple, ok := $1.(*TupleExpr)
-		if !ok || tuple.Start.IsValid() {
+		if !ok || !tuple.NoBrackets {
 			tuple = &TupleExpr{
 				List: []Expr{$1},
+				NoBrackets: true,
 				ForceCompact: true,
 				ForceMultiLine: false,
 			}
@@ -791,9 +792,10 @@ loop_vars:
 |	loop_vars ',' primary_expr
 	{
 		tuple, ok := $1.(*TupleExpr)
-		if !ok || tuple.Start.IsValid() {
+		if !ok || !tuple.NoBrackets {
 			tuple = &TupleExpr{
 				List: []Expr{$1},
+				NoBrackets: true,
 				ForceCompact: true,
 				ForceMultiLine: false,
 			}

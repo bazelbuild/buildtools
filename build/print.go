@@ -510,7 +510,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *TupleExpr:
 		mode := modeTuple
-		if !v.Start.IsValid() {
+		if v.NoBrackets {
 			mode = modeSeq
 		}
 		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
@@ -636,7 +636,7 @@ const (
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
-func useCompactMode(start *Position, list *[]Expr, end *End, forceCompact, forceMultiLine bool) bool {
+func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) bool {
 	// If there are line comments, use multiline
 	// so we can print the comments before the closing bracket.
 	for _, x := range *list {
@@ -649,7 +649,7 @@ func useCompactMode(start *Position, list *[]Expr, end *End, forceCompact, force
 	}
 
 	// Implicit tuples are always compact
-	if !start.IsValid() {
+	if mode == modeSeq {
 		return true
 	}
 
@@ -699,7 +699,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if useCompactMode(start, list, end, forceCompact, forceMultiLine) {
+	if useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
 		for i, x := range *list {
 			if i > 0 {
 				p.printf(", ")
