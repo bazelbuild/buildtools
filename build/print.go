@@ -510,7 +510,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *TupleExpr:
 		mode := modeTuple
-		if !v.Start.IsValid() {
+		if v.NoBrackets {
 			mode = modeSeq
 		}
 		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)

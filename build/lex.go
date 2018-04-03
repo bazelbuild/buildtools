@@ -754,7 +754,7 @@ func (in *input) order(v Expr) {
 		for _, x := range v.List {
 			in.order(x)
 		}
-		if v.Start.IsValid() {
+		if !v.NoBrackets {
 			in.order(&v.End)
 		}
 	case *UnaryExpr:
