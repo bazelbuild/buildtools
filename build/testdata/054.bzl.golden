@@ -17,3 +17,6 @@ elif False:
     b = a
 else:
     (a, b) = (b, a)
+
+if foo:
+    bar

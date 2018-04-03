@@ -20,3 +20,6 @@ else:
   else:
 
    (a,b)=(b,a)
+
+if foo:
+  bar
