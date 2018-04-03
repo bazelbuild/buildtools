@@ -118,9 +118,7 @@ package build
 %type	<exprs>		stmt          // a simple_stmt or a for/if/def block
 %type	<expr>		block_stmt    // a single for/if/def statement
 %type	<ifstmt>	if_else_block // a complete if-elif-else block
-%type	<ifstmt>	if_block      // a single if block
-%type	<ifstmt>	else_block    // a single else block
-%type	<ifstmt>	elif_chain    // an elif-elif-else chain
+%type	<ifstmt>	if_chain      // an elif-elif-else chain
 %type <pos>		elif          // `elif` or `else if` token(s)
 %type	<exprs>		simple_stmt   // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
 %type	<expr>		small_stmt    // A single statement, e.g. 'a = f(x)'
@@ -324,33 +322,8 @@ block_stmt:
 		$$ = $1
 	}
 
-// A single else-statement
-else_block:
-	_ELSE ':' suite
-	{
-		$$ = &IfStmt{
-			ElsePos: $1,
-			False: $3,
-		}
-	}
-
-// One or several elif-elif-else statements
-elif_chain:
-	else_block
-|	elif expr ':' suite elif_chain
-	{
-		inner := $5
-		inner.If = $1
-		inner.Cond = $2
-		inner.True = $4
-		$$ = &IfStmt{
-			ElsePos: $1,
-			False: []Expr{inner},
-		}
-	}
-
-// A single if-block
-if_block:
+// One or several if-elif-elif statements
+if_chain:
 	_IF expr ':' suite
 	{
 		$$ = &IfStmt{
@@ -359,15 +332,35 @@ if_block:
 			True: $4,
 		}
 	}
+|	if_chain elif expr ':' suite
+	{
+		$$ = $1
+		inner := $1
+		for len(inner.False) == 1 {
+			inner = inner.False[0].(*IfStmt)
+		}
+		inner.ElsePos = $2
+		inner.False = []Expr{
+			&IfStmt{
+				If: $2,
+				Cond: $3,
+				True: $5,
+			},
+		}
+	}
 
 // A complete if-elif-elif-else chain
 if_else_block:
-	if_block
-|	if_block elif_chain
+	if_chain
+|	if_chain _ELSE ':' suite
 	{
 		$$ = $1
-		$$.ElsePos = $2.ElsePos
-		$$.False = $2.False
+		inner := $1
+		for len(inner.False) == 1 {
+			inner = inner.False[0].(*IfStmt)
+		}
+		inner.ElsePos = $2
+		inner.False = $4
 	}
 
 elif:
