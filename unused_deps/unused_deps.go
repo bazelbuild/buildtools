@@ -137,6 +137,9 @@ func directDepParams(paramsFileName string) (depsByJar map[string]string) {
 			jar := scanner.Text()
 			scanner.Scan()
 			label := scanner.Text()
+			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+				label = label[1:]
+			}
 			depsByJar[jar] = label
 		}
 	}
