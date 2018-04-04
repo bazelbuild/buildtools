@@ -1,0 +1,25 @@
+# If-else clauses
+
+if True:
+  pass
+elif False:
+  pass
+
+if foo in bar:
+ for f in foo:
+  # loop
+  f()
+else if True:
+  a = b
+
+else:
+  if False:
+
+    #assign
+    b=a
+  else:
+
+   (a,b)=(b,a)
+
+if foo:
+  bar
