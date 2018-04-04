@@ -256,6 +256,9 @@ func main() {
 		return
 	}
 	targetPatterns := flag.Args()
+	if len(targetPatterns) == 0 {
+		targetPatterns = []string{"//..."}
+	}
 
 	queryCmd := append([]string{"query"}, blazeFlags...)
 	queryCmd = append(
