@@ -20,11 +20,11 @@ go_register_toolchains()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "255e1199c0876b9a8cc02d5ea569b6cfe1901d30428355817b7606ddecb04c15",
-    strip_prefix = "bazel-0.8.0",
+    sha256 = "e5321afb93e75cfb55f6f9c34d44f15230f8103677aa48a76ce3e868ee490d8e",
+    strip_prefix = "bazel-0.11.1",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.8.0.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.11.1.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.11.1.tar.gz",
     ],
 )
 
