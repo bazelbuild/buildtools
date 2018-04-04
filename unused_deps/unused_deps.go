@@ -137,6 +137,9 @@ func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
 				jar := scanner.Text()
 				scanner.Scan()
 				label := scanner.Text()
+				if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+					label = label[1:]
+				}
 				depsByJar[jar] = label
 			}
 		}
@@ -257,6 +260,9 @@ func main() {
 		return
 	}
 	targetPatterns := flag.Args()
+	if len(targetPatterns) == 0 {
+		targetPatterns = []string{"//..."}
+	}
 
 	queryCmd := append([]string{"query"}, blazeFlags...)
 	queryCmd = append(
