@@ -61,6 +61,7 @@ package build
 %token	<pos>	']'
 %token	<pos>	'{'
 %token	<pos>	'}'
+%token	<pos>	'|'
 
 // By convention, yacc token names are all caps.
 // However, we do not want to export them from the Go package
@@ -697,6 +698,7 @@ test:
 |	test _NOT _IN test { $$ = binary($1, $2, "not in", $4) }
 |	test _OR test      { $$ = binary($1, $2, $<tok>2, $3) }
 |	test _AND test     { $$ = binary($1, $2, $<tok>2, $3) }
+|	test '|' test      { $$ = binary($1, $2, $<tok>2, $3) }
 |	test _IS test
 	{
 		if b, ok := $3.(*UnaryExpr); ok && b.Op == "not" {
