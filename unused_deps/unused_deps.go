@@ -118,33 +118,41 @@ func inputFileName(blazeBin, pkg, ruleName, extension string) string {
 
 // directDepParams returns --direct_dependency entries from paramsFileName (a jar-2.params file)
 // as a map from jar files to labels.
-func directDepParams(paramsFileName string) (depsByJar map[string]string) {
+func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
 	depsByJar = make(map[string]string)
-	data, err := ioutil.ReadFile(paramsFileName)
-	if err != nil {
-		log.Println(err)
-		return depsByJar
-	}
-	// the classpath param exceeds MaxScanTokenSize, so we scan just this section:
-	first := bytes.Index(data, []byte("--direct_dependency"))
-	if first < 0 {
-		return depsByJar
-	}
-	scanner := bufio.NewScanner(bytes.NewReader(data[first:]))
-	for scanner.Scan() {
-		if scanner.Text() == "--direct_dependency" {
-			scanner.Scan()
-			jar := scanner.Text()
-			scanner.Scan()
-			label := scanner.Text()
-			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
-				label = label[1:]
+	errs := make([]error, 0)
+	for _, paramsFileName := range paramsFileNames {
+		data, err := ioutil.ReadFile(paramsFileName)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		// the classpath param exceeds MaxScanTokenSize, so we scan just this section:
+		first := bytes.Index(data, []byte("--direct_dependency"))
+		if first < 0 {
+			continue
+		}
+		scanner := bufio.NewScanner(bytes.NewReader(data[first:]))
+		for scanner.Scan() {
+			if scanner.Text() == "--direct_dependency" {
+				scanner.Scan()
+				jar := scanner.Text()
+				scanner.Scan()
+				label := scanner.Text()
+				if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+					label = label[1:]
+				}
+				depsByJar[jar] = label
 			}
-			depsByJar[jar] = label
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("reading %s: %s", paramsFileName, err)
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		log.Printf("reading %s: %s", paramsFileName, err)
+	if len(errs) == len(paramsFileNames) {
+		for _, err := range errs {
+			log.Println(err)
+		}
 	}
 	return depsByJar
 }
@@ -290,7 +298,7 @@ func main() {
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
 		_, pkg, ruleName := edit.InterpretLabel(label)
-		depsByJar := directDepParams(inputFileName(blazeBin, pkg, ruleName, "jar-2.params"))
+		depsByJar := directDepParams(inputFileName(blazeBin, pkg, ruleName, "jar-2.params"), inputFileName(blazeBin, pkg, ruleName+"-class", "jar-2.params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
 		// TODO(bazel-team): instead of printing, have buildifier-like modes?
 		anyCommandPrinted = printCommands(label, depsToRemove) || anyCommandPrinted
