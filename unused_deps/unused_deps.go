@@ -120,9 +120,11 @@ func inputFileName(blazeBin, pkg, ruleName, extension string) string {
 // as a map from jar files to labels.
 func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
 	depsByJar = make(map[string]string)
+	errs := make([]error, 0)
 	for _, paramsFileName := range paramsFileNames {
 		data, err := ioutil.ReadFile(paramsFileName)
 		if err != nil {
+			errs = append(errs, err)
 			continue
 		}
 		// the classpath param exceeds MaxScanTokenSize, so we scan just this section:
@@ -145,6 +147,11 @@ func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
 		}
 		if err := scanner.Err(); err != nil {
 			log.Printf("reading %s: %s", paramsFileName, err)
+		}
+	}
+	if len(errs) == len(paramsFileNames) {
+		for _, err := range errs {
+			log.Println(err)
 		}
 	}
 	return depsByJar
