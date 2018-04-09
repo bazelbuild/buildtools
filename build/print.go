@@ -166,6 +166,11 @@ func (p *printer) statements(stmts []Expr, isTopLevel bool) {
 		p.margin += nestedIndentation
 		p.level += 1
 		p.newline()
+
+		defer func() {
+			p.margin -= nestedIndentation
+			p.level -= 1
+		}()
 	}
 
 	for i, stmt := range stmts {
@@ -205,11 +210,6 @@ func (p *printer) statements(stmts []Expr, isTopLevel bool) {
 		if i+1 < len(stmts) && !compactStmt(stmt, stmts[i+1], p.level == 0) {
 			p.newline()
 		}
-	}
-
-	if !isTopLevel {
-		p.margin -= nestedIndentation
-		p.level -= 1
 	}
 }
 
