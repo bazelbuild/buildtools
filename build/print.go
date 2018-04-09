@@ -210,8 +210,11 @@ func compactStmt(s1, s2 Expr, isTopLevel bool) bool {
 		return false
 	}
 	if isCall(s1, "load") && isCall(s2, "load") {
-		// Load statements
+		// Load statements should be compact
 		return true
+	} else if isCall(s1, "load") || isCall(s2, "load") {
+		// Load statements should be separated from anything else
+		return false
 	} else if tables.FormattingMode == tables.BuildMode && isTopLevel {
 		// Top-level statements in a BUILD file
 		return false
