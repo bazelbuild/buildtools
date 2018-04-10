@@ -151,7 +151,7 @@ func (p *printer) file(f *File) {
 		p.newline()
 	}
 
-	p.statements(f.Stmt, true)
+	p.statements(f.Stmt)
 
 	for _, com := range f.After {
 		p.printf("%s", strings.TrimSpace(com.Token))
@@ -161,18 +161,18 @@ func (p *printer) file(f *File) {
 	p.newlineIfNeeded()
 }
 
-func (p *printer) statements(stmts []Expr, isTopLevel bool) {
-	if !isTopLevel {
-		p.margin += nestedIndentation
-		p.level += 1
-		p.newline()
+func (p *printer) nestedStatements(stmts []Expr) {
+	p.margin += nestedIndentation
+	p.level += 1
+	p.newline()
 
-		defer func() {
-			p.margin -= nestedIndentation
-			p.level -= 1
-		}()
-	}
+	p.statements(stmts)
 
+	p.margin -= nestedIndentation
+	p.level -= 1
+}
+
+func (p *printer) statements(stmts []Expr) {
 	for i, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *CommentBlock:
@@ -557,7 +557,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(v.Name)
 		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
-		p.statements(v.Body, false)
+		p.nestedStatements(v.Body)
 
 	case *ForStmt:
 		p.printf("for ")
@@ -565,7 +565,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(" in ")
 		p.expr(v.X, precLow)
 		p.printf(":")
-		p.statements(v.Body, false)
+		p.nestedStatements(v.Body)
 
 	case *IfStmt:
 		block := v
@@ -582,7 +582,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf("if ")
 			p.expr(block.Cond, precLow)
 			p.printf(":")
-			p.statements(block.True, false)
+			p.nestedStatements(block.True)
 
 			isFirst = false
 			_, end := block.True[len(block.True)-1].Span()
@@ -604,7 +604,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				p.newline()
 			}
 			p.printf("else:")
-			p.statements(block.False, false)
+			p.nestedStatements(block.False)
 		}
 	}
 
