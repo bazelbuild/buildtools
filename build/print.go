@@ -27,8 +27,8 @@ import (
 
 const (
 	nestedIndentation = 4 // Indentation of nested blocks
-	listIndentation = 4   // Indentation of multiline expressions
-	defIndentation = 8    // Indentation of multiline function definitions
+	listIndentation   = 4 // Indentation of multiline expressions
+	defIndentation    = 8 // Indentation of multiline function definitions
 )
 
 // Format returns the formatted form of the given BUILD file.
@@ -557,7 +557,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(v.Name)
 		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
-		p.statements(v.Body,false)
+		p.statements(v.Body, false)
 
 	case *ForStmt:
 		p.printf("for ")
@@ -565,7 +565,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(" in ")
 		p.expr(v.X, precLow)
 		p.printf(":")
-		p.statements(v.Body,false)
+		p.statements(v.Body, false)
 
 	case *IfStmt:
 		block := v
@@ -582,7 +582,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf("if ")
 			p.expr(block.Cond, precLow)
 			p.printf(":")
-			p.statements(block.True,false)
+			p.statements(block.True, false)
 
 			isFirst = false
 			_, end := block.True[len(block.True)-1].Span()
@@ -604,7 +604,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				p.newline()
 			}
 			p.printf("else:")
-			p.statements(block.False,false)
+			p.statements(block.False, false)
 		}
 	}
 
