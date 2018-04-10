@@ -27,8 +27,8 @@ import (
 
 const (
 	nestedIndentation = 4 // Indentation of nested blocks
-	listIndentation = 4   // Indentation of multiline expressions
-	defIndentation = 8    // Indentation of multiline function definitions
+	listIndentation   = 4 // Indentation of multiline expressions
+	defIndentation    = 8 // Indentation of multiline function definitions
 )
 
 // Format returns the formatted form of the given BUILD file.
@@ -56,6 +56,7 @@ type printer struct {
 	comment      []Comment // pending end-of-line comments
 	margin       int       // left margin (indent), a number of spaces
 	depth        int       // nesting depth inside ( ) [ ] { }
+	level        int       // nesting level of def-, if-else- and for-blocks
 	needsNewLine bool      // true if the next statement needs a new line before it
 }
 
@@ -160,6 +161,17 @@ func (p *printer) file(f *File) {
 	p.newlineIfNeeded()
 }
 
+func (p *printer) nestedStatements(stmts []Expr) {
+	p.margin += nestedIndentation
+	p.level += 1
+	p.newline()
+
+	p.statements(stmts)
+
+	p.margin -= nestedIndentation
+	p.level -= 1
+}
+
 func (p *printer) statements(stmts []Expr) {
 	for i, stmt := range stmts {
 		switch stmt := stmt.(type) {
@@ -195,7 +207,7 @@ func (p *printer) statements(stmts []Expr) {
 			p.newline()
 		}
 
-		if i+1 < len(stmts) && !compactStmt(stmt, stmts[i+1], p.margin == 0) {
+		if i+1 < len(stmts) && !compactStmt(stmt, stmts[i+1], p.level == 0) {
 			p.newline()
 		}
 	}
@@ -545,10 +557,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(v.Name)
 		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
 		p.printf(":")
-		p.margin += nestedIndentation
-		p.newline()
-		p.statements(v.Body)
-		p.margin -= nestedIndentation
+		p.nestedStatements(v.Body)
 
 	case *ForStmt:
 		p.printf("for ")
@@ -556,10 +565,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf(" in ")
 		p.expr(v.X, precLow)
 		p.printf(":")
-		p.margin += nestedIndentation
-		p.newline()
-		p.statements(v.Body)
-		p.margin -= nestedIndentation
+		p.nestedStatements(v.Body)
 
 	case *IfStmt:
 		block := v
@@ -576,10 +582,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf("if ")
 			p.expr(block.Cond, precLow)
 			p.printf(":")
-			p.margin += nestedIndentation
-			p.newline()
-			p.statements(block.True)
-			p.margin -= nestedIndentation
+			p.nestedStatements(block.True)
 
 			isFirst = false
 			_, end := block.True[len(block.True)-1].Span()
@@ -601,10 +604,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				p.newline()
 			}
 			p.printf("else:")
-			p.margin += nestedIndentation
-			p.newline()
-			p.statements(block.False)
-			p.margin -= nestedIndentation
+			p.nestedStatements(block.False)
 		}
 	}
 
@@ -636,7 +636,7 @@ const (
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
-func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) bool {
+func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine, isTopLevel bool) bool {
 	// If there are line comments, use multiline
 	// so we can print the comments before the closing bracket.
 	for _, x := range *list {
@@ -654,7 +654,8 @@ func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, force
 	}
 
 	// In Default printing mode try to keep the original printing style
-	if tables.FormattingMode == tables.DefaultMode {
+	// Non-top-level statements should also keep the original style regardless of the mode
+	if tables.FormattingMode == tables.DefaultMode || !isTopLevel {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode
 		previousEnd := start.Line
@@ -699,7 +700,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
+	if useCompactMode(start, list, end, mode, forceCompact, forceMultiLine, p.level == 0) {
 		for i, x := range *list {
 			if i > 0 {
 				p.printf(", ")
