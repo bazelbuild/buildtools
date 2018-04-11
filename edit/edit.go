@@ -729,16 +729,18 @@ func UsedSymbols(f *build.File) map[string]bool {
 	return symbols
 }
 
-func newLoad(args []string) *build.CallExpr {
-	load := &build.CallExpr{
-		X: &build.LiteralExpr{
-			Token: "load",
+func newLoad(args []string) *build.LoadStmt {
+	load := &build.LoadStmt{
+		Module:	&build.StringExpr{
+			Value: args[0],
 		},
-		List:         []build.Expr{},
+		From: []*build.Ident{},
+		To: []*build.Ident{},
 		ForceCompact: true,
 	}
-	for _, a := range args {
-		load.List = append(load.List, &build.StringExpr{Value: a})
+	for _, a := range args[1:] {
+		load.From = append(load.From, &build.Ident{Name: a})
+		load.To = append(load.From, &build.Ident{Name: a})
 	}
 	return load
 }
@@ -753,29 +755,21 @@ func appendLoad(stmts []build.Expr, args []string) bool {
 	for _, s := range args[1:] {
 		symbolsToLoad[s] = true
 	}
-	var lastLoad *build.CallExpr
+	var lastLoad *build.LoadStmt
 	for _, s := range stmts {
-		call, ok := s.(*build.CallExpr)
+		load, ok := s.(*build.LoadStmt)
 		if !ok {
 			continue
 		}
-		if l, ok := call.X.(*build.LiteralExpr); !ok || l.Token != "load" {
-			continue
-		}
-		if len(call.List) < 2 {
-			continue
-		}
-		if s, ok := call.List[0].(*build.StringExpr); !ok || s.Value != location {
+		if load.Module.Value != location {
 			continue // Loads a different file.
 		}
-		for _, arg := range call.List[1:] {
-			if s, ok := arg.(*build.StringExpr); ok {
-				delete(symbolsToLoad, s.Value) // Already loaded.
-			}
+		for _, ident := range load.To {
+			delete(symbolsToLoad, ident.Name) // Already loaded.
 		}
 		// Remember the last insert location, but potentially remove more symbols
 		// that are already loaded in other subsequent calls.
-		lastLoad = call
+		lastLoad = load
 	}
 
 	if lastLoad == nil {
@@ -789,7 +783,8 @@ func appendLoad(stmts []build.Expr, args []string) bool {
 	}
 	sort.Strings(sortedSymbols)
 	for _, s := range sortedSymbols {
-		lastLoad.List = append(lastLoad.List, &build.StringExpr{Value: s})
+		lastLoad.From = append(lastLoad.From, &build.Ident{Name: s})
+		lastLoad.To = append(lastLoad.To, &build.Ident{Name: s})
 	}
 	return true
 }

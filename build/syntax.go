@@ -128,6 +128,16 @@ func (x *Ident) Span() (start, end Position) {
 	return x.NamePos, x.NamePos.add(x.Name)
 }
 
+func (x *Ident) AsString() *StringExpr {
+	_, end := x.Span()
+	return &StringExpr{
+		Comments: x.Comments,
+		Start: x.NamePos,
+		Value: x.Name,
+		End: end,
+	}
+}
+
 // A LiteralExpr represents a literal number.
 type LiteralExpr struct {
 	Comments
@@ -442,11 +452,12 @@ type LoadStmt struct {
 	Module *StringExpr
 	From   []*Ident // name defined in loading module
 	To     []*Ident // name in loaded module
-	Rparen Position
+	Rparen End
+	ForceCompact   bool // force compact (non-multiline) form when printing
 }
 
 func (x *LoadStmt) Span() (start, end Position) {
-	return x.Load, x.Rparen
+	return x.Load, x.Rparen.Pos
 }
 
 // A DefStmt represents a function definition expression: def foo(List):.

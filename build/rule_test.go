@@ -134,10 +134,10 @@ rule()`, "foo", `Use an implicit name for the one unnamed rule`},
 		{"foo/BUILD", `rule()
 rule()
 rule()`, "", `No implicit name for multiple unnamed rules`},
-		{"foo/BUILD", `load()
+		{"foo/BUILD", `load(":foo.bzl", "bar")
 rule(name="a")
 rule(name="b")`, "", `No implicit name for load`},
-		{"foo/BUILD", `load()
+		{"foo/BUILD", `load(":foo.bzl", "bar")
 rule()`, "foo", `Use an implicit name for one unnamed rule with load`},
 		{"BUILD", `rule()`, "", `No implicit name for root package`},
 	}

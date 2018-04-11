@@ -31,7 +31,7 @@ type Rule struct {
 
 func (f *File) Rule(call *CallExpr) *Rule {
 	r := &Rule{call, ""}
-	if r.AttrString("name") == "" && r.Kind() != "load" {
+	if r.AttrString("name") == "" {
 		r.ImplicitName = f.implicitRuleName()
 	}
 	return r
@@ -117,7 +117,7 @@ func (f *File) implicitRuleName() string {
 			// A target explicitly has the name of the dir, so no implicit targets are allowed.
 			return ""
 		}
-		if temp.Kind() != "" && temp.Kind() != "load" && temp.AttrString("name") == "" {
+		if temp.Kind() != "" && temp.AttrString("name") == "" {
 			if sawAnonymousRule {
 				return ""
 			}
