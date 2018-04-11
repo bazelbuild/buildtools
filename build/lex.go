@@ -716,8 +716,8 @@ func (in *input) order(v Expr) {
 	case *LoadStmt:
 		in.order(v.Module)
 		for i := range v.From {
-			in.order(v.From[i])
 			in.order(v.To[i])
+			in.order(v.From[i])
 		}
 		in.order(&v.Rparen)
 	case *PythonBlock:
