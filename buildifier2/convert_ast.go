@@ -37,23 +37,17 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 			Comments: convComments(stmt.Comments()),
 		}
 	case *syntax.LoadStmt:
-		args := []build.Expr{}
-		args = append(args, &build.StringExpr{Value: stmt.Module.Value.(string)})
-		for i, _ := range stmt.From {
-			if stmt.From[i].Name == stmt.To[i].Name {
-				args = append(args, &build.StringExpr{Value: stmt.To[i].Name})
-			} else {
-				args = append(args, &build.BinaryExpr{
-					Op: "=",
-					X:  &build.LiteralExpr{Token: stmt.From[i].Name},
-					Y:  &build.StringExpr{Value: stmt.To[i].Name}})
-			}
-		}
-		return &build.CallExpr{
-			X:            &build.LiteralExpr{Token: "load"},
-			List:         args,
+		load := &build.LoadStmt{
+			Module:       convExpr(stmt.Module).(*build.StringExpr),
 			ForceCompact: singleLine(stmt),
 		}
+		for _, ident := range stmt.From {
+			load.From = append(load.From, convExpr(ident).(*build.Ident))
+		}
+		for _, ident := range stmt.To {
+			load.To = append(load.To, convExpr(ident).(*build.Ident))
+		}
+		return load
 	case *syntax.AssignStmt:
 		return &build.BinaryExpr{
 			Op:       stmt.Op.String(),
@@ -172,7 +166,7 @@ func convExpr(e syntax.Expr) build.Expr {
 				Comments:    convComments(e.Comments())}
 		}
 	case *syntax.Ident:
-		return &build.LiteralExpr{Token: e.Name, Comments: convComments(e.Comments())}
+		return &build.Ident{Name: e.Name, Comments: convComments(e.Comments())}
 	case *syntax.BinaryExpr:
 		_, lhsEnd := e.X.Span()
 		rhsBegin, _ := e.Y.Span()

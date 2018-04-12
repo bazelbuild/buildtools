@@ -1,7 +1,7 @@
 set -e
 
 mkdir test
-INPUT="foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
+INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
 echo -e "$INPUT" > test/BUILD
 echo -e "$INPUT" > test/test.bzl
 
@@ -9,6 +9,8 @@ $1 --type=auto test/*
 $2 test/test.bzl > test/test.bzl.out
 
 cat > test/BUILD.golden <<EOF
+load(":foo.bzl", "foo")
+
 foo(
     srcs = [
         "c",
@@ -21,6 +23,8 @@ foo(
 )
 EOF
 cat > test/test.bzl.golden <<EOF
+load(":foo.bzl", "foo")
+
 foo(tags = ["b", "a"], srcs = ["d", "c"])
 EOF
 

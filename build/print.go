@@ -221,9 +221,12 @@ func compactStmt(s1, s2 Expr, isTopLevel bool) bool {
 	if len(s2.Comment().Before) > 0 {
 		return false
 	}
-	if isCall(s1, "load") && isCall(s2, "load") {
-		// Load statements
+	if isLoad(s1) && isLoad(s2) {
+		// Load statements should be compact
 		return true
+	} else if isLoad(s1) || isLoad(s2) {
+		// Load statements should be separated from anything else
+		return false
 	} else if tables.FormattingMode == tables.BuildMode && isTopLevel {
 		// Top-level statements in a BUILD file
 		return false
@@ -238,17 +241,10 @@ func compactStmt(s1, s2 Expr, isTopLevel bool) bool {
 	}
 }
 
-// isCall reports whether x is a call to a function with the given name.
-func isCall(x Expr, name string) bool {
-	c, ok := x.(*CallExpr)
-	if !ok {
-		return false
-	}
-	nam, ok := c.X.(*LiteralExpr)
-	if !ok {
-		return false
-	}
-	return nam.Token == name
+// isLoad reports whether x is a load statement.
+func isLoad(x Expr) bool {
+	_, ok := x.(*LoadStmt)
+	return ok
 }
 
 // isCodeBlock checks if the statement is a code block (def, if, for, etc.)
@@ -398,6 +394,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *LiteralExpr:
 		p.printf("%s", v.Token)
 
+	case *Ident:
+		p.printf("%s", v.Name)
+
 	case *StringExpr:
 		// If the Token is a correct quoting of Value, use it.
 		// This preserves the specific escaping choices that
@@ -513,6 +512,27 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
 		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
+
+	case *LoadStmt:
+		addParen(precSuffix)
+		p.printf("load")
+		args := []Expr{v.Module}
+		for i := range v.From {
+			from := v.From[i]
+			to := v.To[i]
+			var arg Expr
+			if from.Name == to.Name {
+				arg = to.AsString()
+			} else {
+				arg = &BinaryExpr{
+					X: to,
+					Op: "=",
+					Y: from.AsString(),
+				}
+			}
+			args = append(args, arg)
+		}
+		p.seq("()", &v.Load, &args, &v.Rparen, modeCall, v.ForceCompact, false)
 
 	case *ListExpr:
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)

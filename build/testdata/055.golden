@@ -1,0 +1,8 @@
+load(":foo.bzl", "foo", "a", b = "c", "d")
+load(":bar.bzl", "bar")
+load(
+    ":foobar.bzl",
+    "foobar",
+)
+
+foo(bar())

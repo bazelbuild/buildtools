@@ -28,6 +28,8 @@ package build
 	string    *StringExpr
 	strings   []*StringExpr
 	ifstmt    *IfStmt
+	loadarg   *struct{from Ident; to Ident}
+	loadargs  []*struct{from Ident; to Ident}
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
@@ -131,6 +133,8 @@ package build
 %type	<strings>	strings
 %type	<exprs>		suite
 %type	<exprs>		comments
+%type	<loadarg>	load_argument
+%type	<loadargs>	load_arguments
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -420,16 +424,19 @@ primary_expr:
 			Name: $<tok>3,
 		}
 	}
-|	_LOAD '(' arguments_opt ')'
+|	_LOAD '(' string ',' load_arguments comma_opt ')'
 	{
-		$$ = &CallExpr{
-			X: &LiteralExpr{Start: $1, Token: "load"},
-			ListStart: $2,
-			List: $3,
-			End: End{Pos: $4},
-			ForceCompact: forceCompact($2, $3, $4),
-			ForceMultiLine: forceMultiLine($2, $3, $4),
+		load := &LoadStmt{
+			Load: $1,
+			Module: $3,
+			Rparen: End{Pos: $7},
+			ForceCompact: $1.Line == $7.Line,
 		}
+		for _, arg := range $5 {
+			load.From = append(load.From, &arg.from)
+			load.To = append(load.To, &arg.to)
+		}
+		$$ = load
 	}
 |	primary_expr '(' arguments_opt ')'
 	{
@@ -591,6 +598,44 @@ argument:
 |	_STAR_STAR test
 	{
 		$$ = unary($1, $<tok>1, $2)
+	}
+
+load_arguments:
+	load_argument {
+		$$ = []*struct{from Ident; to Ident}{$1}
+	}
+| load_arguments ',' load_argument
+	{
+		$1 = append($1, $3)
+		$$ = $1
+	}
+
+load_argument:
+	string {
+		$$ = &struct{from Ident; to Ident}{
+			from: Ident{
+				Name: $1.Value,
+				NamePos: $1.Start,
+			},
+			to: Ident{
+				Name: $1.Value,
+				NamePos: $1.Start,
+			},
+		}
+	}
+| ident '=' string
+	{
+		ident := $1.(*LiteralExpr)
+		$$ = &struct{from Ident; to Ident}{
+			from: Ident{
+				Name: $3.Value,
+				NamePos: $3.Start,
+			},
+			to: Ident{
+				Name: ident.Token,
+				NamePos: ident.Start,
+			},
+		}
 	}
 
 parameters_opt:

@@ -713,11 +713,20 @@ func (in *input) order(v Expr) {
 			in.order(x)
 		}
 		in.order(&v.End)
+	case *LoadStmt:
+		in.order(v.Module)
+		for i := range v.From {
+			in.order(v.To[i])
+			in.order(v.From[i])
+		}
+		in.order(&v.Rparen)
 	case *PythonBlock:
 		// nothing
 	case *LiteralExpr:
 		// nothing
 	case *StringExpr:
+		// nothing
+	case *Ident:
 		// nothing
 	case *DotExpr:
 		in.order(v.X)
