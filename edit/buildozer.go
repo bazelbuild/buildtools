@@ -254,7 +254,7 @@ func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 }
 
 func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
-	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args)
+	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args[0], env.Args[1:], env.Args[1:])
 	return env.File, nil
 }
 
