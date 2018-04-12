@@ -163,13 +163,13 @@ func (p *printer) file(f *File) {
 
 func (p *printer) nestedStatements(stmts []Expr) {
 	p.margin += nestedIndentation
-	p.level += 1
+	p.level++
 	p.newline()
 
 	p.statements(stmts)
 
 	p.margin -= nestedIndentation
-	p.level -= 1
+	p.level--
 }
 
 func (p *printer) statements(stmts []Expr) {
