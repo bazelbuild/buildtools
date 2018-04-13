@@ -522,12 +522,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			to := v.To[i]
 			var arg Expr
 			if from.Name == to.Name {
-				arg = to.AsString()
+				arg = to.asString()
 			} else {
 				arg = &BinaryExpr{
 					X: to,
 					Op: "=",
-					Y: from.AsString(),
+					Y: from.asString(),
 				}
 			}
 			args = append(args, arg)
