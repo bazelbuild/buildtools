@@ -738,7 +738,7 @@ func newLoad(location string, from, to []string) *build.LoadStmt {
 	}
 	for i := range from {
 		load.From = append(load.From, &build.Ident{Name: from[i]})
-		load.To = append(load.From, &build.Ident{Name: to[i]})
+		load.To = append(load.To, &build.Ident{Name: to[i]})
 	}
 	return load
 }
