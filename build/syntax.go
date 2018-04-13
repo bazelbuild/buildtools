@@ -128,7 +128,7 @@ func (x *Ident) Span() (start, end Position) {
 	return x.NamePos, x.NamePos.add(x.Name)
 }
 
-func (x *Ident) AsString() *StringExpr {
+func (x *Ident) asString() *StringExpr {
 	_, end := x.Span()
 	return &StringExpr{
 		Comments: x.Comments,
