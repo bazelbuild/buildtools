@@ -136,7 +136,7 @@ load("other loc", "symbol")`,
 			t.Error(err)
 			continue
 		}
-		bld.Stmt = InsertLoad(bld.Stmt, []string{"location", "symbol"})
+		bld.Stmt = InsertLoad(bld.Stmt, "location", []string{"symbol"}, []string{"symbol"})
 		got := strings.TrimSpace(string(build.Format(bld)))
 		if got != tst.expected {
 			t.Errorf("maybeInsertLoad(%s): got %s, expected %s", tst.input, got, tst.expected)

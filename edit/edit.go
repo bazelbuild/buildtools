@@ -729,31 +729,25 @@ func UsedSymbols(f *build.File) map[string]bool {
 	return symbols
 }
 
-func newLoad(args []string) *build.LoadStmt {
+func newLoad(location string, from, to []string) *build.LoadStmt {
 	load := &build.LoadStmt{
-		Module:	&build.StringExpr{
-			Value: args[0],
+		Module: &build.StringExpr{
+			Value: location,
 		},
-		From: []*build.Ident{},
-		To: []*build.Ident{},
 		ForceCompact: true,
 	}
-	for _, a := range args[1:] {
-		load.From = append(load.From, &build.Ident{Name: a})
-		load.To = append(load.From, &build.Ident{Name: a})
+	for i := range from {
+		load.From = append(load.From, &build.Ident{Name: from[i]})
+		load.To = append(load.From, &build.Ident{Name: to[i]})
 	}
 	return load
 }
 
 // appendLoad tries to find an existing load location and append symbols to it.
-func appendLoad(stmts []build.Expr, args []string) bool {
-	if len(args) == 0 {
-		return false
-	}
-	location := args[0]
-	symbolsToLoad := make(map[string]bool)
-	for _, s := range args[1:] {
-		symbolsToLoad[s] = true
+func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
+	symbolsToLoad := make(map[string]string)
+	for i, s := range to {
+		symbolsToLoad[s] = from[i]
 	}
 	var lastLoad *build.LoadStmt
 	for _, s := range stmts {
@@ -783,7 +777,7 @@ func appendLoad(stmts []build.Expr, args []string) bool {
 	}
 	sort.Strings(sortedSymbols)
 	for _, s := range sortedSymbols {
-		lastLoad.From = append(lastLoad.From, &build.Ident{Name: s})
+		lastLoad.From = append(lastLoad.From, &build.Ident{Name: symbolsToLoad[s]})
 		lastLoad.To = append(lastLoad.To, &build.Ident{Name: s})
 	}
 	return true
@@ -793,12 +787,12 @@ func appendLoad(stmts []build.Expr, args []string) bool {
 // The load statement is constructed using args. Symbols that are already loaded
 // from the given filepath are ignored. If stmts already contains a load for the
 // location in arguments, appends the symbols to load to it.
-func InsertLoad(stmts []build.Expr, args []string) []build.Expr {
-	if appendLoad(stmts, args) {
+func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
+	if appendLoad(stmts, location, from, to) {
 		return stmts
 	}
 
-	load := newLoad(args)
+	load := newLoad(location, from, to)
 
 	var all []build.Expr
 	added := false
