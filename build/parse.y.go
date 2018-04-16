@@ -994,7 +994,7 @@ yydefault:
 			for len(inner.False) == 1 {
 				inner = inner.False[0].(*IfStmt)
 			}
-			inner.ElsePos = yyDollar[2].pos
+			inner.ElsePos = End{Pos: yyDollar[2].pos}
 			inner.False = []Expr{
 				&IfStmt{
 					If:   yyDollar[2].pos,
@@ -1012,7 +1012,7 @@ yydefault:
 			for len(inner.False) == 1 {
 				inner = inner.False[0].(*IfStmt)
 			}
-			inner.ElsePos = yyDollar[2].pos
+			inner.ElsePos = End{Pos: yyDollar[2].pos}
 			inner.False = yyDollar[4].exprs
 		}
 	case 24:

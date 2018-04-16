@@ -344,7 +344,7 @@ if_chain:
 		for len(inner.False) == 1 {
 			inner = inner.False[0].(*IfStmt)
 		}
-		inner.ElsePos = $2
+		inner.ElsePos = End{Pos: $2}
 		inner.False = []Expr{
 			&IfStmt{
 				If: $2,
@@ -364,7 +364,7 @@ if_else_block:
 		for len(inner.False) == 1 {
 			inner = inner.False[0].(*IfStmt)
 		}
-		inner.ElsePos = $2
+		inner.ElsePos = End{Pos: $2}
 		inner.False = $4
 	}
 

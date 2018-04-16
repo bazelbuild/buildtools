@@ -510,7 +510,7 @@ type IfStmt struct {
 	If      Position // position of if
 	Cond    Expr
 	True    []Expr
-	ElsePos Position // position of else or elif
+	ElsePos End      // position of else or elif
 	False   []Expr   // optional
 }
 
