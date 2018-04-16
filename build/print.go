@@ -525,9 +525,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				arg = to.asString()
 			} else {
 				arg = &BinaryExpr{
-					X: to,
+					X:  to,
 					Op: "=",
-					Y: from.asString(),
+					Y:  from.asString(),
 				}
 			}
 			args = append(args, arg)
