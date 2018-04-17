@@ -24,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bazelbuild/buildtools/tables"
+	"sort"
 )
 
 // Parse parses the input data and returns the corresponding parse tree.
@@ -240,12 +241,17 @@ func (in *input) Lex(val *yySymType) int {
 			// Find the last \n before this # and see if it's all
 			// spaces from there to here.
 			// If it's a suffix comment but the last non-space symbol before
-			// it is one of (, [, or {, treat it as a line comment that should be
+			// it is one of (, [, or {, or it's a suffix comment to "):"
+			// (e.g. trailing closing bracket or a function definition),
+			// treat it as a line comment that should be
 			// put inside the corresponding block.
 			i := bytes.LastIndex(in.complete[:in.pos.Byte], []byte("\n"))
 			prefix := bytes.TrimSpace(in.complete[i+1 : in.pos.Byte])
+			prefix = bytes.Replace(prefix, []byte{' '}, []byte{}, -1)
 			isSuffix := true
+			fmt.Println(string(prefix))
 			if len(prefix) == 0 ||
+				(len(prefix) == 2 && prefix[0] == ')' && prefix[1] == ':') ||
 				prefix[len(prefix)-1] == '[' ||
 				prefix[len(prefix)-1] == '(' ||
 				prefix[len(prefix)-1] == '{' {
@@ -831,21 +837,11 @@ func (in *input) order(v Expr) {
 func (in *input) assignComments() {
 	// Generate preorder and postorder lists.
 	in.order(in.file)
+	in.assignSuffixComments()
+	in.assignLineComments()
+}
 
-	// Assign line comments to syntax immediately following.
-	line := in.lineComments
-	for _, x := range in.pre {
-		start, _ := x.Span()
-		xcom := x.Comment()
-		for len(line) > 0 && start.Byte >= line[0].Start.Byte {
-			xcom.Before = append(xcom.Before, line[0])
-			line = line[1:]
-		}
-	}
-
-	// Remaining line comments go at end of file.
-	in.file.After = append(in.file.After, line...)
-
+func (in *input) assignSuffixComments() {
 	// Assign suffix comments to syntax immediately before.
 	suffix := in.suffixComments
 	for i := len(in.post) - 1; i >= 0; i-- {
@@ -874,6 +870,27 @@ func (in *input) assignComments() {
 
 	// Remaining suffix comments go at beginning of file.
 	in.file.Before = append(in.file.Before, suffix...)
+}
+
+func (in *input) assignLineComments() {
+	// Assign line comments to syntax immediately following.
+	line := in.lineComments
+	for _, x := range in.pre {
+		start, _ := x.Span()
+		xcom := x.Comment()
+		for len(line) > 0 && start.Byte >= line[0].Start.Byte {
+			xcom.Before = append(xcom.Before, line[0])
+			line = line[1:]
+		}
+		// Line comments can be sorted in a wrong order because they get assgined from different
+		// parts of the lexer and the parser. Restore the original order.
+		sort.Slice(xcom.Before, func(i, j int) bool {
+			return xcom.Before[i].Start.Byte < xcom.Before[j].Start.Byte
+		})
+	}
+
+	// Remaining line comments go at end of file.
+	in.file.After = append(in.file.After, line...)
 }
 
 // reverseComments reverses the []Comment list.
