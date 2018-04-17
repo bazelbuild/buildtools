@@ -75,7 +75,7 @@ func ShortenLabel(label string, pkg string) string {
 	if !ShortenLabelsFlag {
 		return label
 	}
-	if !strings.HasPrefix(label, "//") {
+	if !strings.Contains(label, "//") {
 		// It doesn't look like a long label, so we preserve it.
 		return label
 	}
@@ -85,7 +85,10 @@ func ShortenLabel(label string, pkg string) string {
 	}
 	slash := strings.LastIndex(labelPkg, "/")
 	if (slash >= 0 && labelPkg[slash+1:] == rule) || labelPkg == rule {
-		return "//" + labelPkg
+		if repo == "" {
+			return "//" + labelPkg
+		}
+		return "@" + repo + "//" + labelPkg
 	}
 	return label
 }
