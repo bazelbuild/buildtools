@@ -525,9 +525,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				arg = to.asString()
 			} else {
 				arg = &BinaryExpr{
-					X: to,
+					X:  to,
 					Op: "=",
-					Y: from.asString(),
+					Y:  from.asString(),
 				}
 			}
 			args = append(args, arg)
@@ -606,9 +606,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 			isFirst = false
 			_, end := block.True[len(block.True)-1].Span()
-			needsEmptyLine = block.ElsePos.Line-end.Line > 1
+			needsEmptyLine = block.ElsePos.Pos.Line-end.Line > 1
 
-			if len(block.False) == 1 {
+			// If the else-block contains just one statement which is an IfStmt, flatten it as a part
+			// of if-elif chain.
+			// Don't do it if the "else" statement has a suffix comment.
+			if len(block.ElsePos.Comment().Suffix) == 0 && len(block.False) == 1 {
 				next, ok := block.False[0].(*IfStmt)
 				if ok {
 					block = next
@@ -624,6 +627,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				p.newline()
 			}
 			p.printf("else:")
+			p.comment = append(p.comment, block.ElsePos.Comment().Suffix...)
 			p.nestedStatements(block.False)
 		}
 	}

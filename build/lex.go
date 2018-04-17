@@ -815,6 +815,9 @@ func (in *input) order(v Expr) {
 		for _, s := range v.True {
 			in.order(s)
 		}
+		if len(v.False) > 0 {
+			in.order(&v.ElsePos)
+		}
 		for _, s := range v.False {
 			in.order(s)
 		}

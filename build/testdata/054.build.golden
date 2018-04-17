@@ -25,3 +25,12 @@ else:
 
 if foo:
   bar
+
+if foo: # this is assigned to foo
+  pass
+
+else: # this is assigned to "else"
+  if bar: # this is assigned to bar
+    pass
+  else: # this is assigned to "else" too
+    pass
