@@ -249,7 +249,6 @@ func (in *input) Lex(val *yySymType) int {
 			prefix := bytes.TrimSpace(in.complete[i+1 : in.pos.Byte])
 			prefix = bytes.Replace(prefix, []byte{' '}, []byte{}, -1)
 			isSuffix := true
-			fmt.Println(string(prefix))
 			if len(prefix) == 0 ||
 				(len(prefix) == 2 && prefix[0] == ')' && prefix[1] == ':') ||
 				prefix[len(prefix)-1] == '[' ||
