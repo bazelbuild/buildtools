@@ -784,10 +784,15 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 }
 
 // InsertLoad inserts a load statement at the top of the list of statements.
-// The load statement is constructed using args. Symbols that are already loaded
+// The load statement is constructed using a string location and two slices of from- and to-symbols.
+// The function panics if the slices aren't of the same lentgh. Symbols that are already loaded
 // from the given filepath are ignored. If stmts already contains a load for the
 // location in arguments, appends the symbols to load to it.
 func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
+	if len(from) != len(to) {
+		panic(fmt.Errorf("length mismatch: %s (from) and %s (to)", len(from), len(to)))
+	}
+
 	if appendLoad(stmts, location, from, to) {
 		return stmts
 	}
