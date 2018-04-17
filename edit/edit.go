@@ -790,7 +790,7 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 // location in arguments, appends the symbols to load to it.
 func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
 	if len(from) != len(to) {
-		panic(fmt.Errorf("length mismatch: %s (from) and %s (to)", len(from), len(to)))
+		panic(fmt.Errorf("length mismatch: %v (from) and %v (to)", len(from), len(to)))
 	}
 
 	if appendLoad(stmts, location, from, to) {
