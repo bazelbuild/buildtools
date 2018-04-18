@@ -165,8 +165,8 @@ func ExprToRule(expr build.Expr, kind string) (*build.Rule, bool) {
 	if !ok {
 		return nil, false
 	}
-	k, ok := call.X.(*build.LiteralExpr)
-	if !ok || k.Token != kind {
+	k, ok := call.X.(*build.Ident)
+	if !ok || k.Name != kind {
 		return nil, false
 	}
 	return &build.Rule{call, ""}, true
@@ -191,7 +191,7 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	}
 	all := []build.Expr{}
 	added := false
-	call := &build.CallExpr{X: &build.LiteralExpr{Token: "package"}}
+	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
 	// Skip CommentBlocks and find a place to insert the package declaration.
 	for _, stmt := range f.Stmt {
 		_, ok := stmt.(*build.CommentBlock)
@@ -216,8 +216,8 @@ func RemoveEmptyPackage(f *build.File) *build.File {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		if call, ok := stmt.(*build.CallExpr); ok {
-			functionName, ok := call.X.(*build.LiteralExpr)
-			if ok && functionName.Token == "package" && len(call.List) == 0 {
+			functionName, ok := call.X.(*build.Ident)
+			if ok && functionName.Name == "package" && len(call.List) == 0 {
 				continue
 			}
 		}
@@ -244,8 +244,8 @@ func IndexOfLast(stmt []build.Expr, Kind string) int {
 		if !ok {
 			continue
 		}
-		literal, ok := sAsCallExpr.X.(*build.LiteralExpr)
-		if ok && literal.Token == Kind {
+		literal, ok := sAsCallExpr.X.(*build.Ident)
+		if ok && literal.Name == Kind {
 			lastIndex = i
 		}
 	}
@@ -254,7 +254,7 @@ func IndexOfLast(stmt []build.Expr, Kind string) int {
 
 // InsertAfterLastOfSameKind inserts an expression after the last expression of the same kind.
 func InsertAfterLastOfSameKind(stmt []build.Expr, expr *build.CallExpr) []build.Expr {
-	index := IndexOfLast(stmt, expr.X.(*build.LiteralExpr).Token)
+	index := IndexOfLast(stmt, expr.X.(*build.Ident).Name)
 	if index == -1 {
 		return InsertAtEnd(stmt, expr)
 	}
@@ -363,8 +363,8 @@ func DeleteRuleByKind(f *build.File, kind string) *build.File {
 			all = append(all, stmt)
 			continue
 		}
-		k, ok := call.X.(*build.LiteralExpr)
-		if !ok || k.Token != kind {
+		k, ok := call.X.(*build.Ident)
+		if !ok || k.Name != kind {
 			all = append(all, stmt)
 		}
 	}
@@ -590,8 +590,8 @@ func getVariable(expr build.Expr, vars *map[string]*build.BinaryExpr) (varAssign
 		return nil
 	}
 
-	if literal, ok := expr.(*build.LiteralExpr); ok {
-		if varAssignment = (*vars)[literal.Token]; varAssignment != nil {
+	if literal, ok := expr.(*build.Ident); ok {
+		if varAssignment = (*vars)[literal.Name]; varAssignment != nil {
 			return varAssignment
 		}
 	}
@@ -685,11 +685,11 @@ func RenameAttribute(r *build.Rule, oldName, newName string) error {
 		if !ok || as.Op != "=" {
 			continue
 		}
-		k, ok := as.X.(*build.LiteralExpr)
-		if !ok || k.Token != oldName {
+		k, ok := as.X.(*build.Ident)
+		if !ok || k.Name != oldName {
 			continue
 		}
-		k.Token = newName
+		k.Name = newName
 		return nil
 	}
 	return fmt.Errorf("no attribute %s found in rule %s", oldName, r.Name())
@@ -703,8 +703,8 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 		if !ok {
 			return nil
 		}
-		fct, ok := call.X.(*build.LiteralExpr)
-		if !ok || fct.Token != name {
+		fct, ok := call.X.(*build.Ident)
+		if !ok || fct.Name != name {
 			return nil
 		}
 		return f(call, stk)
@@ -715,7 +715,7 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 func UsedSymbols(f *build.File) map[string]bool {
 	symbols := make(map[string]bool)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		literal, ok := expr.(*build.LiteralExpr)
+		literal, ok := expr.(*build.Ident)
 		if !ok {
 			return
 		}
@@ -727,7 +727,7 @@ func UsedSymbols(f *build.File) map[string]bool {
 				}
 			}
 		}
-		symbols[literal.Token] = true
+		symbols[literal.Name] = true
 	})
 	return symbols
 }

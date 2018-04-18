@@ -495,8 +495,12 @@ func (in *input) Lex(val *yySymType) int {
 	if k := keywordToken[val.tok]; k != 0 {
 		return k
 	}
-
-	return _IDENT
+	for _, c := range val.tok {
+		if c > '9' || c < '0' {
+			return _IDENT
+		}
+	}
+	return _NUMBER
 }
 
 // isIdent reports whether c is an identifier rune.
