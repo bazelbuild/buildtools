@@ -1,3 +1,4 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_prefix")
 
 go_prefix("github.com/bazelbuild/buildtools")
@@ -20,4 +21,9 @@ test_suite(
         "//tables:go_default_test",
         "//wspace:go_default_test",
     ],
+)
+
+gazelle(
+    name = "gazelle",
+    prefix = "github.com/example/project",
 )

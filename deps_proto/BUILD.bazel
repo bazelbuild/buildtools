@@ -1,9 +1,11 @@
-load("@io_bazel_rules_go//proto:go_proto_library.bzl", "go_proto_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 load("//build:build_defs.bzl", "genfile_check_test")
+
+# gazelle:exclude deps.gen.pb.go
 
 genfile_check_test(
     src = "deps.gen.pb.go",
-    gen = "deps.pb.go",
+    gen = ":go_default_library",
 )
 
 genrule(
@@ -14,8 +16,15 @@ genrule(
            "cp $$(dirname $$SRCS)/deps.proto $@"),
 )
 
+proto_library(
+    name = "blaze_deps_proto",
+    srcs = ["deps.proto"],
+    visibility = ["//visibility:public"],
+)
+
 go_proto_library(
     name = "go_default_library",
-    srcs = ["deps.proto"],
+    importpath = "github.com/bazelbuild/buildtools/deps_proto",
+    proto = ":blaze_deps_proto",
     visibility = ["//visibility:public"],
 )
