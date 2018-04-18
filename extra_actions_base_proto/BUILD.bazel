@@ -1,11 +1,10 @@
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
-load("//build:build_defs.bzl", "genfile_check_test")
+load("//build:build_defs.bzl", "go_proto_checkedin_test")
 
 # gazelle:exclude extra_actions_base.gen.pb.go
 
-genfile_check_test(
+go_proto_checkedin_test(
     src = "extra_actions_base.gen.pb.go",
-    gen = ":go_default_library",
 )
 
 genrule(

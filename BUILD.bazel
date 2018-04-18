@@ -25,5 +25,5 @@ test_suite(
 
 gazelle(
     name = "gazelle",
-    prefix = "github.com/example/project",
+    prefix = "github.com/bazelbuild/buildtools",
 )
