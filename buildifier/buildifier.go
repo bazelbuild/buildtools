@@ -180,7 +180,10 @@ func main() {
 		processFiles(args, *inputType)
 	}
 
-	diff.Run()
+	if err := diff.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\b", err)
+		exitCode = 2
+	}
 
 	for _, file := range toRemove {
 		os.Remove(file)
@@ -263,7 +266,7 @@ func processFile(filename string, data []byte, inputType string) {
 			exitCode = 3
 		}
 	}()
-	
+
 	defer setFormattingMode(inputType, filename)()
 
 	f, err := build.Parse(filename, data)
@@ -339,7 +342,10 @@ func processFile(filename string, data []byte, inputType string) {
 				return
 			}
 		}
-		diff.Show(infile, outfile)
+		if err := diff.Show(infile, outfile); err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
+			exitCode = 4
+		}
 
 	case "pipe":
 		// pipe mode - reading from stdin, writing to stdout.
@@ -363,6 +369,7 @@ func processFile(filename string, data []byte, inputType string) {
 		if *vflag {
 			fmt.Fprintf(os.Stderr, "fixed %s\n", filename)
 		}
+		exitCode = 4
 	case "print_if_changed":
 		if bytes.Equal(data, ndata) {
 			return
@@ -378,7 +385,7 @@ func processFile(filename string, data []byte, inputType string) {
 
 func setFormattingMode(inputType, filename string) func() {
 	defaultMode := tables.FormattingMode
-	
+
 	switch inputType {
 	case "build":
 		tables.FormattingMode = tables.BuildMode
@@ -392,7 +399,7 @@ func setFormattingMode(inputType, filename string) func() {
 			tables.FormattingMode = tables.DefaultMode
 		}
 	}
-	
+
 	return func() {
 		tables.FormattingMode = defaultMode
 	}
