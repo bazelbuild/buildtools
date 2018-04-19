@@ -806,7 +806,9 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 	added := false
 	for _, stmt := range stmts {
 		_, isComment := stmt.(*build.CommentBlock)
-		if isComment || added {
+		c, isString := stmt.(*build.StringExpr)
+		isDocString := isString && c.Start.Line == 1 && c.Start.LineRune == 1
+		if isComment || isDocString || added {
 			all = append(all, stmt)
 			continue
 		}
