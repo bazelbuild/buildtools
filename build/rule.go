@@ -265,11 +265,14 @@ func (r *Rule) SetAttr(key string, val Expr) {
 // If the rule has no such attribute or the attribute is not an identifier or number,
 // AttrLiteral returns "".
 func (r *Rule) AttrLiteral(key string) string {
-	lit, ok := r.Attr(key).(*Ident)
-	if !ok {
-		return ""
+	value := r.Attr(key)
+	if ident, ok := value.(*Ident); ok {
+		return ident.Name
 	}
-	return lit.Name
+	if literal, ok := value.(*LiteralExpr); ok {
+		return literal.Token
+	}
+	return ""
 }
 
 // AttrString returns the value of the rule's attribute
