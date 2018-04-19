@@ -4,10 +4,7 @@ go_binary(
     name = "buildifier",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
-    x_defs = {
-        "BuildifierVersion": "{STABLE_BUILDIFIER_VERSION}",
-        "BuildScmRevision": "{STABLE_BUILD_SCM_REVISION}",
-    },
+    linkstamp = "main",
 )
 
 # Test that the buildifier binary works
