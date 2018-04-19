@@ -2,7 +2,7 @@
 // source: extra_actions_base_proto/extra_actions_base.proto
 
 /*
-Package blaze is a generated protocol buffer package.
+Package extra_actions_base_proto is a generated protocol buffer package.
 
 It is generated from these files:
 	extra_actions_base_proto/extra_actions_base.proto
@@ -18,7 +18,7 @@ It has these top-level messages:
 	JavaCompileInfo
 	PythonInfo
 */
-package blaze
+package extra_actions_base_proto
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -35,7 +35,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// A list of extra actions and metadata for the print_action command.
 type ExtraActionSummary struct {
 	Action           []*DetailedExtraActionInfo `protobuf:"bytes,1,rep,name=action" json:"action,omitempty"`
 	XXX_unrecognized []byte                     `json:"-"`
@@ -53,22 +52,8 @@ func (m *ExtraActionSummary) GetAction() []*DetailedExtraActionInfo {
 	return nil
 }
 
-// An individual action printed by the print_action command.
 type DetailedExtraActionInfo struct {
-	// If the given action was included in the output due to a request for a
-	// specific file, then this field contains the name of that file so that the
-	// caller can correctly associate the extra action with that file.
-	//
-	// The data in this message is currently not sufficient to run the action on a
-	// production machine, because not all necessary input files are identified,
-	// especially for C++.
-	//
-	// There is no easy way to fix this; we could require that all header files
-	// are declared and then add all of them here (which would be a huge superset
-	// of the files that are actually required), or we could run the include
-	// scanner and add those files here.
-	TriggeringFile *string `protobuf:"bytes,1,opt,name=triggering_file,json=triggeringFile" json:"triggering_file,omitempty"`
-	// The actual action.
+	TriggeringFile   *string          `protobuf:"bytes,1,opt,name=triggering_file,json=triggeringFile" json:"triggering_file,omitempty"`
 	Action           *ExtraActionInfo `protobuf:"bytes,2,req,name=action" json:"action,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
 }
@@ -92,32 +77,13 @@ func (m *DetailedExtraActionInfo) GetAction() *ExtraActionInfo {
 	return nil
 }
 
-// Provides information to an extra_action on the original action it is
-// shadowing.
 type ExtraActionInfo struct {
-	// The label of the ActionOwner of the shadowed action.
-	Owner *string `protobuf:"bytes,1,opt,name=owner" json:"owner,omitempty"`
-	// Only set if the owner is an Aspect.
-	// Corresponds to AspectValue.AspectKey.getAspectClass.getName()
-	// This field is deprecated as there might now be
-	// multiple aspects applied to the same target.
-	// This is the aspect name of the last aspect
-	// in 'aspects' (8) field.
-	AspectName *string `protobuf:"bytes,6,opt,name=aspect_name,json=aspectName" json:"aspect_name,omitempty"`
-	// Only set if the owner is an Aspect.
-	// Corresponds to AspectValue.AspectKey.getParameters()
-	// This field is deprecated as there might now be
-	// multiple aspects applied to the same target.
-	// These are the aspect parameters of the last aspect
-	// in 'aspects' (8) field.
-	AspectParameters map[string]*ExtraActionInfo_StringList `protobuf:"bytes,7,rep,name=aspect_parameters,json=aspectParameters" json:"aspect_parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// If the owner is an aspect, all aspects applied to the target
-	Aspects []*ExtraActionInfo_AspectDescriptor `protobuf:"bytes,8,rep,name=aspects" json:"aspects,omitempty"`
-	// An id uniquely describing the shadowed action at the ActionOwner level.
-	Id *string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
-	// The mnemonic of the shadowed action. Used to distinguish actions with the
-	// same ActionType.
-	Mnemonic                     *string `protobuf:"bytes,5,opt,name=mnemonic" json:"mnemonic,omitempty"`
+	Owner                        *string                                `protobuf:"bytes,1,opt,name=owner" json:"owner,omitempty"`
+	AspectName                   *string                                `protobuf:"bytes,6,opt,name=aspect_name,json=aspectName" json:"aspect_name,omitempty"`
+	AspectParameters             map[string]*ExtraActionInfo_StringList `protobuf:"bytes,7,rep,name=aspect_parameters,json=aspectParameters" json:"aspect_parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Aspects                      []*ExtraActionInfo_AspectDescriptor    `protobuf:"bytes,8,rep,name=aspects" json:"aspects,omitempty"`
+	Id                           *string                                `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Mnemonic                     *string                                `protobuf:"bytes,5,opt,name=mnemonic" json:"mnemonic,omitempty"`
 	proto.XXX_InternalExtensions `json:"-"`
 	XXX_unrecognized             []byte `json:"-"`
 }
@@ -195,9 +161,7 @@ func (m *ExtraActionInfo_StringList) GetValue() []string {
 }
 
 type ExtraActionInfo_AspectDescriptor struct {
-	// Corresponds to AspectDescriptor.getName()
-	AspectName *string `protobuf:"bytes,1,opt,name=aspect_name,json=aspectName" json:"aspect_name,omitempty"`
-	// Corresponds to AspectDescriptor.getParameters()
+	AspectName       *string                                                 `protobuf:"bytes,1,opt,name=aspect_name,json=aspectName" json:"aspect_name,omitempty"`
 	AspectParameters map[string]*ExtraActionInfo_AspectDescriptor_StringList `protobuf:"bytes,2,rep,name=aspect_parameters,json=aspectParameters" json:"aspect_parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	XXX_unrecognized []byte                                                  `json:"-"`
 }
@@ -247,9 +211,7 @@ func (m *ExtraActionInfo_AspectDescriptor_StringList) GetValue() []string {
 }
 
 type EnvironmentVariable struct {
-	// It is possible that this name is not a valid variable identifier.
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The value is unescaped and unquoted.
+	Name             *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
 	Value            *string `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
@@ -273,11 +235,8 @@ func (m *EnvironmentVariable) GetValue() string {
 	return ""
 }
 
-// Provides access to data that is specific to spawn actions.
-// Usually provided by actions using the "Spawn" & "Genrule" Mnemonics.
 type SpawnInfo struct {
-	Argument []string `protobuf:"bytes,1,rep,name=argument" json:"argument,omitempty"`
-	// A list of environment variables and their values. No order is enforced.
+	Argument         []string               `protobuf:"bytes,1,rep,name=argument" json:"argument,omitempty"`
 	Variable         []*EnvironmentVariable `protobuf:"bytes,2,rep,name=variable" json:"variable,omitempty"`
 	InputFile        []string               `protobuf:"bytes,4,rep,name=input_file,json=inputFile" json:"input_file,omitempty"`
 	OutputFile       []string               `protobuf:"bytes,5,rep,name=output_file,json=outputFile" json:"output_file,omitempty"`
@@ -326,20 +285,14 @@ var E_SpawnInfo_SpawnInfo = &proto.ExtensionDesc{
 	Filename:      "extra_actions_base_proto/extra_actions_base.proto",
 }
 
-// Provides access to data that is specific to C++ compile actions.
-// Usually provided by actions using the "CppCompile" Mnemonic.
 type CppCompileInfo struct {
-	Tool           *string  `protobuf:"bytes,1,opt,name=tool" json:"tool,omitempty"`
-	CompilerOption []string `protobuf:"bytes,2,rep,name=compiler_option,json=compilerOption" json:"compiler_option,omitempty"`
-	SourceFile     *string  `protobuf:"bytes,3,opt,name=source_file,json=sourceFile" json:"source_file,omitempty"`
-	OutputFile     *string  `protobuf:"bytes,4,opt,name=output_file,json=outputFile" json:"output_file,omitempty"`
-	// Due to header discovery, this won't include headers unless the build is
-	// actually performed. If set, this field will include the value of
-	// "source_file" in addition to the headers.
-	SourcesAndHeaders []string `protobuf:"bytes,5,rep,name=sources_and_headers,json=sourcesAndHeaders" json:"sources_and_headers,omitempty"`
-	// A list of environment variables and their values. No order is enforced.
-	Variable         []*EnvironmentVariable `protobuf:"bytes,6,rep,name=variable" json:"variable,omitempty"`
-	XXX_unrecognized []byte                 `json:"-"`
+	Tool              *string                `protobuf:"bytes,1,opt,name=tool" json:"tool,omitempty"`
+	CompilerOption    []string               `protobuf:"bytes,2,rep,name=compiler_option,json=compilerOption" json:"compiler_option,omitempty"`
+	SourceFile        *string                `protobuf:"bytes,3,opt,name=source_file,json=sourceFile" json:"source_file,omitempty"`
+	OutputFile        *string                `protobuf:"bytes,4,opt,name=output_file,json=outputFile" json:"output_file,omitempty"`
+	SourcesAndHeaders []string               `protobuf:"bytes,5,rep,name=sources_and_headers,json=sourcesAndHeaders" json:"sources_and_headers,omitempty"`
+	Variable          []*EnvironmentVariable `protobuf:"bytes,6,rep,name=variable" json:"variable,omitempty"`
+	XXX_unrecognized  []byte                 `json:"-"`
 }
 
 func (m *CppCompileInfo) Reset()                    { *m = CppCompileInfo{} }
@@ -398,8 +351,6 @@ var E_CppCompileInfo_CppCompileInfo = &proto.ExtensionDesc{
 	Filename:      "extra_actions_base_proto/extra_actions_base.proto",
 }
 
-// Provides access to data that is specific to C++ link  actions.
-// Usually provided by actions using the "CppLink" Mnemonic.
 type CppLinkInfo struct {
 	InputFile               []string `protobuf:"bytes,1,rep,name=input_file,json=inputFile" json:"input_file,omitempty"`
 	OutputFile              *string  `protobuf:"bytes,2,opt,name=output_file,json=outputFile" json:"output_file,omitempty"`
@@ -408,9 +359,8 @@ type CppLinkInfo struct {
 	LinkStaticness          *string  `protobuf:"bytes,5,opt,name=link_staticness,json=linkStaticness" json:"link_staticness,omitempty"`
 	LinkStamp               []string `protobuf:"bytes,6,rep,name=link_stamp,json=linkStamp" json:"link_stamp,omitempty"`
 	BuildInfoHeaderArtifact []string `protobuf:"bytes,7,rep,name=build_info_header_artifact,json=buildInfoHeaderArtifact" json:"build_info_header_artifact,omitempty"`
-	// The list of command line options used for running the linking tool.
-	LinkOpt          []string `protobuf:"bytes,8,rep,name=link_opt,json=linkOpt" json:"link_opt,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	LinkOpt                 []string `protobuf:"bytes,8,rep,name=link_opt,json=linkOpt" json:"link_opt,omitempty"`
+	XXX_unrecognized        []byte   `json:"-"`
 }
 
 func (m *CppLinkInfo) Reset()                    { *m = CppLinkInfo{} }
@@ -483,8 +433,6 @@ var E_CppLinkInfo_CppLinkInfo = &proto.ExtensionDesc{
 	Filename:      "extra_actions_base_proto/extra_actions_base.proto",
 }
 
-// Provides access to data that is specific to java compile actions.
-// Usually provided by actions using the "Javac" Mnemonic.
 type JavaCompileInfo struct {
 	Outputjar        *string  `protobuf:"bytes,1,opt,name=outputjar" json:"outputjar,omitempty"`
 	Classpath        []string `protobuf:"bytes,2,rep,name=classpath" json:"classpath,omitempty"`
@@ -567,8 +515,6 @@ var E_JavaCompileInfo_JavaCompileInfo = &proto.ExtensionDesc{
 	Filename:      "extra_actions_base_proto/extra_actions_base.proto",
 }
 
-// Provides access to data that is specific to python rules.
-// Usually provided by actions using the "Python" Mnemonic.
 type PythonInfo struct {
 	SourceFile       []string `protobuf:"bytes,1,rep,name=source_file,json=sourceFile" json:"source_file,omitempty"`
 	DepFile          []string `protobuf:"bytes,2,rep,name=dep_file,json=depFile" json:"dep_file,omitempty"`

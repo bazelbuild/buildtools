@@ -2,7 +2,7 @@
 // source: deps_proto/deps.proto
 
 /*
-Package blaze_deps is a generated protocol buffer package.
+Package deps_proto is a generated protocol buffer package.
 
 It is generated from these files:
 	deps_proto/deps.proto
@@ -12,7 +12,7 @@ It has these top-level messages:
 	Dependency
 	Dependencies
 */
-package blaze_deps
+package deps_proto
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -32,13 +32,9 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Dependency_Kind int32
 
 const (
-	// Dependency used explicitly in the source.
-	Dependency_EXPLICIT Dependency_Kind = 0
-	// Dependency that is implicitly loaded and used by the compiler.
-	Dependency_IMPLICIT Dependency_Kind = 1
-	// Unused dependency.
-	Dependency_UNUSED Dependency_Kind = 2
-	// Implicit dependency considered by the compiler but not completed.
+	Dependency_EXPLICIT   Dependency_Kind = 0
+	Dependency_IMPLICIT   Dependency_Kind = 1
+	Dependency_UNUSED     Dependency_Kind = 2
 	Dependency_INCOMPLETE Dependency_Kind = 3
 )
 
@@ -73,7 +69,6 @@ func (x *Dependency_Kind) UnmarshalJSON(data []byte) error {
 }
 func (Dependency_Kind) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{1, 0} }
 
-// A specific location within a source file.
 type SourceLocation struct {
 	Path             *string `protobuf:"bytes,1,req,name=path" json:"path,omitempty"`
 	Line             *int32  `protobuf:"varint,2,opt,name=line" json:"line,omitempty"`
@@ -108,11 +103,8 @@ func (m *SourceLocation) GetColumn() int32 {
 }
 
 type Dependency struct {
-	// Path to the artifact representing this dependency.
-	Path *string `protobuf:"bytes,1,req,name=path" json:"path,omitempty"`
-	// Dependency kind
-	Kind *Dependency_Kind `protobuf:"varint,2,req,name=kind,enum=blaze_deps.Dependency_Kind" json:"kind,omitempty"`
-	// Source file locations: compilers can pinpoint the uses of a dependency.
+	Path             *string           `protobuf:"bytes,1,req,name=path" json:"path,omitempty"`
+	Kind             *Dependency_Kind  `protobuf:"varint,2,req,name=kind,enum=blaze_deps.Dependency_Kind" json:"kind,omitempty"`
 	Location         []*SourceLocation `protobuf:"bytes,3,rep,name=location" json:"location,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
@@ -143,17 +135,12 @@ func (m *Dependency) GetLocation() []*SourceLocation {
 	return nil
 }
 
-// Top-level message found in .deps artifacts
 type Dependencies struct {
-	Dependency []*Dependency `protobuf:"bytes,1,rep,name=dependency" json:"dependency,omitempty"`
-	// Name of the rule being analyzed.
-	RuleLabel *string `protobuf:"bytes,2,opt,name=rule_label,json=ruleLabel" json:"rule_label,omitempty"`
-	// Whether the action was successful; even when compilation fails, partial
-	// dependency information can be useful.
-	Success *bool `protobuf:"varint,3,opt,name=success" json:"success,omitempty"`
-	// Packages contained in the output jar, sorted alphabetically.
-	ContainedPackage []string `protobuf:"bytes,4,rep,name=contained_package,json=containedPackage" json:"contained_package,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	Dependency       []*Dependency `protobuf:"bytes,1,rep,name=dependency" json:"dependency,omitempty"`
+	RuleLabel        *string       `protobuf:"bytes,2,opt,name=rule_label,json=ruleLabel" json:"rule_label,omitempty"`
+	Success          *bool         `protobuf:"varint,3,opt,name=success" json:"success,omitempty"`
+	ContainedPackage []string      `protobuf:"bytes,4,rep,name=contained_package,json=containedPackage" json:"contained_package,omitempty"`
+	XXX_unrecognized []byte        `json:"-"`
 }
 
 func (m *Dependencies) Reset()                    { *m = Dependencies{} }
