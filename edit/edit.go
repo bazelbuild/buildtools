@@ -116,6 +116,18 @@ func isFile(path string) bool {
 	return info.Mode().IsRegular()
 }
 
+// findBuildFile determines in order if any of buildFileNames exist
+// and returns it -- otherwise defaults to path/BUILD
+func findBuildFile(root string) string {
+	for _, name := range buildFileNames {
+		if p := path.Join(root, name); isFile(p) {
+			return p
+		}
+	}
+	// default to BUILD
+	return path.Join(root, "BUILD")
+}
+
 // InterpretLabelForWorkspaceLocation returns the name of the BUILD file to
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
@@ -133,22 +145,16 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 	}
 
 	if strings.HasPrefix(target, "//") {
-		buildFile = path.Join(rootDir, pkg, "BUILD")
-		return
+		return findBuildFile(path.Join(rootDir, pkg)), pkg, rule
 	}
 	if isFile(pkg) {
 		// allow operation on other files like WORKSPACE
-		buildFile = pkg
-		pkg = path.Join(relativePath, filepath.Dir(pkg))
-		return
+		return pkg, path.Join(relativePath, filepath.Dir(pkg)), rule
 	}
 	if pkg != "" {
-		buildFile = pkg + "/BUILD"
-	} else {
-		buildFile = "BUILD"
+		return findBuildFile(pkg), path.Join(relativePath, pkg), rule
 	}
-	pkg = path.Join(relativePath, pkg)
-	return
+	return findBuildFile(""), path.Join(relativePath, pkg), rule
 }
 
 // InterpretLabel returns the name of the BUILD file to edit, the full
