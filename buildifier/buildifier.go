@@ -47,13 +47,11 @@ var (
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 	version       = flag.Bool("version", false, "Print the version of buildifier")
+	inputType     = flag.String("type", "auto", "Input file type: build (for BUILD files), bzl (for .bzl files) or auto (default, based on the filename)")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
-
-	// Experimental flags
-	inputType = flag.String("type", "auto", "Experimental: input file type: build (default, for BUILD files) or bzl (for .bzl files).")
 )
 
 func stringList(name, help string) func() []string {
@@ -388,7 +386,7 @@ func setFormattingMode(inputType, filename string) func() {
 		tables.FormattingMode = tables.DefaultMode
 	case "auto":
 		switch base := filepath.Base(filename); base {
-		case "BUILD", "BUILD.bazel", "WORKSPACE", "stdin":
+		case "BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "stdin":
 			tables.FormattingMode = tables.BuildMode
 		default:
 			tables.FormattingMode = tables.DefaultMode
