@@ -130,7 +130,33 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 		walk1(&v.Then, stack, f)
 		walk1(&v.Test, stack, f)
 		walk1(&v.Else, stack, f)
+	case *DefStmt:
+		for _, p := range v.Params {
+			walk1(&p, stack, f)
+		}
+		for _, s := range v.Body {
+			walk1(&s, stack, f)
+		}
+	case *IfStmt:
+		walk1(&v.Cond, stack, f)
+		for _, s := range v.True {
+			walk1(&s, stack, f)
+		}
+		for _, s := range v.False {
+			walk1(&s, stack, f)
+		}
+	case *ForStmt:
+		walk1(&v.Vars, stack, f)
+		walk1(&v.X, stack, f)
+		for _, s := range v.Body {
+			walk1(&s, stack, f)
+		}
+	case *ReturnStmt:
+		if v.Result != nil {
+			walk1(&v.Result, stack, f)
+		}
 	}
+
 	*stack = (*stack)[:len(*stack)-1]
 	return *v
 }
