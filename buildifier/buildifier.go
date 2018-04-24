@@ -53,7 +53,7 @@ var (
 	disable   = stringList("buildifier_disable", "list of buildifier rewrites to disable")
 
 	// Experimental flags
-	inputType = flag.String("type", "build", "Experimental: input file type: build (default, for BUILD files) or bzl (for .bzl files).")
+	inputType = flag.String("type", "auto", "Experimental: input file type: build (default, for BUILD files) or bzl (for .bzl files).")
 )
 
 func stringList(name, help string) func() []string {
@@ -161,11 +161,6 @@ func main() {
 	diff = differ.Find()
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
-		if *inputType == "auto" {
-			fmt.Fprintf(os.Stderr, "buildifier: --type=auto can't be used with stdin\n")
-			os.Exit(2)
-		}
-
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -393,7 +388,7 @@ func setFormattingMode(inputType, filename string) func() {
 		tables.FormattingMode = tables.DefaultMode
 	case "auto":
 		switch base := filepath.Base(filename); base {
-		case "BUILD", "BUILD.bazel", "WORKSPACE":
+		case "BUILD", "BUILD.bazel", "WORKSPACE", "stdin":
 			tables.FormattingMode = tables.BuildMode
 		default:
 			tables.FormattingMode = tables.DefaultMode
