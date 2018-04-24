@@ -35,10 +35,10 @@ type Differ struct {
 }
 
 // run runs the given command with args.
-func (d *Differ) run(command string, args ...string) {
+func (d *Differ) run(command string, args ...string) error {
 	// The special diff command ":" means don't run anything.
 	if d.Cmd == ":" {
-		return
+		return nil
 	}
 
 	// Pass args to bash and reference with $@ to avoid shell injection in args.
@@ -53,41 +53,40 @@ func (d *Differ) run(command string, args ...string) {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		// Couldn't even start bash. Worth reporting.
-		fmt.Fprintf(os.Stderr, "buildifier: %s: %v\n", command, err)
-		return
+		return fmt.Errorf("buildifier: %s: %v\n", command, err)
 	}
 
 	// Assume bash reported anything else worth reporting.
 	// As long as the program started (above), we don't care about the
 	// exact exit status. In the most common case, the diff command
 	// will exit 1, because there are diffs, causing bash to exit 1.
-	cmd.Wait()
+	return cmd.Wait()
 }
 
 // Show diffs old and new.
 // For a single-pair diff program, Show runs the diff program before returning.
 // For a multi-pair diff program, Show records the pair for later use by Run.
-func (d *Differ) Show(old, new string) {
+func (d *Differ) Show(old, new string) error {
 	if !d.MultiDiff {
-		d.run(d.Cmd, old, new)
-		return
+		return d.run(d.Cmd, old, new)
 	}
 
 	d.Args = append(d.Args, ":", old, new)
+	return nil
 }
 
 // Run runs any pending diffs.
 // For a single-pair diff program, Show already ran diff; Run is a no-op.
 // For a multi-pair diff program, Run displays the diffs queued by Show.
-func (d *Differ) Run() {
+func (d *Differ) Run() error {
 	if !d.MultiDiff {
-		return
+		return nil
 	}
 
 	if len(d.Args) == 0 {
-		return
+		return nil
 	}
-	d.run(d.Cmd, d.Args...)
+	return d.run(d.Cmd, d.Args...)
 }
 
 // Find returns the differ to use, using various environment variables.

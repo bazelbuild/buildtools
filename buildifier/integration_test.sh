@@ -5,7 +5,7 @@ INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatt
 echo -e "$INPUT" > test/BUILD
 echo -e "$INPUT" > test/test.bzl
 
-$1 --type=auto test/*
+$1 --type=auto test/* && exit 3 # expect non-zero buildifier exit due to re-format
 $2 test/test.bzl > test/test.bzl.out
 
 cat > test/BUILD.golden <<EOF
