@@ -106,17 +106,6 @@ func (x *CommentBlock) Span() (start, end Position) {
 	return x.Start, x.Start
 }
 
-// A PythonBlock represents a blob of Python code, typically a def or for loop.
-type PythonBlock struct {
-	Comments
-	Start Position
-	Token string // raw Python code, including final newline
-}
-
-func (x *PythonBlock) Span() (start, end Position) {
-	return x.Start, x.Start.add(x.Token)
-}
-
 // An Ident represents an identifier.
 type Ident struct {
 	Comments

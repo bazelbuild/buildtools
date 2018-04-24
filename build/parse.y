@@ -90,7 +90,6 @@ package build
 %token	<pos>	_STAR_STAR // operator **
 %token	<pos>	_NOT     // keyword not
 %token	<pos>	_OR      // keyword or
-%token	<pos>	_PYTHON  // uninterpreted Python block
 %token	<pos>	_STRING  // quoted string
 %token	<pos>	_DEF     // keyword def
 %token	<pos>	_RETURN  // keyword return
@@ -407,10 +406,6 @@ small_stmt:
 	}
 |	expr '=' expr      { $$ = binary($1, $2, $<tok>2, $3) }
 |	expr _AUGM expr    { $$ = binary($1, $2, $<tok>2, $3) }
-|	_PYTHON
-	{
-		$$ = &PythonBlock{Start: $1, Token: $<tok>1}
-	}
 
 semi_opt:
 |	';'

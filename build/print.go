@@ -178,13 +178,6 @@ func (p *printer) statements(stmts []Expr) {
 		case *CommentBlock:
 			// comments already handled
 
-		case *PythonBlock:
-			for _, com := range stmt.Before {
-				p.printf("%s", strings.TrimSpace(com.Token))
-				p.newline()
-			}
-			p.printf("%s", stmt.Token)
-
 		default:
 			p.expr(stmt, precLow)
 		}

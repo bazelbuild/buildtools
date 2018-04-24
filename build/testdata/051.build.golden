@@ -20,76 +20,91 @@ fff
 ggg
 
 def function(
-    # This shouldn't mess with indentation counting
-    x, y = z
-):
-  aaa
-  bbb
-  def g(a, s,
-    d # this is d
-  ): # this is function definition
-    ccc
-# Misalingned comments
-      # are not a syntax error
-    ddd
-    def h(a, s = d):   # this is h
-      eee
+        # This shouldn't mess with indentation counting
+        x,
+        y = z):
+    aaa
+    bbb
 
-    def k(g): g += 1; return g
+    def g(
+            a,
+            s,
+            d):  # this is d
+        # this is function definition
+        ccc
 
-    for x in y: print(y)
+        # Misalingned comments
+        # are not a syntax error
+        ddd
 
-    if x: print(x)
-    elif y: print(y)
-    else: print(z); print(y); print(x)
+        def h(a, s = d):  # this is h
+            eee
 
-    if x: print(x)
+        def k(g):
+            g += 1
+            return g
 
-    elif y: print(y)
+        for x in y:
+            print(y)
 
+        if x:
+            print(x)
+        elif y:
+            print(y)
+        else:
+            print(z)
+            print(y)
+            print(x)
 
-    else: print(z); print(y); print(x)
+        if x:
+            print(x)
 
-    def i():
-      def j():
-        return h([1],
-                 [2]) # returns h
+        elif y:
+            print(y)
 
-  return u()
+        else:
+            print(z)
+            print(y)
+            print(x)
 
-for b in a:               # first
-      for c, d in b:          # second
-        for ((e, f), g) in zip(c, d): # third
-         pass
+        def i():
+            def j():
+                return h(
+                    [1],
+                    [2],
+                )  # returns h
+
+    return u()
+
+for b in a:  # first
+    for c, d in b:  # second
+        for ((e, f), g) in zip(c, d):  # third
+            pass
 
 if foo in bar:
- for f in foo:
-  # loop
-  f()
+    for f in foo:
+        # loop
+        f()
+elif True:
+    a = b
 
-else if True:
-  a = b
-
-else:
-  if False:
-
+elif False:
     #assign
-    b=a
-  else:
-
-   (a,b)=(b,a)
-
-if foo:
-  bar
+    b = a
+else:
+    (a, b) = (b, a)
 
 if foo:
-  bar
+    bar
 
-#comment
+if foo:
+    bar
+    #comment
+
 bar
 
 bar
 
 def a():
-# comment here
-  return
+    # comment here
+    return

@@ -361,12 +361,6 @@ func hasComment(load *build.LoadStmt) bool {
 // It also cleans symbols loaded multiple times, sorts symbol list, and removes load
 // statements when the list is empty.
 func cleanUnusedLoads(f *build.File) bool {
-	// If the file needs preprocessing, leave it alone.
-	for _, stmt := range f.Stmt {
-		if _, ok := stmt.(*build.PythonBlock); ok {
-			return false
-		}
-	}
 	symbols := UsedSymbols(f)
 	fixed := false
 

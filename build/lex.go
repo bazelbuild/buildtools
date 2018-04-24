@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/bazelbuild/buildtools/tables"
 	"sort"
 )
 
@@ -301,9 +299,9 @@ func (in *input) Lex(val *yySymType) int {
 	}
 
 	// Check for changes in indentation
-	// Skip if --format_bzl is set to false, if we're inside a statement, or if there were non-space
+	// Skip if we're inside a statement, or if there were non-space
 	// characters before in the current line.
-	if tables.FormattingMode == tables.DefaultMode && in.endStmt == -1 && in.cleanLine {
+	if in.endStmt == -1 && in.cleanLine {
 		if in.indent > in.currentIndent() {
 			// A new indentation block starts
 			in.indents = append(in.indents, in.indent)
@@ -467,19 +465,6 @@ func (in *input) Lex(val *yySymType) int {
 		in.Error(fmt.Sprintf("unexpected input character %#q", c))
 	}
 
-	if tables.FormattingMode == tables.BuildMode {
-		// Look for raw Python block (class, def, if, etc at beginning of line) and pass through.
-		if in.depth == 0 && in.pos.LineRune == 1 && hasPythonPrefix(in.remaining) {
-			// Find end of Python block and advance input beyond it.
-			// Have to loop calling readRune in order to maintain line number info.
-			rest := in.skipStmt(in.remaining)
-			for len(in.remaining) > len(rest) {
-				in.readRune()
-			}
-			return _PYTHON
-		}
-	}
-
 	// Scan over alphanumeric identifier.
 	for {
 		c := in.peekRune()
@@ -536,74 +521,6 @@ var keywordToken = map[string]int{
 // We do not attempt to parse it. Instead, we lex just enough to scan
 // beyond it, treating the Python block as an unintepreted blob.
 
-// hasPythonPrefix reports whether p begins with a keyword that would
-// introduce an uninterpreted Python block.
-func hasPythonPrefix(p []byte) bool {
-	if tables.FormattingMode == tables.DefaultMode {
-		return false
-	}
-
-	for _, pre := range prefixes {
-		if hasPrefixSpace(p, pre) {
-			return true
-		}
-	}
-	return false
-}
-
-// These keywords introduce uninterpreted Python blocks.
-var prefixes = []string{
-	"assert",
-	"class",
-	"def",
-	"del",
-	"for",
-	"if",
-	"try",
-	"else",
-	"elif",
-	"except",
-}
-
-// hasPrefixSpace reports whether p begins with pre followed by a space or colon.
-func hasPrefixSpace(p []byte, pre string) bool {
-
-	if len(p) <= len(pre) || p[len(pre)] != ' ' && p[len(pre)] != '\t' && p[len(pre)] != ':' {
-		return false
-	}
-	for i := range pre {
-		if p[i] != pre[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// A utility function for the legacy formatter.
-// Returns whether a given code starts with a top-level statement (maybe with some preceeding
-// comments and blank lines)
-func isOutsideBlock(b []byte) bool {
-	isBlankLine := true
-	isComment := false
-	for _, c := range b {
-		switch {
-		case c == ' ' || c == '\t' || c == '\r':
-			isBlankLine = false
-		case c == '#':
-			isBlankLine = false
-			isComment = true
-		case c == '\n':
-			isBlankLine = true
-			isComment = false
-		default:
-			if !isComment {
-				return isBlankLine
-			}
-		}
-	}
-	return true
-}
-
 // skipStmt returns the data remaining after the statement  beginning at p.
 // It does not advance the input position.
 // (The only reason for the input receiver is to be able to call in.Error.)
@@ -656,18 +573,7 @@ func (in *input) skipStmt(p []byte) []byte {
 			if rest == nil {
 				rest = p[i:]
 			}
-
-			if tables.FormattingMode == tables.DefaultMode {
-				// In the bzl files mode we only care about the end of the statement, we've found it.
-				return rest
-			}
-			// In the legacy mode we need to find where the current block ends
-			if isOutsideBlock(p[i+1:]) {
-				return rest
-			}
-			// Not a stopping point after all.
-			rest = nil
-
+			return rest
 		}
 
 		switch c {
@@ -729,8 +635,6 @@ func (in *input) order(v Expr) {
 			in.order(v.From[i])
 		}
 		in.order(&v.Rparen)
-	case *PythonBlock:
-		// nothing
 	case *LiteralExpr:
 		// nothing
 	case *StringExpr:
