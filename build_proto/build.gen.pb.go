@@ -2,7 +2,7 @@
 // source: build_proto/build.proto
 
 /*
-Package blaze_query is a generated protocol buffer package.
+Package build_proto is a generated protocol buffer package.
 
 It is generated from these files:
 	build_proto/build.proto
@@ -36,7 +36,7 @@ It has these top-level messages:
 	GlobCriteria
 	Event
 */
-package blaze_query
+package build_proto
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -53,7 +53,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// Indicates what to do when a source file is actually a symlink.
 type FilesetEntry_SymlinkBehavior int32
 
 const (
@@ -90,7 +89,6 @@ func (FilesetEntry_SymlinkBehavior) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{6, 0}
 }
 
-// Indicates the type of attribute.
 type Attribute_Discriminator int32
 
 const (
@@ -182,7 +180,6 @@ func (x *Attribute_Discriminator) UnmarshalJSON(data []byte) error {
 }
 func (Attribute_Discriminator) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{7, 0} }
 
-// Values for the TriState field type.
 type Attribute_Tristate int32
 
 const (
@@ -489,31 +486,15 @@ func (m *StringListDictEntry) GetValue() []string {
 	return nil
 }
 
-// Represents an entry attribute of a Fileset rule in a build file.
 type FilesetEntry struct {
-	// The label pointing to the source target where files are copied from.
-	Source *string `protobuf:"bytes,1,req,name=source" json:"source,omitempty"`
-	// The relative path within the fileset rule where files will be mapped.
-	DestinationDirectory *string `protobuf:"bytes,2,req,name=destination_directory,json=destinationDirectory" json:"destination_directory,omitempty"`
-	// Whether the files= attribute was specified. This is necessary because
-	// no files= attribute and files=[] mean different things.
-	FilesPresent *bool `protobuf:"varint,7,opt,name=files_present,json=filesPresent" json:"files_present,omitempty"`
-	// A list of file labels to include from the source directory.
-	File []string `protobuf:"bytes,3,rep,name=file" json:"file,omitempty"`
-	// If this is a fileset entry representing files within the rule
-	// package, this lists relative paths to files that should be excluded from
-	// the set.  This cannot contain values if 'file' also has values.
-	Exclude []string `protobuf:"bytes,4,rep,name=exclude" json:"exclude,omitempty"`
-	// This field is optional because there will be some time when the new
-	// PB is used by tools depending on blaze query, but the new blaze version
-	// is not yet released.
-	// TODO(bazel-team): Make this field required once a version of Blaze is
-	// released that outputs this field.
-	SymlinkBehavior *FilesetEntry_SymlinkBehavior `protobuf:"varint,5,opt,name=symlink_behavior,json=symlinkBehavior,enum=blaze_query.FilesetEntry_SymlinkBehavior,def=1" json:"symlink_behavior,omitempty"`
-	// The prefix to strip from the path of the files in this FilesetEntry. Note
-	// that no value and the empty string as the value mean different things here.
-	StripPrefix      *string `protobuf:"bytes,6,opt,name=strip_prefix,json=stripPrefix" json:"strip_prefix,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	Source               *string                       `protobuf:"bytes,1,req,name=source" json:"source,omitempty"`
+	DestinationDirectory *string                       `protobuf:"bytes,2,req,name=destination_directory,json=destinationDirectory" json:"destination_directory,omitempty"`
+	FilesPresent         *bool                         `protobuf:"varint,7,opt,name=files_present,json=filesPresent" json:"files_present,omitempty"`
+	File                 []string                      `protobuf:"bytes,3,rep,name=file" json:"file,omitempty"`
+	Exclude              []string                      `protobuf:"bytes,4,rep,name=exclude" json:"exclude,omitempty"`
+	SymlinkBehavior      *FilesetEntry_SymlinkBehavior `protobuf:"varint,5,opt,name=symlink_behavior,json=symlinkBehavior,enum=blaze_query.FilesetEntry_SymlinkBehavior,def=1" json:"symlink_behavior,omitempty"`
+	StripPrefix          *string                       `protobuf:"bytes,6,opt,name=strip_prefix,json=stripPrefix" json:"strip_prefix,omitempty"`
+	XXX_unrecognized     []byte                        `json:"-"`
 }
 
 func (m *FilesetEntry) Reset()                    { *m = FilesetEntry{} }
@@ -572,82 +553,29 @@ func (m *FilesetEntry) GetStripPrefix() string {
 	return ""
 }
 
-// A rule attribute. Each attribute must have a type and one of the various
-// value fields populated - for the most part.
-//
-// Attributes of BOOLEAN and TRISTATE type may set all of the int, bool, and
-// string values for backwards compatibility with clients that expect them to
-// be set.
-//
-// Attributes of INTEGER, STRING, LABEL, LICENSE, BOOLEAN, and TRISTATE type
-// may set *none* of the values. This can happen if the Attribute message is
-// prepared for a client that doesn't support SELECTOR_LIST, but the rule has
-// a selector list value for the attribute. (Selector lists for attributes of
-// other types--the collection types--are handled differently when prepared
-// for such a client. The possible collection values are gathered together
-// and flattened.)
-//
-// By checking the type, the appropriate value can be extracted - see the
-// comments on each type for the associated value.  The order of lists comes
-// from the blaze parsing. If an attribute is of a list type, the associated
-// list should never be empty.
 type Attribute struct {
-	// The name of the attribute
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The location of the target in the BUILD file in a machine-parseable form.
-	DEPRECATEDParseableLocation *Location `protobuf:"bytes,12,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
-	// Whether the attribute was explicitly specified
-	ExplicitlySpecified *bool `protobuf:"varint,13,opt,name=explicitly_specified,json=explicitlySpecified" json:"explicitly_specified,omitempty"`
-	// If this attribute has a string value or a string list value, then this
-	// may be set to indicate that the value may be treated as a label that
-	// isn't a dependency of this attribute's rule.
-	Nodep *bool `protobuf:"varint,20,opt,name=nodep" json:"nodep,omitempty"`
-	// The type of attribute.  This message is used for all of the different
-	// attribute types so the discriminator helps for figuring out what is
-	// stored in the message.
-	Type *Attribute_Discriminator `protobuf:"varint,2,req,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
-	// If this attribute has an integer value this will be populated.
-	// Boolean and TriState also use this field as [0,1] and [-1,0,1]
-	// for [false, true] and [auto, no, yes] respectively.
-	IntValue *int32 `protobuf:"varint,3,opt,name=int_value,json=intValue" json:"int_value,omitempty"`
-	// If the attribute has a string value this will be populated.  Label and
-	// path attributes use this field as the value even though the type may
-	// be LABEL or something else other than STRING.
-	StringValue *string `protobuf:"bytes,5,opt,name=string_value,json=stringValue" json:"string_value,omitempty"`
-	// If the attribute has a boolean value this will be populated.
-	BooleanValue *bool `protobuf:"varint,14,opt,name=boolean_value,json=booleanValue" json:"boolean_value,omitempty"`
-	// If the attribute is a Tristate value, this will be populated.
-	TristateValue *Attribute_Tristate `protobuf:"varint,15,opt,name=tristate_value,json=tristateValue,enum=blaze_query.Attribute_Tristate" json:"tristate_value,omitempty"`
-	// The value of the attribute has a list of string values (label and path
-	// note from STRING applies here as well).
-	StringListValue []string `protobuf:"bytes,6,rep,name=string_list_value,json=stringListValue" json:"string_list_value,omitempty"`
-	// If this is a license attribute, the license information is stored here.
-	License *License `protobuf:"bytes,7,opt,name=license" json:"license,omitempty"`
-	// If this is a string dict, each entry will be stored here.
-	StringDictValue []*StringDictEntry `protobuf:"bytes,8,rep,name=string_dict_value,json=stringDictValue" json:"string_dict_value,omitempty"`
-	// If the attribute is part of a Fileset, the fileset entries are stored in
-	// this field.
-	FilesetListValue []*FilesetEntry `protobuf:"bytes,9,rep,name=fileset_list_value,json=filesetListValue" json:"fileset_list_value,omitempty"`
-	// If this is a label list dict, each entry will be stored here.
-	LabelListDictValue []*LabelListDictEntry `protobuf:"bytes,10,rep,name=label_list_dict_value,json=labelListDictValue" json:"label_list_dict_value,omitempty"`
-	// If this is a string list dict, each entry will be stored here.
-	StringListDictValue []*StringListDictEntry `protobuf:"bytes,11,rep,name=string_list_dict_value,json=stringListDictValue" json:"string_list_dict_value,omitempty"`
-	// The glob criteria. This is non-empty if:
-	// 1. This attribute is a list of strings or labels, and,
-	// 2. It contained a glob() expression
-	GlobCriteria []*GlobCriteria `protobuf:"bytes,16,rep,name=glob_criteria,json=globCriteria" json:"glob_criteria,omitempty"`
-	// The value of the attribute has a list of int32 values
-	IntListValue []int32 `protobuf:"varint,17,rep,name=int_list_value,json=intListValue" json:"int_list_value,omitempty"`
-	// If this is a label dict unary, each entry will be stored here.
-	LabelDictUnaryValue []*LabelDictUnaryEntry `protobuf:"bytes,19,rep,name=label_dict_unary_value,json=labelDictUnaryValue" json:"label_dict_unary_value,omitempty"`
-	// If this is a label-keyed string dict, each entry will be stored here.
-	LabelKeyedStringDictValue []*LabelKeyedStringDictEntry `protobuf:"bytes,22,rep,name=label_keyed_string_dict_value,json=labelKeyedStringDictValue" json:"label_keyed_string_dict_value,omitempty"`
-	// If this attribute's value is an expression containing one or more select
-	// expressions, then its type is SELECTOR_LIST and a SelectorList will be
-	// stored here.
-	SelectorList                   *Attribute_SelectorList `protobuf:"bytes,21,opt,name=selector_list,json=selectorList" json:"selector_list,omitempty"`
-	DEPRECATEDStringDictUnaryValue [][]byte                `protobuf:"bytes,18,rep,name=DEPRECATED_string_dict_unary_value,json=DEPRECATEDStringDictUnaryValue" json:"DEPRECATED_string_dict_unary_value,omitempty"`
-	XXX_unrecognized               []byte                  `json:"-"`
+	Name                           *string                      `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	DEPRECATEDParseableLocation    *Location                    `protobuf:"bytes,12,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
+	ExplicitlySpecified            *bool                        `protobuf:"varint,13,opt,name=explicitly_specified,json=explicitlySpecified" json:"explicitly_specified,omitempty"`
+	Nodep                          *bool                        `protobuf:"varint,20,opt,name=nodep" json:"nodep,omitempty"`
+	Type                           *Attribute_Discriminator     `protobuf:"varint,2,req,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
+	IntValue                       *int32                       `protobuf:"varint,3,opt,name=int_value,json=intValue" json:"int_value,omitempty"`
+	StringValue                    *string                      `protobuf:"bytes,5,opt,name=string_value,json=stringValue" json:"string_value,omitempty"`
+	BooleanValue                   *bool                        `protobuf:"varint,14,opt,name=boolean_value,json=booleanValue" json:"boolean_value,omitempty"`
+	TristateValue                  *Attribute_Tristate          `protobuf:"varint,15,opt,name=tristate_value,json=tristateValue,enum=blaze_query.Attribute_Tristate" json:"tristate_value,omitempty"`
+	StringListValue                []string                     `protobuf:"bytes,6,rep,name=string_list_value,json=stringListValue" json:"string_list_value,omitempty"`
+	License                        *License                     `protobuf:"bytes,7,opt,name=license" json:"license,omitempty"`
+	StringDictValue                []*StringDictEntry           `protobuf:"bytes,8,rep,name=string_dict_value,json=stringDictValue" json:"string_dict_value,omitempty"`
+	FilesetListValue               []*FilesetEntry              `protobuf:"bytes,9,rep,name=fileset_list_value,json=filesetListValue" json:"fileset_list_value,omitempty"`
+	LabelListDictValue             []*LabelListDictEntry        `protobuf:"bytes,10,rep,name=label_list_dict_value,json=labelListDictValue" json:"label_list_dict_value,omitempty"`
+	StringListDictValue            []*StringListDictEntry       `protobuf:"bytes,11,rep,name=string_list_dict_value,json=stringListDictValue" json:"string_list_dict_value,omitempty"`
+	GlobCriteria                   []*GlobCriteria              `protobuf:"bytes,16,rep,name=glob_criteria,json=globCriteria" json:"glob_criteria,omitempty"`
+	IntListValue                   []int32                      `protobuf:"varint,17,rep,name=int_list_value,json=intListValue" json:"int_list_value,omitempty"`
+	LabelDictUnaryValue            []*LabelDictUnaryEntry       `protobuf:"bytes,19,rep,name=label_dict_unary_value,json=labelDictUnaryValue" json:"label_dict_unary_value,omitempty"`
+	LabelKeyedStringDictValue      []*LabelKeyedStringDictEntry `protobuf:"bytes,22,rep,name=label_keyed_string_dict_value,json=labelKeyedStringDictValue" json:"label_keyed_string_dict_value,omitempty"`
+	SelectorList                   *Attribute_SelectorList      `protobuf:"bytes,21,opt,name=selector_list,json=selectorList" json:"selector_list,omitempty"`
+	DEPRECATEDStringDictUnaryValue [][]byte                     `protobuf:"bytes,18,rep,name=DEPRECATED_string_dict_unary_value,json=DEPRECATEDStringDictUnaryValue" json:"DEPRECATED_string_dict_unary_value,omitempty"`
+	XXX_unrecognized               []byte                       `json:"-"`
 }
 
 func (m *Attribute) Reset()                    { *m = Attribute{} }
@@ -803,20 +731,8 @@ func (m *Attribute) GetDEPRECATEDStringDictUnaryValue() [][]byte {
 }
 
 type Attribute_SelectorEntry struct {
-	// The key of the selector entry. At this time, this is the label of a
-	// config_setting rule, or the pseudo-label "//conditions:default".
-	Label *string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
-	// True if the entry's value is the default value for the type as a
-	// result of the condition value being specified as None (ie:
-	// {"//condition": None}).
-	IsDefaultValue *bool `protobuf:"varint,16,opt,name=is_default_value,json=isDefaultValue" json:"is_default_value,omitempty"`
-	// Exactly one of the following fields (except for glob_criteria) must be
-	// populated - note that the BOOLEAN and TRISTATE caveat in Attribute's
-	// comment does not apply here. The type field in the SelectorList
-	// containing this entry indicates which of these fields is populated,
-	// in accordance with the comments on Discriminator enum values above.
-	// (To be explicit: BOOLEAN populates the boolean_value field and TRISTATE
-	// populates the tristate_value field.)
+	Label                          *string                      `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
+	IsDefaultValue                 *bool                        `protobuf:"varint,16,opt,name=is_default_value,json=isDefaultValue" json:"is_default_value,omitempty"`
 	IntValue                       *int32                       `protobuf:"varint,2,opt,name=int_value,json=intValue" json:"int_value,omitempty"`
 	StringValue                    *string                      `protobuf:"bytes,3,opt,name=string_value,json=stringValue" json:"string_value,omitempty"`
 	BooleanValue                   *bool                        `protobuf:"varint,4,opt,name=boolean_value,json=booleanValue" json:"boolean_value,omitempty"`
@@ -960,15 +876,10 @@ func (m *Attribute_SelectorEntry) GetDEPRECATEDStringDictUnaryValue() [][]byte {
 }
 
 type Attribute_Selector struct {
-	// The list of (label, value) pairs in the map that defines the selector.
-	// At this time, this cannot be empty, i.e. a selector has at least one
-	// entry.
-	Entries []*Attribute_SelectorEntry `protobuf:"bytes,1,rep,name=entries" json:"entries,omitempty"`
-	// Whether or not this has any default values.
-	HasDefaultValue *bool `protobuf:"varint,2,opt,name=has_default_value,json=hasDefaultValue" json:"has_default_value,omitempty"`
-	// The error message when no condition matches.
-	NoMatchError     *string `protobuf:"bytes,3,opt,name=no_match_error,json=noMatchError" json:"no_match_error,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	Entries          []*Attribute_SelectorEntry `protobuf:"bytes,1,rep,name=entries" json:"entries,omitempty"`
+	HasDefaultValue  *bool                      `protobuf:"varint,2,opt,name=has_default_value,json=hasDefaultValue" json:"has_default_value,omitempty"`
+	NoMatchError     *string                    `protobuf:"bytes,3,opt,name=no_match_error,json=noMatchError" json:"no_match_error,omitempty"`
+	XXX_unrecognized []byte                     `json:"-"`
 }
 
 func (m *Attribute_Selector) Reset()                    { *m = Attribute_Selector{} }
@@ -998,14 +909,9 @@ func (m *Attribute_Selector) GetNoMatchError() string {
 }
 
 type Attribute_SelectorList struct {
-	// The type that this selector list evaluates to, and the type that each
-	// selector in the list evaluates to. At this time, this cannot be
-	// SELECTOR_LIST, i.e. selector lists do not nest.
-	Type *Attribute_Discriminator `protobuf:"varint,1,opt,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
-	// The list of selector elements in this selector list. At this time, this
-	// cannot be empty, i.e. a selector list is never empty.
-	Elements         []*Attribute_Selector `protobuf:"bytes,2,rep,name=elements" json:"elements,omitempty"`
-	XXX_unrecognized []byte                `json:"-"`
+	Type             *Attribute_Discriminator `protobuf:"varint,1,opt,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
+	Elements         []*Attribute_Selector    `protobuf:"bytes,2,rep,name=elements" json:"elements,omitempty"`
+	XXX_unrecognized []byte                   `json:"-"`
 }
 
 func (m *Attribute_SelectorList) Reset()                    { *m = Attribute_SelectorList{} }
@@ -1027,43 +933,20 @@ func (m *Attribute_SelectorList) GetElements() []*Attribute_Selector {
 	return nil
 }
 
-// A rule from a BUILD file (e.g., cc_library, java_binary).  The rule class
-// is the actual name of the rule (e.g., cc_library) and the name is the full
-// label of the rule (e.g., //foo/bar:baz).
 type Rule struct {
-	// The name of the rule
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The rule class (e.g., java_library)
-	RuleClass *string `protobuf:"bytes,2,req,name=rule_class,json=ruleClass" json:"rule_class,omitempty"`
-	// The BUILD file and line number of the rule.
-	Location *string `protobuf:"bytes,3,opt,name=location" json:"location,omitempty"`
-	// All of the attributes that describe the rule.
-	Attribute []*Attribute `protobuf:"bytes,4,rep,name=attribute" json:"attribute,omitempty"`
-	// All of the inputs to the rule.  These are predecessors in the dependency
-	// graph.  A rule_input for a rule should always be described as a
-	// source_file in some package (either the rule's package or some other one).
-	RuleInput []string `protobuf:"bytes,5,rep,name=rule_input,json=ruleInput" json:"rule_input,omitempty"`
-	// All of the outputs of the rule.  These are the successors in the
-	// dependency graph.
-	RuleOutput []string `protobuf:"bytes,6,rep,name=rule_output,json=ruleOutput" json:"rule_output,omitempty"`
-	// The set of all default settings affecting this rule. The name of a default
-	// setting is "<setting type>_<setting name>". There currently defined setting
-	// types are:
-	//
-	// - 'blaze': settings implemented in Blaze itself
-	DefaultSetting []string `protobuf:"bytes,7,rep,name=default_setting,json=defaultSetting" json:"default_setting,omitempty"`
-	// The location of the target in the BUILD file in a machine-parseable form.
-	DEPRECATEDParseableLocation *Location `protobuf:"bytes,8,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
-	// The rule's class's public by default value.
-	PublicByDefault *bool `protobuf:"varint,9,opt,name=public_by_default,json=publicByDefault" json:"public_by_default,omitempty"`
-	// If this rule is of a skylark-defined RuleClass.
-	IsSkylark *bool `protobuf:"varint,10,opt,name=is_skylark,json=isSkylark" json:"is_skylark,omitempty"`
-	// List of Skylark aspects that this rule applies.
-	SkylarkAttributeAspects []*AttributeAspect `protobuf:"bytes,11,rep,name=skylark_attribute_aspects,json=skylarkAttributeAspects" json:"skylark_attribute_aspects,omitempty"`
-	// Hash encapsulating the behavior of this Skylark rule. Any change to this
-	// rule's definition that could change its behavior will be reflected here.
-	SkylarkEnvironmentHashCode *string `protobuf:"bytes,12,opt,name=skylark_environment_hash_code,json=skylarkEnvironmentHashCode" json:"skylark_environment_hash_code,omitempty"`
-	XXX_unrecognized           []byte  `json:"-"`
+	Name                        *string            `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	RuleClass                   *string            `protobuf:"bytes,2,req,name=rule_class,json=ruleClass" json:"rule_class,omitempty"`
+	Location                    *string            `protobuf:"bytes,3,opt,name=location" json:"location,omitempty"`
+	Attribute                   []*Attribute       `protobuf:"bytes,4,rep,name=attribute" json:"attribute,omitempty"`
+	RuleInput                   []string           `protobuf:"bytes,5,rep,name=rule_input,json=ruleInput" json:"rule_input,omitempty"`
+	RuleOutput                  []string           `protobuf:"bytes,6,rep,name=rule_output,json=ruleOutput" json:"rule_output,omitempty"`
+	DefaultSetting              []string           `protobuf:"bytes,7,rep,name=default_setting,json=defaultSetting" json:"default_setting,omitempty"`
+	DEPRECATEDParseableLocation *Location          `protobuf:"bytes,8,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
+	PublicByDefault             *bool              `protobuf:"varint,9,opt,name=public_by_default,json=publicByDefault" json:"public_by_default,omitempty"`
+	IsSkylark                   *bool              `protobuf:"varint,10,opt,name=is_skylark,json=isSkylark" json:"is_skylark,omitempty"`
+	SkylarkAttributeAspects     []*AttributeAspect `protobuf:"bytes,11,rep,name=skylark_attribute_aspects,json=skylarkAttributeAspects" json:"skylark_attribute_aspects,omitempty"`
+	SkylarkEnvironmentHashCode  *string            `protobuf:"bytes,12,opt,name=skylark_environment_hash_code,json=skylarkEnvironmentHashCode" json:"skylark_environment_hash_code,omitempty"`
+	XXX_unrecognized            []byte             `json:"-"`
 }
 
 func (m *Rule) Reset()                    { *m = Rule{} }
@@ -1155,7 +1038,6 @@ func (m *Rule) GetSkylarkEnvironmentHashCode() string {
 	return ""
 }
 
-// A pairing of attribute name and a Skylark aspect that is applied to that attribute.
 type AttributeAspect struct {
 	AttributeName    *string        `protobuf:"bytes,1,req,name=attribute_name,json=attributeName" json:"attribute_name,omitempty"`
 	Aspect           *SkylarkAspect `protobuf:"bytes,2,req,name=aspect" json:"aspect,omitempty"`
@@ -1181,7 +1063,6 @@ func (m *AttributeAspect) GetAspect() *SkylarkAspect {
 	return nil
 }
 
-// Aspect defined in Skylark.
 type SkylarkAspect struct {
 	ExtensionFileLabel *string      `protobuf:"bytes,1,req,name=extension_file_label,json=extensionFileLabel" json:"extension_file_label,omitempty"`
 	ExportedName       *string      `protobuf:"bytes,2,req,name=exported_name,json=exportedName" json:"exported_name,omitempty"`
@@ -1215,10 +1096,6 @@ func (m *SkylarkAspect) GetAttribute() []*Attribute {
 	return nil
 }
 
-// Summary of all transitive dependencies of 'rule,' where each dependent
-// rule is included only once in the 'dependency' field.  Gives complete
-// information to analyze the single build target labeled rule.name,
-// including optional location of target in BUILD file.
 type RuleSummary struct {
 	Rule             *Rule   `protobuf:"bytes,1,req,name=rule" json:"rule,omitempty"`
 	Dependency       []*Rule `protobuf:"bytes,2,rep,name=dependency" json:"dependency,omitempty"`
@@ -1252,18 +1129,10 @@ func (m *RuleSummary) GetLocation() string {
 	return ""
 }
 
-// A package group. Aside from the name, it contains the list of packages
-// present in the group (as specified in the BUILD file).
 type PackageGroup struct {
-	// The name of the package group
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The list of packages as specified in the BUILD file. Currently this is
-	// only a list of packages, but some time in the future, there might be
-	// some type of wildcard mechanism.
-	ContainedPackage []string `protobuf:"bytes,2,rep,name=contained_package,json=containedPackage" json:"contained_package,omitempty"`
-	// The list of sub package groups included in this one.
-	IncludedPackageGroup []string `protobuf:"bytes,3,rep,name=included_package_group,json=includedPackageGroup" json:"included_package_group,omitempty"`
-	// The location of the target in the BUILD file in a machine-parseable form.
+	Name                        *string   `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	ContainedPackage            []string  `protobuf:"bytes,2,rep,name=contained_package,json=containedPackage" json:"contained_package,omitempty"`
+	IncludedPackageGroup        []string  `protobuf:"bytes,3,rep,name=included_package_group,json=includedPackageGroup" json:"included_package_group,omitempty"`
 	DEPRECATEDParseableLocation *Location `protobuf:"bytes,4,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
 	XXX_unrecognized            []byte    `json:"-"`
 }
@@ -1301,14 +1170,9 @@ func (m *PackageGroup) GetDEPRECATEDParseableLocation() *Location {
 	return nil
 }
 
-// An environment group.
 type EnvironmentGroup struct {
-	// The name of the environment group.
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The environments that belong to this group (as labels).
-	Environment []string `protobuf:"bytes,2,rep,name=environment" json:"environment,omitempty"`
-	// The member environments that rules implicitly support if not otherwise
-	// specified.
+	Name             *string  `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Environment      []string `protobuf:"bytes,2,rep,name=environment" json:"environment,omitempty"`
 	Default          []string `protobuf:"bytes,3,rep,name=default" json:"default,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
@@ -1339,37 +1203,17 @@ func (m *EnvironmentGroup) GetDefault() []string {
 	return nil
 }
 
-// A file that is an input into the build system.
-// Next-Id: 10
 type SourceFile struct {
-	// The name of the source file (a label).
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The location of the source file.  This is a path with line numbers, not
-	// a label in the build system.
-	Location *string `protobuf:"bytes,2,opt,name=location" json:"location,omitempty"`
-	// The location of the corresponding label in the BUILD file in a
-	// machine-parseable form.
+	Name                        *string   `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Location                    *string   `protobuf:"bytes,2,opt,name=location" json:"location,omitempty"`
 	DEPRECATEDParseableLocation *Location `protobuf:"bytes,7,opt,name=DEPRECATED_parseable_location,json=DEPRECATEDParseableLocation" json:"DEPRECATED_parseable_location,omitempty"`
-	// Labels of files that are transitively subincluded in this BUILD file. This
-	// is present only when the SourceFile represents a BUILD file that
-	// subincludes other files. The subincluded file can be either a Python
-	// preprocessed build extension or a Skylark file.
-	Subinclude []string `protobuf:"bytes,3,rep,name=subinclude" json:"subinclude,omitempty"`
-	// Labels of package groups that are mentioned in the visibility declaration
-	// for this source file.
-	PackageGroup []string `protobuf:"bytes,4,rep,name=package_group,json=packageGroup" json:"package_group,omitempty"`
-	// Labels mentioned in the visibility declaration (including :__pkg__ and
-	// //visibility: ones)
-	VisibilityLabel []string `protobuf:"bytes,5,rep,name=visibility_label,json=visibilityLabel" json:"visibility_label,omitempty"`
-	// The package-level features enabled for this package. Only present if the
-	// SourceFile represents a BUILD file.
-	Feature []string `protobuf:"bytes,6,rep,name=feature" json:"feature,omitempty"`
-	// License attribute for the file.
-	License *License `protobuf:"bytes,8,opt,name=license" json:"license,omitempty"`
-	// True if the package contains an error. Only present if the SourceFile
-	// represents a BUILD file.
-	PackageContainsErrors *bool  `protobuf:"varint,9,opt,name=package_contains_errors,json=packageContainsErrors" json:"package_contains_errors,omitempty"`
-	XXX_unrecognized      []byte `json:"-"`
+	Subinclude                  []string  `protobuf:"bytes,3,rep,name=subinclude" json:"subinclude,omitempty"`
+	PackageGroup                []string  `protobuf:"bytes,4,rep,name=package_group,json=packageGroup" json:"package_group,omitempty"`
+	VisibilityLabel             []string  `protobuf:"bytes,5,rep,name=visibility_label,json=visibilityLabel" json:"visibility_label,omitempty"`
+	Feature                     []string  `protobuf:"bytes,6,rep,name=feature" json:"feature,omitempty"`
+	License                     *License  `protobuf:"bytes,8,opt,name=license" json:"license,omitempty"`
+	PackageContainsErrors       *bool     `protobuf:"varint,9,opt,name=package_contains_errors,json=packageContainsErrors" json:"package_contains_errors,omitempty"`
+	XXX_unrecognized            []byte    `json:"-"`
 }
 
 func (m *SourceFile) Reset()                    { *m = SourceFile{} }
@@ -1440,13 +1284,9 @@ func (m *SourceFile) GetPackageContainsErrors() bool {
 	return false
 }
 
-// A file that is the output of a build rule.
 type GeneratedFile struct {
-	// The name of the generated file (a label).
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// The label of the target that generates the file.
-	GeneratingRule *string `protobuf:"bytes,2,req,name=generating_rule,json=generatingRule" json:"generating_rule,omitempty"`
-	// The path of the output file (not a label).
+	Name             *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	GeneratingRule   *string `protobuf:"bytes,2,req,name=generating_rule,json=generatingRule" json:"generating_rule,omitempty"`
 	Location         *string `protobuf:"bytes,3,opt,name=location" json:"location,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
@@ -1477,24 +1317,14 @@ func (m *GeneratedFile) GetLocation() string {
 	return ""
 }
 
-// A target from a blaze query execution.  Similar to the Attribute message,
-// the Discriminator is used to determine which field contains information.
-// For any given type, only one of these can be populated in a single Target.
 type Target struct {
-	// The type of target contained in the message.
-	Type *Target_Discriminator `protobuf:"varint,1,req,name=type,enum=blaze_query.Target_Discriminator" json:"type,omitempty"`
-	// If this target represents a rule, the rule is stored here.
-	Rule *Rule `protobuf:"bytes,2,opt,name=rule" json:"rule,omitempty"`
-	// A file that is not generated by the build system (version controlled
-	// or created by the test harness).
-	SourceFile *SourceFile `protobuf:"bytes,3,opt,name=source_file,json=sourceFile" json:"source_file,omitempty"`
-	// A generated file that is the output of a rule.
-	GeneratedFile *GeneratedFile `protobuf:"bytes,4,opt,name=generated_file,json=generatedFile" json:"generated_file,omitempty"`
-	// A package group.
-	PackageGroup *PackageGroup `protobuf:"bytes,5,opt,name=package_group,json=packageGroup" json:"package_group,omitempty"`
-	// An environment group.
-	EnvironmentGroup *EnvironmentGroup `protobuf:"bytes,6,opt,name=environment_group,json=environmentGroup" json:"environment_group,omitempty"`
-	XXX_unrecognized []byte            `json:"-"`
+	Type             *Target_Discriminator `protobuf:"varint,1,req,name=type,enum=blaze_query.Target_Discriminator" json:"type,omitempty"`
+	Rule             *Rule                 `protobuf:"bytes,2,opt,name=rule" json:"rule,omitempty"`
+	SourceFile       *SourceFile           `protobuf:"bytes,3,opt,name=source_file,json=sourceFile" json:"source_file,omitempty"`
+	GeneratedFile    *GeneratedFile        `protobuf:"bytes,4,opt,name=generated_file,json=generatedFile" json:"generated_file,omitempty"`
+	PackageGroup     *PackageGroup         `protobuf:"bytes,5,opt,name=package_group,json=packageGroup" json:"package_group,omitempty"`
+	EnvironmentGroup *EnvironmentGroup     `protobuf:"bytes,6,opt,name=environment_group,json=environmentGroup" json:"environment_group,omitempty"`
+	XXX_unrecognized []byte                `json:"-"`
 }
 
 func (m *Target) Reset()                    { *m = Target{} }
@@ -1544,9 +1374,7 @@ func (m *Target) GetEnvironmentGroup() *EnvironmentGroup {
 	return nil
 }
 
-// Container for all of the blaze query results.
 type QueryResult struct {
-	// All of the targets returned by the blaze query.
 	Target           []*Target `protobuf:"bytes,1,rep,name=target" json:"target,omitempty"`
 	XXX_unrecognized []byte    `json:"-"`
 }
@@ -1563,14 +1391,10 @@ func (m *QueryResult) GetTarget() []*Target {
 	return nil
 }
 
-// Information about allowed rule classes for a specific attribute of a rule.
 type AllowedRuleClassInfo struct {
-	Policy *AllowedRuleClassInfo_AllowedRuleClasses `protobuf:"varint,1,req,name=policy,enum=blaze_query.AllowedRuleClassInfo_AllowedRuleClasses" json:"policy,omitempty"`
-	// Rule class names of rules allowed in this attribute, e.g "cc_library",
-	// "py_binary". Only present if the allowed_rule_classes field is set to
-	// SPECIFIED.
-	AllowedRuleClass []string `protobuf:"bytes,2,rep,name=allowed_rule_class,json=allowedRuleClass" json:"allowed_rule_class,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	Policy           *AllowedRuleClassInfo_AllowedRuleClasses `protobuf:"varint,1,req,name=policy,enum=blaze_query.AllowedRuleClassInfo_AllowedRuleClasses" json:"policy,omitempty"`
+	AllowedRuleClass []string                                 `protobuf:"bytes,2,rep,name=allowed_rule_class,json=allowedRuleClass" json:"allowed_rule_class,omitempty"`
+	XXX_unrecognized []byte                                   `json:"-"`
 }
 
 func (m *AllowedRuleClassInfo) Reset()                    { *m = AllowedRuleClassInfo{} }
@@ -1592,16 +1416,13 @@ func (m *AllowedRuleClassInfo) GetAllowedRuleClass() []string {
 	return nil
 }
 
-// This message represents a single attribute of a single rule.
 type AttributeDefinition struct {
-	// Attribute name, i.e. "name", "srcs", "deps"
-	Name      *string                  `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	Type      *Attribute_Discriminator `protobuf:"varint,2,req,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
-	Mandatory *bool                    `protobuf:"varint,3,req,name=mandatory" json:"mandatory,omitempty"`
-	// Only present for attributes of type LABEL and LABEL_LIST.
-	AllowedRuleClasses *AllowedRuleClassInfo `protobuf:"bytes,4,opt,name=allowed_rule_classes,json=allowedRuleClasses" json:"allowed_rule_classes,omitempty"`
-	Documentation      *string               `protobuf:"bytes,5,opt,name=documentation" json:"documentation,omitempty"`
-	XXX_unrecognized   []byte                `json:"-"`
+	Name               *string                  `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Type               *Attribute_Discriminator `protobuf:"varint,2,req,name=type,enum=blaze_query.Attribute_Discriminator" json:"type,omitempty"`
+	Mandatory          *bool                    `protobuf:"varint,3,req,name=mandatory" json:"mandatory,omitempty"`
+	AllowedRuleClasses *AllowedRuleClassInfo    `protobuf:"bytes,4,opt,name=allowed_rule_classes,json=allowedRuleClasses" json:"allowed_rule_classes,omitempty"`
+	Documentation      *string                  `protobuf:"bytes,5,opt,name=documentation" json:"documentation,omitempty"`
+	XXX_unrecognized   []byte                   `json:"-"`
 }
 
 func (m *AttributeDefinition) Reset()                    { *m = AttributeDefinition{} }
@@ -1645,13 +1466,11 @@ func (m *AttributeDefinition) GetDocumentation() string {
 }
 
 type RuleDefinition struct {
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	// Only contains documented attributes
-	Attribute     []*AttributeDefinition `protobuf:"bytes,2,rep,name=attribute" json:"attribute,omitempty"`
-	Documentation *string                `protobuf:"bytes,3,opt,name=documentation" json:"documentation,omitempty"`
-	// Only for build extensions: label to file that defines the extension
-	Label            *string `protobuf:"bytes,4,opt,name=label" json:"label,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	Name             *string                `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Attribute        []*AttributeDefinition `protobuf:"bytes,2,rep,name=attribute" json:"attribute,omitempty"`
+	Documentation    *string                `protobuf:"bytes,3,opt,name=documentation" json:"documentation,omitempty"`
+	Label            *string                `protobuf:"bytes,4,opt,name=label" json:"label,omitempty"`
+	XXX_unrecognized []byte                 `json:"-"`
 }
 
 func (m *RuleDefinition) Reset()                    { *m = RuleDefinition{} }
@@ -1688,7 +1507,6 @@ func (m *RuleDefinition) GetLabel() string {
 }
 
 type BuildLanguage struct {
-	// Only contains documented rule definitions
 	Rule             []*RuleDefinition `protobuf:"bytes,1,rep,name=rule" json:"rule,omitempty"`
 	XXX_unrecognized []byte            `json:"-"`
 }
@@ -1813,13 +1631,10 @@ func (m *MakeVar) GetBinding() []*MakeVarBinding {
 }
 
 type GlobCriteria struct {
-	// List of includes (or items if this criteria did not come from a glob)
-	Include []string `protobuf:"bytes,1,rep,name=include" json:"include,omitempty"`
-	// List of exclude expressions
-	Exclude []string `protobuf:"bytes,2,rep,name=exclude" json:"exclude,omitempty"`
-	// Whether this message came from a glob
-	Glob             *bool  `protobuf:"varint,3,opt,name=glob" json:"glob,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Include          []string `protobuf:"bytes,1,rep,name=include" json:"include,omitempty"`
+	Exclude          []string `protobuf:"bytes,2,rep,name=exclude" json:"exclude,omitempty"`
+	Glob             *bool    `protobuf:"varint,3,opt,name=glob" json:"glob,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *GlobCriteria) Reset()                    { *m = GlobCriteria{} }

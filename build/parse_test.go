@@ -132,16 +132,16 @@ var parseTests = []struct {
 			Path: "test",
 			Stmt: []Expr{
 				&CallExpr{
-					X: &LiteralExpr{
-						Start: Position{1, 1, 0},
-						Token: "go_binary",
+					X: &Ident{
+						NamePos: Position{1, 1, 0},
+						Name: "go_binary",
 					},
 					ListStart: Position{1, 10, 9},
 					List: []Expr{
 						&BinaryExpr{
-							X: &LiteralExpr{
-								Start: Position{1, 11, 10},
-								Token: "name",
+							X: &Ident{
+								NamePos: Position{1, 11, 10},
+								Name: "name",
 							},
 							OpStart: Position{1, 16, 15},
 							Op:      "=",
@@ -167,9 +167,9 @@ var parseTests = []struct {
 				&CallExpr{
 					X: &DotExpr{
 						X: &DotExpr{
-							X: &LiteralExpr{
-								Start: Position{1, 1, 0},
-								Token: "foo",
+							X: &Ident{
+								NamePos: Position{1, 1, 0},
+								Name: "foo",
 							},
 							Dot:     Position{1, 4, 3},
 							NamePos: Position{1, 5, 4},
@@ -182,9 +182,9 @@ var parseTests = []struct {
 					ListStart: Position{1, 12, 11},
 					List: []Expr{
 						&BinaryExpr{
-							X: &LiteralExpr{
-								Start: Position{1, 13, 12},
-								Token: "name",
+							X: &Ident{
+								NamePos: Position{1, 13, 12},
+								Name: "name",
 							},
 							OpStart: Position{1, 18, 17},
 							Op:      "=",

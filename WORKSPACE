@@ -2,16 +2,25 @@ workspace(name = "com_github_bazelbuild_buildtools")
 
 git_repository(
     name = "io_bazel_rules_go",
-    commit = "9b3a85e62cc8c00d4b356bfb2035ca0657703187",
+    # 0.11.1
+    commit = "12fa5fd88725c9033fc7c37ec0f04b64a9519f49",
     remote = "https://github.com/bazelbuild/rules_go.git",
+)
+
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "92a3c59734dad2ef85dc731dbcb2bc23c4568cded79d4b87ebccd787eb89e8d0",
+    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.11.0/bazel-gazelle-0.11.0.tar.gz",
 )
 
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_rules_dependencies",
     "go_register_toolchains",
-    "go_repository",
 )
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+
+gazelle_dependencies()
 
 go_rules_dependencies()
 
@@ -30,6 +39,6 @@ http_archive(
 
 go_repository(
     name = "skylark_syntax",
-    commit = "f11011f2887ba17f71cf974fc319dbb550a48ed5",
+    commit = "ede9b31f30c07f7081ae3c112b223d024c7f7a15",
     importpath = "github.com/google/skylark",
 )

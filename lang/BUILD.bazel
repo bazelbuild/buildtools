@@ -1,7 +1,7 @@
-# gazelle:ignore
-
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//build:build_defs.bzl", "genfile_check_test")
+
+# gazelle:exclude tables.gen.go
 
 genfile_check_test(
     src = "tables.gen.go",
@@ -24,5 +24,7 @@ go_library(
         "tables.go",  # keep
     ],
     visibility = ["//visibility:public"],
-    deps = ["//build_proto:go_default_library"],
+    deps = [
+        "//build_proto:go_default_library",  # keep
+    ],
 )

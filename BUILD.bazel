@@ -1,3 +1,4 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_prefix")
 
 go_prefix("github.com/bazelbuild/buildtools")
@@ -13,6 +14,7 @@ test_suite(
         "//api_proto:api.gen.pb.go_checkshtest",
         "//build:go_default_test",
         "//build_proto:build.gen.pb.go_checkshtest",
+        "//buildifier:buildifier_integration_test",
         "//deps_proto:deps.gen.pb.go_checkshtest",
         "//edit:go_default_test",
         "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
@@ -20,4 +22,9 @@ test_suite(
         "//tables:go_default_test",
         "//wspace:go_default_test",
     ],
+)
+
+gazelle(
+    name = "gazelle",
+    prefix = "github.com/bazelbuild/buildtools",
 )

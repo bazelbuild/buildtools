@@ -18,7 +18,7 @@ import (
 	"log"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/buildifier2/convertast"
+	"github.com/bazelbuild/buildtools/convertast"
 	"github.com/google/skylark/syntax"
 )
 

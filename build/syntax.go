@@ -121,9 +121,9 @@ func (x *Ident) asString() *StringExpr {
 	_, end := x.Span()
 	return &StringExpr{
 		Comments: x.Comments,
-		Start: x.NamePos,
-		Value: x.Name,
-		End: end,
+		Start:    x.NamePos,
+		Value:    x.Name,
+		End:      end,
 	}
 }
 
@@ -437,12 +437,12 @@ func (x *ConditionalExpr) Span() (start, end Position) {
 // strings.
 type LoadStmt struct {
 	Comments
-	Load   Position
-	Module *StringExpr
-	From   []*Ident // name defined in loading module
-	To     []*Ident // name in loaded module
-	Rparen End
-	ForceCompact   bool // force compact (non-multiline) form when printing
+	Load         Position
+	Module       *StringExpr
+	From         []*Ident // name defined in loading module
+	To           []*Ident // name in loaded module
+	Rparen       End
+	ForceCompact bool // force compact (non-multiline) form when printing
 }
 
 func (x *LoadStmt) Span() (start, end Position) {
@@ -499,8 +499,8 @@ type IfStmt struct {
 	If      Position // position of if
 	Cond    Expr
 	True    []Expr
-	ElsePos Position // position of else or elif
-	False   []Expr   // optional
+	ElsePos End    // position of else or elif
+	False   []Expr // optional
 }
 
 func (x *IfStmt) Span() (start, end Position) {
