@@ -5,7 +5,8 @@ INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatt
 echo -e "$INPUT" > test/BUILD
 echo -e "$INPUT" > test/test.bzl
 
-$1 --type=auto test/* && exit 3 # expect non-zero buildifier exit due to re-format
+$1 < test/BUILD > stdout
+$1 test/* && exit 3 # expect non-zero buildifier exit due to re-format
 $2 test/test.bzl > test/test.bzl.out
 
 cat > test/BUILD.golden <<EOF
@@ -30,6 +31,7 @@ EOF
 
 diff test/BUILD test/BUILD.golden
 diff test/test.bzl test/test.bzl.golden
+diff stdout test/BUILD.golden  # should use the build formatting mode by default
 
 diff test/test.bzl.out test/test.bzl.golden
 
