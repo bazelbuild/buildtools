@@ -37,7 +37,7 @@ func ParseBuild(filename string, data []byte) (*File, error) {
 	return f, err
 }
 
-// ParseBuild parses a file, marks it as not a BUILD file (e.g. bzl file) and returns the corresponding parse tree.
+// ParseDefault parses a file, marks it as not a BUILD file (e.g. bzl file) and returns the corresponding parse tree.
 //
 // The filename is used only for generating error messages.
 func ParseDefault(filename string, data []byte) (*File, error) {
