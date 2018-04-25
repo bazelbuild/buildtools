@@ -34,7 +34,6 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
-	"github.com/bazelbuild/buildtools/tables"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -456,7 +455,7 @@ func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string)
 		return nil, fmt.Errorf("rule '%s' does not have attribute '%s'", from, attrName)
 	}
 
-	ast, err := build.Parse("" /* filename */, []byte(build.FormatString(attr)))
+	ast, err := build.ParseBuild("" /* filename */, []byte(build.FormatString(attr)))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse attribute value %v", build.FormatString(attr))
 	}
@@ -698,7 +697,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	}
 
-	f, err := build.Parse(name, data)
+	f, err := build.ParseBuild(name, data)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
@@ -934,9 +933,6 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 
 // Buildozer loops over all arguments on the command line fixing BUILD files.
 func Buildozer(opts *Options, args []string) int {
-	// Buildozer works with BUILD files
-	tables.FormattingMode = tables.BuildMode
-
 	commandsByFile := make(map[string][]commandsForTarget)
 	if opts.CommandsFile != "" {
 		appendCommandsFromFile(opts, commandsByFile, opts.CommandsFile)

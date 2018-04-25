@@ -260,9 +260,9 @@ func processFile(filename string, data []byte, inputType string) {
 		}
 	}()
 
-	defer setFormattingMode(inputType, filename)()
+	parser := getParser(inputType, filename)
 
-	f, err := build.Parse(filename, data)
+	f, err := parser(filename, data)
 	if err != nil {
 		// Do not use buildifier: prefix on this error.
 		// Since it is a parse error, it begins with file:line:
@@ -279,7 +279,7 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 	beforeRewrite := build.Format(f)
 	var info build.RewriteInfo
-	if tables.FormattingMode == tables.BuildMode {
+	if f.Build {
 		build.Rewrite(f, &info)
 	}
 
@@ -376,26 +376,17 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 }
 
-func setFormattingMode(inputType, filename string) func() {
-	defaultMode := tables.FormattingMode
-
+func getParser(inputType, filename string) func(filename string, data []byte) (*build.File, error) {
 	switch inputType {
 	case "build":
-		tables.FormattingMode = tables.BuildMode
-	case "bzl":
-		tables.FormattingMode = tables.DefaultMode
+		return build.ParseBuild
 	case "auto":
 		switch base := filepath.Base(filename); base {
 		case "BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "stdin":
-			tables.FormattingMode = tables.BuildMode
-		default:
-			tables.FormattingMode = tables.DefaultMode
+			return build.ParseBuild
 		}
 	}
-
-	return func() {
-		tables.FormattingMode = defaultMode
-	}
+	return build.ParseDefault
 }
 
 // writeTemp writes data to a temporary file and returns the name of the file.

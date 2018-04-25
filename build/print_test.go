@@ -50,14 +50,14 @@ func setFlags(file string) func() {
 	}
 }
 
-func testIdempotence(t *testing.T, file string) {
+func testIdempotence(t *testing.T, file string, isBuild bool) {
 	defer setFlags(file)()
-	testPrint(t, file, file)
+	testPrint(t, file, file, isBuild)
 }
 
-func testFormat(t *testing.T, input, output string) {
+func testFormat(t *testing.T, input, output string, isBuild bool) {
 	defer setFlags(output)()
-	testPrint(t, input, output)
+	testPrint(t, input, output, isBuild)
 }
 
 // Test that reading and then writing the golden files
@@ -67,23 +67,20 @@ func TestPrintGolden(t *testing.T) {
 	defer chdir()
 
 	// Run the tests with --type=build
-	tables.FormattingMode = tables.BuildMode
 	for _, out := range outs {
 		if strings.HasSuffix(out, ".bzl.golden") {
 			continue
 		}
-		testIdempotence(t, out)
+		testIdempotence(t, out, true)
 	}
 
 	// Run the same tests with --type=bzl
-	tables.FormattingMode = tables.DefaultMode
 	for _, out := range outs {
 		if strings.HasSuffix(out, ".build.golden") {
 			continue
 		}
-		testIdempotence(t, out)
+		testIdempotence(t, out, false)
 	}
-	tables.FormattingMode = tables.BuildMode
 }
 
 // Test that formatting the input files produces the golden files.
@@ -100,15 +97,13 @@ func TestPrintRewrite(t *testing.T) {
 			outBuild = prefix + ".build.golden"
 		}
 
-		tables.FormattingMode = tables.DefaultMode
-		testFormat(t, in, outBzl)
-		tables.FormattingMode = tables.BuildMode
-		testFormat(t, in, outBuild)
+		testFormat(t, in, outBzl, false)
+		testFormat(t, in, outBuild, true)
 
 		stripslashesBuild := prefix + ".stripslashes.golden"
 		if exists(stripslashesBuild) {
 			// Test this file in BUILD mode only
-			testFormat(t, in, stripslashesBuild)
+			testFormat(t, in, stripslashesBuild, true)
 		}
 	}
 }
@@ -139,7 +134,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out. If rewrite is true, the
 // reformatting includes buildifier's higher-level rewrites.
-func testPrint(t *testing.T, in, out string) {
+func testPrint(t *testing.T, in, out string, isBuild bool) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -153,17 +148,22 @@ func testPrint(t *testing.T, in, out string) {
 	}
 
 	base := "testdata/" + filepath.Base(in)
-	bld, err := Parse(base, data)
+	parser := ParseDefault
+	if isBuild {
+		parser = ParseBuild
+	}
+
+	file, err := parser(base, data)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if tables.FormattingMode == tables.BuildMode {
-		Rewrite(bld, nil)
+	if file.Build {
+		Rewrite(file, nil)
 	}
 
-	ndata := Format(bld)
+	ndata := Format(file)
 
 	if !bytes.Equal(ndata, golden) {
 		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))

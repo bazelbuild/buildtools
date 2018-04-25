@@ -130,6 +130,7 @@ var parseTests = []struct {
 `,
 		out: &File{
 			Path: "test",
+			Build: true,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &Ident{
@@ -163,6 +164,7 @@ var parseTests = []struct {
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
 			Path: "test",
+			Build: true,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &DotExpr{

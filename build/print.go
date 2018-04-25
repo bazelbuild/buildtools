@@ -21,8 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-
-	"github.com/bazelbuild/buildtools/tables"
 )
 
 const (
@@ -31,16 +29,21 @@ const (
 	defIndentation    = 8 // Indentation of multiline function definitions
 )
 
-// Format returns the formatted form of the given BUILD file.
+// Format returns the formatted form of the given BUILD or bzl file.
 func Format(f *File) []byte {
-	pr := &printer{}
+	pr := &printer{buildMode: f.Build}
 	pr.file(f)
 	return pr.Bytes()
 }
 
 // FormatString returns the string form of the given expression.
 func FormatString(x Expr) string {
-	pr := &printer{}
+	buildMode := true // for compatibility
+	if file, ok := x.(*File); ok {
+		buildMode = file.Build
+	}
+
+	pr := &printer{buildMode: buildMode}
 	switch x := x.(type) {
 	case *File:
 		pr.file(x)
@@ -52,6 +55,7 @@ func FormatString(x Expr) string {
 
 // A printer collects the state during printing of a file or expression.
 type printer struct {
+	buildMode    bool      // whether should be printed in a build mode.
 	bytes.Buffer           // output buffer
 	comment      []Comment // pending end-of-line comments
 	margin       int       // left margin (indent), a number of spaces
@@ -200,7 +204,7 @@ func (p *printer) statements(stmts []Expr) {
 			p.newline()
 		}
 
-		if i+1 < len(stmts) && !compactStmt(stmt, stmts[i+1], p.level == 0) {
+		if i+1 < len(stmts) && !p.compactStmt(stmt, stmts[i+1]) {
 			p.newline()
 		}
 	}
@@ -210,7 +214,7 @@ func (p *printer) statements(stmts []Expr) {
 // should be printed without an intervening blank line.
 // We omit the blank line when both are subinclude statements
 // and the second one has no leading comments.
-func compactStmt(s1, s2 Expr, isTopLevel bool) bool {
+func (p *printer) compactStmt(s1, s2 Expr) bool {
 	if len(s2.Comment().Before) > 0 {
 		return false
 	}
@@ -220,7 +224,7 @@ func compactStmt(s1, s2 Expr, isTopLevel bool) bool {
 	} else if isLoad(s1) || isLoad(s2) {
 		// Load statements should be separated from anything else
 		return false
-	} else if tables.FormattingMode == tables.BuildMode && isTopLevel {
+	} else if p.buildMode && p.level == 0 {
 		// Top-level statements in a BUILD file
 		return false
 	} else if isFunctionDefinition(s1) || isFunctionDefinition(s2) {
@@ -653,7 +657,7 @@ const (
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
-func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine, isTopLevel bool) bool {
+func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) bool {
 	// If there are line comments, use multiline
 	// so we can print the comments before the closing bracket.
 	for _, x := range *list {
@@ -670,9 +674,9 @@ func useCompactMode(start *Position, list *[]Expr, end *End, mode seqMode, force
 		return true
 	}
 
-	// In Default printing mode try to keep the original printing style
+	// In the Default printing mode try to keep the original printing style
 	// Non-top-level statements should also keep the original style regardless of the mode
-	if tables.FormattingMode == tables.DefaultMode || !isTopLevel {
+	if p.level != 0 || !p.buildMode {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode
 		previousEnd := start.Line
@@ -717,7 +721,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if useCompactMode(start, list, end, mode, forceCompact, forceMultiLine, p.level == 0) {
+	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
 		for i, x := range *list {
 			if i > 0 {
 				p.printf(", ")
