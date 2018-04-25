@@ -53,7 +53,7 @@ func (d *Differ) run(command string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		// Couldn't even start bash. Worth reporting.
-		return fmt.Errorf("buildifier: %s: %v\n", command, err)
+		return fmt.Errorf("buildifier: %s: %v", command, err)
 	}
 
 	// Assume bash reported anything else worth reporting.

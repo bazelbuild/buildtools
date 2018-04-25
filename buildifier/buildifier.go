@@ -174,7 +174,7 @@ func main() {
 	}
 
 	if err := diff.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\b", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		exitCode = 2
 	}
 
@@ -336,7 +336,7 @@ func processFile(filename string, data []byte, inputType string) {
 			}
 		}
 		if err := diff.Show(infile, outfile); err != nil {
-			fmt.Fprintf(os.Stderr, "%v", err)
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 			exitCode = 4
 		}
 
