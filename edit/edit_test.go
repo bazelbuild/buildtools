@@ -13,14 +13,12 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package edit
 
 import (
-	"os"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/tables"
 )
 
 var parseLabelTests = []struct {
@@ -216,7 +214,7 @@ func TestListSubstitute(t *testing.T) {
 
 	for _, tst := range tests {
 		t.Run(tst.desc, func(t *testing.T) {
-			f, err := build.Parse("BUILD", []byte(tst.input))
+			f, err := build.ParseBuild("BUILD", []byte(tst.input))
 			if err != nil {
 				t.Fatalf("parse error: %v", err)
 			}
@@ -231,9 +229,4 @@ func TestListSubstitute(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestMain(m *testing.M) {
-	tables.FormattingMode = tables.BuildMode
-	os.Exit(m.Run())
 }

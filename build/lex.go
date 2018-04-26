@@ -25,12 +25,36 @@ import (
 	"sort"
 )
 
-// Parse parses the input data and returns the corresponding parse tree.
+// ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
 //
 // The filename is used only for generating error messages.
-func Parse(filename string, data []byte) (*File, error) {
+func ParseBuild(filename string, data []byte) (*File, error) {
 	in := newInput(filename, data)
-	return in.parse()
+	f, err := in.parse()
+	if f != nil {
+		f.Build = true
+	}
+	return f, err
+}
+
+// ParseDefault parses a file, marks it as not a BUILD file (e.g. bzl file) and returns the corresponding parse tree.
+//
+// The filename is used only for generating error messages.
+func ParseDefault(filename string, data []byte) (*File, error) {
+	in := newInput(filename, data)
+	f, err := in.parse()
+	if f != nil {
+		f.Build = false
+	}
+	return f, err
+}
+
+// Parse parses the input data and returns the corresponding parse tree.
+//
+// Currently an alias for ParseBuild for compatibility reasons, in the future will delegate
+// either to ParseBuild or to ParseDefault depending on the filename.
+func Parse(filename string, data []byte) (*File, error) {
+	return ParseBuild(filename, data)
 }
 
 // An input represents a single input file being parsed.
