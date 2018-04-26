@@ -3,4 +3,19 @@ load(":foo.bzl","foo",a="a",b="c","d")
 load(":bar.bzl","bar")
 load(
   ":foobar.bzl",foobar="foobar")
+
+load( # 0
+  "foobar.bzl", # 1
+  "foo", # 2
+  bar = "bar", # 3
+  baz = "bazz", # 4
+
+  # 5
+  "aaa",
+  # 6
+
+  # 7
+  bbb = "ccc",
+  # 8
+) # 9
 foo(bar())

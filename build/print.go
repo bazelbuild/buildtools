@@ -519,7 +519,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			to := v.To[i]
 			var arg Expr
 			if from.Name == to.Name {
-				arg = to.asString()
+				// Suffix comments are attached to the `to` token,
+				// Before comments are attached to the `from` token,
+				// they need to be combined.
+				arg = from.asString()
+				arg.Comment().Before = to.Comment().Before
 			} else {
 				arg = &BinaryExpr{
 					X:  to,

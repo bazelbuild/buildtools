@@ -4,5 +4,20 @@ load(
     ":foobar.bzl",
     "foobar",
 )
+load(
+    # 0
+    "foobar.bzl",  # 1
+    "foo",  # 2
+    "bar",  # 3
+    baz = "bazz",  # 4
+
+    # 5
+    "aaa",
+    # 6
+
+    # 7
+    bbb = "ccc",
+    # 8
+)  # 9
 
 foo(bar())
