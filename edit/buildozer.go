@@ -795,7 +795,7 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 		return build.Format(f), nil
 	}
 
-	cmd := exec.Command(opts.Buildifier)
+	cmd := exec.Command(opts.Buildifier, "--type=build")
 	data := build.Format(f)
 	cmd.Stdin = bytes.NewBuffer(data)
 	stdout := bytes.NewBuffer(nil)
