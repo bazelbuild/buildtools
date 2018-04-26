@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/tables"
-	"github.com/bazelbuild/buildtools/wspace"
+ 	"github.com/bazelbuild/buildtools/tables"
+ 	"github.com/bazelbuild/buildtools/wspace"
 )
 
 var (
@@ -223,7 +223,7 @@ func RemoveEmptyPackage(f *build.File) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
 }
 
 // InsertAfter inserts an expression after index i.
@@ -332,7 +332,7 @@ func DeleteRule(f *build.File, rule *build.Rule) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
 }
 
 // DeleteRuleByName returns the AST without the rules that have the
@@ -350,7 +350,7 @@ func DeleteRuleByName(f *build.File, name string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
 }
 
 // DeleteRuleByKind removes the rules of the specified kind from the AST.
@@ -368,7 +368,7 @@ func DeleteRuleByKind(f *build.File, kind string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
 }
 
 // AllLists returns all the lists concatenated in an expression.
