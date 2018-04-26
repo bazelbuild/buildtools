@@ -31,7 +31,7 @@ import (
 func ParseBuild(filename string, data []byte) (*File, error) {
 	in := newInput(filename, data)
 	f, err := in.parse()
-	if err == nil {
+	if f != nil {
 		f.Build = true
 	}
 	return f, err
@@ -43,7 +43,7 @@ func ParseBuild(filename string, data []byte) (*File, error) {
 func ParseDefault(filename string, data []byte) (*File, error) {
 	in := newInput(filename, data)
 	f, err := in.parse()
-	if err == nil {
+	if f != nil {
 		f.Build = false
 	}
 	return f, err
