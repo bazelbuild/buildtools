@@ -25,9 +25,9 @@ import (
 	"strconv"
 	"strings"
 
-	"google3/devtools/buildifier/tables"
-	wspace "google3/devtools/buildozer/workspace"
-	"google3/third_party/bazel_buildifier/build/build"
+	"github.com/bazelbuild/buildtools/build"
+ 	"github.com/bazelbuild/buildtools/tables"
+ 	"github.com/bazelbuild/buildtools/wspace"
 )
 
 var (
