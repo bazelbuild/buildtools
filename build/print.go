@@ -744,6 +744,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		indentation = defIndentation
 	}
 	p.margin += indentation
+
 	for i, x := range *list {
 		// If we are about to break the line before the first
 		// element and there are trailing end-of-line comments
@@ -758,8 +759,8 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 
 		p.newline()
 		p.expr(x, precLow)
-		// Don't print a comma after the last element in modeParen and in modeDef
-		if !(mode == modeDef || mode == modeParen) || i+1 < len(*list) {
+
+		if i+1 < len(*list) || needsTrailingComma(mode, x) {
 			p.printf(",")
 		}
 	}
@@ -775,6 +776,24 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	if mode != modeDef {
 		p.newline()
 	}
+}
+
+func needsTrailingComma(mode seqMode, v Expr) bool {
+	switch mode {
+	case modeDef:
+		return false
+	case modeParen:
+		return false
+	case modeCall:
+		// *args and **kwargs in fn calls
+		switch v := v.(type) {
+		case *UnaryExpr:
+			if v.Op == "*" || v.Op == "**" {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // listFor formats a ListForExpr (list comprehension).
