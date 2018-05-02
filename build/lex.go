@@ -815,7 +815,7 @@ func (in *input) assignLineComments() {
 		}
 		// Line comments can be sorted in a wrong order because they get assgined from different
 		// parts of the lexer and the parser. Restore the original order.
-		sort.Slice(xcom.Before, func(i, j int) bool {
+		sort.SliceStable(xcom.Before, func(i, j int) bool {
 			return xcom.Before[i].Start.Byte < xcom.Before[j].Start.Byte
 		})
 	}
