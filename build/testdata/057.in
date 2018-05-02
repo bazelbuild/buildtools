@@ -1,0 +1,27 @@
+def foo1(x, y, **kwargs):
+    bar1(
+        x,
+        y,
+        **kwargs
+    )
+
+def foo2(x, y, *args):
+    bar2(
+        x,
+        y,
+        *args
+    )
+
+def foo3(x, y, **kwargs):
+    bar2(
+        x,
+        y,
+        **kwargs,
+    )
+
+def foo4(x, y, *args):
+    bar4(
+        x,
+        y,
+        *args,
+    )
