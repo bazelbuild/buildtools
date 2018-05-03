@@ -23,7 +23,10 @@ import (
 	"strings"
 	"unicode/utf8"
 	"sort"
+	"path/filepath"
 )
+
+var buildFilenames = []string{"BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "stdin"}
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
 //
@@ -51,10 +54,16 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 
 // Parse parses the input data and returns the corresponding parse tree.
 //
-// Currently an alias for ParseBuild for compatibility reasons, in the future will delegate
-// either to ParseBuild or to ParseDefault depending on the filename.
+// Uses the filename to detect the formatting type (either build or default) and calls
+// either ParseBuild or to ParseDefault correspondingly.
 func Parse(filename string, data []byte) (*File, error) {
-	return ParseBuild(filename, data)
+	basename := filepath.Base(filename)
+	for _, name := range buildFilenames {
+		if name == basename {
+			return ParseBuild(filename, data)
+		}
+  }
+	return ParseDefault(filename, data)
 }
 
 // An input represents a single input file being parsed.

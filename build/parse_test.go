@@ -28,7 +28,11 @@ import (
 
 func TestParse(t *testing.T) {
 	for i, tt := range parseTests {
-		p, err := Parse("test", []byte(tt.in))
+		name := "test"
+		if tt.out != nil {
+			name = tt.out.Path
+		}
+		p, err := Parse(name, []byte(tt.in))
 		if err != nil {
 			t.Errorf("#%d: %v", i, err)
 			continue
@@ -129,7 +133,7 @@ var parseTests = []struct {
 )
 `,
 		out: &File{
-			Path: "test",
+			Path: "BUILD",
 			Build: true,
 			Stmt: []Expr{
 				&CallExpr{
@@ -164,7 +168,7 @@ var parseTests = []struct {
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
 			Path: "test",
-			Build: true,
+			Build: false,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &DotExpr{
