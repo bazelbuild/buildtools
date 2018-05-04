@@ -62,7 +62,9 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 	for _, r := range rewrites {
 		if !disabled(r.name) {
-			r.fn(f, info)
+			if f.Build || !r.buildOnly {
+				r.fn(f, info)
+			}
 		}
 	}
 }
@@ -74,6 +76,7 @@ type RewriteInfo struct {
 	SortCall       int      // number of call argument lists sorted
 	SortStringList int      // number of string lists sorted
 	UnsafeSort     int      // number of unsafe string lists sorted
+	SortLoad       int      // number of load argument lists sorted
 	Log            []string // log entries - may change
 }
 
@@ -104,13 +107,15 @@ func (info *RewriteInfo) String() string {
 // The order here matters: for example, label canonicalization must happen
 // before sorting lists of strings.
 var rewrites = []struct {
-	name string
-	fn   func(*File, *RewriteInfo)
+	name      string
+	buildOnly bool
+	fn        func(*File, *RewriteInfo)
 }{
-	{"callsort", sortCallArgs},
-	{"label", fixLabels},
-	{"listsort", sortStringLists},
-	{"multiplus", fixMultilinePlus},
+	{"callsort", true, sortCallArgs},
+	{"label", true, fixLabels},
+	{"listsort", true, sortStringLists},
+	{"multiplus", true, fixMultilinePlus},
+	{"loadsort", false, sortLoadArgs},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -151,9 +156,9 @@ func doNotSort(x Expr) bool {
 }
 
 // keepSorted reports whether x is marked with a comment containing
-// "keep sorted", case-insensitive.
+// "keep changed", case-insensitive.
 func keepSorted(x Expr) bool {
-	return hasComment(x, "keep sorted")
+	return hasComment(x, "keep changed")
 }
 
 // fixLabels rewrites labels into a canonical form.
@@ -437,7 +442,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep sorted" comment on x = list forces sorting of list.
+			// "keep changed" comment on x = list forces sorting of list.
 			as := v
 			if as.Op == "=" && keepSorted(as) {
 				sortStringList(as.Y, info, "?")
@@ -446,7 +451,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep sorted" before key: list also forces sorting of list.
+			// "keep changed" before key: list also forces sorting of list.
 			if keepSorted(v) {
 				sortStringList(v.Value, info, "?")
 			}
@@ -454,7 +459,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep sorted" comment above first list element also forces sorting of list.
+			// "keep changed" comment above first list element also forces sorting of list.
 			if len(v.List) > 0 && keepSorted(v.List[0]) {
 				sortStringList(v, info, "?")
 			}
@@ -794,6 +799,20 @@ func fixMultilinePlus(f *File, info *RewriteInfo) {
 	})
 }
 
+func sortLoadArgs(f *File, info *RewriteInfo) {
+	Walk(f, func(v Expr, stk []Expr) {
+		load, ok := v.(*LoadStmt)
+		if !ok {
+			return
+		}
+		args := loadArgs{From: load.From, To: load.To}
+		sort.Sort(args)
+		if args.modified {
+			info.SortLoad++
+		}
+	})
+}
+
 // hasComments reports whether any comments are associated with
 // the list or its elements.
 func hasComments(list *ListExpr) (line, suffix bool) {
@@ -814,4 +833,34 @@ func hasComments(list *ListExpr) (line, suffix bool) {
 		}
 	}
 	return
+}
+
+// A wrapper for a LoadStmt's From and To slices for consistent sorting of their contents.
+// It's assumed that the following slices have the same length, the contents are changed by
+// the `To` attribute, the items of `From` are swapped exactly the same way as the items of `To`.
+type loadArgs struct {
+	From     []*Ident
+	To       []*Ident
+	modified bool
+}
+
+func (args loadArgs) Len() int {
+	return len(args.From)
+}
+
+func (args loadArgs) Swap(i, j int) {
+	args.From[i], args.From[j] = args.From[j], args.From[i]
+	args.To[i], args.To[j] = args.To[j], args.To[i]
+	args.modified = true
+}
+
+func (args loadArgs) Less(i, j int) bool {
+	// Arguments with equal "from" and "to" parts are prioritized
+	equal_i := args.From[i].Name == args.To[i].Name
+	equal_j := args.From[j].Name == args.To[j].Name
+	if equal_i != equal_j {
+		// if equal_i == true and equal_j == false, return true, otherwise return false
+		return equal_i
+	}
+	return args.To[i].Name < args.To[j].Name
 }

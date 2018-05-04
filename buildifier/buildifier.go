@@ -279,9 +279,7 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 	beforeRewrite := build.Format(f)
 	var info build.RewriteInfo
-	if f.Build {
-		build.Rewrite(f, &info)
-	}
+	build.Rewrite(f, &info)
 
 	ndata := build.Format(f)
 
