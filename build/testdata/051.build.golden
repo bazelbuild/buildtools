@@ -74,7 +74,7 @@ def function(
                     [2],
                 )  # returns h
 
-    return u()
+    return u() + w
 
 for b in a:  # first
     for c, d in b:  # second
