@@ -156,9 +156,9 @@ func doNotSort(x Expr) bool {
 }
 
 // keepSorted reports whether x is marked with a comment containing
-// "keep changed", case-insensitive.
+// "keep sorted", case-insensitive.
 func keepSorted(x Expr) bool {
-	return hasComment(x, "keep changed")
+	return hasComment(x, "keep sorted")
 }
 
 // fixLabels rewrites labels into a canonical form.
@@ -442,7 +442,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep changed" comment on x = list forces sorting of list.
+			// "keep sorted" comment on x = list forces sorting of list.
 			as := v
 			if as.Op == "=" && keepSorted(as) {
 				sortStringList(as.Y, info, "?")
@@ -451,7 +451,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep changed" before key: list also forces sorting of list.
+			// "keep sorted" before key: list also forces sorting of list.
 			if keepSorted(v) {
 				sortStringList(v.Value, info, "?")
 			}
@@ -459,7 +459,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			if disabled("unsafesort") {
 				return
 			}
-			// "keep changed" comment above first list element also forces sorting of list.
+			// "keep sorted" comment above first list element also forces sorting of list.
 			if len(v.List) > 0 && keepSorted(v.List[0]) {
 				sortStringList(v, info, "?")
 			}
@@ -836,7 +836,7 @@ func hasComments(list *ListExpr) (line, suffix bool) {
 }
 
 // A wrapper for a LoadStmt's From and To slices for consistent sorting of their contents.
-// It's assumed that the following slices have the same length, the contents are changed by
+// It's assumed that the following slices have the same length, the contents are sorted by
 // the `To` attribute, the items of `From` are swapped exactly the same way as the items of `To`.
 type loadArgs struct {
 	From     []*Ident
