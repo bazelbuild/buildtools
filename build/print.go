@@ -570,7 +570,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf("return")
 		if v.Result != nil {
 			p.printf(" ")
-			p.expr(v.Result, precSuffix)
+			p.expr(v.Result, precLow)
 		}
 
 	case *DefStmt:
