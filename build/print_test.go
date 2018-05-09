@@ -108,6 +108,36 @@ func TestPrintRewrite(t *testing.T) {
 	}
 }
 
+// Test that golden files for the build mode aren't modified if reformatted in bzl mode
+func TestPrintBuildAsBzl(t *testing.T) {
+	ins, chdir := findTests(t, ".in")
+	defer chdir()
+	for _, in := range ins {
+		prefix := in[:len(in)-len(".in")]
+		outBuild := prefix + ".build.golden"
+		if !exists(outBuild) {
+			continue
+		}
+		testIdempotence(t, outBuild, false)
+	}
+}
+
+// Test that golden files for the bzl become golden files for the build mode after reformatting
+// in the build mode
+func TestPrintBzlAsBuild(t *testing.T) {
+	ins, chdir := findTests(t, ".in")
+	defer chdir()
+	for _, in := range ins {
+		prefix := in[:len(in)-len(".in")]
+		outBuild := prefix + ".build.golden"
+		outBzl := prefix + ".bzl.golden"
+		if !exists(outBuild) {
+			continue
+		}
+		testFormat(t, outBzl, outBuild, true)
+	}
+}
+
 // findTests finds all files of the passed suffix in the build/testdata directory.
 // It changes the working directory to be the directory containing the `testdata` directory,
 // and returns a function to call to change back to the current directory.
