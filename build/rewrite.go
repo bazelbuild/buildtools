@@ -836,8 +836,9 @@ func hasComments(list *ListExpr) (line, suffix bool) {
 }
 
 // A wrapper for a LoadStmt's From and To slices for consistent sorting of their contents.
-// It's assumed that the following slices have the same length, the contents are sorted by
-// the `To` attribute, the items of `From` are swapped exactly the same way as the items of `To`.
+// It's assumed that the following slices have the same length. The contents are sorted by
+// the `To` attribute, but all items with equal "From" and "To" parts are placed before the items
+// with different parts.
 type loadArgs struct {
 	From     []*Ident
 	To       []*Ident
@@ -859,7 +860,8 @@ func (args loadArgs) Less(i, j int) bool {
 	equal_i := args.From[i].Name == args.To[i].Name
 	equal_j := args.From[j].Name == args.To[j].Name
 	if equal_i != equal_j {
-		// if equal_i == true and equal_j == false, return true, otherwise return false
+		// If equal_i and !equal_j, return true, otherwise false.
+		// Equivalently, return equal_i.
 		return equal_i
 	}
 	return args.To[i].Name < args.To[j].Name
