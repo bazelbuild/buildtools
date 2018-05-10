@@ -6,7 +6,7 @@ echo -e "$INPUT" > test/BUILD
 echo -e "$INPUT" > test/test.bzl
 
 $1 < test/BUILD > stdout
-$1 test/* && exit 3 # expect non-zero buildifier exit due to re-format
+$1 test/*
 $2 test/test.bzl > test/test.bzl.out
 
 cat > test/BUILD.golden <<EOF
