@@ -62,7 +62,9 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 	for _, r := range rewrites {
 		if !disabled(r.name) {
-			if f.Build || !r.buildOnly {
+			if r.scope == scopeBoth ||
+				(f.Build && r.scope == scopeBuild) ||
+				(!f.Build && r.scope == scopeDefault) {
 				r.fn(f, info)
 			}
 		}
@@ -103,19 +105,27 @@ func (info *RewriteInfo) String() string {
 	return s
 }
 
+// Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
+// or all files.
+const (
+	scopeDefault = iota
+	scopeBuild
+	scopeBoth
+)
+
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
 // The order here matters: for example, label canonicalization must happen
 // before sorting lists of strings.
 var rewrites = []struct {
-	name      string
-	buildOnly bool
-	fn        func(*File, *RewriteInfo)
+	name  string
+	fn    func(*File, *RewriteInfo)
+	scope int
 }{
-	{"callsort", true, sortCallArgs},
-	{"label", true, fixLabels},
-	{"listsort", true, sortStringLists},
-	{"multiplus", true, fixMultilinePlus},
-	{"loadsort", false, sortLoadArgs},
+	{"callsort", sortCallArgs, scopeBuild},
+	{"label", fixLabels, scopeBuild},
+	{"listsort", sortStringLists, scopeBuild},
+	{"multiplus", fixMultilinePlus, scopeBuild},
+	{"loadsort", sortLoadArgs, scopeBoth},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
