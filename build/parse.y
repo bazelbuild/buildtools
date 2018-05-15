@@ -33,7 +33,7 @@ package build
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
-	lastRule  Expr  // most recent rule, to attach line comments to
+	lastStmt  Expr  // most recent rule, to attach line comments to
 }
 
 // These declarations set the type for a $ reference ($$, $1, $2, ...)
@@ -203,7 +203,7 @@ suite:
 			statements = append($2, $4...)
 		}
 		$$ = statements
-		$<lastRule>$ = $<lastRule>4
+		$<lastStmt>$ = $<lastStmt>4
 	}
 |	simple_stmt linebreaks_opt
 	{
@@ -216,45 +216,45 @@ linebreaks_opt:
 comments:
 	{
 		$$ = nil
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	comments _COMMENT '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = $<lastRule>1
-		if $<lastRule>$ == nil {
+		$<lastStmt>$ = $<lastStmt>1
+		if $<lastStmt>$ == nil {
 			cb := &CommentBlock{Start: $2}
 			$$ = append($$, cb)
-			$<lastRule>$ = cb
+			$<lastStmt>$ = cb
 		}
-		com := $<lastRule>$.Comment()
+		com := $<lastStmt>$.Comment()
 		com.After = append(com.After, Comment{Start: $2, Token: $<tok>2})
 	}
 |	comments '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 
 stmts:
 	{
 		$$ = nil
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	stmts stmt
 	{
 		// If this statement follows a comment block,
 		// attach the comments to the statement.
-		if cb, ok := $<lastRule>1.(*CommentBlock); ok {
+		if cb, ok := $<lastStmt>1.(*CommentBlock); ok {
 			$$ = append($1[:len($1)-1], $2...)
 			$2[0].Comment().Before = cb.After
-			$<lastRule>$ = $<lastRule>2
+			$<lastStmt>$ = $<lastStmt>2
 			break
 		}
 
 		// Otherwise add to list.
 		$$ = append($1, $2...)
-		$<lastRule>$ = $<lastRule>2
+		$<lastStmt>$ = $<lastStmt>2
 
 		// Consider this input:
 		//
@@ -265,7 +265,7 @@ stmts:
 		// If we've just parsed baz(), the # bar is attached to
 		// foo() as an After comment. Make it a Before comment
 		// for baz() instead.
-		if x := $<lastRule>1; x != nil {
+		if x := $<lastStmt>1; x != nil {
 			com := x.Comment()
 			// stmt is never empty
 			$2[0].Comment().Before = com.After
@@ -276,18 +276,18 @@ stmts:
 	{
 		// Blank line; sever last rule from future comments.
 		$$ = $1
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	stmts _COMMENT '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = $<lastRule>1
-		if $<lastRule>$ == nil {
+		$<lastStmt>$ = $<lastStmt>1
+		if $<lastStmt>$ == nil {
 			cb := &CommentBlock{Start: $2}
 			$$ = append($$, cb)
-			$<lastRule>$ = cb
+			$<lastStmt>$ = cb
 		}
-		com := $<lastRule>$.Comment()
+		com := $<lastStmt>$.Comment()
 		com.After = append(com.After, Comment{Start: $2, Token: $<tok>2})
 	}
 
@@ -295,12 +295,12 @@ stmt:
 	simple_stmt
 	{
 		$$ = $1
-		$<lastRule>$ = $1[len($1)-1]
+		$<lastStmt>$ = $1[len($1)-1]
 	}
 |	block_stmt
 	{
 		$$ = []Expr{$1}
-		$<lastRule>$ = $1
+		$<lastStmt>$ = $1
 
 		// If the block statement ends with a comment block remove it and place
 		// after the block statement.
@@ -334,9 +334,9 @@ stmt:
 				// Move the comment block to the level above
 				*body = (*body)[:len(*body)-1]
 				$$ = append($$, cb)
-				$<lastRule>$ = cb
-				if $<lastRule>1 == nil {
-					$<lastRule>$ = nil
+				$<lastStmt>$ = cb
+				if $<lastStmt>1 == nil {
+					$<lastStmt>$ = nil
 				}
 			} else {
 				// Detach after comments from the last statement
@@ -344,9 +344,9 @@ stmt:
 				if len(cb.After) > 0 {
 					lastStmt.Comment().After = []Comment{}
 					$$ = append($$, cb)
-					$<lastRule>$ = cb
-					if $<lastRule>1 == nil {
-						$<lastRule>$ = nil
+					$<lastStmt>$ = cb
+					if $<lastStmt>1 == nil {
+						$<lastStmt>$ = nil
 					}
 				}
 			}
@@ -366,7 +366,7 @@ block_stmt:
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
-		$<lastRule>$ = $<lastRule>7
+		$<lastStmt>$ = $<lastStmt>7
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
@@ -376,12 +376,12 @@ block_stmt:
 			X: $4,
 			Body: $6,
 		}
-		$<lastRule>$ = $<lastRule>6
+		$<lastStmt>$ = $<lastStmt>6
 	}
 |	if_else_block
 	{
 		$$ = $1
-		$<lastRule>$ = $<lastRule>1
+		$<lastStmt>$ = $<lastStmt>1
 	}
 
 // One or several if-elif-elif statements
@@ -393,7 +393,7 @@ if_chain:
 			Cond: $2,
 			True: $4,
 		}
-		$<lastRule>$ = $<lastRule>4
+		$<lastStmt>$ = $<lastStmt>4
 	}
 |	if_chain elif expr ':' suite
 	{
@@ -410,7 +410,7 @@ if_chain:
 				True: $5,
 			},
 		}
-		$<lastRule>$ = $<lastRule>5
+		$<lastStmt>$ = $<lastStmt>5
 	}
 
 // A complete if-elif-elif-else chain
@@ -425,7 +425,7 @@ if_else_block:
 		}
 		inner.ElsePos = End{Pos: $2}
 		inner.False = $4
-		$<lastRule>$ = $<lastRule>4
+		$<lastStmt>$ = $<lastStmt>4
 	}
 
 elif:
@@ -436,7 +436,7 @@ simple_stmt:
 	small_stmt small_stmts_continuation semi_opt '\n'
 	{
 		$$ = append([]Expr{$1}, $2...)
-		$<lastRule>$ = $$[len($$)-1]
+		$<lastStmt>$ = $$[len($$)-1]
 	}
 
 small_stmts_continuation:

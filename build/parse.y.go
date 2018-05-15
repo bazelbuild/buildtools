@@ -30,7 +30,7 @@ type yySymType struct {
 
 	// supporting information
 	comma    Position // position of trailing comma in list, if present
-	lastRule Expr     // most recent rule, to attach line comments to
+	lastStmt Expr     // most recent rule, to attach line comments to
 }
 
 const _AUGM = 57346
@@ -837,7 +837,7 @@ yydefault:
 				statements = append(yyDollar[2].exprs, yyDollar[4].exprs...)
 			}
 			yyVAL.exprs = statements
-			yyVAL.lastRule = yyDollar[4].lastRule
+			yyVAL.lastStmt = yyDollar[4].lastStmt
 		}
 	case 3:
 		yyDollar = yyS[yypt-2 : yypt+1]
@@ -850,20 +850,20 @@ yydefault:
 		//line build/parse.y:217
 		{
 			yyVAL.exprs = nil
-			yyVAL.lastRule = nil
+			yyVAL.lastStmt = nil
 		}
 	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line build/parse.y:222
 		{
 			yyVAL.exprs = yyDollar[1].exprs
-			yyVAL.lastRule = yyDollar[1].lastRule
-			if yyVAL.lastRule == nil {
+			yyVAL.lastStmt = yyDollar[1].lastStmt
+			if yyVAL.lastStmt == nil {
 				cb := &CommentBlock{Start: yyDollar[2].pos}
 				yyVAL.exprs = append(yyVAL.exprs, cb)
-				yyVAL.lastRule = cb
+				yyVAL.lastStmt = cb
 			}
-			com := yyVAL.lastRule.Comment()
+			com := yyVAL.lastStmt.Comment()
 			com.After = append(com.After, Comment{Start: yyDollar[2].pos, Token: yyDollar[2].tok})
 		}
 	case 8:
@@ -871,14 +871,14 @@ yydefault:
 		//line build/parse.y:234
 		{
 			yyVAL.exprs = yyDollar[1].exprs
-			yyVAL.lastRule = nil
+			yyVAL.lastStmt = nil
 		}
 	case 9:
 		yyDollar = yyS[yypt-0 : yypt+1]
 		//line build/parse.y:240
 		{
 			yyVAL.exprs = nil
-			yyVAL.lastRule = nil
+			yyVAL.lastStmt = nil
 		}
 	case 10:
 		yyDollar = yyS[yypt-2 : yypt+1]
@@ -886,16 +886,16 @@ yydefault:
 		{
 			// If this statement follows a comment block,
 			// attach the comments to the statement.
-			if cb, ok := yyDollar[1].lastRule.(*CommentBlock); ok {
+			if cb, ok := yyDollar[1].lastStmt.(*CommentBlock); ok {
 				yyVAL.exprs = append(yyDollar[1].exprs[:len(yyDollar[1].exprs)-1], yyDollar[2].exprs...)
 				yyDollar[2].exprs[0].Comment().Before = cb.After
-				yyVAL.lastRule = yyDollar[2].lastRule
+				yyVAL.lastStmt = yyDollar[2].lastStmt
 				break
 			}
 
 			// Otherwise add to list.
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[2].exprs...)
-			yyVAL.lastRule = yyDollar[2].lastRule
+			yyVAL.lastStmt = yyDollar[2].lastStmt
 
 			// Consider this input:
 			//
@@ -906,7 +906,7 @@ yydefault:
 			// If we've just parsed baz(), the # bar is attached to
 			// foo() as an After comment. Make it a Before comment
 			// for baz() instead.
-			if x := yyDollar[1].lastRule; x != nil {
+			if x := yyDollar[1].lastStmt; x != nil {
 				com := x.Comment()
 				// stmt is never empty
 				yyDollar[2].exprs[0].Comment().Before = com.After
@@ -919,20 +919,20 @@ yydefault:
 		{
 			// Blank line; sever last rule from future comments.
 			yyVAL.exprs = yyDollar[1].exprs
-			yyVAL.lastRule = nil
+			yyVAL.lastStmt = nil
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line build/parse.y:282
 		{
 			yyVAL.exprs = yyDollar[1].exprs
-			yyVAL.lastRule = yyDollar[1].lastRule
-			if yyVAL.lastRule == nil {
+			yyVAL.lastStmt = yyDollar[1].lastStmt
+			if yyVAL.lastStmt == nil {
 				cb := &CommentBlock{Start: yyDollar[2].pos}
 				yyVAL.exprs = append(yyVAL.exprs, cb)
-				yyVAL.lastRule = cb
+				yyVAL.lastStmt = cb
 			}
-			com := yyVAL.lastRule.Comment()
+			com := yyVAL.lastStmt.Comment()
 			com.After = append(com.After, Comment{Start: yyDollar[2].pos, Token: yyDollar[2].tok})
 		}
 	case 13:
@@ -940,14 +940,14 @@ yydefault:
 		//line build/parse.y:296
 		{
 			yyVAL.exprs = yyDollar[1].exprs
-			yyVAL.lastRule = yyDollar[1].exprs[len(yyDollar[1].exprs)-1]
+			yyVAL.lastStmt = yyDollar[1].exprs[len(yyDollar[1].exprs)-1]
 		}
 	case 14:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line build/parse.y:301
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
-			yyVAL.lastRule = yyDollar[1].expr
+			yyVAL.lastStmt = yyDollar[1].expr
 
 			// If the block statement ends with a comment block remove it and place
 			// after the block statement.
@@ -981,9 +981,9 @@ yydefault:
 					// Move the comment block to the level above
 					*body = (*body)[:len(*body)-1]
 					yyVAL.exprs = append(yyVAL.exprs, cb)
-					yyVAL.lastRule = cb
-					if yyDollar[1].lastRule == nil {
-						yyVAL.lastRule = nil
+					yyVAL.lastStmt = cb
+					if yyDollar[1].lastStmt == nil {
+						yyVAL.lastStmt = nil
 					}
 				} else {
 					// Detach after comments from the last statement
@@ -991,9 +991,9 @@ yydefault:
 					if len(cb.After) > 0 {
 						lastStmt.Comment().After = []Comment{}
 						yyVAL.exprs = append(yyVAL.exprs, cb)
-						yyVAL.lastRule = cb
-						if yyDollar[1].lastRule == nil {
-							yyVAL.lastRule = nil
+						yyVAL.lastStmt = cb
+						if yyDollar[1].lastStmt == nil {
+							yyVAL.lastStmt = nil
 						}
 					}
 				}
@@ -1013,7 +1013,7 @@ yydefault:
 				ForceCompact:   forceCompact(yyDollar[3].pos, yyDollar[4].exprs, yyDollar[5].pos),
 				ForceMultiLine: forceMultiLine(yyDollar[3].pos, yyDollar[4].exprs, yyDollar[5].pos),
 			}
-			yyVAL.lastRule = yyDollar[7].lastRule
+			yyVAL.lastStmt = yyDollar[7].lastStmt
 		}
 	case 16:
 		yyDollar = yyS[yypt-6 : yypt+1]
@@ -1025,14 +1025,14 @@ yydefault:
 				X:    yyDollar[4].expr,
 				Body: yyDollar[6].exprs,
 			}
-			yyVAL.lastRule = yyDollar[6].lastRule
+			yyVAL.lastStmt = yyDollar[6].lastStmt
 		}
 	case 17:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line build/parse.y:382
 		{
 			yyVAL.expr = yyDollar[1].ifstmt
-			yyVAL.lastRule = yyDollar[1].lastRule
+			yyVAL.lastStmt = yyDollar[1].lastStmt
 		}
 	case 18:
 		yyDollar = yyS[yypt-4 : yypt+1]
@@ -1043,7 +1043,7 @@ yydefault:
 				Cond: yyDollar[2].expr,
 				True: yyDollar[4].exprs,
 			}
-			yyVAL.lastRule = yyDollar[4].lastRule
+			yyVAL.lastStmt = yyDollar[4].lastStmt
 		}
 	case 19:
 		yyDollar = yyS[yypt-5 : yypt+1]
@@ -1062,7 +1062,7 @@ yydefault:
 					True: yyDollar[5].exprs,
 				},
 			}
-			yyVAL.lastRule = yyDollar[5].lastRule
+			yyVAL.lastStmt = yyDollar[5].lastStmt
 		}
 	case 21:
 		yyDollar = yyS[yypt-4 : yypt+1]
@@ -1075,14 +1075,14 @@ yydefault:
 			}
 			inner.ElsePos = End{Pos: yyDollar[2].pos}
 			inner.False = yyDollar[4].exprs
-			yyVAL.lastRule = yyDollar[4].lastRule
+			yyVAL.lastStmt = yyDollar[4].lastStmt
 		}
 	case 24:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line build/parse.y:437
 		{
 			yyVAL.exprs = append([]Expr{yyDollar[1].expr}, yyDollar[2].exprs...)
-			yyVAL.lastRule = yyVAL.exprs[len(yyVAL.exprs)-1]
+			yyVAL.lastStmt = yyVAL.exprs[len(yyVAL.exprs)-1]
 		}
 	case 25:
 		yyDollar = yyS[yypt-0 : yypt+1]
