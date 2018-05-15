@@ -203,6 +203,7 @@ suite:
 			statements = append($2, $4...)
 		}
 		$$ = statements
+		$<lastRule>$ = $<lastRule>4
 	}
 |	simple_stmt linebreaks_opt
 	{
@@ -247,13 +248,13 @@ stmts:
 		if cb, ok := $<lastRule>1.(*CommentBlock); ok {
 			$$ = append($1[:len($1)-1], $2...)
 			$2[0].Comment().Before = cb.After
-			$<lastRule>$ = $2[len($2)-1]
+			$<lastRule>$ = $<lastRule>2
 			break
 		}
 
 		// Otherwise add to list.
 		$$ = append($1, $2...)
-		$<lastRule>$ = $2[len($2)-1]
+		$<lastRule>$ = $<lastRule>2
 
 		// Consider this input:
 		//
@@ -294,10 +295,62 @@ stmt:
 	simple_stmt
 	{
 		$$ = $1
+		$<lastRule>$ = $1[len($1)-1]
 	}
 |	block_stmt
 	{
 		$$ = []Expr{$1}
+		$<lastRule>$ = $1
+
+		// If the block statement ends with a comment block remove it and place
+		// after the block statement.
+		var body *[]Expr
+		switch block := $1.(type) {
+		case *DefStmt:
+			body = &block.Body
+		case *ForStmt:
+			body = &block.Body
+		case *IfStmt:
+			// find the innermost node in the if-elif-else chain
+			inner := block
+			for {
+				if len(inner.False) != 1 {
+				  break
+				}
+				if sub, ok := inner.False[0].(*IfStmt); ok {
+					inner = sub
+				} else {
+					break
+				}
+			}
+			body = &inner.True
+			if len(inner.False) > 0 {
+				body = &inner.False
+			}
+		}
+		if body != nil && len(*body) > 0 {
+			lastStmt := (*body)[len(*body)-1]
+			if cb, ok := lastStmt.(*CommentBlock); ok {
+				// Move the comment block to the level above
+				*body = (*body)[:len(*body)-1]
+				$$ = append($$, cb)
+				$<lastRule>$ = cb
+				if $<lastRule>1 == nil {
+					$<lastRule>$ = nil
+				}
+			} else {
+				// Detach after comments from the last statement
+				cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
+				if len(cb.After) > 0 {
+					lastStmt.Comment().After = []Comment{}
+					$$ = append($$, cb)
+					$<lastRule>$ = cb
+					if $<lastRule>1 == nil {
+						$<lastRule>$ = nil
+					}
+				}
+			}
+		}
 	}
 
 block_stmt:
@@ -313,6 +366,7 @@ block_stmt:
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
+		$<lastRule>$ = $<lastRule>7
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
@@ -322,10 +376,12 @@ block_stmt:
 			X: $4,
 			Body: $6,
 		}
+		$<lastRule>$ = $<lastRule>6
 	}
 |	if_else_block
 	{
 		$$ = $1
+		$<lastRule>$ = $<lastRule>1
 	}
 
 // One or several if-elif-elif statements
@@ -337,6 +393,7 @@ if_chain:
 			Cond: $2,
 			True: $4,
 		}
+		$<lastRule>$ = $<lastRule>4
 	}
 |	if_chain elif expr ':' suite
 	{
@@ -353,6 +410,7 @@ if_chain:
 				True: $5,
 			},
 		}
+		$<lastRule>$ = $<lastRule>5
 	}
 
 // A complete if-elif-elif-else chain
@@ -367,6 +425,7 @@ if_else_block:
 		}
 		inner.ElsePos = End{Pos: $2}
 		inner.False = $4
+		$<lastRule>$ = $<lastRule>4
 	}
 
 elif:

@@ -217,12 +217,14 @@ func (p *printer) statements(stmts []Expr) {
 func (p *printer) compactStmt(s1, s2 Expr) bool {
 	if len(s2.Comment().Before) > 0 {
 		return false
-	}
-	if isLoad(s1) && isLoad(s2) {
+	} else if isLoad(s1) && isLoad(s2) {
 		// Load statements should be compact
 		return true
 	} else if isLoad(s1) || isLoad(s2) {
 		// Load statements should be separated from anything else
+		return false
+	} else if isCommentBlock(s1) || isCommentBlock(s2) {
+		// Standalone comment blocks shouldn't be attached to other statements
 		return false
 	} else if p.buildMode && p.level == 0 {
 		// Top-level statements in a BUILD file
@@ -241,6 +243,12 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 // isLoad reports whether x is a load statement.
 func isLoad(x Expr) bool {
 	_, ok := x.(*LoadStmt)
+	return ok
+}
+
+// isCommentBlock reports whether x is a comment block node.
+func isCommentBlock(x Expr) bool {
+	_, ok := x.(*CommentBlock)
 	return ok
 }
 
