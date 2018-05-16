@@ -189,9 +189,7 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 		return
 	}
 
-	if file.Build {
-		Rewrite(file, nil)
-	}
+	Rewrite(file, nil)
 
 	ndata := Format(file)
 

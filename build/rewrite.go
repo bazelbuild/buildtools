@@ -62,7 +62,11 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 	for _, r := range rewrites {
 		if !disabled(r.name) {
-			r.fn(f, info)
+			if r.scope == scopeBoth ||
+				(f.Build && r.scope == scopeBuild) ||
+				(!f.Build && r.scope == scopeDefault) {
+				r.fn(f, info)
+			}
 		}
 	}
 }
@@ -74,6 +78,7 @@ type RewriteInfo struct {
 	SortCall       int      // number of call argument lists sorted
 	SortStringList int      // number of string lists sorted
 	UnsafeSort     int      // number of unsafe string lists sorted
+	SortLoad       int      // number of load argument lists sorted
 	Log            []string // log entries - may change
 }
 
@@ -100,17 +105,39 @@ func (info *RewriteInfo) String() string {
 	return s
 }
 
+// Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
+// or all files.
+const (
+	scopeDefault = iota
+	scopeBuild
+	scopeBoth
+)
+
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
 // The order here matters: for example, label canonicalization must happen
 // before sorting lists of strings.
 var rewrites = []struct {
-	name string
-	fn   func(*File, *RewriteInfo)
+	name  string
+	fn    func(*File, *RewriteInfo)
+	scope int
 }{
-	{"callsort", sortCallArgs},
-	{"label", fixLabels},
-	{"listsort", sortStringLists},
-	{"multiplus", fixMultilinePlus},
+	{"callsort", sortCallArgs, scopeBuild},
+	{"label", fixLabels, scopeBuild},
+	{"listsort", sortStringLists, scopeBuild},
+	{"multiplus", fixMultilinePlus, scopeBuild},
+	{"loadsort", sortLoadArgs, scopeBoth},
+}
+
+// DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
+// This is a temporary function for backward compatibility, can be called if there's plenty of
+// already formatted BUILD files that shouldn't be changed by the transformation.
+func DisableLoadSortForBuildFiles() {
+	for i := range rewrites {
+		if rewrites[i].name == "loadsort" {
+			rewrites[i].scope = scopeDefault
+			break
+		}
+	}
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -794,6 +821,20 @@ func fixMultilinePlus(f *File, info *RewriteInfo) {
 	})
 }
 
+func sortLoadArgs(f *File, info *RewriteInfo) {
+	Walk(f, func(v Expr, stk []Expr) {
+		load, ok := v.(*LoadStmt)
+		if !ok {
+			return
+		}
+		args := loadArgs{From: load.From, To: load.To}
+		sort.Sort(args)
+		if args.modified {
+			info.SortLoad++
+		}
+	})
+}
+
 // hasComments reports whether any comments are associated with
 // the list or its elements.
 func hasComments(list *ListExpr) (line, suffix bool) {
@@ -814,4 +855,36 @@ func hasComments(list *ListExpr) (line, suffix bool) {
 		}
 	}
 	return
+}
+
+// A wrapper for a LoadStmt's From and To slices for consistent sorting of their contents.
+// It's assumed that the following slices have the same length. The contents are sorted by
+// the `To` attribute, but all items with equal "From" and "To" parts are placed before the items
+// with different parts.
+type loadArgs struct {
+	From     []*Ident
+	To       []*Ident
+	modified bool
+}
+
+func (args loadArgs) Len() int {
+	return len(args.From)
+}
+
+func (args loadArgs) Swap(i, j int) {
+	args.From[i], args.From[j] = args.From[j], args.From[i]
+	args.To[i], args.To[j] = args.To[j], args.To[i]
+	args.modified = true
+}
+
+func (args loadArgs) Less(i, j int) bool {
+	// Arguments with equal "from" and "to" parts are prioritized
+	equal_i := args.From[i].Name == args.To[i].Name
+	equal_j := args.From[j].Name == args.To[j].Name
+	if equal_i != equal_j {
+		// If equal_i and !equal_j, return true, otherwise false.
+		// Equivalently, return equal_i.
+		return equal_i
+	}
+	return args.To[i].Name < args.To[j].Name
 }

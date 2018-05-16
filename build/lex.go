@@ -20,9 +20,9 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode/utf8"
-	"sort"
 )
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
@@ -813,7 +813,7 @@ func (in *input) assignLineComments() {
 			xcom.Before = append(xcom.Before, line[0])
 			line = line[1:]
 		}
-		// Line comments can be sorted in a wrong order because they get assgined from different
+		// Line comments can be sorted in a wrong order because they get assigned from different
 		// parts of the lexer and the parser. Restore the original order.
 		sort.SliceStable(xcom.Before, func(i, j int) bool {
 			return xcom.Before[i].Start.Byte < xcom.Before[j].Start.Byte
