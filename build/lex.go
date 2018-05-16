@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 )
 
-var buildFilenames = []string{"BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "stdin"}
+var buildFilenames = []string{"build", "build.bazel", "workspace", "workspace.bazel", "stdin"}
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
 //
@@ -59,7 +59,7 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 func Parse(filename string, data []byte) (*File, error) {
 	basename := filepath.Base(filename)
 	for _, name := range buildFilenames {
-		if name == basename {
+		if name == strings.ToLower(basename) {
 			return ParseBuild(filename, data)
 		}
   }
