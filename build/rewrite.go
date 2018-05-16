@@ -901,10 +901,7 @@ func (args loadArgs) Less(i, j int) bool {
 func indentDocstrings(f *File, info *RewriteInfo) {
 	Walk(f, func(v Expr, stk []Expr) {
 		def, ok := v.(*DefStmt)
-		if !ok {
-			return
-		}
-		if len(def.Body) == 0 {
+		if !ok || len(def.Body) == 0 {
 			return
 		}
 		docstring, ok := def.Body[0].(*StringExpr)
@@ -944,22 +941,12 @@ func indentString(value string, oldIndentation, newIndentation int) string {
 				}
 			}
 		}
-		if i != len(lines)-1 && isAllSpaces(line) {
-			// Replace a line that contains only spaces with an empty line
-			// unless it's the last line that's responsible for the indentation of the closing """
-			line = ""
+		if i != len(lines)-1 {
+			// Remove trailing space from the line unless it's the last line that's responsible
+			// for the indentation of the closing `"""`
+			line = strings.TrimRight(line, " ")
 		}
 		lines[i] = line
 	}
 	return strings.Join(lines, "\n")
-}
-
-// isAllSpaces tests whether a string comprises only space runes.
-func isAllSpaces(value string) bool {
-	for _, rune := range value {
-		if rune != ' ' {
-			return false
-		}
-	}
-	return true
 }

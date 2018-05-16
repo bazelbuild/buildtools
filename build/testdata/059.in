@@ -1,8 +1,8 @@
 if foo:
   def f():
     """This docstring
-    should be moved 4 spaces to the right.
-
+    should be moved 4 spaces to the right.    
+    
     @returns:
       nothing
     """
@@ -11,8 +11,8 @@ if foo:
 if bar:
         def g():
                 """This docstring
-                should be moved 8 spaces to the left.
-
+                should be moved 8 spaces to the left.    
+   
    This particular line has just 4 leading spaces, so it should be moved only 4 spaces to the left.
 
                 @returns:
@@ -23,8 +23,8 @@ if bar:
 if foobar:
       def h():
         """This docstring is already indented properly, therefore shouldn't be touched,
-        even the next line that consists only of spaces:
-
+        even though this line has trailing spaces and the next line consists only of spaces:    
+        
         """
 
 if barfoo:
@@ -35,13 +35,13 @@ if barfoo:
 def aaa():
   """
   Docstring for top-level def statements
-    are also fixed.
+    are also fixed.    
   """
   pass
 
 def bbb():
         """
         Docstring for top-level def statements
- are also fixed.
+ are also fixed.    
         """
         pass
