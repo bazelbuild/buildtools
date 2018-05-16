@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -260,7 +259,7 @@ func processFile(filename string, data []byte, inputType string) {
 		}
 	}()
 
-	parser := getParser(inputType, filename)
+	parser := getParser(inputType)
 
 	f, err := parser(filename, data)
 	if err != nil {
@@ -373,17 +372,15 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 }
 
-func getParser(inputType, filename string) func(filename string, data []byte) (*build.File, error) {
+func getParser(inputType string) func(filename string, data []byte) (*build.File, error) {
 	switch inputType {
 	case "build":
 		return build.ParseBuild
 	case "auto":
-		switch base := filepath.Base(filename); base {
-		case "BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "stdin":
-			return build.ParseBuild
-		}
+		return build.Parse
+	default:
+		return build.ParseDefault
 	}
-	return build.ParseDefault
 }
 
 // writeTemp writes data to a temporary file and returns the name of the file.
