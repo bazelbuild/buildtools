@@ -81,6 +81,6 @@ if foo:
 bar
 
 bar
-def a():
+def a(name, foo=True, **kwargs):
 # comment here
   return

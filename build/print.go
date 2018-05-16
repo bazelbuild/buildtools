@@ -678,9 +678,10 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		return true
 	}
 
-	// In the Default printing mode try to keep the original printing style
-	// Non-top-level statements should also keep the original style regardless of the mode
-	if p.level != 0 || !p.buildMode {
+	// In the Default printing mode try to keep the original printing style.
+	// Non-top-level statements and lists of arguments of a function definition
+	// should also keep the original style regardless of the mode.
+	if p.level != 0 || !p.buildMode || mode == modeDef {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode
 		previousEnd := start.Line
