@@ -301,54 +301,11 @@ stmt:
 	{
 		$$ = []Expr{$1}
 		$<lastStmt>$ = $1
-
-		// If the block statement ends with a comment block remove it and place
-		// after the block statement.
-		var body *[]Expr
-		switch block := $1.(type) {
-		case *DefStmt:
-			body = &block.Body
-		case *ForStmt:
-			body = &block.Body
-		case *IfStmt:
-			// find the innermost node in the if-elif-else chain
-			inner := block
-			for {
-				if len(inner.False) != 1 {
-				  break
-				}
-				if sub, ok := inner.False[0].(*IfStmt); ok {
-					inner = sub
-				} else {
-					break
-				}
-			}
-			body = &inner.True
-			if len(inner.False) > 0 {
-				body = &inner.False
-			}
-		}
-		if body != nil && len(*body) > 0 {
-			lastStmt := (*body)[len(*body)-1]
-			if cb, ok := lastStmt.(*CommentBlock); ok {
-				// Move the comment block to the level above
-				*body = (*body)[:len(*body)-1]
-				$$ = append($$, cb)
-				$<lastStmt>$ = cb
-				if $<lastStmt>1 == nil {
-					$<lastStmt>$ = nil
-				}
-			} else {
-				// Detach after comments from the last statement
-				cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
-				if len(cb.After) > 0 {
-					lastStmt.Comment().After = []Comment{}
-					$$ = append($$, cb)
-					$<lastStmt>$ = cb
-					if $<lastStmt>1 == nil {
-						$<lastStmt>$ = nil
-					}
-				}
+		if cb := extractTrailingComment($1); cb != nil {
+			$$ = append($$, cb)
+			$<lastStmt>$ = cb
+			if $<lastStmt>1 == nil {
+				$<lastStmt>$ = nil
 			}
 		}
 	}
@@ -1087,4 +1044,48 @@ func forceMultiLine(start Position, list []Expr, end Position) bool {
 	// element, or closing bracket is on different line than end of element.
 	elemStart, elemEnd := list[0].Span()
 	return start.Line != elemStart.Line || end.Line != elemEnd.Line
+}
+
+// extractTrailingComment extracts a trailing comment from a block statement
+// and returns the comment (or nil)
+func extractTrailingComment(stmt Expr) *CommentBlock {
+	var body *[]Expr
+	switch block := stmt.(type) {
+	case *DefStmt:
+		body = &block.Body
+	case *ForStmt:
+		body = &block.Body
+	case *IfStmt:
+		// find the innermost node in the if-elif-else chain
+		inner := block
+		for {
+			if len(inner.False) != 1 {
+			  break
+			}
+			if sub, ok := inner.False[0].(*IfStmt); ok {
+				inner = sub
+			} else {
+				break
+			}
+		}
+		body = &inner.True
+		if len(inner.False) > 0 {
+			body = &inner.False
+		}
+	}
+	if body != nil && len(*body) > 0 {
+		lastStmt := (*body)[len(*body)-1]
+		if cb, ok := lastStmt.(*CommentBlock); ok {
+			// Remove the comment block
+			*body = (*body)[:len(*body)-1]
+			return cb
+		}
+		// Detach after comments from the last statement
+		cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
+		if len(cb.After) > 0 {
+			lastStmt.Comment().After = []Comment{}
+			return cb
+		}
+	}
+	return nil
 }
