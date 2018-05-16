@@ -79,7 +79,7 @@ type RewriteInfo struct {
 	SortStringList   int      // number of string lists sorted
 	UnsafeSort       int      // number of unsafe string lists sorted
 	SortLoad         int      // number of load argument lists sorted
-	IndentDocstrings int      // number of reindented docstrings
+	FormatDocstrings int      // number of reindented docstrings
 	Log              []string // log entries - may change
 }
 
@@ -103,8 +103,8 @@ func (info *RewriteInfo) String() string {
 	if info.SortLoad > 0 {
 		s += " sortload"
 	}
-	if info.IndentDocstrings > 0 {
-		s += " indentdocstrings"
+	if info.FormatDocstrings > 0 {
+		s += " formatdocstrings"
 	}
 	if s != "" {
 		s = s[1:]
@@ -133,7 +133,7 @@ var rewrites = []struct {
 	{"listsort", sortStringLists, scopeBuild},
 	{"multiplus", fixMultilinePlus, scopeBuild},
 	{"loadsort", sortLoadArgs, scopeBoth},
-	{"indentdocstrings", indentDocstrings, scopeBoth},
+	{"formatdocstrings", formatDocstrings, scopeBoth},
 }
 
 // DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
@@ -897,8 +897,8 @@ func (args loadArgs) Less(i, j int) bool {
 	return args.To[i].Name < args.To[j].Name
 }
 
-// indentDocstrings modifies the value of docstrings if their indentation level has been changed
-func indentDocstrings(f *File, info *RewriteInfo) {
+// formatDocstrings fixes the indentation and trailing whitespace of docstrings
+func formatDocstrings(f *File, info *RewriteInfo) {
 	Walk(f, func(v Expr, stk []Expr) {
 		def, ok := v.(*DefStmt)
 		if !ok || len(def.Body) == 0 {
@@ -911,19 +911,17 @@ func indentDocstrings(f *File, info *RewriteInfo) {
 
 		oldIndentation := docstring.Start.LineRune - 1 // LineRune starts with 1
 		newIndentation := nestedIndentation * len(stk)
-		updatedString := indentString(docstring.Value, oldIndentation, newIndentation)
+		updatedString := formatString(docstring.Value, oldIndentation, newIndentation)
 		if updatedString != docstring.Value {
 			docstring.Value = updatedString
-			info.IndentDocstrings++
+			info.FormatDocstrings++
 		}
 	})
 }
 
-// indentString modifies a sting value of a docstring to match the new indentation level
-func indentString(value string, oldIndentation, newIndentation int) string {
-	if oldIndentation == newIndentation {
-		return value
-	}
+// formatString modifies a string value of a docstring to match the new indentation level and
+// to remove trailing whitespace from its lines.
+func formatString(value string, oldIndentation, newIndentation int) string {
 	difference := newIndentation - oldIndentation
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
