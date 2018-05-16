@@ -912,7 +912,7 @@ func indentDocstrings(f *File, info *RewriteInfo) {
 			return
 		}
 
-		oldIndentation := docstring.Start.LineRune-1 // LineRune starts with 1
+		oldIndentation := docstring.Start.LineRune - 1 // LineRune starts with 1
 		newIndentation := nestedIndentation * len(stk)
 		updatedString := indentString(docstring.Value, oldIndentation, newIndentation)
 		if updatedString != docstring.Value {
@@ -927,7 +927,7 @@ func indentString(value string, oldIndentation, newIndentation int) string {
 	if oldIndentation == newIndentation {
 		return value
 	}
-	difference := newIndentation-oldIndentation
+	difference := newIndentation - oldIndentation
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
 		if i == 0 {
