@@ -37,11 +37,17 @@ def aaa():
     Docstring for top-level def statements
       are also fixed.
     """
-    pass
+    var = """
+  This is not a docstring, 
+  should not be modified. 
+  """
 
 def bbb():
     """
     Docstring for top-level def statements
 are also fixed.
     """
-    pass
+    var = """
+        This is not a docstring, 
+        should not be modified. 
+        """
