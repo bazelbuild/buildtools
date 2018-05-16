@@ -73,13 +73,14 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 // RewriteInfo collects information about what Rewrite did.
 type RewriteInfo struct {
-	EditLabel      int      // number of label strings edited
-	NameCall       int      // number of calls with argument names added
-	SortCall       int      // number of call argument lists sorted
-	SortStringList int      // number of string lists sorted
-	UnsafeSort     int      // number of unsafe string lists sorted
-	SortLoad       int      // number of load argument lists sorted
-	Log            []string // log entries - may change
+	EditLabel        int      // number of label strings edited
+	NameCall         int      // number of calls with argument names added
+	SortCall         int      // number of call argument lists sorted
+	SortStringList   int      // number of string lists sorted
+	UnsafeSort       int      // number of unsafe string lists sorted
+	SortLoad         int      // number of load argument lists sorted
+	IndentDocstrings int      // number of reindented docstrings
+	Log              []string // log entries - may change
 }
 
 func (info *RewriteInfo) String() string {
@@ -98,6 +99,12 @@ func (info *RewriteInfo) String() string {
 	}
 	if info.UnsafeSort > 0 {
 		s += " unsafesort"
+	}
+	if info.SortLoad > 0 {
+		s += " sortload"
+	}
+	if info.IndentDocstrings > 0 {
+		s += " indentdocstrings"
 	}
 	if s != "" {
 		s = s[1:]
@@ -126,6 +133,7 @@ var rewrites = []struct {
 	{"listsort", sortStringLists, scopeBuild},
 	{"multiplus", fixMultilinePlus, scopeBuild},
 	{"loadsort", sortLoadArgs, scopeBoth},
+	{"indentdocstrings", indentDocstrings, scopeBoth},
 }
 
 // DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
@@ -887,4 +895,71 @@ func (args loadArgs) Less(i, j int) bool {
 		return equal_i
 	}
 	return args.To[i].Name < args.To[j].Name
+}
+
+// indentDocstrings modifies the value of docstrings if their indentation level has been changed
+func indentDocstrings(f *File, info *RewriteInfo) {
+	Walk(f, func(v Expr, stk []Expr) {
+		def, ok := v.(*DefStmt)
+		if !ok {
+			return
+		}
+		if len(def.Body) == 0 {
+			return
+		}
+		docstring, ok := def.Body[0].(*StringExpr)
+		if !ok || !docstring.TripleQuote {
+			return
+		}
+
+		oldIndentation := docstring.Start.LineRune-1 // LineRune starts with 1
+		newIndentation := nestedIndentation * len(stk)
+		updatedString := indentString(docstring.Value, oldIndentation, newIndentation)
+		if updatedString != docstring.Value {
+			docstring.Value = updatedString
+			info.IndentDocstrings++
+		}
+	})
+}
+
+// indentString modifies a sting value of a docstring to match the new indentation level
+func indentString(value string, oldIndentation, newIndentation int) string {
+	if oldIndentation == newIndentation {
+		return value
+	}
+	difference := newIndentation-oldIndentation
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		if i == 0 {
+			// The first line shouldn't be touched because it starts right after ''' or """
+			continue
+		}
+		if difference > 0 {
+			line = strings.Repeat(" ", difference) + line
+		} else {
+			for i, rune := range line {
+				if i == -difference || rune != ' ' {
+					line = line[i:]
+					break
+				}
+			}
+		}
+		if i != len(lines)-1 && isAllSpaces(line) {
+			// Replace a line that contains only spaces with an empty line
+			// unless it's the last line that's responsible for the indentation of the closing """
+			line = ""
+		}
+		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
+
+// isAllSpaces tests whether a string comprises only space runes.
+func isAllSpaces(value string) bool {
+	for _, rune := range value {
+		if rune != ' ' {
+			return false
+		}
+	}
+	return true
 }
