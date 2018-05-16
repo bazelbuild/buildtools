@@ -20,10 +20,10 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+	"sort"
 	"strings"
 	"unicode/utf8"
-	"sort"
-	"path/filepath"
 )
 
 var buildFilenames = []string{"build", "build.bazel", "workspace", "workspace.bazel", "stdin"}
@@ -62,7 +62,7 @@ func Parse(filename string, data []byte) (*File, error) {
 		if name == strings.ToLower(basename) {
 			return ParseBuild(filename, data)
 		}
-  }
+	}
 	return ParseDefault(filename, data)
 }
 
@@ -822,9 +822,9 @@ func (in *input) assignLineComments() {
 			xcom.Before = append(xcom.Before, line[0])
 			line = line[1:]
 		}
-		// Line comments can be sorted in a wrong order because they get assgined from different
+		// Line comments can be sorted in a wrong order because they get assigned from different
 		// parts of the lexer and the parser. Restore the original order.
-		sort.Slice(xcom.Before, func(i, j int) bool {
+		sort.SliceStable(xcom.Before, func(i, j int) bool {
 			return xcom.Before[i].Start.Byte < xcom.Before[j].Start.Byte
 		})
 	}

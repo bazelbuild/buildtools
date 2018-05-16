@@ -1,4 +1,4 @@
-load(":foo.bzl","foo",a="a",b="c","d")
+load(":foo.bzl","foo",a="a",b="c","d", c="b")
 
 load(":bar.bzl","bar")
 load(
