@@ -887,12 +887,12 @@ func (args loadArgs) Swap(i, j int) {
 
 func (args loadArgs) Less(i, j int) bool {
 	// Arguments with equal "from" and "to" parts are prioritized
-	equal_i := args.From[i].Name == args.To[i].Name
-	equal_j := args.From[j].Name == args.To[j].Name
-	if equal_i != equal_j {
-		// If equal_i and !equal_j, return true, otherwise false.
-		// Equivalently, return equal_i.
-		return equal_i
+	equalI := args.From[i].Name == args.To[i].Name
+	equalJ := args.From[j].Name == args.To[j].Name
+	if equalI != equalJ {
+		// If equalI and !equalJ, return true, otherwise false.
+		// Equivalently, return equalI.
+		return equalI
 	}
 	return args.To[i].Name < args.To[j].Name
 }
