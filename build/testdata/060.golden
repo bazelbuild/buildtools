@@ -1,0 +1,31 @@
+strings = [
+    # empty
+    "",
+    "",
+    """""",
+    """""",
+
+    # ordinary
+    "foo",
+    "foo",
+    """foo""",
+    """foo""",
+
+    # contain quotes of different style
+    '"foo"',
+    "'foo'",
+    '''"""foo"""''',
+    """'''foo'''""",
+
+    # contain quotes of the same style
+    "'foo'",
+    "\"foo\"",
+    """'''foo'''""",
+    """\"\"\"foo\"\"\"""",
+
+    # contain quotes of both styles
+    '\'"foo"\'',
+    "'\"foo\"'",
+    '''\'\'\'"""foo"""\'\'\'''',
+    """'''\"\"\"foo\"\"\"'''""",
+]
