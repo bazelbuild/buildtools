@@ -1,0 +1,45 @@
+def f():
+    if foo:
+        return bar
+
+# 1 these comments
+# belong to the next statement
+def f():
+    if foo:
+        return bar
+
+# 2 these comments
+# belong to the top level
+
+def f():
+    if foo:
+        return bar
+
+# 3 these comments
+# belong to the next statement
+def f():
+    if foo:
+        return bar
+
+# 4 these comments
+# belong to the top level
+
+for a in b:
+    if foo:
+        pass
+    elif bar:
+        pass
+
+# 5 these comments
+# belong to the top level
+
+for a in b:
+    if foo:
+        pass
+    elif bar:
+        pass
+    else:
+        pass
+
+# 6 these comments
+# belong to the top level

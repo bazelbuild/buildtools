@@ -33,7 +33,7 @@ package build
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
-	lastRule  Expr  // most recent rule, to attach line comments to
+	lastStmt  Expr  // most recent rule, to attach line comments to
 }
 
 // These declarations set the type for a $ reference ($$, $1, $2, ...)
@@ -203,6 +203,7 @@ suite:
 			statements = append($2, $4...)
 		}
 		$$ = statements
+		$<lastStmt>$ = $<lastStmt>4
 	}
 |	simple_stmt linebreaks_opt
 	{
@@ -215,45 +216,45 @@ linebreaks_opt:
 comments:
 	{
 		$$ = nil
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	comments _COMMENT '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = $<lastRule>1
-		if $<lastRule>$ == nil {
+		$<lastStmt>$ = $<lastStmt>1
+		if $<lastStmt>$ == nil {
 			cb := &CommentBlock{Start: $2}
 			$$ = append($$, cb)
-			$<lastRule>$ = cb
+			$<lastStmt>$ = cb
 		}
-		com := $<lastRule>$.Comment()
+		com := $<lastStmt>$.Comment()
 		com.After = append(com.After, Comment{Start: $2, Token: $<tok>2})
 	}
 |	comments '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 
 stmts:
 	{
 		$$ = nil
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	stmts stmt
 	{
 		// If this statement follows a comment block,
 		// attach the comments to the statement.
-		if cb, ok := $<lastRule>1.(*CommentBlock); ok {
+		if cb, ok := $<lastStmt>1.(*CommentBlock); ok {
 			$$ = append($1[:len($1)-1], $2...)
 			$2[0].Comment().Before = cb.After
-			$<lastRule>$ = $2[len($2)-1]
+			$<lastStmt>$ = $<lastStmt>2
 			break
 		}
 
 		// Otherwise add to list.
 		$$ = append($1, $2...)
-		$<lastRule>$ = $2[len($2)-1]
+		$<lastStmt>$ = $<lastStmt>2
 
 		// Consider this input:
 		//
@@ -264,7 +265,7 @@ stmts:
 		// If we've just parsed baz(), the # bar is attached to
 		// foo() as an After comment. Make it a Before comment
 		// for baz() instead.
-		if x := $<lastRule>1; x != nil {
+		if x := $<lastStmt>1; x != nil {
 			com := x.Comment()
 			// stmt is never empty
 			$2[0].Comment().Before = com.After
@@ -275,18 +276,18 @@ stmts:
 	{
 		// Blank line; sever last rule from future comments.
 		$$ = $1
-		$<lastRule>$ = nil
+		$<lastStmt>$ = nil
 	}
 |	stmts _COMMENT '\n'
 	{
 		$$ = $1
-		$<lastRule>$ = $<lastRule>1
-		if $<lastRule>$ == nil {
+		$<lastStmt>$ = $<lastStmt>1
+		if $<lastStmt>$ == nil {
 			cb := &CommentBlock{Start: $2}
 			$$ = append($$, cb)
-			$<lastRule>$ = cb
+			$<lastStmt>$ = cb
 		}
-		com := $<lastRule>$.Comment()
+		com := $<lastStmt>$.Comment()
 		com.After = append(com.After, Comment{Start: $2, Token: $<tok>2})
 	}
 
@@ -294,10 +295,19 @@ stmt:
 	simple_stmt
 	{
 		$$ = $1
+		$<lastStmt>$ = $1[len($1)-1]
 	}
 |	block_stmt
 	{
 		$$ = []Expr{$1}
+		$<lastStmt>$ = $1
+		if cb := extractTrailingComment($1); cb != nil {
+			$$ = append($$, cb)
+			$<lastStmt>$ = cb
+			if $<lastStmt>1 == nil {
+				$<lastStmt>$ = nil
+			}
+		}
 	}
 
 block_stmt:
@@ -313,6 +323,7 @@ block_stmt:
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
+		$<lastStmt>$ = $<lastStmt>7
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
@@ -322,10 +333,12 @@ block_stmt:
 			X: $4,
 			Body: $6,
 		}
+		$<lastStmt>$ = $<lastStmt>6
 	}
 |	if_else_block
 	{
 		$$ = $1
+		$<lastStmt>$ = $<lastStmt>1
 	}
 
 // One or several if-elif-elif statements
@@ -337,6 +350,7 @@ if_chain:
 			Cond: $2,
 			True: $4,
 		}
+		$<lastStmt>$ = $<lastStmt>4
 	}
 |	if_chain elif expr ':' suite
 	{
@@ -353,6 +367,7 @@ if_chain:
 				True: $5,
 			},
 		}
+		$<lastStmt>$ = $<lastStmt>5
 	}
 
 // A complete if-elif-elif-else chain
@@ -367,6 +382,7 @@ if_else_block:
 		}
 		inner.ElsePos = End{Pos: $2}
 		inner.False = $4
+		$<lastStmt>$ = $<lastStmt>4
 	}
 
 elif:
@@ -377,7 +393,7 @@ simple_stmt:
 	small_stmt small_stmts_continuation semi_opt '\n'
 	{
 		$$ = append([]Expr{$1}, $2...)
-		$<lastRule>$ = $$[len($$)-1]
+		$<lastStmt>$ = $$[len($$)-1]
 	}
 
 small_stmts_continuation:
@@ -1028,4 +1044,47 @@ func forceMultiLine(start Position, list []Expr, end Position) bool {
 	// element, or closing bracket is on different line than end of element.
 	elemStart, elemEnd := list[0].Span()
 	return start.Line != elemStart.Line || end.Line != elemEnd.Line
+}
+
+// extractTrailingComment extracts a trailing comment from a block statement
+// and returns the comment (or nil)
+func extractTrailingComment(stmt Expr) *CommentBlock {
+	body := getLastBody(stmt)
+	if body != nil && len(*body) > 0 {
+		lastStmt := (*body)[len(*body)-1]
+		if cb, ok := lastStmt.(*CommentBlock); ok {
+			// Remove the comment block
+			*body = (*body)[:len(*body)-1]
+			return cb
+		}
+		// Detach after comments from the last statement
+		cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
+		if len(cb.After) > 0 {
+			lastStmt.Comment().After = []Comment{}
+			return cb
+		}
+	}
+	return nil
+}
+
+// getLastBody returns the last body of a block statement (the only body for For- and DefStmt
+// objects, the last in a if-elif-else chain
+func getLastBody(stmt Expr) *[]Expr {
+	switch block := stmt.(type) {
+	case *DefStmt:
+		return &block.Body
+	case *ForStmt:
+		return &block.Body
+	case *IfStmt:
+		if len(block.False) == 0 {
+			return &block.True
+		} else if len(block.False) == 1 {
+			if next, ok := block.False[0].(*IfStmt); ok {
+				// Recursively find the last block of the chain
+				return getLastBody(next)
+			}
+		}
+		return &block.False
+	}
+	return nil
 }

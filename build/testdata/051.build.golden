@@ -99,8 +99,8 @@ if foo:
 
 if foo:
     bar
-    #comment
 
+#comment
 bar
 
 bar
