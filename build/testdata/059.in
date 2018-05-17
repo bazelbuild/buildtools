@@ -22,8 +22,8 @@ if bar:
 
 if foobar:
       def h():
-        """This docstring is already indented properly, therefore shouldn't be touched,
-        even though this line has trailing spaces and the next line consists only of spaces:    
+        """This docstring is already indented properly, therefore shouldn't be reindented,
+        but the trailing spacees from this and the following lines should be removed.    
         
         """
 
