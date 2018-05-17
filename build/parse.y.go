@@ -253,30 +253,7 @@ func forceMultiLine(start Position, list []Expr, end Position) bool {
 // extractTrailingComment extracts a trailing comment from a block statement
 // and returns the comment (or nil)
 func extractTrailingComment(stmt Expr) *CommentBlock {
-	var body *[]Expr
-	switch block := stmt.(type) {
-	case *DefStmt:
-		body = &block.Body
-	case *ForStmt:
-		body = &block.Body
-	case *IfStmt:
-		// find the innermost node in the if-elif-else chain
-		inner := block
-		for {
-			if len(inner.False) != 1 {
-				break
-			}
-			if sub, ok := inner.False[0].(*IfStmt); ok {
-				inner = sub
-			} else {
-				break
-			}
-		}
-		body = &inner.True
-		if len(inner.False) > 0 {
-			body = &inner.False
-		}
-	}
+	body := getLastBody(stmt)
 	if body != nil && len(*body) > 0 {
 		lastStmt := (*body)[len(*body)-1]
 		if cb, ok := lastStmt.(*CommentBlock); ok {
@@ -290,6 +267,28 @@ func extractTrailingComment(stmt Expr) *CommentBlock {
 			lastStmt.Comment().After = []Comment{}
 			return cb
 		}
+	}
+	return nil
+}
+
+// getLastBody returns the last body of a block statement (the only body for For- and DefStmt
+// objects, the last in a if-elif-else chain
+func getLastBody(stmt Expr) *[]Expr {
+	switch block := stmt.(type) {
+	case *DefStmt:
+		return &block.Body
+	case *ForStmt:
+		return &block.Body
+	case *IfStmt:
+		if len(block.False) == 0 {
+			return &block.True
+		} else if len(block.False) == 1 {
+			if next, ok := block.False[0].(*IfStmt); ok {
+				// Recursively find the last block of the chain
+				return getLastBody(next)
+			}
+		}
+		return &block.False
 	}
 	return nil
 }
