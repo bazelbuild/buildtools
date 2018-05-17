@@ -395,13 +395,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf("%s", v.Name)
 
 	case *StringExpr:
-		// If the Token is a correct quoting of Value, use it.
-		// This preserves the specific escaping choices that
-		// BUILD authors have made, and it also works around
-		// b/7272572.
-		if strings.HasPrefix(v.Token, `"`) {
-			s, triple, err := unquote(v.Token)
-			if s == v.Value && triple == v.TripleQuote && err == nil {
+		// If the Token is a correct quoting of Value and has double quotes, use it,
+		// also use it if it has single quotes and the value itself contains a double quote symbol.
+		// This preserves the specific escaping choices that BUILD authors have made.
+		s, triple, err := unquote(v.Token)
+		if s == v.Value && triple == v.TripleQuote && err == nil {
+			if strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"') {
 				p.printf("%s", v.Token)
 				break
 			}
