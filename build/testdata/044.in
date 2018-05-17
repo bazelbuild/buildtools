@@ -11,3 +11,13 @@ legacy_txt_name_to_filename = {
   filename.split("/")[-1][:-len(".txt")].lower(): filename
   for filename in GLOB_resources_legacy_txt_tuple
 }
+
+flags = [flag
+         for flag in [_flag(name, type(default), values.pop(name, default))
+                      for name, default in defaults.items()]
+         if flag != None]
+
+flags = [flag  # Example comment.
+         for flag in [_flag(name, type(default), values.pop(name, default))
+                      for name, default in defaults.items()]  # Clarififcation.
+         if flag != None]  # Skip empty elements.

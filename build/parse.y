@@ -519,26 +519,24 @@ primary_expr:
 	}
 |	'[' test for_clauses_with_if_clauses_opt ']'
 	{
-		exprStart, _ := $2.Span()
 		$$ = &Comprehension{
 			Curly: false,
 			Lbrack: $1,
 			Body: $2,
 			Clauses: $3,
 			End: End{Pos: $4},
-			ForceMultiLine: $1.Line != exprStart.Line,
+			ForceMultiLine: forceMultiLineComprehension($1, $2, $3, $4),
 		}
 	}
 |	'{' keyvalue for_clauses_with_if_clauses_opt '}'
 	{
-		exprStart, _ := $2.Span()
 		$$ = &Comprehension{
 			Curly: true,
 			Lbrack: $1,
 			Body: $2,
 			Clauses: $3,
 			End: End{Pos: $4},
-			ForceMultiLine: $1.Line != exprStart.Line,
+			ForceMultiLine: forceMultiLineComprehension($1, $2, $3, $4),
 		}
 	}
 |	'{' keyvalues '}'
@@ -1044,6 +1042,24 @@ func forceMultiLine(start Position, list []Expr, end Position) bool {
 	// element, or closing bracket is on different line than end of element.
 	elemStart, elemEnd := list[0].Span()
 	return start.Line != elemStart.Line || end.Line != elemEnd.Line
+}
+
+// forceMultiLineComprehension returns the setting for the ForceMultiLine field for a comprehension.
+func forceMultiLineComprehension(start Position, expr Expr, clauses []Expr, end Position) bool {
+	// Return true if there's at least one line break between start, expr, each clause, and end
+	exprStart, exprEnd := expr.Span()
+	if start.Line != exprStart.Line {
+		return true
+	}
+	previousEnd := exprEnd
+	for _, clause := range clauses {
+		clauseStart, clauseEnd := clause.Span()
+		if previousEnd.Line != clauseStart.Line {
+			return true
+		}
+		previousEnd = clauseEnd
+	}
+	return previousEnd.Line != end.Line
 }
 
 // extractTrailingComment extracts a trailing comment from a block statement
