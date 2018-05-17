@@ -26,7 +26,14 @@ import (
 	"unicode/utf8"
 )
 
-var buildFilenames = []string{"build", "build.bazel", "workspace", "workspace.bazel", "stdin"}
+// BuildFilenames is a collection of filenames in lowercase that are treated as BUILD files.
+var BuildFilenames = map[string]bool{
+	"build": true,
+	"build.bazel": true,
+	"workspace": true,
+	"workspace.bazel": true,
+	"stdin": true,
+}
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
 //
@@ -58,10 +65,8 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 // either ParseBuild or to ParseDefault correspondingly.
 func Parse(filename string, data []byte) (*File, error) {
 	basename := filepath.Base(filename)
-	for _, name := range buildFilenames {
-		if name == strings.ToLower(basename) {
-			return ParseBuild(filename, data)
-		}
+	if BuildFilenames[strings.ToLower(basename)] {
+		return ParseBuild(filename, data)
 	}
 	return ParseDefault(filename, data)
 }
