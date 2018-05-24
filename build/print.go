@@ -638,6 +638,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.comment = append(p.comment, block.ElsePos.Comment().Suffix...)
 			p.nestedStatements(block.False)
 		}
+		case *ForClause:
+			p.printf("for ")
+			p.expr(v.Vars, precLow)
+			p.printf(" in ")
+			p.expr(v.X, precLow)
+		case *IfClause:
+			p.printf("if ")
+			p.expr(v.Cond, precLow)
 	}
 
 	// Add closing parenthesis if needed.
@@ -844,17 +852,7 @@ func (p *printer) listFor(v *Comprehension) {
 
 	for _, c := range v.Clauses {
 		space()
-		switch clause := c.(type) {
-		case *ForClause:
-			p.printf("for ")
-			p.expr(clause.Vars, precLow)
-			p.printf(" in ")
-			p.expr(clause.X, precLow)
-		case *IfClause:
-			p.printf("if ")
-			p.expr(clause.Cond, precLow)
-		}
-		p.comment = append(p.comment, c.Comment().Suffix...)
+		p.expr(c, precLow)
 	}
 
 	if multiLine {
