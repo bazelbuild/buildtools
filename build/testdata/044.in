@@ -36,6 +36,7 @@ flags = [
 
 
          # Example comment.
+
          flag
 
 
@@ -45,5 +46,6 @@ flags = [
 
 
          # Skip empty elements.
+
          if flag != None
         ]
