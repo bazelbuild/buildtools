@@ -29,3 +29,30 @@ flags = [
     ]  # Clarififcation.
     if flag != None
 ]  # Skip empty elements.
+
+flags = [
+    # Example comment.
+    flag
+    # Clarififcation.
+    for flag in [
+        _flag(name, type(default), values.pop(name, default))
+        for name, default in defaults.items()
+    ]
+    # Skip empty elements.
+    if flag != None
+]
+
+flags = [
+
+    # Example comment.
+    flag
+
+    # Clarififcation.
+    for flag in [
+        _flag(name, type(default), values.pop(name, default))
+        for name, default in defaults.items()
+    ]
+
+    # Skip empty elements.
+    if flag != None
+]
