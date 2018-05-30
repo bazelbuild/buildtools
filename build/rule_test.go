@@ -120,6 +120,24 @@ func TestRules(t *testing.T) {
 	compare(t, f.Rules("foo.bar.baz"), []*Rule{structRule})
 }
 
+func TestRulesNested(t *testing.T) {
+	f := &File{
+		Stmt: []Expr{
+			&ListExpr{
+				List: []Expr{
+					simpleCall,
+					structCall,
+				},
+			},
+		},
+	}
+
+	compare(t, f.Rules(""), []*Rule{simpleRule, structRule})
+	compare(t, f.Rules("java_binary"), []*Rule(nil))
+	compare(t, f.Rules("java_library"), []*Rule{simpleRule})
+	compare(t, f.Rules("foo.bar.baz"), []*Rule{structRule})
+}
+
 func TestImplicitName(t *testing.T) {
 	tests := []struct {
 		path        string

@@ -43,15 +43,17 @@ func (f *File) Rules(kind string) []*Rule {
 	var all []*Rule
 
 	for _, stmt := range f.Stmt {
-		call, ok := stmt.(*CallExpr)
-		if !ok {
-			continue
-		}
-		rule := f.Rule(call)
-		if kind != "" && rule.Kind() != kind {
-			continue
-		}
-		all = append(all, rule)
+		Walk(stmt, func(x Expr, stk []Expr) {
+			call, ok := x.(*CallExpr)
+			if !ok {
+				return
+			}
+			rule := f.Rule(call)
+			if kind != "" && rule.Kind() != kind {
+				return
+			}
+			all = append(all, rule)
+		});
 	}
 
 	return all
