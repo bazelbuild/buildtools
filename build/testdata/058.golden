@@ -46,7 +46,7 @@ for a in b:
 # belong to the top level
 
 def foo():
-    return
+    return  # This comment stays here
 
 # 7 these comments
 
@@ -55,7 +55,7 @@ def foo():
 # top level
 
 def foo():
-    return
+    return  # This comment stays here
 
 # 8 these comments
 

@@ -794,7 +794,7 @@ func (in *input) assignSuffixComments() {
 
 		// Do not assign suffix comments to file or to block statements
 		switch x.(type) {
-		case *File, *DefStmt, *IfStmt, *ForStmt:
+		case *File, *DefStmt, *IfStmt, *ForStmt, *CommentBlock:
 			continue
 		}
 
