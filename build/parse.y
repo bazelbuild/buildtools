@@ -1071,12 +1071,12 @@ func extractTrailingComments(stmt Expr) []Expr {
 	if body != nil && len(*body) > 0 {
 		// Detach and return all trailing comment blocks
 		for i := len(*body)-1; i >= 0; i-- {
-			if cb, ok := (*body)[i].(*CommentBlock); ok {
-				comments = append(comments, cb)
-				*body = (*body)[:i]
-				continue
+			cb, ok := (*body)[i].(*CommentBlock)
+			if !ok {
+				break
 			}
-			break
+			comments = append(comments, cb)
+			*body = (*body)[:i]
 		}
 
 		// Detach after comments from the last statement
