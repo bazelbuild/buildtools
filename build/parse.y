@@ -301,9 +301,9 @@ stmt:
 	{
 		$$ = []Expr{$1}
 		$<lastStmt>$ = $1
-		if cb := extractTrailingComment($1); cb != nil {
-			$$ = append($$, cb)
-			$<lastStmt>$ = cb
+		if cbs := extractTrailingComments($1); len(cbs) > 0 {
+			$$ = append($$, cbs...)
+			$<lastStmt>$ = cbs[len(cbs)-1]
 			if $<lastStmt>1 == nil {
 				$<lastStmt>$ = nil
 			}
@@ -1062,25 +1062,36 @@ func forceMultiLineComprehension(start Position, expr Expr, clauses []Expr, end 
 	return previousEnd.Line != end.Line
 }
 
-// extractTrailingComment extracts a trailing comment from a block statement
-// and returns the comment (or nil)
-func extractTrailingComment(stmt Expr) *CommentBlock {
+// extractTrailingComments extracts trailing comments from a block statement
+// and returns the comments. The comments can be either CommentBlock statements
+// or After-comments for a statement of a different type.
+func extractTrailingComments(stmt Expr) []Expr {
 	body := getLastBody(stmt)
+	var comments []Expr
 	if body != nil && len(*body) > 0 {
-		lastStmt := (*body)[len(*body)-1]
-		if cb, ok := lastStmt.(*CommentBlock); ok {
-			// Remove the comment block
-			*body = (*body)[:len(*body)-1]
-			return cb
+		// Detach and return all trailing comment blocks
+		for i := len(*body)-1; i >= 0; i-- {
+			cb, ok := (*body)[i].(*CommentBlock)
+			if !ok {
+				break
+			}
+			comments = append(comments, cb)
+			*body = (*body)[:i]
 		}
+
 		// Detach after comments from the last statement
+		lastStmt := (*body)[len(*body)-1]
 		cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
 		if len(cb.After) > 0 {
 			lastStmt.Comment().After = []Comment{}
-			return cb
+			comments = append(comments, cb)
 		}
 	}
-	return nil
+	// The comments are collected in the reversed order, reverse them again
+	for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
+ 		comments[i], comments[j] = comments[j], comments[i]
+ 	}
+	return comments
 }
 
 // getLastBody returns the last body of a block statement (the only body for For- and DefStmt

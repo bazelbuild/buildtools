@@ -22,6 +22,7 @@ def f():
         return bar
 
 # 4 these comments
+
 # belong to the top level
 
 for a in b:
@@ -43,3 +44,21 @@ for a in b:
 
 # 6 these comments
 # belong to the top level
+
+def foo():
+    return  # This comment stays here
+
+# 7 these comments
+
+# belong to the
+
+# top level
+
+def foo():
+    return  # This comment stays here
+
+# 8 these comments
+
+# belong to the
+
+# top level
