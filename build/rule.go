@@ -48,12 +48,21 @@ func (f *File) Rules(kind string) []*Rule {
 			if !ok {
 				return
 			}
+
+			// Skip nested calls.
+			for _, frame := range stk {
+				if _, ok := frame.(*CallExpr); ok {
+					return
+				}
+			}
+
+			// Check if the rule kind is correct.
 			rule := f.Rule(call)
 			if kind != "" && rule.Kind() != kind {
 				return
 			}
 			all = append(all, rule)
-		});
+		})
 	}
 
 	return all
