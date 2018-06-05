@@ -25,6 +25,7 @@ if foobar:
         """This docstring is already indented properly, therefore shouldn't be reindented,
         but the trailing spacees from this and the following lines should be removed.
 
+          “Unicode” characters aren't escaped.
         """
 
 if barfoo:
@@ -36,6 +37,8 @@ def aaa():
     """
     Docstring for top-level def statements
       are also fixed.
+
+      “Unicode” characters aren't escaped.
     """
     var = """
   This is not a docstring, 
@@ -46,6 +49,8 @@ def bbb():
     """
     Docstring for top-level def statements
 are also fixed.
+
+      “Unicode” characters aren't escaped.
     """
     var = """
         This is not a docstring, 
