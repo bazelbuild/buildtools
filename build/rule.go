@@ -51,8 +51,7 @@ func (f *File) Rules(kind string) []*Rule {
 
 			// Skip nested calls.
 			for _, frame := range stk {
-				_, ok := frame.(*CallExpr)
-				if ok {
+				if _, ok := frame.(*CallExpr); ok {
 					return
 				}
 			}
