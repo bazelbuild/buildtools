@@ -138,6 +138,40 @@ func TestRulesNested(t *testing.T) {
 	compare(t, f.Rules("foo.bar.baz"), []*Rule{structRule})
 }
 
+func TestRulesDoubleNested(t *testing.T) {
+	var doubleNested *CallExpr = &CallExpr{
+		X: &Ident{
+			Name: "java_library",
+		},
+		List: []Expr{
+			&BinaryExpr{
+				X: &Ident{
+					Name: "name",
+				},
+				Op: "=",
+				Y: &CallExpr{
+					X:    &Ident{Name: "varref"},
+					List: []Expr{&StringExpr{Value: "x"}},
+				},
+			},
+		},
+	}
+	var doubleNestedRule *Rule = &Rule{doubleNested, ""}
+
+	f := &File{
+		Stmt: []Expr{
+			&ListExpr{
+				List: []Expr{
+					doubleNested,
+				},
+			},
+		},
+	}
+
+	compare(t, f.Rules(""), []*Rule{doubleNestedRule})
+	compare(t, f.Rules("java_library"), []*Rule{doubleNestedRule})
+}
+
 func TestImplicitName(t *testing.T) {
 	tests := []struct {
 		path        string
