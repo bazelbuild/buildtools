@@ -914,6 +914,9 @@ func formatDocstrings(f *File, info *RewriteInfo) {
 		updatedString := formatString(docstring.Value, oldIndentation, newIndentation)
 		if updatedString != docstring.Value {
 			docstring.Value = updatedString
+			// Apply the same transformation to Token, so that the user choice of escaped symbols is
+			// preserved.
+			docstring.Token = formatString(docstring.Token, oldIndentation, newIndentation)
 			info.FormatDocstrings++
 		}
 	})
