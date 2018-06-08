@@ -36,3 +36,8 @@ go_library(
         "//tables:go_default_library",
     ],
 )
+
+exports_files(
+    ["runner.bash.template"],
+    visibility = ["//visibility:public"],
+)
