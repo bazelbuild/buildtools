@@ -26,6 +26,7 @@ http_archive(
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
+load("@com_github_bazelbuild_buildtools//buildozer:deps.bzl", "buildozer_dependencies")
 
 gazelle_dependencies()
 
@@ -35,7 +36,9 @@ go_register_toolchains()
 
 buildifier_dependencies()
 
-# used for build.proto
+buildozer_dependencies()
+
+# used for build.proto. There is a copy of this in buildozer_dependencies()
 http_archive(
     name = "io_bazel",
     sha256 = "e5321afb93e75cfb55f6f9c34d44f15230f8103677aa48a76ce3e868ee490d8e",
