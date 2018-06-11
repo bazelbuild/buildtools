@@ -1,19 +1,17 @@
 workspace(name = "com_github_bazelbuild_buildtools")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-git_repository(
+http_archive(
     name = "io_bazel_rules_go",
-    # 0.11.1
-    commit = "12fa5fd88725c9033fc7c37ec0f04b64a9519f49",
-    remote = "https://github.com/bazelbuild/rules_go.git",
+    sha256 = "c1f52b8789218bb1542ed362c4f7de7052abcf254d865d96fb7ba6d44bc15ee3",
+    url = "https://github.com/bazelbuild/rules_go/releases/download/0.12.0/rules_go-0.12.0.tar.gz",
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "92a3c59734dad2ef85dc731dbcb2bc23c4568cded79d4b87ebccd787eb89e8d0",
-    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.11.0/bazel-gazelle-0.11.0.tar.gz",
+    sha256 = "ddedc7aaeb61f2654d7d7d4fd7940052ea992ccdb031b8f9797ed143ac7e8d43",
+    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.12.0/bazel-gazelle-0.12.0.tar.gz",
 )
 
 http_archive(
@@ -38,11 +36,11 @@ buildifier_dependencies()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "e5321afb93e75cfb55f6f9c34d44f15230f8103677aa48a76ce3e868ee490d8e",
-    strip_prefix = "bazel-0.11.1",
+    sha256 = "66135f877d0cc075b683474c50b1f7c3e2749bf0a40e446f20392f44494fefff",
+    strip_prefix = "bazel-0.12.0",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.11.1.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.11.1.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
     ],
 )
 
