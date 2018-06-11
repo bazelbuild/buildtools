@@ -25,12 +25,26 @@ package build
 func Walk(v Expr, f func(x Expr, stk []Expr)) {
 	var stack []Expr
 	walk1(&v, &stack, func(x Expr, stk []Expr) Expr {
+		if x != nil {
+			f(x, stk)
+		}
+		return nil
+	})
+}
+
+// Walk2 is similar to Walk1, except that the function is also called with a nil
+// argument after we've visited the node and all its children. This is useful to
+// run code in postorder traversal (the last item of stk contains the current
+// node).
+func Walk2(v Expr, f func(x Expr, stk []Expr)) {
+	var stack []Expr
+	walk1(&v, &stack, func(x Expr, stk []Expr) Expr {
 		f(x, stk)
 		return nil
 	})
 }
 
-// WalkAndUpdate walks the expression tree v, calling f on all subexpressions
+// Edit walks the expression tree v, calling f on all subexpressions
 // in a preorder traversal. If f returns a non-nil value, the tree is mutated.
 // The new value replaces the old one.
 //
@@ -42,7 +56,7 @@ func Edit(v Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	return walk1(&v, &stack, f)
 }
 
-// walk1 is the actual implementation of Walk and WalkAndUpdate.
+// walk1 is the actual implementation of Walk, Walk2, and Edit.
 // It has the same signature and meaning as Walk,
 // except that it maintains in *stack the current stack
 // of nodes. Using a pointer to a slice here ensures that
@@ -155,6 +169,10 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 		if v.Result != nil {
 			walk1(&v.Result, stack, f)
 		}
+	}
+
+	if res := f(nil, *stack); res != nil {
+		*v = res
 	}
 
 	*stack = (*stack)[:len(*stack)-1]

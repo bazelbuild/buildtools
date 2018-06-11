@@ -33,6 +33,7 @@ go_test(
         "print_test.go",
         "quote_test.go",
         "rule_test.go",
+        "walk_test.go",
     ],
     data = glob(["testdata/*"]) + [
         # parse.y.go is checked in to satisfy the Go community
