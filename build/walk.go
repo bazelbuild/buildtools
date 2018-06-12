@@ -32,7 +32,7 @@ func Walk(v Expr, f func(x Expr, stk []Expr)) {
 	})
 }
 
-// Walk2 is similar to Walk1, except that the function is also called with a nil
+// WalkWithPostfix is similar to Walk1, except that the function is also called with a nil
 // argument after we've visited the node and all its children. This is useful to
 // run code in postorder traversal (the last item of stk contains the current
 // node).
@@ -56,12 +56,11 @@ func Edit(v Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	return walk1(&v, &stack, f)
 }
 
-// walk1 is the actual implementation of Walk, Walk2, and Edit.
-// It has the same signature and meaning as Walk,
-// except that it maintains in *stack the current stack
-// of nodes. Using a pointer to a slice here ensures that
-// as the stack grows and shrinks the storage can be
-// reused for the next growth.
+// walk1 is the actual implementation of Walk, WalkWithPostfix, and Edit.
+// It has the same signature and meaning as Walk, except that it maintains
+// in *stack the current stack of nodes. Using a pointer to a slice here
+// ensures that as the stack grows and shrinks the storage can be reused
+// for the next growth.
 func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	if v == nil {
 		return nil
