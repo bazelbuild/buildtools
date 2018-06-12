@@ -12,9 +12,9 @@ func nodeToString(e Expr) string {
 	return "unknown"
 }
 
-func TestWalk(t *testing.T) {
+func TestWalkOnce(t *testing.T) {
 	// (1 + 2) * (3 - 4)
-	expr := &BinaryExpr{
+	var binaryExprExample Expr = &BinaryExpr{
 		X: &BinaryExpr{
 			X:  &LiteralExpr{Token: "1"},
 			Op: "+",
@@ -30,13 +30,15 @@ func TestWalk(t *testing.T) {
 
 	var prefix []string
 	var postfix []string
-	WalkWithPostfix(expr, func(e Expr, stack []Expr) {
-		if e == nil {
-			postfix = append(postfix, nodeToString(stack[len(stack)-1]))
-		} else {
-			prefix = append(prefix, nodeToString(e))
-		}
-	})
+
+	var walk func(e *Expr)
+	walk = func(e *Expr) {
+		prefix = append(prefix, nodeToString(*e))
+		WalkOnce(*e, walk)
+		postfix = append(postfix, nodeToString(*e))
+	}
+
+	walk(&binaryExprExample)
 
 	compare(t, prefix, []string{"*", "+", "1", "2", "-", "3", "4"})
 	compare(t, postfix, []string{"1", "2", "+", "3", "4", "-", "*"})
