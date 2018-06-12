@@ -5,11 +5,11 @@ import "testing"
 func nodeToString(e Expr) string {
 	if bin, ok := e.(*BinaryExpr); ok {
 		return bin.Op
-	} else if lit, ok := e.(*LiteralExpr); ok {
-		return lit.Token
-	} else {
-		return "unknown"
 	}
+	if lit, ok := e.(*LiteralExpr); ok {
+		return lit.Token
+	}
+	return "unknown"
 }
 
 func TestWalk(t *testing.T) {
@@ -30,7 +30,7 @@ func TestWalk(t *testing.T) {
 
 	var prefix []string
 	var postfix []string
-	Walk2(expr, func(e Expr, stack []Expr) {
+	WalkWithPostfix(expr, func(e Expr, stack []Expr) {
 		if e == nil {
 			postfix = append(postfix, nodeToString(stack[len(stack)-1]))
 		} else {

@@ -36,7 +36,7 @@ func Walk(v Expr, f func(x Expr, stk []Expr)) {
 // argument after we've visited the node and all its children. This is useful to
 // run code in postorder traversal (the last item of stk contains the current
 // node).
-func Walk2(v Expr, f func(x Expr, stk []Expr)) {
+func WalkWithPostfix(v Expr, f func(x Expr, stk []Expr)) {
 	var stack []Expr
 	walk1(&v, &stack, func(x Expr, stk []Expr) Expr {
 		f(x, stk)
