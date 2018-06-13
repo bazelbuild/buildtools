@@ -1,0 +1,8 @@
+#!/bin/bash
+
+BUILDOZER_SHORT_PATH=@@BUILDOZER_SHORT_PATH@@
+ARGS=@@ARGS@@
+
+buildozer_short_path=$(readlink "$BUILDOZER_SHORT_PATH")
+cd "$BUILD_WORKSPACE_DIRECTORY"
+"$buildozer_short_path" "${ARGS[@]}"

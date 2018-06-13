@@ -16,3 +16,8 @@ go_binary(
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )
+
+exports_files(
+    ["runner.bash.template"],
+    visibility = ["//visibility:public"],
+)
