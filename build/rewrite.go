@@ -911,12 +911,14 @@ func formatDocstrings(f *File, info *RewriteInfo) {
 
 		oldIndentation := docstring.Start.LineRune - 1 // LineRune starts with 1
 		newIndentation := nestedIndentation * len(stk)
-		updatedString := formatString(docstring.Value, oldIndentation, newIndentation)
-		if updatedString != docstring.Value {
-			docstring.Value = updatedString
-			// Apply the same transformation to Token, so that the user choice of escaped symbols is
-			// preserved.
-			docstring.Token = formatString(docstring.Token, oldIndentation, newIndentation)
+
+		// Operate on Token, not Value, because their line breaks can be different if a line ends with
+		// a backslash.
+		updatedToken := formatString(docstring.Token, oldIndentation, newIndentation)
+		if updatedToken != docstring.Token {
+			docstring.Token = updatedToken
+			// Update the value to keep it consistent with Token
+			docstring.Value, _, _ = unquote(updatedToken)
 			info.FormatDocstrings++
 		}
 	})

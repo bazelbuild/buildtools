@@ -39,6 +39,9 @@ def aaa():
     are also fixed.    
 
     “Unicode” characters aren't escaped.
+
+  Trailing backslashes \
+  are preserved
   """
   var = """
   This is not a docstring, 
@@ -51,6 +54,9 @@ def bbb():
  are also fixed.
 
           “Unicode” characters aren't escaped.
+
+        Trailing backslashes \
+        are preserved
         """
         var = """
         This is not a docstring, 
