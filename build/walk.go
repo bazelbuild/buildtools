@@ -25,9 +25,7 @@ package build
 func Walk(v Expr, f func(x Expr, stk []Expr)) {
 	var stack []Expr
 	walk1(&v, &stack, func(x Expr, stk []Expr) Expr {
-		if x != nil {
-			f(x, stk)
-		}
+		f(x, stk)
 		return nil
 	})
 }
@@ -58,10 +56,6 @@ func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	WalkOnce(*v, func(x *Expr) {
 		walk1(x, stack, f)
 	})
-
-	if res := f(nil, *stack); res != nil {
-		*v = res
-	}
 
 	*stack = (*stack)[:len(*stack)-1]
 	return *v
