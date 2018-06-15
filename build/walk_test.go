@@ -50,3 +50,29 @@ func TestWalkOnce(t *testing.T) {
 	compare(t, prefix, []string{"*", "+", "1", "2", "-", "3", "4"})
 	compare(t, postfix, []string{"1", "2", "+", "3", "4", "-", "*"})
 }
+
+func TestEdit(t *testing.T) {
+	expr := &BinaryExpr{
+		X:  &LiteralExpr{Token: "1"},
+		Op: "+",
+		Y:  &LiteralExpr{Token: "2"},
+	}
+
+	compare(t, FormatString(expr), "1 + 2")
+	Edit(expr, func(e Expr, stk []Expr) Expr {
+		// Check if there are already parens
+		if len(stk) > 0 {
+			if _, ok := stk[len(stk)-1].(*ParenExpr); ok {
+				return nil
+			}
+		}
+		// Add parens around literal
+		switch e := e.(type) {
+		case *LiteralExpr:
+			return &ParenExpr{X: e}
+		default:
+			return nil
+		}
+	})
+	compare(t, FormatString(expr), "(1) + (2)")
+}
