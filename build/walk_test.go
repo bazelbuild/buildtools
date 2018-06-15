@@ -52,13 +52,8 @@ func TestWalkOnce(t *testing.T) {
 }
 
 func TestEdit(t *testing.T) {
-	expr := &BinaryExpr{
-		X:  &LiteralExpr{Token: "1"},
-		Op: "+",
-		Y:  &LiteralExpr{Token: "2"},
-	}
-
-	compare(t, FormatString(expr), "1 + 2")
+	expr, _ := Parse("test", []byte("1 + 2"))
+	compare(t, FormatString(expr), "1 + 2\n")
 	Edit(expr, func(e Expr, stk []Expr) Expr {
 		// Check if there are already parens
 		if len(stk) > 0 {
@@ -67,12 +62,28 @@ func TestEdit(t *testing.T) {
 			}
 		}
 		// Add parens around literal
-		switch e := e.(type) {
-		case *LiteralExpr:
+		if lit, ok := e.(*LiteralExpr); ok {
+			lit.Start = Position{} // workaround to avoid multiline formatting
 			return &ParenExpr{X: e}
-		default:
-			return nil
+		}
+		return nil
+	})
+	compare(t, FormatString(expr), "(1) + (2)\n")
+}
+
+func TestRemoveParens(t *testing.T) {
+	expr, _ := Parse("test", []byte("((((1))) + 2) + (3 + 4) * 5"))
+	compare(t, FormatString(expr), "((((1))) + 2) + (3 + 4) * 5\n")
+	// Remove all ParenExpr
+	Edit(expr, func(e Expr, stk []Expr) Expr {
+		for {
+			if p, ok := e.(*ParenExpr); ok {
+				e = p.X
+			} else {
+				return e
+			}
 		}
 	})
-	compare(t, FormatString(expr), "(1) + (2)")
+	// Parens are inserted in the output due to different precedence of operators.
+	compare(t, FormatString(expr), "1 + 2 + (3 + 4) * 5\n")
 }
