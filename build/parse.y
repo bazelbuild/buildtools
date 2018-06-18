@@ -1062,36 +1062,67 @@ func forceMultiLineComprehension(start Position, expr Expr, clauses []Expr, end 
 	return previousEnd.Line != end.Line
 }
 
-// extractTrailingComments extracts trailing comments from a block statement
-// and returns the comments. The comments can be either CommentBlock statements
-// or After-comments for a statement of a different type.
+// extractTrailingComments extracts trailing comments of an indented block starting with the first
+// comment line with indentation less than the block indentation.
+// The comments can either belong to CommentBlock statements or to the last non-comment statement
+// as After-comments.
 func extractTrailingComments(stmt Expr) []Expr {
 	body := getLastBody(stmt)
 	var comments []Expr
 	if body != nil && len(*body) > 0 {
-		// Detach and return all trailing comment blocks
-		for i := len(*body)-1; i >= 0; i-- {
-			cb, ok := (*body)[i].(*CommentBlock)
-			if !ok {
-				break
+		// Get the current indentation level
+		start, _ := (*body)[0].Span()
+		indentation := start.LineRune
+
+		// Find the last non-comment statement
+		lastNonCommentIndex := -1
+		for i, stmt := range *body {
+			if _, ok := stmt.(*CommentBlock); !ok {
+				lastNonCommentIndex = i
 			}
-			comments = append(comments, cb)
-			*body = (*body)[:i]
+		}
+		if lastNonCommentIndex == -1 {
+			return comments
 		}
 
-		// Detach after comments from the last statement
-		lastStmt := (*body)[len(*body)-1]
-		cb := &CommentBlock{Comments: Comments{After: lastStmt.Comment().After}}
-		if len(cb.After) > 0 {
-			lastStmt.Comment().After = []Comment{}
-			comments = append(comments, cb)
+		// Iterate over the trailing comments, find the first comment line that's not indented enough,
+		// dedent it and all the following comments.
+		for i := lastNonCommentIndex; i < len(*body); i++ {
+			stmt := (*body)[i]
+			if comment := extractDedentedComment(stmt, indentation); comment != nil {
+				// This comment and all the following CommentBlock statements are to be extracted.
+				comments = append(comments, comment)
+				comments = append(comments, (*body)[i+1:]...)
+				*body = (*body)[:i+1]
+				// If the current statement is a CommentBlock statement without any comment lines
+				// it should be removed too.
+				if i > lastNonCommentIndex && len(stmt.Comment().After) == 0 {
+					*body = (*body)[:i]
+				}
+			}
+		}
+  }
+  return comments
+}
+
+// extractDedentedComment extract the first comment line from `stmt` which indentation is smaller
+// than `indentation`, and all following comment lines, and returns them in a newly created
+// CommentBlock statement.
+func extractDedentedComment(stmt Expr, indentation int) Expr {
+	for i, line := range stmt.Comment().After {
+		// line.Start.LineRune == 0 can't exist in parsed files, it indicates that the comment line
+		// has been added by an AST modification. Don't take such lines into account.
+		if line.Start.LineRune > 0 && line.Start.LineRune < indentation {
+			// This and all the following lines should be dedented
+			cb := &CommentBlock{
+				Start: line.Start,
+				Comments: Comments{After: stmt.Comment().After[i:]},
+			}
+			stmt.Comment().After = stmt.Comment().After[:i]
+			return cb
 		}
 	}
-	// The comments are collected in the reversed order, reverse them again
-	for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
- 		comments[i], comments[j] = comments[j], comments[i]
- 	}
-	return comments
+	return nil
 }
 
 // getLastBody returns the last body of a block statement (the only body for For- and DefStmt

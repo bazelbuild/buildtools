@@ -2,34 +2,64 @@ def f():
   if foo:
      return bar
 
-     # 1 these comments
+ # these comments
 # belong to the next statement
 def f():
   if foo:
      return bar
 
-     # 2 these comments
+ # these comments
 # belong to the top level
 
 def f():
   if foo:
      return bar
-     # 3 these comments
-# belong to the next statement
+ # these comments
+# belong to the top level
+
 def f():
   if foo:
      return bar
-     # 4 these comments
+        # this comment belongs to the return statement
+    # these comments are aligned
+       # with the if-statement as after-comments
 
-# belong to the top level
+    # this should have the same indentation level as above
+ # but this line belongs to the top level
+
+ # and this belongs to the following for-loop
+for a in b:
+  if foo:
+    pass
+# this comment is aligned with pass
+
+# this comment is aligned with pass
+
+# this comment is aligned with pass
+    pass
+  elif bar:
+    pass
+
+     # this comment is aligned with pass
+    # this comment is aligned with pass
+   # this comment is aligned with elif
+  # this comment is aligned with elif
+ # this comment is aligned with for
+# this comment is aligned with for
 
 for a in b:
   if foo:
     pass
   elif bar:
     pass
-    # 5 these comments
-# belong to the top level
+
+# all
+ # of
+  # these
+   # comments
+    # are
+     # not
+      # indented
 
 for a in b:
   if foo:
@@ -37,23 +67,23 @@ for a in b:
   elif bar:
     pass
   else:
-    pass
-    # 6 these comments
-# belong to the top level
+    pass # This comment stays here
+
+  # all
+   # of
+    # these
+     # comments
+
+      # are
+       # aligned
+        # with
+         # else
 
 def foo():
   return # This comment stays here
-  # 7 these comments
+   # this comment belongs to the return statement
 
-# belong to the
+   # this comment belongs to the function
+ # but these belong
 
-# top level
-
-def foo():
-  return # This comment stays here
-
-  # 8 these comments
-
-# belong to the
-
-# top level
+# to the top level

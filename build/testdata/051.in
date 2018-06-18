@@ -77,7 +77,7 @@ if foo:
   bar
 if foo:
   bar
-  #comment
+ #comment
 bar
 
 bar
