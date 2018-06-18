@@ -72,7 +72,7 @@ for a in b:
     elif bar:
         pass
     else:
-        pass
+        pass  # This comment stays here
 
     # all
     # of
