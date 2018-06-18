@@ -316,9 +316,14 @@ func extractTrailingComments(stmt Expr) []Expr {
 // CommentBlock statement.
 func extractDedentedComment(stmt Expr, indentation int) Expr {
 	for i, line := range stmt.Comment().After {
-		if line.Start.LineRune < indentation {
+		// line.Start.LineRune == 0 can't exist in parsed files, it indicates that the comment line
+		// has been added by an AST modification. Don't take such lines into account.
+		if line.Start.LineRune > 0 && line.Start.LineRune < indentation {
 			// This and all the following lines should be dedented
-			cb := &CommentBlock{Comments: Comments{After: stmt.Comment().After[i:]}}
+			cb := &CommentBlock{
+				Start:    line.Start,
+				Comments: Comments{After: stmt.Comment().After[i:]},
+			}
 			stmt.Comment().After = stmt.Comment().After[:i]
 			return cb
 		}
