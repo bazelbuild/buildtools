@@ -165,6 +165,7 @@ package build
 %left  '<' '>' _EQ _NE _LE _GE _NOT _IN
 %left  '+' '-'
 %left  '*' '/' '%'
+%left  '|'
 %left  '.' '[' '('
 %right _UNARY
 %left  _STRING

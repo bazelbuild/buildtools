@@ -1,18 +1,18 @@
 # Binary operators
 
-foo=bar+baz
+foo=bar+baz+qux
 
-foo=bar-baz
+foo=bar-baz-qux
 
-foo=bar*baz
+foo=bar*baz*qux
 
-foo=bar/baz
+foo=bar/baz/qux
 
-foo=bar//baz
+foo=bar//baz//qux
 
-foo=bar%baz
+foo=bar%baz%qux
 
-foo=bar|baz
+foo=bar|baz|qux
 
 # If-else operator precedence
 - f(1) if  not  a  else 2+3
