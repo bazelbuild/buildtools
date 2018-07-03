@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"errors"
@@ -116,9 +117,85 @@ func inputFileName(blazeBin, pkg, ruleName, extension string) string {
 	return fmt.Sprintf("%s/%s/%s.%s", blazeBin, pkg, ruleName, extension) // *_{binary,test}
 }
 
-// directDepParams returns --direct_dependency entries from paramsFileName (a jar-2.params file)
-// as a map from jar files to labels.
-func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
+// manifestIndexNewline scans manifest and returns the index of the first
+// newline and the index of the byte following the newline.
+func manifestIndexNewline(manifest string) (int, int, error) {
+	// A newline in a jar manifest is denoted with CR LF, CR, or LF.
+	n := strings.IndexByte(manifest, '\n')
+	r := strings.IndexByte(manifest, '\r')
+	if n < 0 && r < 0 {
+		return -1, -1, fmt.Errorf("no newline in '%s'", manifest)
+	}
+
+	if n < 0 {
+		// Only CR.
+		return r, r + 1, nil
+	}
+	if r < 0 || n < r {
+		// Only LF or we have both but the LF comes first.
+		return n, n + 1, nil
+	}
+
+	// We have both CR and LF and the CR comes before the LF.  Check for the
+	// special case of adjacent CR LF, which together denode a newline.
+	if n == r+1 {
+		return r, n + 1, nil
+	}
+
+	return r, r + 1, nil
+}
+
+// targetLabel reads the manifest of the jar indicated by jarFileName.  If the
+// manifest has a "Target-Label" property, targetLabel returns its value.
+func targetLabel(jarFileName string) (string, error) {
+	r, err := zip.OpenReader(jarFileName)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		if f.Name != "META-INF/MANIFEST.MF" {
+			continue
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return "", err
+		}
+		defer rc.Close()
+
+		bytes, err := ioutil.ReadAll(rc)
+		if err != nil {
+			return "", err
+		}
+		contents := string(bytes)
+
+		const bazelTargetKey = "Target-Label:"
+		found := strings.Index(contents, bazelTargetKey)
+		if found < 0 {
+			return "", fmt.Errorf("manifest of jar %s contains no Target-Label entry", jarFileName)
+		}
+
+		label := ""
+		rest := contents[found+len(bazelTargetKey):]
+		for len(rest) > 0 && rest[0] == ' ' {
+			newline, next, err := manifestIndexNewline(rest)
+			if err != nil {
+				return "", fmt.Errorf("bad Target-Label value in manifest of jar %s", jarFileName)
+			}
+			label += rest[1:newline]
+			rest = rest[next:]
+		}
+		return label, nil
+	}
+	return "", fmt.Errorf("jar file %s has no manifest", jarFileName)
+}
+
+// directDepParams reads the jar-2.params files, looking for a
+// "--direct_dependencies" argument.  When found, the direct dependencies are
+// returned as a map from jar file names to labels.
+func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJar map[string]string) {
 	depsByJar = make(map[string]string)
 	errs := make([]error, 0)
 	for _, paramsFileName := range paramsFileNames {
@@ -127,23 +204,29 @@ func directDepParams(paramsFileNames ...string) (depsByJar map[string]string) {
 			errs = append(errs, err)
 			continue
 		}
-		// the classpath param exceeds MaxScanTokenSize, so we scan just this section:
-		first := bytes.Index(data, []byte("--direct_dependency"))
-		if first < 0 {
+		// The classpath param exceeds MaxScanTokenSize, so we scan just the
+		// dependencies section.
+		directDepsFlag := []byte("--direct_dependencies")
+		arg := bytes.Index(data, directDepsFlag)
+		if arg < 0 {
 			continue
 		}
+		first := arg + len(directDepsFlag) + 1
+
 		scanner := bufio.NewScanner(bytes.NewReader(data[first:]))
 		for scanner.Scan() {
-			if scanner.Text() == "--direct_dependency" {
-				scanner.Scan()
-				jar := scanner.Text()
-				scanner.Scan()
-				label := scanner.Text()
-				if len(label) > 2 && label[0] == '@' && label[1] == '@' {
-					label = label[1:]
-				}
-				depsByJar[jar] = label
+			jar := scanner.Text()
+			if strings.HasPrefix(jar, "--") {
+				break
 			}
+			label, err := targetLabel(blazeOutputPath + strings.TrimPrefix(jar, "bazel-out"))
+			if err != nil {
+				continue
+			}
+			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+				label = label[1:]
+			}
+			depsByJar[jar] = label
 		}
 		if err := scanner.Err(); err != nil {
 			log.Printf("reading %s: %s", paramsFileName, err)
@@ -293,12 +376,16 @@ func main() {
 	log.Printf("running: %s %s", *buildTool, strings.Join(blazeArgs, " "))
 	cmdWithStderr(*buildTool, blazeArgs...).Run()
 	blazeBin := blazeInfo(config.DefaultBinDir)
+	blazeOutputPath := blazeInfo(config.DefaultOutputPath)
 	fmt.Fprintf(os.Stderr, "\n") // vertical space between build output and unused_deps output
 
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
 		_, pkg, ruleName := edit.InterpretLabel(label)
-		depsByJar := directDepParams(inputFileName(blazeBin, pkg, ruleName, "jar-2.params"), inputFileName(blazeBin, pkg, ruleName+"-class", "jar-2.params"))
+		depsByJar := directDepParams(
+			blazeOutputPath,
+			inputFileName(blazeBin, pkg, ruleName, "jar-2.params"),
+			inputFileName(blazeBin, pkg, ruleName+"-class", "jar-2.params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
 		// TODO(bazel-team): instead of printing, have buildifier-like modes?
 		anyCommandPrinted = printCommands(label, depsToRemove) || anyCommandPrinted

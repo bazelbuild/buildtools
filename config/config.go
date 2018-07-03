@@ -23,8 +23,10 @@ var (
 	BuildToolHelp = "the build executable (like bazel)"
 	// ExtraActionFileNameHelp help for extra actions
 	ExtraActionFileNameHelp = "When specified, just prints suspected unused deps."
-	// DefaultBinDir to look for outputs
+	// DefaultBinDir is used to query for Bazel's bazel-bin directory.
 	DefaultBinDir = "bazel-bin"
+	// DefaultOutputPath is used to query for Bazel's bazel-out directory.
+	DefaultOutputPath = "output_path"
 	// DefaultExtraBuildFlags is internal-only
 	DefaultExtraBuildFlags = []string{}
 )
