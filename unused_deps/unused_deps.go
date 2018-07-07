@@ -14,11 +14,10 @@ limitations under the License.
 */
 
 // The unused_deps binary prints out buildozer commands for removing
-// unused java dependencies from java_library bazel rules.
+// unused Java dependencies from java_library Bazel rules.
 package main
 
 import (
-	"archive/zip"
 	"bufio"
 	"bytes"
 	"errors"
@@ -117,81 +116,6 @@ func inputFileName(blazeBin, pkg, ruleName, extension string) string {
 	return fmt.Sprintf("%s/%s/%s.%s", blazeBin, pkg, ruleName, extension) // *_{binary,test}
 }
 
-// manifestIndexNewline scans manifest and returns the index of the first
-// newline and the index of the byte following the newline.
-func manifestIndexNewline(manifest string) (int, int, error) {
-	// A newline in a jar manifest is denoted with CR LF, CR, or LF.
-	n := strings.IndexByte(manifest, '\n')
-	r := strings.IndexByte(manifest, '\r')
-	if n < 0 && r < 0 {
-		return -1, -1, fmt.Errorf("no newline in '%s'", manifest)
-	}
-
-	if n < 0 {
-		// Only CR.
-		return r, r + 1, nil
-	}
-	if r < 0 || n < r {
-		// Only LF or we have both but the LF comes first.
-		return n, n + 1, nil
-	}
-
-	// We have both CR and LF and the CR comes before the LF.  Check for the
-	// special case of adjacent CR LF, which together denode a newline.
-	if n == r+1 {
-		return r, n + 1, nil
-	}
-
-	return r, r + 1, nil
-}
-
-// targetLabel reads the manifest of the jar indicated by jarFileName.  If the
-// manifest has a "Target-Label" property, targetLabel returns its value.
-func targetLabel(jarFileName string) (string, error) {
-	r, err := zip.OpenReader(jarFileName)
-	if err != nil {
-		return "", err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		if f.Name != "META-INF/MANIFEST.MF" {
-			continue
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			return "", err
-		}
-		defer rc.Close()
-
-		bytes, err := ioutil.ReadAll(rc)
-		if err != nil {
-			return "", err
-		}
-		contents := string(bytes)
-
-		const bazelTargetKey = "Target-Label:"
-		found := strings.Index(contents, bazelTargetKey)
-		if found < 0 {
-			return "", fmt.Errorf("manifest of jar %s contains no Target-Label entry", jarFileName)
-		}
-
-		label := ""
-		rest := contents[found+len(bazelTargetKey):]
-		for len(rest) > 0 && rest[0] == ' ' {
-			newline, next, err := manifestIndexNewline(rest)
-			if err != nil {
-				return "", fmt.Errorf("bad Target-Label value in manifest of jar %s", jarFileName)
-			}
-			label += rest[1:newline]
-			rest = rest[next:]
-		}
-		return label, nil
-	}
-	return "", fmt.Errorf("jar file %s has no manifest", jarFileName)
-}
-
 // directDepParams reads the jar-2.params files, looking for a
 // "--direct_dependencies" argument.  When found, the direct dependencies are
 // returned as a map from jar file names to labels.
@@ -219,7 +143,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 			if strings.HasPrefix(jar, "--") {
 				break
 			}
-			label, err := targetLabel(blazeOutputPath + strings.TrimPrefix(jar, "bazel-out"))
+			label, err := jarManifestValue(blazeOutputPath+strings.TrimPrefix(jar, "bazel-out"), "Target-Label")
 			if err != nil {
 				continue
 			}
