@@ -165,6 +165,42 @@ var parseTests = []struct {
 		},
 	},
 	{
+		in: `go_binary(name = "x"
+)
+`,
+		out: &File{
+			Path: "BUCK",
+			Type: 2,
+			Stmt: []Expr{
+				&CallExpr{
+					X: &Ident{
+						NamePos: Position{1, 1, 0},
+						Name:    "go_binary",
+					},
+					ListStart: Position{1, 10, 9},
+					List: []Expr{
+						&BinaryExpr{
+							X: &Ident{
+								NamePos: Position{1, 11, 10},
+								Name:    "name",
+							},
+							OpStart: Position{1, 16, 15},
+							Op:      "=",
+							Y: &StringExpr{
+								Start: Position{1, 18, 17},
+								Value: "x",
+								End:   Position{1, 21, 20},
+								Token: `"x"`,
+							},
+						},
+					},
+					End:            End{Pos: Position{2, 1, 21}},
+					ForceMultiLine: true,
+				},
+			},
+		},
+	},
+	{
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
 			Path: "test",
