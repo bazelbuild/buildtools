@@ -675,6 +675,25 @@ func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Exp
 	return nil
 }
 
+// DictionaryDelete looks for the key in the dictionary expression. If the key exists,
+// it removes the key-value pair and returns it. Otherwise it returns nil.
+func DictionaryDelete(dict *build.DictExpr, key string) (deleted build.Expr) {
+	deleted = nil
+	var all []build.Expr
+	for _, e := range dict.List {
+		kv, _ := e.(*build.KeyValueExpr)
+		if k, ok := kv.Key.(*build.StringExpr); ok {
+			if k.Value == key {
+				deleted = kv
+			} else {
+				all = append(all, e)
+			}
+		}
+	}
+	dict.List = all
+	return deleted
+}
+
 // RenameAttribute renames an attribute in a rule.
 func RenameAttribute(r *build.Rule, oldName, newName string) error {
 	if r.Attr(newName) != nil {

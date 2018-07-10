@@ -230,3 +230,68 @@ func TestListSubstitute(t *testing.T) {
 		})
 	}
 }
+
+func compareKeyValue(a, b build.Expr) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	aKeyVal := a.(*build.KeyValueExpr)
+	bKeyVal := b.(*build.KeyValueExpr)
+	return aKeyVal.Key.(*build.StringExpr).Value == bKeyVal.Key.(*build.StringExpr).Value &&
+		aKeyVal.Value.(*build.StringExpr).Value == bKeyVal.Value.(*build.StringExpr).Value
+}
+
+func TestDictionaryDelete(t *testing.T) {
+	tests := []struct {
+		input, expected string
+		expectedReturn  build.Expr
+	}{
+		{
+			`rule(attr = {"deletekey": "value"})`,
+			`rule(attr = {})`,
+			&build.KeyValueExpr{
+				Key:   &build.StringExpr{Value: "deletekey"},
+				Value: &build.StringExpr{Value: "value"},
+			},
+		}, {
+			`rule(attr = {"nodeletekey": "value", "deletekey": "value"})`,
+			`rule(attr = {"nodeletekey": "value"})`,
+			&build.KeyValueExpr{
+				Key:   &build.StringExpr{Value: "deletekey"},
+				Value: &build.StringExpr{Value: "value"},
+			},
+		}, {
+			`rule(attr = {"nodeletekey": "value"})`,
+			`rule(attr = {"nodeletekey": "value"})`,
+			nil,
+		},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.ParseBuild("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		dict := rule.Call.List[0].(*build.BinaryExpr).Y.(*build.DictExpr)
+		returnVal := DictionaryDelete(dict, "deletekey")
+		got := strings.TrimSpace(string(build.Format(bld)))
+		wantBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		want := strings.TrimSpace(string(build.Format(wantBld)))
+		if got != want {
+			t.Errorf("TestDictionaryDelete(%s): got %s, expected %s", tst.input, got, want)
+		}
+		if !compareKeyValue(returnVal, tst.expectedReturn) {
+      			t.Errorf("TestDictionaryDelete(%s): returned %v, expected %v", tst.input, returnVal, tst.expectedReturn)
+		}
+	}
+}
+
