@@ -61,12 +61,8 @@ func Rewrite(f *File, info *RewriteInfo) {
 	}
 
 	for _, r := range rewrites {
-		if !disabled(r.name) {
-			if r.scope == scopeBoth ||
-				(f.Build && r.scope == scopeBuild) ||
-				(!f.Build && r.scope == scopeDefault) {
-				r.fn(f, info)
-			}
+		if !disabled(r.name) && (f.Type&r.scope) != 0 {
+			r.fn(f, info)
 		}
 	}
 }
@@ -112,40 +108,20 @@ func (info *RewriteInfo) String() string {
 	return s
 }
 
-// Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
-// or all files.
-const (
-	scopeDefault = iota
-	scopeBuild
-	scopeBoth
-)
-
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
 // The order here matters: for example, label canonicalization must happen
 // before sorting lists of strings.
 var rewrites = []struct {
 	name  string
 	fn    func(*File, *RewriteInfo)
-	scope int
+	scope FileType
 }{
-	{"callsort", sortCallArgs, scopeBuild},
-	{"label", fixLabels, scopeBuild},
-	{"listsort", sortStringLists, scopeBuild},
-	{"multiplus", fixMultilinePlus, scopeBuild},
-	{"loadsort", sortLoadArgs, scopeBoth},
-	{"formatdocstrings", formatDocstrings, scopeBoth},
-}
-
-// DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
-// This is a temporary function for backward compatibility, can be called if there's plenty of
-// already formatted BUILD files that shouldn't be changed by the transformation.
-func DisableLoadSortForBuildFiles() {
-	for i := range rewrites {
-		if rewrites[i].name == "loadsort" {
-			rewrites[i].scope = scopeDefault
-			break
-		}
-	}
+	{"callsort", sortCallArgs, BUCK | BUILD},
+	{"label", fixLabels, BUILD},
+	{"listsort", sortStringLists, BUCK | BUILD},
+	{"multiplus", fixMultilinePlus, BUCK | BUILD},
+	{"loadsort", sortLoadArgs, All},
+	{"formatdocstrings", formatDocstrings, All},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked

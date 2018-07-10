@@ -46,7 +46,7 @@ var (
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 	version       = flag.Bool("version", false, "Print the version of buildifier")
-	inputType     = flag.String("type", "auto", "Input file type: build (for BUILD files), bzl (for .bzl files) or auto (default, based on the filename)")
+	inputType     = flag.String("type", "auto", "Input file type: build (for BUILD files), buck (for BUCK files), bzl (for .bzl files) or auto (default, based on the filename)")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
@@ -105,11 +105,11 @@ func main() {
 
 	// Check input type.
 	switch *inputType {
-	case "build", "bzl", "auto":
+	case "auto", "buck", "build", "bzl":
 		// ok
 
 	default:
-		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, auto\n", *inputType)
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are buck, build, bzl, auto\n", *inputType)
 		os.Exit(2)
 	}
 
@@ -259,9 +259,7 @@ func processFile(filename string, data []byte, inputType string) {
 		}
 	}()
 
-	parser := getParser(inputType)
-
-	f, err := parser(filename, data)
+	f, err := build.Parse(filename, getFileType(inputType), data)
 	if err != nil {
 		// Do not use buildifier: prefix on this error.
 		// Since it is a parse error, it begins with file:line:
@@ -372,14 +370,16 @@ func processFile(filename string, data []byte, inputType string) {
 	}
 }
 
-func getParser(inputType string) func(filename string, data []byte) (*build.File, error) {
+func getFileType(inputType string) build.FileType {
 	switch inputType {
-	case "build":
-		return build.ParseBuild
 	case "auto":
-		return build.Parse
+		return 0
+	case "buck":
+		return build.BUCK
+	case "build":
+		return build.BUILD
 	default:
-		return build.ParseDefault
+		return build.Bzl
 	}
 }
 
