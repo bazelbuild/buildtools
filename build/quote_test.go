@@ -72,6 +72,12 @@ func TestQuote(t *testing.T) {
 	}
 }
 
+func TestQuoteUnicodeIgnoredInBuck(t *testing.T) {
+	if quote("🙈", false, BUCK) != "\"🙈\"" {
+		t.Errorf("Escaping unicode in BUCK files")
+	}
+}
+
 func TestUnquote(t *testing.T) {
 	for _, tt := range quoteTests {
 		s, triple, err := unquote(tt.q)
