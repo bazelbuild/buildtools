@@ -414,7 +414,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 		}
 
-		p.printf("%s", quote(v.Value, v.TripleQuote))
+		p.printf("%s", quote(v.Value, v.TripleQuote, p.buildType))
 
 	case *DotExpr:
 		addParen(precSuffix)

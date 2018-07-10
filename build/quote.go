@@ -190,7 +190,7 @@ const hex = "0123456789abcdef"
 
 // quote returns the quoted form of the string value "x".
 // If triple is true, quote uses the triple-quoted form """x""".
-func quote(unquoted string, triple bool) string {
+func quote(unquoted string, triple bool, fileType FileType) string {
 	q := `"`
 	if triple {
 		q = `"""`
@@ -237,7 +237,7 @@ func quote(unquoted string, triple bool) string {
 			buf.WriteByte(esc[c])
 			continue
 		}
-		if c < 0x20 || c >= 0x80 {
+		if (c < 0x20 || c >= 0x80) && fileType != BUCK {
 			// BUILD files are supposed to be Latin-1, so escape all control and high bytes.
 			// I'd prefer to use \x here, but Blaze does not implement
 			// \x in quoted strings (b/7272572).
