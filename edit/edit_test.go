@@ -290,7 +290,7 @@ func TestDictionaryDelete(t *testing.T) {
 			t.Errorf("TestDictionaryDelete(%s): got %s, expected %s", tst.input, got, want)
 		}
 		if !compareKeyValue(returnVal, tst.expectedReturn) {
-      t.Errorf("TestDictionaryDelete(%s): returned %v, expected %v", tst.input, returnVal, tst.expectedReturn)
+      			t.Errorf("TestDictionaryDelete(%s): returned %v, expected %v", tst.input, returnVal, tst.expectedReturn)
 		}
 	}
 }
