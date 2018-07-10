@@ -65,7 +65,7 @@ func TestQuote(t *testing.T) {
 		if !tt.std {
 			continue
 		}
-		q := quote(tt.s, strings.HasPrefix(tt.q, `"""`))
+		q := quote(tt.s, strings.HasPrefix(tt.q, `"""`), BUILD)
 		if q != tt.q {
 			t.Errorf("quote(%#q) = %s, want %s", tt.s, q, tt.q)
 		}

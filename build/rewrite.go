@@ -18,6 +18,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
+	"math"
 	"path"
 	"regexp"
 	"sort"
@@ -111,6 +112,7 @@ func (info *RewriteInfo) String() string {
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
 // The order here matters: for example, label canonicalization must happen
 // before sorting lists of strings.
+var allTypes FileType = math.MaxUint32
 var rewrites = []struct {
 	name  string
 	fn    func(*File, *RewriteInfo)
@@ -120,8 +122,8 @@ var rewrites = []struct {
 	{"label", fixLabels, BUILD},
 	{"listsort", sortStringLists, BUCK | BUILD},
 	{"multiplus", fixMultilinePlus, BUCK | BUILD},
-	{"loadsort", sortLoadArgs, All},
-	{"formatdocstrings", formatDocstrings, All},
+	{"loadsort", sortLoadArgs, allTypes},
+	{"formatdocstrings", formatDocstrings, allTypes},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked

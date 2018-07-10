@@ -32,7 +32,7 @@ func TestParse(t *testing.T) {
 		if tt.out != nil {
 			name = tt.out.Path
 		}
-		p, err := Parse(name, []byte(tt.in))
+		p, err := Parse(name, 0, []byte(tt.in))
 		if err != nil {
 			t.Errorf("#%d: %v", i, err)
 			continue
@@ -62,7 +62,7 @@ func TestParseTestdata(t *testing.T) {
 			continue
 		}
 
-		_, err = Parse(filepath.Base(out), data)
+		_, err = Parse(filepath.Base(out), 0, data)
 		if err != nil {
 			t.Error(err)
 		}
@@ -134,19 +134,19 @@ var parseTests = []struct {
 `,
 		out: &File{
 			Path: "BUILD",
-			Build: true,
+			Type: 4,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &Ident{
 						NamePos: Position{1, 1, 0},
-						Name: "go_binary",
+						Name:    "go_binary",
 					},
 					ListStart: Position{1, 10, 9},
 					List: []Expr{
 						&BinaryExpr{
 							X: &Ident{
 								NamePos: Position{1, 11, 10},
-								Name: "name",
+								Name:    "name",
 							},
 							OpStart: Position{1, 16, 15},
 							Op:      "=",
@@ -168,14 +168,14 @@ var parseTests = []struct {
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
 			Path: "test",
-			Build: false,
+			Type: 1,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &DotExpr{
 						X: &DotExpr{
 							X: &Ident{
 								NamePos: Position{1, 1, 0},
-								Name: "foo",
+								Name:    "foo",
 							},
 							Dot:     Position{1, 4, 3},
 							NamePos: Position{1, 5, 4},
@@ -190,7 +190,7 @@ var parseTests = []struct {
 						&BinaryExpr{
 							X: &Ident{
 								NamePos: Position{1, 13, 12},
-								Name: "name",
+								Name:    "name",
 							},
 							OpStart: Position{1, 18, 17},
 							Op:      "=",

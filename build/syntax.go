@@ -20,7 +20,6 @@ package build
 // Syntax data structure definitions.
 
 import (
-	"math"
 	"strings"
 	"unicode/utf8"
 )
@@ -86,7 +85,6 @@ const (
 	Bzl   FileType = 1 << iota
 	BUCK  FileType = 1 << iota
 	BUILD FileType = 1 << iota
-	All   FileType = math.MaxUint32
 )
 
 // A File represents an entire BUILD file.
