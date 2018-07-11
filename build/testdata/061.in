@@ -1,7 +1,7 @@
 object.string.replace("foo", "bar").replace("baz", "qux")
 
-object.string\
-  .replace("foo", "bar")\
+object.string.\
+  replace("foo", "bar")\
   .replace("baz", "qux")
 
 (object.string. \
