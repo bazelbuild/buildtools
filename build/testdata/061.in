@@ -1,0 +1,20 @@
+object.string.replace("foo", "bar").replace("baz", "qux")
+
+object.string.\
+  replace("foo", "bar")\
+  .replace("baz", "qux")
+
+(object.string. \
+  replace("foo", "bar") \
+  .replace("baz", "qux"))
+
+(object.string. # 1
+  replace("foo", "bar") # 2
+  .replace("baz", "qux")) # 3
+
+[(object.string.
+   replace("foo", "bar")
+   .replace("baz", "qux")),
+(object.string.
+  replace("foo", "bar")
+  .replace("baz", "qux"))]
