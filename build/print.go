@@ -419,7 +419,16 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *DotExpr:
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
+		_, xEnd := v.X.Span()
+		isMultiline := v.NamePos.Line > xEnd.Line
+		if isMultiline {
+			p.margin += listIndentation
+			p.breakline()
+		}
 		p.printf(".%s", v.Name)
+		if isMultiline {
+			p.margin -= listIndentation
+		}
 
 	case *IndexExpr:
 		addParen(precSuffix)
