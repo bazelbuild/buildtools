@@ -50,14 +50,14 @@ func setFlags(file string) func() {
 	}
 }
 
-func testIdempotence(t *testing.T, file string, isBuild bool) {
+func testIdempotence(t *testing.T, file string, fileType FileType) {
 	defer setFlags(file)()
-	testPrint(t, file, file, isBuild)
+	testPrint(t, file, file, fileType)
 }
 
-func testFormat(t *testing.T, input, output string, isBuild bool) {
+func testFormat(t *testing.T, input, output string, fileType FileType) {
 	defer setFlags(output)()
-	testPrint(t, input, output, isBuild)
+	testPrint(t, input, output, fileType)
 }
 
 // Test that reading and then writing the golden files
@@ -71,7 +71,7 @@ func TestPrintGolden(t *testing.T) {
 		if strings.HasSuffix(out, ".bzl.golden") {
 			continue
 		}
-		testIdempotence(t, out, true)
+		testIdempotence(t, out, BUILD)
 	}
 
 	// Run the same tests with --type=bzl
@@ -79,7 +79,7 @@ func TestPrintGolden(t *testing.T) {
 		if strings.HasSuffix(out, ".build.golden") {
 			continue
 		}
-		testIdempotence(t, out, false)
+		testIdempotence(t, out, Bzl)
 	}
 }
 
@@ -97,13 +97,13 @@ func TestPrintRewrite(t *testing.T) {
 			outBuild = prefix + ".build.golden"
 		}
 
-		testFormat(t, in, outBzl, false)
-		testFormat(t, in, outBuild, true)
+		testFormat(t, in, outBzl, Bzl)
+		testFormat(t, in, outBuild, BUILD)
 
 		stripslashesBuild := prefix + ".stripslashes.golden"
 		if exists(stripslashesBuild) {
 			// Test this file in BUILD mode only
-			testFormat(t, in, stripslashesBuild, true)
+			testFormat(t, in, stripslashesBuild, BUILD)
 		}
 	}
 }
@@ -118,7 +118,7 @@ func TestPrintBuildAsBzl(t *testing.T) {
 		if !exists(outBuild) {
 			continue
 		}
-		testIdempotence(t, outBuild, false)
+		testIdempotence(t, outBuild, Bzl)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestPrintBzlAsBuild(t *testing.T) {
 		if !exists(outBuild) {
 			continue
 		}
-		testFormat(t, outBzl, outBuild, true)
+		testFormat(t, outBzl, outBuild, BUILD)
 	}
 }
 
@@ -164,7 +164,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out. If rewrite is true, the
 // reformatting includes buildifier's higher-level rewrites.
-func testPrint(t *testing.T, in, out string, isBuild bool) {
+func testPrint(t *testing.T, in, out string, fileType FileType) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -178,12 +178,7 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 	}
 
 	base := "testdata/" + filepath.Base(in)
-	parser := ParseDefault
-	if isBuild {
-		parser = ParseBuild
-	}
-
-	file, err := parser(base, data)
+	file, err := Parse(base, fileType, data)
 	if err != nil {
 		t.Error(err)
 		return
@@ -214,14 +209,14 @@ func TestPrintParse(t *testing.T) {
 		}
 
 		base := "testdata/" + filepath.Base(out)
-		f, err := Parse(base, data)
+		f, err := Parse(base, 1, data)
 		if err != nil {
 			t.Errorf("parsing original: %v", err)
 		}
 
 		ndata := Format(f)
 
-		f2, err := Parse(base, ndata)
+		f2, err := Parse(base, 1, ndata)
 		if err != nil {
 			t.Errorf("parsing reformatted: %v", err)
 		}
@@ -305,7 +300,7 @@ func (eq *eqchecker) checkValue(v, w reflect.Value) error {
 	default:
 		return eq.errorf("unexpected type %s", v.Type())
 
-	case reflect.Bool, reflect.Int, reflect.String:
+	case reflect.Bool, reflect.Int, reflect.String, reflect.Uint32:
 		vi := v.Interface()
 		wi := w.Interface()
 		if vi != wi {

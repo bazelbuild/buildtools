@@ -195,7 +195,7 @@ rule()`, "foo", `Use an implicit name for one unnamed rule with load`},
 	}
 
 	for _, tst := range tests {
-		file, err := Parse(tst.path, []byte(tst.input))
+		file, err := Parse(tst.path, 0, []byte(tst.input))
 		if err != nil {
 			t.Error(tst.description, err)
 			continue

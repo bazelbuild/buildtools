@@ -31,19 +31,19 @@ const (
 
 // Format returns the formatted form of the given BUILD or bzl file.
 func Format(f *File) []byte {
-	pr := &printer{buildMode: f.Build}
+	pr := &printer{buildType: f.Type}
 	pr.file(f)
 	return pr.Bytes()
 }
 
 // FormatString returns the string form of the given expression.
 func FormatString(x Expr) string {
-	buildMode := true // for compatibility
+	buildType := BUILD // for compatibility
 	if file, ok := x.(*File); ok {
-		buildMode = file.Build
+		buildType = file.Type
 	}
 
-	pr := &printer{buildMode: buildMode}
+	pr := &printer{buildType: buildType}
 	switch x := x.(type) {
 	case *File:
 		pr.file(x)
@@ -55,7 +55,7 @@ func FormatString(x Expr) string {
 
 // A printer collects the state during printing of a file or expression.
 type printer struct {
-	buildMode    bool      // whether should be printed in a build mode.
+	buildType    FileType  // which output mode to use
 	bytes.Buffer           // output buffer
 	comment      []Comment // pending end-of-line comments
 	margin       int       // left margin (indent), a number of spaces
@@ -226,7 +226,7 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 	} else if isCommentBlock(s1) || isCommentBlock(s2) {
 		// Standalone comment blocks shouldn't be attached to other statements
 		return false
-	} else if p.buildMode && p.level == 0 {
+	} else if p.buildType != Bzl && p.level == 0 {
 		// Top-level statements in a BUILD file
 		return false
 	} else if isFunctionDefinition(s1) || isFunctionDefinition(s2) {
@@ -414,7 +414,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 		}
 
-		p.printf("%s", quote(v.Value, v.TripleQuote))
+		p.printf("%s", quote(v.Value, v.TripleQuote, p.buildType))
 
 	case *DotExpr:
 		addParen(precSuffix)
@@ -647,14 +647,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.comment = append(p.comment, block.ElsePos.Comment().Suffix...)
 			p.nestedStatements(block.False)
 		}
-		case *ForClause:
-			p.printf("for ")
-			p.expr(v.Vars, precLow)
-			p.printf(" in ")
-			p.expr(v.X, precLow)
-		case *IfClause:
-			p.printf("if ")
-			p.expr(v.Cond, precLow)
+	case *ForClause:
+		p.printf("for ")
+		p.expr(v.Vars, precLow)
+		p.printf(" in ")
+		p.expr(v.X, precLow)
+	case *IfClause:
+		p.printf("if ")
+		p.expr(v.Cond, precLow)
 	}
 
 	// Add closing parenthesis if needed.
@@ -705,7 +705,7 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	// In the Default printing mode try to keep the original printing style.
 	// Non-top-level statements and lists of arguments of a function definition
 	// should also keep the original style regardless of the mode.
-	if p.level != 0 || !p.buildMode || mode == modeDef {
+	if p.level != 0 || p.buildType == Bzl || mode == modeDef {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode
 		previousEnd := start.Line

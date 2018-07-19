@@ -27,48 +27,34 @@ import (
 )
 
 // BuildFilenames is a collection of filenames in lowercase that are treated as BUILD files.
-var BuildFilenames = map[string]bool{
-	"build": true,
-	"build.bazel": true,
-	"workspace": true,
-	"workspace.bazel": true,
-	"stdin": true,
-}
-
-// ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
-//
-// The filename is used only for generating error messages.
-func ParseBuild(filename string, data []byte) (*File, error) {
-	in := newInput(filename, data)
-	f, err := in.parse()
-	if f != nil {
-		f.Build = true
-	}
-	return f, err
-}
-
-// ParseDefault parses a file, marks it as not a BUILD file (e.g. bzl file) and returns the corresponding parse tree.
-//
-// The filename is used only for generating error messages.
-func ParseDefault(filename string, data []byte) (*File, error) {
-	in := newInput(filename, data)
-	f, err := in.parse()
-	if f != nil {
-		f.Build = false
-	}
-	return f, err
+var BuildFilenames = map[string]FileType{
+	"buck":            BUCK,
+	"build":           BUILD,
+	"build.bazel":     BUILD,
+	"workspace":       BUILD,
+	"workspace.bazel": BUILD,
+	"stdin":           BUILD,
 }
 
 // Parse parses the input data and returns the corresponding parse tree.
-//
-// Uses the filename to detect the formatting type (either build or default) and calls
-// either ParseBuild or to ParseDefault correspondingly.
-func Parse(filename string, data []byte) (*File, error) {
-	basename := filepath.Base(filename)
-	if BuildFilenames[strings.ToLower(basename)] {
-		return ParseBuild(filename, data)
+func Parse(filename string, fileType FileType, data []byte) (*File, error) {
+	// if we have no type set, try and infer from the path
+	if fileType == 0 {
+		basename := filepath.Base(filename)
+		buildType, ok := BuildFilenames[strings.ToLower(basename)]
+		if ok {
+			fileType = buildType
+		} else {
+			fileType = Bzl
+		}
 	}
-	return ParseDefault(filename, data)
+
+	in := newInput(filename, data)
+	f, err := in.parse()
+	if f != nil {
+		f.Type = fileType
+	}
+	return f, err
 }
 
 // An input represents a single input file being parsed.

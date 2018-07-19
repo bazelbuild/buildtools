@@ -79,10 +79,18 @@ func (c *Comments) Comment() *Comments {
 	return c
 }
 
+type FileType uint32
+
+const (
+	Bzl   FileType = 1 << iota
+	BUCK  FileType = 1 << iota
+	BUILD FileType = 1 << iota
+)
+
 // A File represents an entire BUILD file.
 type File struct {
 	Path string // file path, relative to workspace directory
-	Build bool
+	Type FileType
 	Comments
 	Stmt []Expr
 }

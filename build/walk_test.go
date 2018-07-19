@@ -52,7 +52,7 @@ func TestWalkOnce(t *testing.T) {
 }
 
 func TestEdit(t *testing.T) {
-	expr, _ := Parse("test", []byte("1 + 2"))
+	expr, _ := Parse("test", 0, []byte("1 + 2"))
 	compare(t, FormatString(expr), "1 + 2\n")
 	Edit(expr, func(e Expr, stk []Expr) Expr {
 		// Check if there are already parens
@@ -72,7 +72,7 @@ func TestEdit(t *testing.T) {
 }
 
 func TestRemoveParens(t *testing.T) {
-	expr, _ := Parse("test", []byte("((((1))) + 2) + (3 + 4) * 5"))
+	expr, _ := Parse("test", 0, []byte("((((1))) + 2) + (3 + 4) * 5"))
 	compare(t, FormatString(expr), "((((1))) + 2) + (3 + 4) * 5\n")
 	// Remove all ParenExpr
 	Edit(expr, func(e Expr, stk []Expr) Expr {
