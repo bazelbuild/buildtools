@@ -130,7 +130,7 @@ var rewrites = []struct {
 }{
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
-	{"listsort", sortStringLists, scopeBuild},
+	{"listsort", sortStringLists, scopeBoth},
 	{"multiplus", fixMultilinePlus, scopeBuild},
 	{"loadsort", sortLoadArgs, scopeBoth},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
@@ -460,7 +460,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] {
+				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || !f.Build {
 					continue
 				}
 				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
@@ -490,7 +490,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				return
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
-			if len(v.List) > 0 && keepSorted(v.List[0]) {
+			if len(v.List) > 0 && (keepSorted(v) || keepSorted(v.List[0])) {
 				sortStringList(v, info, "?")
 			}
 		}
@@ -511,7 +511,7 @@ func sortStringList(x Expr, info *RewriteInfo, context string) {
 		return
 	}
 
-	forceSort := keepSorted(list.List[0])
+	forceSort := keepSorted(list) || keepSorted(list.List[0])
 
 	// TODO(bazel-team): Decide how to recognize lists that cannot
 	// be sorted. Avoiding all lists with comments avoids sorting
