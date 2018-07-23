@@ -1,0 +1,26 @@
+foo(
+  srcs = ["not", "sorted", "list"],  # this should be sorted in the build mode only
+  # keep sorted
+  foo = ["not", "sorted", "list"],
+  bar = [f(x) for x in [
+    # please keep sorted
+    "not",
+    "sorted",
+    "list"]
+  ],
+)
+
+# buildifier: keep sorted
+x = ["not", "sorted", "list"]
+y = ["not", "sorted", "list"]
+
+# buildifier: keep sorted
+["not", "sorted", "list"]
+["not", "sorted", "list"]
+
+[
+  # buildifier: keep sorted
+  "not",
+  "sorted",
+  "list"
+]
