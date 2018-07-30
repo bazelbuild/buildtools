@@ -28,11 +28,11 @@ import (
 
 // BuildFilenames is a collection of filenames in lowercase that are treated as BUILD files.
 var BuildFilenames = map[string]bool{
-	"build": true,
-	"build.bazel": true,
-	"workspace": true,
+	"build":           true,
+	"build.bazel":     true,
+	"workspace":       true,
 	"workspace.bazel": true,
-	"stdin": true,
+	"stdin":           true,
 }
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
@@ -82,7 +82,6 @@ type input struct {
 	pos            Position  // current input position
 	lineComments   []Comment // accumulated line comments
 	suffixComments []Comment // accumulated suffix comments
-	endStmt        int       // position of the end of the current statement
 	depth          int       // nesting of [ ] { } ( )
 	cleanLine      bool      // true if the current line only contains whitespace before the current position
 	indent         int       // current line indentation in spaces
@@ -110,7 +109,6 @@ func newInput(filename string, data []byte) *input {
 		pos:       Position{Line: 1, LineRune: 1, Byte: 0},
 		cleanLine: true,
 		indents:   []int{0},
-		endStmt:   -1, // -1 denotes it's not inside a statement
 	}
 }
 
@@ -224,25 +222,6 @@ func (in *input) Lex(val *yySymType) int {
 	// Skip past spaces, stopping at non-space or EOF.
 	countNL := 0 // number of newlines we've skipped past
 	for !in.eof() {
-		// If a single statement is split into multiple lines, we don't need
-		// to track indentations and unindentations within these lines. For example:
-		//
-		// def f(
-		//     # This indentation should be ignored
-		//     x):
-		//  # This unindentation should be ignored
-		//  # Actual indentation is from 0 to 2 spaces here
-		//  return x
-		//
-		// To handle this case, when we reach the beginning of a statement  we scan forward to see where
-		// it should end and record the number of input bytes remaining at that endpoint.
-		//
-		// If --format_bzl is set to false, top level blocks (e.g. an entire function definition)
-		// is considered as a single statement.
-		if in.endStmt != -1 && len(in.remaining) == in.endStmt {
-			in.endStmt = -1
-		}
-
 		// Skip over spaces. Count newlines so we can give the parser
 		// information about where top-level blank lines are,
 		// for top-level comment assignment.
@@ -251,7 +230,7 @@ func (in *input) Lex(val *yySymType) int {
 			if c == '\n' {
 				in.indent = 0
 				in.cleanLine = true
-				if in.endStmt == -1 {
+				if in.depth == 0 {
 					// Not in a statememt. Tell parser about top-level blank line.
 					in.startToken(val)
 					in.readRune()
@@ -271,6 +250,7 @@ func (in *input) Lex(val *yySymType) int {
 			// If a line contains just a comment its indentation level doesn't matter.
 			// Reset it to zero.
 			in.indent = 0
+			isLineComment := in.cleanLine
 			in.cleanLine = true
 
 			// Is this comment the only thing on its line?
@@ -307,7 +287,7 @@ func (in *input) Lex(val *yySymType) int {
 			// If we are at top level (not in a rule), hand the comment to
 			// the parser as a _COMMENT token. The grammar is written
 			// to handle top-level comments itself.
-			if in.endStmt == -1 {
+			if in.depth == 0 && isLineComment {
 				// Not in a statement. Tell parser about top-level comment.
 				return _COMMENT
 			}
@@ -339,7 +319,7 @@ func (in *input) Lex(val *yySymType) int {
 	// Check for changes in indentation
 	// Skip if we're inside a statement, or if there were non-space
 	// characters before in the current line.
-	if in.endStmt == -1 && in.cleanLine {
+	if in.depth == 0 && in.cleanLine {
 		if in.indent > in.currentIndent() {
 			// A new indentation block starts
 			in.indents = append(in.indents, in.indent)
@@ -379,11 +359,6 @@ func (in *input) Lex(val *yySymType) int {
 	if in.eof() {
 		in.lastToken = "EOF"
 		return _EOF
-	}
-
-	// If endStmt is 0, we need to recompute where the end of the next statement is.
-	if in.endStmt == -1 {
-		in.endStmt = len(in.skipStmt(in.remaining))
 	}
 
 	// Punctuation tokens.
@@ -552,85 +527,6 @@ var keywordToken = map[string]int{
 	"or":     _OR,
 	"def":    _DEF,
 	"return": _RETURN,
-}
-
-// Python scanning.
-// About 1% of BUILD files embed arbitrary Python into the file.
-// We do not attempt to parse it. Instead, we lex just enough to scan
-// beyond it, treating the Python block as an unintepreted blob.
-
-// skipStmt returns the data remaining after the statement  beginning at p.
-// It does not advance the input position.
-// (The only reason for the input receiver is to be able to call in.Error.)
-func (in *input) skipStmt(p []byte) []byte {
-	quote := byte(0)     // if non-zero, the kind of quote we're in
-	tripleQuote := false // if true, the quote is a triple quote
-	depth := 0           // nesting depth for ( ) [ ] { }
-	var rest []byte      // data after the Python block
-
-	defer func() {
-		if quote != 0 {
-			in.Error("EOF scanning Python quoted string")
-		}
-	}()
-
-	// Scan over input one byte at a time until we find
-	// an unindented, non-blank, non-comment line
-	// outside quoted strings and brackets.
-	for i := 0; i < len(p); i++ {
-		c := p[i]
-		if quote != 0 && c == quote && !tripleQuote {
-			quote = 0
-			continue
-		}
-		if quote != 0 && c == quote && tripleQuote && i+2 < len(p) && p[i+1] == quote && p[i+2] == quote {
-			i += 2
-			quote = 0
-			tripleQuote = false
-			continue
-		}
-		if quote != 0 {
-			if c == '\\' {
-				i++ // skip escaped char
-			}
-			continue
-		}
-		if c == '\'' || c == '"' {
-			if i+2 < len(p) && p[i+1] == c && p[i+2] == c {
-				quote = c
-				tripleQuote = true
-				i += 2
-				continue
-			}
-			quote = c
-			continue
-		}
-
-		if depth == 0 && i > 0 && p[i] == '\n' && p[i-1] != '\\' {
-			// Possible stopping point. Save the earliest one we find.
-			if rest == nil {
-				rest = p[i:]
-			}
-			return rest
-		}
-
-		switch c {
-		case '#':
-			// Skip comment.
-			for i < len(p) && p[i] != '\n' {
-				i++
-			}
-			// Rewind 1 position back because \n should be handled at the next iteration
-			i--
-
-		case '(', '[', '{':
-			depth++
-
-		case ')', ']', '}':
-			depth--
-		}
-	}
-	return rest
 }
 
 // Comment assignment.
