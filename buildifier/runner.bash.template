@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 BUILDIFIER_SHORT_PATH=@@BUILDIFIER_SHORT_PATH@@
 ARGS=@@ARGS@@
