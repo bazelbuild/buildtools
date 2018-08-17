@@ -1,8 +1,5 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
-load("@io_bazel_rules_go//go:def.bzl", "go_prefix")
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
-
-go_prefix("github.com/bazelbuild/buildtools")
 
 config_setting(
     name = "windows",

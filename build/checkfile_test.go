@@ -17,6 +17,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -30,6 +31,11 @@ func TestFilesMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", "parse.y.baz.go", err)
 	}
+	// The first line contains a path to the generator. We want to skip it
+	// (as well as the next character, another '\n') to make the test more
+	// robust.
+	generated = generated[bytes.IndexByte(generated, '\n')+2:]
+
 	checkedIn, err := ioutil.ReadFile(path.Join(testdata, "parse.y.go"))
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", "parse.y.go", err)
