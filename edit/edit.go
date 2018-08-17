@@ -183,8 +183,8 @@ func ExistingPackageDeclaration(f *build.File) *build.Rule {
 }
 
 // PackageDeclaration returns the package declaration. If it doesn't
-// exist, it is created at the top of the BUILD file, after leading
-// comments / load statements.
+// exist, it is created at the top of the BUILD file, after optional
+// docstring, comments, and load statements.
 func PackageDeclaration(f *build.File) *build.Rule {
 	if pkg := ExistingPackageDeclaration(f); pkg != nil {
 		return pkg
@@ -194,8 +194,9 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
 	for _, stmt := range f.Stmt {
 		switch stmt.(type) {
-		case *build.CommentBlock, *build.LoadStmt:
-			// Skip CommentBlocks and load statements to find a place to insert the package declaration.
+		case *build.CommentBlock, *build.LoadStmt, *build.StringExpr:
+			// Skip docstring, comments, and load statements to
+			// find a place to insert the package declaration.
 		default:
 			if !added {
 				all = append(all, call)

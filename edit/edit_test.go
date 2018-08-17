@@ -303,14 +303,14 @@ func TestDictionaryDelete(t *testing.T) {
 func TestPackageDeclaration(t *testing.T) {
 	tests := []struct{ input, expected string }{
 		{``, `package(attr = "val")`},
-		{`# comment
+		{`"""Docstring."""
 
 load(":path.bzl", "x")
 
 # package() comes here
 
 x = 2`,
-			`# comment
+			`"""Docstring."""
 
 load(":path.bzl", "x")
 
