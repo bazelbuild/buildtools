@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
- 	"github.com/bazelbuild/buildtools/tables"
- 	"github.com/bazelbuild/buildtools/wspace"
+	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/wspace"
 )
 
 var (
@@ -183,8 +183,8 @@ func ExistingPackageDeclaration(f *build.File) *build.Rule {
 }
 
 // PackageDeclaration returns the package declaration. If it doesn't
-// exist, it is created at the top of the BUILD file, after leading
-// comments.
+// exist, it is created at the top of the BUILD file, after optional
+// docstring, comments, and load statements.
 func PackageDeclaration(f *build.File) *build.Rule {
 	if pkg := ExistingPackageDeclaration(f); pkg != nil {
 		return pkg
@@ -192,12 +192,16 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	all := []build.Expr{}
 	added := false
 	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
-	// Skip CommentBlocks and find a place to insert the package declaration.
 	for _, stmt := range f.Stmt {
-		_, ok := stmt.(*build.CommentBlock)
-		if !ok && !added {
-			all = append(all, call)
-			added = true
+		switch stmt.(type) {
+		case *build.CommentBlock, *build.LoadStmt, *build.StringExpr:
+			// Skip docstring, comments, and load statements to
+			// find a place to insert the package declaration.
+		default:
+			if !added {
+				all = append(all, call)
+				added = true
+			}
 		}
 		all = append(all, stmt)
 	}

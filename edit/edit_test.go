@@ -295,8 +295,46 @@ func TestDictionaryDelete(t *testing.T) {
 			t.Errorf("TestDictionaryDelete(%s): got %s, expected %s", tst.input, got, want)
 		}
 		if !compareKeyValue(returnVal, tst.expectedReturn) {
-      			t.Errorf("TestDictionaryDelete(%s): returned %v, expected %v", tst.input, returnVal, tst.expectedReturn)
+			t.Errorf("TestDictionaryDelete(%s): returned %v, expected %v", tst.input, returnVal, tst.expectedReturn)
 		}
 	}
 }
 
+func TestPackageDeclaration(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{``, `package(attr = "val")`},
+		{`"""Docstring."""
+
+load(":path.bzl", "x")
+
+# package() comes here
+
+x = 2`,
+			`"""Docstring."""
+
+load(":path.bzl", "x")
+
+# package() comes here
+
+package(attr = "val")
+
+x = 2`,
+		},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		pkg := PackageDeclaration(bld)
+		pkg.SetAttr("attr", &build.StringExpr{Value: "val"})
+		got := strings.TrimSpace(string(build.Format(bld)))
+		want := strings.TrimSpace(tst.expected)
+
+		if got != want {
+			t.Errorf("TestPackageDeclaration: got:\n%s\nexpected:\n%s", got, want)
+		}
+	}
+}
