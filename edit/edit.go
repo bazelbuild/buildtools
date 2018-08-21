@@ -90,6 +90,9 @@ func ShortenLabel(label string, pkg string) string {
 		}
 		return "@" + repo + "//" + labelPkg
 	}
+	if strings.HasPrefix(label, "@") && repo == rule && labelPkg == "" {
+		return "@" + repo
+	}
 	return label
 }
 
