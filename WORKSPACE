@@ -36,11 +36,11 @@ buildifier_dependencies()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "66135f877d0cc075b683474c50b1f7c3e2749bf0a40e446f20392f44494fefff",
-    strip_prefix = "bazel-0.12.0",
+    sha256 = "1e46bf4b7392565504ef44ba1dcf190624969b49e6f544ee25b34851f46c576e",
+    strip_prefix = "bazel-0.16.0",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.16.0.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.16.0.tar.gz",
     ],
 )
 
