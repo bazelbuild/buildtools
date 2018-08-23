@@ -539,7 +539,7 @@ func filterRules(opts *Options, rules []*build.Rule) (result []*build.Rule) {
 				break
 			}
 		}
-		if acceptableType || rule.Kind() == "package" {
+		if acceptableType {
 			result = append(result, rule)
 		}
 	}
