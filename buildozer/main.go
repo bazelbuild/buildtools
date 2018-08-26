@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit"
 	"github.com/bazelbuild/buildtools/tables"
 )
@@ -75,6 +76,9 @@ func main() {
 		}
 	}
 
+	if !(*shortenLabelsFlag) {
+		build.DisableRewrites = []string{"label"}
+	}
 	edit.ShortenLabelsFlag = *shortenLabelsFlag
 	edit.DeleteWithComments = *deleteWithComments
 	opts := &edit.Options{
