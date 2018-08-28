@@ -58,7 +58,7 @@ func NewOpts() *Options {
 	return &Options{NumIO: 200, PreferEOLComments: true}
 }
 
-// Usage is a user-overriden func to print the program usage.
+// Usage is a user-overridden func to print the program usage.
 var Usage = func() {}
 
 var fileModified = false // set to true when a file has been fixed
