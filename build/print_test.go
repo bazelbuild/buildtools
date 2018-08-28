@@ -195,7 +195,7 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 
 	if !bytes.Equal(ndata, golden) {
 		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))
-		tdiff(t, string(golden), string(ndata))
+		Tdiff(t, golden, ndata)
 		return
 	}
 }
