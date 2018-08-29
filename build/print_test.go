@@ -140,6 +140,9 @@ func TestPrintBzlAsBuild(t *testing.T) {
 }
 
 // findTests finds all files of the passed suffix in the build/testdata directory.
+// It changes the working directory to be the directory containing the `testdata` directory,
+// and returns a function to call to change back to the current directory.
+// This allows tests to assert on alias finding between absolute and relative labels.
 func findTests(t *testing.T, suffix string) ([]string, func()) {
 	return testutils.FindTests(t, "build", "testdata/*" + suffix)
 }
