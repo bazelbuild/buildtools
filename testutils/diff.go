@@ -1,3 +1,4 @@
+// Package testutils provides some useful helpers for buildozer/buildifer tests.
 package testutils
 
 import (
