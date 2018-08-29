@@ -741,11 +741,7 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 func UsedSymbols(f *build.File) map[string]bool {
 	symbols := make(map[string]bool)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		literal, ok := expr.(*build.Ident)
-		if !ok {
-			return
-		}
-		// Check if we are on the left-side of an assignment
+		// Drop out if we're on the left-side of an assignment
 		for _, e := range stack {
 			if as, ok := e.(*build.BinaryExpr); ok {
 				if as.Op == "=" && as.X == expr {
@@ -753,7 +749,15 @@ func UsedSymbols(f *build.File) map[string]bool {
 				}
 			}
 		}
-		symbols[literal.Name] = true
+
+		// Imported symbols end up either as Idents or LiteralExprs.
+		switch expr.(type) {
+		case *build.Ident:
+			symbols[expr.(*build.Ident).Name] = true
+		case *build.LiteralExpr:
+			symbols[strings.Split(expr.(*build.LiteralExpr).Token, ".")[0]] = true
+		default:
+		}
 	})
 	return symbols
 }
