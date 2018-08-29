@@ -43,5 +43,7 @@ go_test(
         "parse.y.go",
     ],
     embed = [":go_default_library"],
-    deps = ["//tables:go_default_library"],
+    deps = [
+        "//testutils",
+    ],
 )
