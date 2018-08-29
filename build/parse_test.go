@@ -20,10 +20,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/bazelbuild/buildtools/testutils"
 )
 
 func TestParse(t *testing.T) {
@@ -77,48 +78,10 @@ func toJSON(v interface{}) string {
 	return string(s)
 }
 
-// diff returns the output of running diff on b1 and b2.
-func diff(b1, b2 []byte) ([]byte, error) {
-	f1, err := ioutil.TempFile("", "testdiff")
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f1.Name())
-	defer f1.Close()
-
-	f2, err := ioutil.TempFile("", "testdiff")
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f2.Name())
-	defer f2.Close()
-
-	f1.Write(b1)
-	f2.Write(b2)
-
-	data, err := exec.Command("diff", "-u", f1.Name(), f2.Name()).CombinedOutput()
-	if len(data) > 0 {
-		// diff exits with a non-zero status when the files don't match.
-		// Ignore that failure as long as we get output.
-		err = nil
-	}
-	return data, err
-}
-
-// Tdiff logs the diff output to t.Error.
-func Tdiff(t *testing.T, a, b []byte) {
-	data, err := diff(a, b)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Error(string(data))
-}
-
 // Compare expected and actual values, failing and outputting a diff of the two values if they are not deeply equal
 func compare(t *testing.T, actual, expected interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
-		Tdiff(t, []byte(toJSON(expected)), []byte(toJSON(actual)))
+		testutils.Tdiff(t, []byte(toJSON(expected)), []byte(toJSON(actual)))
 	}
 }
 

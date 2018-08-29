@@ -22,6 +22,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/bazelbuild/buildtools/testutils"
 )
 
 func TestFilesMatch(t *testing.T) {
@@ -41,7 +43,7 @@ func TestFilesMatch(t *testing.T) {
 		t.Fatalf("ReadFile(%q) = %v", "parse.y.go", err)
 	}
 
-	d, err := diff(generated, checkedIn)
+	d, err := testutils.Diff(generated, checkedIn)
 	if err != nil {
 		t.Fatalf("diff(generated, checkedIn) = %v", err)
 	}

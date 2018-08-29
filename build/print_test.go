@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/testutils"
 )
 
 // exists reports whether the named file exists.
@@ -195,7 +196,7 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 
 	if !bytes.Equal(ndata, golden) {
 		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))
-		Tdiff(t, golden, ndata)
+		testutils.Tdiff(t, golden, ndata)
 		return
 	}
 }
