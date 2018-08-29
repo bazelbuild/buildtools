@@ -18,12 +18,12 @@ func FindTests(t *testing.T, directory, pattern string) ([]string, func()) {
 	if err := os.Chdir(filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), directory)); err != nil {
 		t.Fatal(err)
 	}
-	outs, err := filepath.Glob(pattern)
+	files, err := filepath.Glob(pattern)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(outs) == 0 {
+	if len(files) == 0 {
 		t.Fatal("Didn't find any test cases")
 	}
-	return outs, func() { os.Chdir(wd) }
+	return files, func() { os.Chdir(wd) }
 }
