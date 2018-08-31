@@ -7,7 +7,7 @@ prunings.
 
 ## Installation
 
-1. Build a binary and put it into your $GOPATH/bin:
+Build a binary and put it into your $GOPATH/bin:
 
 ```bash
 go get github.com/bazelbuild/buildtools/unused_deps
