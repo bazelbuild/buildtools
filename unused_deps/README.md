@@ -5,25 +5,12 @@ in [java_library](https://docs.bazel.build/versions/master/be/java.html#java_lib
 rules. targets.  It outputs `buildozer` commands to apply the suggested
 prunings.
 
-## Dependencies
-
-1. Protobuf go runtime: to download (if not using bazel)
-`go get -u github.com/golang/protobuf/{proto,protoc-gen-go}`
-
-
 ## Installation
 
-1. Change directory to the buildifier/unused_deps
+Build a binary and put it into your $GOPATH/bin:
 
 ```bash
-gopath=$(go env GOPATH)
-cd $gopath/src/github.com/bazelbuild/buildtools/unused_deps
-```
-
-2. Install
-
-```bash
-go install
+go get github.com/bazelbuild/buildtools/unused_deps
 ```
 
 ## Usage
