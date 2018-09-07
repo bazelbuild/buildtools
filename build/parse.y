@@ -625,12 +625,9 @@ load_arguments:
 
 load_argument:
 	string {
-		start := $1.Start
-		start.LineRune++
-		start.Byte++
+		start := $1.Start.add("'")
 		if $1.TripleQuote {
-			start.LineRune += 2
-			start.Byte += 2
+			start = start.add("''")
 		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
@@ -645,12 +642,9 @@ load_argument:
 	}
 | ident '=' string
 	{
-		start := $3.Start
-		start.LineRune++
-		start.Byte++
+		start := $3.Start.add("'")
 		if $3.TripleQuote {
-			start.LineRune += 2
-			start.Byte += 2
+			start = start.add("''")
 		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
