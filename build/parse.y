@@ -625,23 +625,37 @@ load_arguments:
 
 load_argument:
 	string {
+		start := $1.Start
+		start.LineRune++
+		start.Byte++
+		if $1.TripleQuote {
+			start.LineRune += 2
+			start.Byte += 2
+		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
 				Name: $1.Value,
-				NamePos: $1.Start,
+				NamePos: start,
 			},
 			to: Ident{
 				Name: $1.Value,
-				NamePos: $1.Start,
+				NamePos: start,
 			},
 		}
 	}
 | ident '=' string
 	{
+		start := $3.Start
+		start.LineRune++
+		start.Byte++
+		if $3.TripleQuote {
+			start.LineRune += 2
+			start.Byte += 2
+		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
 				Name: $3.Value,
-				NamePos: $3.Start,
+				NamePos: start,
 			},
 			to: *$1.(*Ident),
 		}

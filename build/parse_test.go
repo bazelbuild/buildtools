@@ -188,4 +188,62 @@ var parseTests = []struct {
     for dpi in dpis ]
 `,
 	},
+	{
+		in: `load(":foo.bzl", "foo", """bar""", baz="foo", foo="""baz""")
+`,
+		out: &File{
+			Path: "BUILD",
+			Build: true,
+			Stmt: []Expr{
+				&LoadStmt{
+					Load:   Position{1, 1, 0},
+					Module: &StringExpr{
+						Value:    ":foo.bzl",
+						Token:    "\":foo.bzl\"",
+						Start:   Position{1, 6, 5},
+						End:   Position{1, 16, 15},
+					},
+					From: []*Ident{
+						&Ident{
+							Name: "foo",
+							NamePos: Position{1, 19, 18},
+						},
+						&Ident{
+							Name: "bar",
+							NamePos: Position{1, 28, 27},
+						},
+						&Ident{
+							Name: "foo",
+							NamePos: Position{1, 41, 40},
+						},
+						&Ident{
+							Name: "baz",
+							NamePos: Position{1, 54, 53},
+						},
+					},
+					To: []*Ident{
+						&Ident{
+							Name: "foo",
+							NamePos: Position{1, 19, 18},
+						},
+						&Ident{
+							Name: "bar",
+							NamePos: Position{1, 28, 27},
+						},
+						&Ident{
+							Name: "baz",
+							NamePos: Position{1, 36, 35},
+						},
+						&Ident{
+							Name: "foo",
+							NamePos: Position{1, 47, 46},
+						},
+					},
+					Rparen: End{Pos: Position{1, 60, 59}},
+					ForceCompact: true,
+				},
+			},
+		},
+	},
+
 }
