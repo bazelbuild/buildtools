@@ -155,11 +155,7 @@ type StringExpr struct {
 }
 
 func (x *StringExpr) Span() (start, end Position) {
-	suffix := "'"
-	if x.TripleQuote {
-		suffix = "'''"
-	}
-	return x.Start, x.End.add(suffix)
+	return x.Start, x.End
 }
 
 // An End represents the end of a parenthesized or bracketed expression.
