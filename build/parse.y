@@ -625,23 +625,31 @@ load_arguments:
 
 load_argument:
 	string {
+		start := $1.Start.add("'")
+		if $1.TripleQuote {
+			start = start.add("''")
+		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
 				Name: $1.Value,
-				NamePos: $1.Start,
+				NamePos: start,
 			},
 			to: Ident{
 				Name: $1.Value,
-				NamePos: $1.Start,
+				NamePos: start,
 			},
 		}
 	}
 | ident '=' string
 	{
+		start := $3.Start.add("'")
+		if $3.TripleQuote {
+			start = start.add("''")
+		}
 		$$ = &struct{from Ident; to Ident}{
 			from: Ident{
 				Name: $3.Value,
-				NamePos: $3.Start,
+				NamePos: start,
 			},
 			to: *$1.(*Ident),
 		}
