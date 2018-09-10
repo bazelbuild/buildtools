@@ -155,7 +155,11 @@ type StringExpr struct {
 }
 
 func (x *StringExpr) Span() (start, end Position) {
-	return x.Start, x.End
+	suffix := "'"
+	if x.TripleQuote {
+		suffix = "'''"
+	}
+	return x.Start, x.End.add(suffix)
 }
 
 // An End represents the end of a parenthesized or bracketed expression.
@@ -370,7 +374,7 @@ type SliceExpr struct {
 
 func (x *SliceExpr) Span() (start, end Position) {
 	start, _ = x.X.Span()
-	return start, x.End
+	return start, x.End.add("]")
 }
 
 // An IndexExpr represents an index expression: X[Y].
@@ -384,7 +388,7 @@ type IndexExpr struct {
 
 func (x *IndexExpr) Span() (start, end Position) {
 	start, _ = x.X.Span()
-	return start, x.End
+	return start, x.End.add("]")
 }
 
 // A Function represents the common parts of LambdaExpr and DefStmt
@@ -447,7 +451,7 @@ type LoadStmt struct {
 }
 
 func (x *LoadStmt) Span() (start, end Position) {
-	return x.Load, x.Rparen.Pos
+	return x.Load, x.Rparen.Pos.add(")")
 }
 
 // A DefStmt represents a function definition expression: def foo(List):.
