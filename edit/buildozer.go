@@ -253,7 +253,16 @@ func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 }
 
 func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
-	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args[0], env.Args[1:], env.Args[1:])
+	from := env.Args[1:]
+	to := append([]string{}, from...)
+	for i := range from {
+		if s := strings.SplitN(from[i], "=", 2); len(s) == 2 {
+			to[i] = s[0]
+			from[i] = s[1]
+		}
+	}
+
+	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args[0], from, to)
 	return env.File, nil
 }
 
@@ -486,7 +495,7 @@ type CommandInfo struct {
 // of arguments.
 var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
-	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <symbol(s)>"},
+	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
 	"delete":            {cmdDelete, true, 0, 0, ""},
