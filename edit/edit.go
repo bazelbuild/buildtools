@@ -738,9 +738,9 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 }
 
 // UsedSymbols returns the set of symbols used in the BUILD file (variables, function names).
-func UsedSymbols(f *build.File) map[string]bool {
+func UsedSymbols(stmt build.Expr) map[string]bool {
 	symbols := make(map[string]bool)
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	build.Walk(stmt, func(expr build.Expr, stack []build.Expr) {
 		literal, ok := expr.(*build.Ident)
 		if !ok {
 			return
