@@ -454,6 +454,78 @@ func cmdCopyNoOverwrite(opts *Options, env CmdEnvironment) (*build.File, error) 
 	return copyAttributeBetweenRules(env, attrName, from)
 }
 
+// cmdDictAdd adds a key to a dict, if that key does _not_ exit already.
+func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	dict := &build.DictExpr{}
+	currDict, ok := env.Rule.Attr(attr).(*build.DictExpr)
+	if ok {
+		dict = currDict
+	}
+
+	for _, x := range args {
+		kv := strings.Split(x, ":")
+		expr := build.StringExpr{
+			Value:       kv[1],
+			TripleQuote: false,
+			Token:       "",
+		}
+
+		prev := DictionaryGet(dict, kv[0])
+		if prev == nil {
+			// Only set the value if the value is currently unset.
+			DictionarySet(dict, kv[0], &expr)
+		}
+		env.Rule.SetAttr(attr, dict)
+	}
+	return env.File, nil
+}
+
+// cmdDictSet adds a key to a dict, overwriting any previous values.
+func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	dict := &build.DictExpr{}
+	currDict, ok := env.Rule.Attr(attr).(*build.DictExpr)
+	if ok {
+		dict = currDict
+	}
+
+	for _, x := range args {
+		kv := strings.Split(x, ":")
+		expr := build.StringExpr{
+			Value:       kv[1],
+			TripleQuote: false,
+			Token:       "",
+		}
+		// Set overwrites previous values.
+		DictionarySet(dict, kv[0], &expr)
+		env.Rule.SetAttr(attr, dict)
+	}
+	return env.File, nil
+}
+
+// cmdDictRemove removes a key from a dict.
+func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	thing := env.Rule.Attr(attr)
+	dictAttr, ok := thing.(*build.DictExpr)
+	if ok {
+		for _, x := range args {
+			// should errors here be flagged?
+			DictionaryDelete(dictAttr, x)
+			env.Rule.SetAttr(attr, dictAttr)
+		}
+	}
+
+	return env.File, nil
+}
+
 func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string) (*build.File, error) {
 	fromRule := FindRuleByName(env.File, from)
 	if fromRule == nil {
@@ -511,6 +583,9 @@ var AllCommands = map[string]CommandInfo{
 	"set_if_absent":     {cmdSetIfAbsent, true, 2, -1, "<attr> <value(s)>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
+	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 }
 
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
