@@ -105,7 +105,7 @@ Buildozer supports the following commands(`'command args'`):
   * `copy_no_overwrite <attr> <from_rule>`:  Copies the value of `attr` between
     rules. If it exists in the `to_rule`, no action is taken.
   * `dict_add <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
-    attribute `attr`. If the key was already present, it will be overwritten
+    attribute `attr`. If the key was already present, it will _not_ be overwritten
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
   * `dict_delete <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
