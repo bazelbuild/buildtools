@@ -10,6 +10,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
  See the License for the specific language governing permissions and
  limitations under the License.
 */
+
 // Buildozer is a tool for programmatically editing BUILD files.
 
 package edit
@@ -520,6 +521,13 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 			// should errors here be flagged?
 			DictionaryDelete(dictAttr, x)
 			env.Rule.SetAttr(attr, dictAttr)
+		}
+	}
+
+	// If the removal results in the dict having no contents, delete the attribute (stay clean!)
+	if dictAttr == nil || len(dictAttr.List) == 0 {
+		if env.Rule.DelAttr(attr) != nil {
+			return env.File, nil
 		}
 	}
 
