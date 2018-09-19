@@ -686,7 +686,10 @@ func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Exp
 // current value. If it is unset, it returns nil.
 func DictionaryGet(dict *build.DictExpr, key string) build.Expr {
 	for _, e := range dict.List {
-		kv, _ := e.(*build.KeyValueExpr)
+		kv, ok := e.(*build.KeyValueExpr)
+		if !ok {
+			continue
+		}
 		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
 			return kv.Value
 		}
