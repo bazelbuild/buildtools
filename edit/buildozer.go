@@ -479,8 +479,8 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 			// Only set the value if the value is currently unset.
 			DictionarySet(dict, kv[0], &expr)
 		}
-		env.Rule.SetAttr(attr, dict)
 	}
+	env.Rule.SetAttr(attr, dict)
 	return env.File, nil
 }
 
@@ -504,8 +504,8 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], &expr)
-		env.Rule.SetAttr(attr, dict)
 	}
+	env.Rule.SetAttr(attr, dict)
 	return env.File, nil
 }
 
@@ -516,19 +516,19 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	thing := env.Rule.Attr(attr)
 	dictAttr, ok := thing.(*build.DictExpr)
-	if ok {
-		for _, x := range args {
-			// should errors here be flagged?
-			DictionaryDelete(dictAttr, x)
-			env.Rule.SetAttr(attr, dictAttr)
-		}
+	if !ok {
+		return env.File, nil
+	}
+
+	for _, x := range args {
+		// should errors here be flagged?
+		DictionaryDelete(dictAttr, x)
+		env.Rule.SetAttr(attr, dictAttr)
 	}
 
 	// If the removal results in the dict having no contents, delete the attribute (stay clean!)
 	if dictAttr == nil || len(dictAttr.List) == 0 {
-		if env.Rule.DelAttr(attr) != nil {
-			return env.File, nil
-		}
+		env.Rule.DelAttr(attr)
 	}
 
 	return env.File, nil
