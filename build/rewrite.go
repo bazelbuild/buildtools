@@ -340,6 +340,7 @@ func callName(call *CallExpr) string {
 		case *DotExpr:
 			elems = append([]string{fun.(*DotExpr).Name}, elems...)
 		default:
+			return ""
 		}
 	}
 }
