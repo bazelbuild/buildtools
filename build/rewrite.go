@@ -328,13 +328,21 @@ func fixLabels(f *File, info *RewriteInfo) {
 }
 
 // callName returns the name of the rule being called by call.
-// If the call is not to a literal rule name, callName returns "".
+//
+// If the call is not to a literal rule name or a DotExpr, callName returns "".
 func callName(call *CallExpr) string {
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
+	var elems []string
+	for fun := call.X; ; fun = fun.(*DotExpr).X {
+		switch fun.(type) {
+		case *Ident:
+			elems = append([]string{fun.(*Ident).Name}, elems...)
+			return strings.Join(elems, ".")
+		case *DotExpr:
+			elems = append([]string{fun.(*DotExpr).Name}, elems...)
+		default:
+			return ""
+		}
 	}
-	return rule.Name
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
@@ -460,12 +468,21 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || !f.Build {
+
+				// Drop out if sorting is disabled, if we don't have a build file, or if
+				// this context is in the blacklist.
+				if disabled("unsafesort") || !f.Build || tables.SortableBlacklist[context] {
 					continue
 				}
-				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
+
+				// Drop out unless this field name is whitelisted, we're explicitly
+				// allowed to sort it for debugging reasons, or its field name is
+				// explicitly allowed.
+				if !tables.SortableWhitelist[context] && !allowedSort(context) && !tables.IsSortableListArg[key.Name] {
 					continue
 				}
+
+				// Sort this list.
 				sortStringList(as.Y, info, context)
 			}
 		case *BinaryExpr:
