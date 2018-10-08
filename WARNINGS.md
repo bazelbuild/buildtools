@@ -1,5 +1,35 @@
 # Buildifier warnings
 
+--------------------------------------------------------------------------------
+
+## [A rule with name `foo` was already found on line](#duplicated-name)
+
+### Background
+
+Each label in Bazel has a unique name, and Bazel doesn’t allow two rules to have
+the same name. With macros, this may be accepted by Bazel (if each macro
+generates different rules):
+
+```
+my_first_macro(name = "foo")
+my_other_macro(name = "foo")
+```
+
+Although the build may work, this code can be very confusing. It can confuse
+users reading a BUILD file (if they look for the rule “foo”, they may read see
+only one of the macros). It will also confuse tools that edit BUILD files.
+
+### How to fix it
+
+Just change the name attribute of one rule/macro.
+
+### How to disable this warning
+
+You can disable this warning by adding `# buildozer: disable=duplicated-name` on
+the line or at the beginning of a rule.
+
+--------------------------------------------------------------------------------
+
 ## [Glob pattern has no wildcard ('*')](#constant-glob)
 
 [Glob function]
@@ -15,8 +45,8 @@ To fix the warning, move the string out of the glob:
 + glob(["*.cc"]) + ["test.cpp"]
 ```
 
-**There’s one important difference**: before the change, Blaze would silently
-ignore test.cpp if file is missing; after the change, Blaze will throw an error
+**There’s one important difference**: before the change, Bazel would silently
+ignore test.cpp if file is missing; after the change, Bazel will throw an error
 if file is missing.
 
 If `test.cpp` doesn’t exist, the fix becomes:
