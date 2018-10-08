@@ -2,7 +2,7 @@
 
 --------------------------------------------------------------------------------
 
-## [A rule with name `foo` was already found on line](#duplicated-name)
+## <a name="duplicated-name"></a>A rule with name `foo` was already found on line
 
 ### Background
 
@@ -30,7 +30,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Glob pattern has no wildcard ('*')](#constant-glob)
+## <a name="constant-glob"></a>Glob pattern has no wildcard ('*')
 
 [Glob function]
 (https://docs.bazel.build/versions/master/be/functions.html#glob)
@@ -73,7 +73,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Keyword arguments should be used over positional arguments](#positional-args)
+## <a name="positional-args"></a>Keyword arguments should be used over positional arguments
 
 All top level calls (except for some built-ins) should use keyword args over
 positional arguments. Positional arguments can cause subtle errors if the order
@@ -101,7 +101,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Loaded symbol is unused](#unused-load)
+## <a name="unused-load"></a>Loaded symbol is unused
 
 ### Background
 
@@ -131,7 +131,7 @@ or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Variable is unused](#unused-variable)
+## <a name="unused-variable"></a>Variable is unused
 
 This happens when a variable is set but not used in the file, e.g.
 
@@ -155,7 +155,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Variable has already been defined](#redefined-variable)
+## <a name="redefined-variable"></a>Variable has already been defined
 
 ### Background
 
@@ -177,7 +177,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [Package declaration should be at the top of the file](#package-on-top)
+## <a name="package-on-top"></a>Package declaration should be at the top of the file
 
 Here is a typical structure of a BUILD file:
 
@@ -207,7 +207,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## [The `/` operator for integer division is deprecated](#integer-division)
+## <a name="integer-division"></a>The `/` operator for integer division is deprecated
 
 The `/` operator is deprecated in favor of `//`, please use the latter for
 integer division:
@@ -219,35 +219,35 @@ d //= e
 
 --------------------------------------------------------------------------------
 
-## [Expression result is not used](#no-effect)
+## <a name="no-effect"></a>Expression result is not used
 
 The statement has no effect. Consider removing it or storing its result in a
 variable.
 
 --------------------------------------------------------------------------------
 
-## [`cfg = "data"` for attr definitions has no effect](#attr-cfg)
+## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
 
 The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
 `cfg = "data" is deprecated and has no effect. Consider removing it.
 
 --------------------------------------------------------------------------------
 
-## [`non_empty` attribute for attr definitions are deprecated](#attr-non-empty)
+## <a name="attr-non-empty"></a>`non_empty` attribute for attr definitions are deprecated
 
 The `non_empty` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
 for attr definitions is deprecated, please use `allow_empty` with an opposite value instead.
 
 --------------------------------------------------------------------------------
 
-## [`single_file` is deprecated](#attr-single-file)
+## <a name="attr-single-file"></a>`single_file` is deprecated
 
 The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
 
-## [`ctx.{action_name}` is deprecated](#ctx-actions)
+## <a name="ctx-actions"></a>`ctx.{action_name}` is deprecated
 
 The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
 are deprecated, please use the new API:
@@ -262,7 +262,7 @@ are deprecated, please use the new API:
 
 --------------------------------------------------------------------------------
 
-## [Global variable `PACKAGE_NAME` is deprecated](#package-name)
+## <a name="package-name"></a>Global variable `PACKAGE_NAME` is deprecated
 
 The global variable `PACKAGE_NAME` is deprecated, please use
 [`native.package_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#package_name)
@@ -270,7 +270,7 @@ instead.
 
 --------------------------------------------------------------------------------
 
-## [Global variable `REPOSITORY_NAME` is deprecated](#repository-name)
+## <a name="repository-name"></a>Global variable `REPOSITORY_NAME` is deprecated
 
 The global variable `REPOSITORY_NAME` is deprecated, please use
 [`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
