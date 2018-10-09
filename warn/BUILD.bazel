@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "warn.go",
+        "warn_bazel.go",
+    ],
+    importpath = "github.com/bazelbuild/buildtools/warn",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":bzlenv",
+        "//build:go_default_library",
+        "//edit:go_default_library",
+    ],
+)
+
+go_test(
+    name = "warn_test",
+    size = "small",
+    srcs = [
+        "warn_bazel_test.go",
+        "warn_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//testutils",
+    ],
+)
+
+go_library(
+    name = "bzlenv",
+    srcs = ["bzlenv.go"],
+    importpath = "github.com/bazelbuild/buildtools/warn/bzlenv",
+    deps = ["//build:go_default_library"],
+)
+
+go_test(
+    name = "bzlenv_test",
+    size = "small",
+    srcs = ["bzlenv_test.go"],
+    embed = [":bzlenv"],
+)

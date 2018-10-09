@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -30,6 +32,7 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/differ"
 	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/warn"
 )
 
 var buildifierVersion = "redacted"
@@ -42,7 +45,8 @@ var (
 	vflag         = flag.Bool("v", false, "print verbose information on standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
-	path          = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
+	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
+	filePath      = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 	version       = flag.Bool("version", false, "Print the version of buildifier")
@@ -134,9 +138,28 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Check lint mode.
+	switch *lint {
+	case "":
+		*lint = "off"
+
+	case "off":
+		// ok
+
+	case "warn", "fix":
+		if *mode != "fix" {
+			fmt.Fprintf(os.Stderr, "buildifier: lint mode %s is only compatible with --mode=fix\n", *lint)
+			os.Exit(2)
+		}
+
+	default:
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized lint mode %s; valid modes are warn and fix\n", *lint)
+		os.Exit(2)
+	}
+
 	// If the path flag is set, must only be formatting a single file.
 	// It doesn't make sense for multiple files to have the same path.
-	if (*path != "" || *mode == "print_if_changed") && len(args) > 1 {
+	if (*filePath != "" || *mode == "print_if_changed") && len(args) > 1 {
 		fmt.Fprintf(os.Stderr, "buildifier: can only format one file when using -path flag or -mode=print_if_changed\n")
 		os.Exit(2)
 	}
@@ -167,9 +190,9 @@ func main() {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("stdin", data, *inputType)
+		processFile("stdin", data, *inputType, *lint)
 	} else {
-		processFiles(args, *inputType)
+		processFiles(args, *inputType, *lint)
 	}
 
 	if err := diff.Run(); err != nil {
@@ -184,7 +207,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func processFiles(files []string, inputType string) {
+func processFiles(files []string, inputType, lint string) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -229,7 +252,7 @@ func processFiles(files []string, inputType string) {
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data, inputType)
+		processFile(file, res.data, inputType, lint)
 	}
 }
 
@@ -251,7 +274,7 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType string) {
+func processFile(filename string, data []byte, inputType, lint string) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -273,8 +296,16 @@ func processFile(filename string, data []byte, inputType string) {
 		return
 	}
 
-	if *path != "" {
-		f.Path = *path
+	pkg := getPackageName(filename)
+	switch lint {
+	case "warn":
+		warn.PrintWarnings(f, pkg, warn.AllWarnings, false)
+	case "fix":
+		warn.FixWarnings(f, pkg, warn.AllWarnings)
+	}
+
+	if *filePath != "" {
+		f.Path = *filePath
 	}
 	beforeRewrite := build.Format(f)
 	var info build.RewriteInfo
@@ -397,4 +428,19 @@ func writeTemp(data []byte) (file string, err error) {
 		return "", fmt.Errorf("writing temporary file: %v", err)
 	}
 	return name, nil
+}
+
+// getPackageName returns the package name of a file by searching for a WORKSPACE file
+func getPackageName(filename string) string {
+	dirs := filepath.SplitList(path.Dir(filename))
+	parent := ""
+	index := len(dirs) - 1
+	for i, chunk := range dirs {
+		parent = path.Join(parent, chunk)
+		metadata := path.Join(parent, "METADATA")
+		if _, err := os.Stat(metadata); !os.IsNotExist(err) {
+			index = i
+		}
+	}
+	return strings.Join(dirs[index+1:], "/")
 }
