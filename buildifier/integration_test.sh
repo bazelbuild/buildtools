@@ -35,3 +35,20 @@ diff stdout test/BUILD.golden  # should use the build formatting mode by default
 
 diff test/test.bzl.out test/test.bzl.golden
 
+# Test the linter
+
+cat > test/to_fix.bzl <<EOF
+a = b / c
+EOF
+cat > test/error_golden <<EOF
+test/to_fix.bzl:1: The "/" operator for integer division is deprecated in favor of "//". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)
+EOF
+cat > test/fixed_golden.bzl <<EOF
+a = b // c
+EOF
+
+$1 --lint=warn test/to_fix.bzl 2> test/error
+diff test/error test/error_golden
+
+$1 --lint=fix test/to_fix.bzl
+diff test/to_fix.bzl test/fixed_golden.bzl

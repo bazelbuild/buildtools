@@ -58,5 +58,5 @@ buildifier(
 ```
 Invoke with
 ```bash
-bazel run --direct_run //:buildifier
+bazel run //:buildifier
 ```

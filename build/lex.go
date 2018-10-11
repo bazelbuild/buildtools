@@ -71,6 +71,18 @@ func Parse(filename string, data []byte) (*File, error) {
 	return ParseDefault(filename, data)
 }
 
+// ParseError contains information about the error encountered during parsing.
+type ParseError struct {
+	Message  string
+	Filename string
+	Pos      Position
+}
+
+// Error returns a string representation of the parse error.
+func (e ParseError) Error() string {
+	return fmt.Sprintf("%s:%d:%d: %v", e.Filename, e.Pos.Line, e.Pos.LineRune, e.Message)
+}
+
 // An input represents a single input file being parsed.
 type input struct {
 	// Lexing state.
@@ -127,7 +139,7 @@ func (in *input) parse() (f *File, err error) {
 			if e == in.parseError {
 				err = in.parseError
 			} else {
-				err = fmt.Errorf("%s:%d:%d: internal error: %v", in.filename, in.pos.Line, in.pos.LineRune, e)
+				err = ParseError{Message: fmt.Sprintf("internal error: %v", e), Filename: in.filename, Pos: in.pos}
 			}
 		}
 	}()
@@ -152,7 +164,7 @@ func (in *input) Error(s string) {
 	if s == "syntax error" && in.lastToken != "" {
 		s += " near " + in.lastToken
 	}
-	in.parseError = fmt.Errorf("%s:%d:%d: %v", in.filename, in.pos.Line, in.pos.LineRune, s)
+	in.parseError = ParseError{Message: s, Filename: in.filename, Pos: in.pos}
 	panic(in.parseError)
 }
 

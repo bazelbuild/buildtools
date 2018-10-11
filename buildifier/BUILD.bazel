@@ -34,6 +34,7 @@ go_library(
         "//build:go_default_library",
         "//differ:go_default_library",
         "//tables:go_default_library",
+        "//warn:go_default_library",
     ],
 )
 

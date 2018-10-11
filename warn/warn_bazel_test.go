@@ -1,0 +1,193 @@
+package warn
+
+import (
+	"testing"
+)
+
+func TestAttrConfigurationWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-cfg", `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "data"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "host")`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "host")`,
+		[]string{":3: cfg = \"data\" for attr definitions has no effect and should be removed."},
+		false)
+}
+
+func TestAttrNonEmptyWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-non-empty", `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, non_empty = True),
+      "bar": attr.label_list(mandatory = True, non_empty = False),
+      "baz": attr.label_list(mandatory = True, non_empty = foo.bar()),
+      "qux": attr.label_list(mandatory = True, non_empty = not foo.bar()),
+      "aaa": attr.label_list(mandatory = True, non_empty = (
+					foo.bar())
+			),
+      "bbb": attr.label_list(mandatory = True, non_empty = (
+					not foo.bar())
+			),
+  }
+)`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, allow_empty = False),
+      "bar": attr.label_list(mandatory = True, allow_empty = True),
+      "baz": attr.label_list(mandatory = True, allow_empty = not foo.bar()),
+      "qux": attr.label_list(mandatory = True, allow_empty = foo.bar()),
+      "aaa": attr.label_list(mandatory = True, allow_empty = (
+					not foo.bar())
+			),
+      "bbb": attr.label_list(mandatory = True, allow_empty = (
+					foo.bar())
+			),
+  }
+)`,
+		[]string{
+			":3: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":4: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":5: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":6: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":7: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":10: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+		},
+		false)
+}
+
+func TestAttrSingleFileWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-single-file", `
+rule(
+  attrs = {
+      "foo": attr.label_list(single_file = True, allow_files = [".cc"], mandatory = True),
+      "bar": attr.label_list(single_file = True, mandatory = True),
+      "baz": attr.label_list(single_file = False, mandatory = True),
+  }
+)`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(allow_single_file = [".cc"], mandatory = True),
+      "bar": attr.label_list(allow_single_file = True, mandatory = True),
+      "baz": attr.label_list(mandatory = True),
+	}
+)`,
+		[]string{
+			":3: single_file is deprecated in favor of allow_single_file.",
+			":4: single_file is deprecated in favor of allow_single_file.",
+			":5: single_file is deprecated in favor of allow_single_file.",
+		},
+		false)
+}
+
+func TestCtxActionsWarning(t *testing.T) {
+	checkFindingsAndFix(t, "ctx-actions", `
+def impl(ctx):
+  ctx.new_file(foo, bar)
+  ctx.experimental_new_directory(foo, bar)
+  ctx.file_action(foo, bar)
+  ctx.action(foo, bar, command = "foo")
+  ctx.action(foo, bar, executable = "bar")
+  ctx.empty_action(foo, bar)
+  ctx.template_action(foo, bar)
+	ctx.foobar(foo, bar)
+`, `
+def impl(ctx):
+  ctx.actions.declare_file(foo, bar)
+  ctx.actions.declare_directory(foo, bar)
+  ctx.actions.write(foo, bar)
+  ctx.actions.run_shell(foo, bar, command = "foo")
+  ctx.actions.run(foo, bar, executable = "bar")
+  ctx.actions.do_nothing(foo, bar)
+  ctx.actions.expand_template(foo, bar)
+	ctx.foobar(foo, bar)
+`,
+		[]string{
+			":2: \"ctx.new_file\" is deprecated in favor of \"ctx.actions.declare_file\".",
+			":3: \"ctx.experimental_new_directory\" is deprecated in favor of \"ctx.actions.declare_directory\".",
+			":4: \"ctx.file_action\" is deprecated in favor of \"ctx.actions.write\".",
+			":5: \"ctx.action\" is deprecated in favor of \"ctx.actions.run_shell\".",
+			":6: \"ctx.action\" is deprecated in favor of \"ctx.actions.run\".",
+			":7: \"ctx.empty_action\" is deprecated in favor of \"ctx.actions.do_nothing\".",
+			":8: \"ctx.template_action\" is deprecated in favor of \"ctx.actions.expand_template\".",
+		},
+		false)
+}
+
+func TestPackageNameWarning(t *testing.T) {
+	checkFindingsAndFix(t, "package-name", `
+foo(a = PACKAGE_NAME)
+
+def f(PACKAGE_NAME):
+    foo(a = PACKAGE_NAME)
+
+def g():
+    foo(a = PACKAGE_NAME)
+`, `
+foo(a = native.package_name())
+
+def f(PACKAGE_NAME):
+    foo(a = PACKAGE_NAME)
+
+def g():
+    foo(a = native.package_name())
+`,
+		[]string{
+			":1: Global variable \"PACKAGE_NAME\" is deprecated in favor of \"native.package_name()\". Please rename it.",
+			":7: Global variable \"PACKAGE_NAME\" is deprecated in favor of \"native.package_name()\". Please rename it.",
+		},
+		false)
+
+	checkFindings(t, "package-name", `
+PACKAGE_NAME = "foo"
+foo(a = PACKAGE_NAME)
+`, []string{}, false)
+
+	checkFindings(t, "package-name", `
+load(":foo.bzl", "PACKAGE_NAME")
+foo(a = PACKAGE_NAME)
+`, []string{}, false)
+}
+
+func TestRepositoryNameWarning(t *testing.T) {
+	checkFindingsAndFix(t, "repository-name", `
+foo(a = REPOSITORY_NAME)
+
+def f(REPOSITORY_NAME):
+    foo(a = REPOSITORY_NAME)
+
+def g():
+    foo(a = REPOSITORY_NAME)
+`, `
+foo(a = native.repository_name())
+
+def f(REPOSITORY_NAME):
+    foo(a = REPOSITORY_NAME)
+
+def g():
+    foo(a = native.repository_name())
+`,
+		[]string{
+			":1: Global variable \"REPOSITORY_NAME\" is deprecated in favor of \"native.repository_name()\". Please rename it.",
+			":7: Global variable \"REPOSITORY_NAME\" is deprecated in favor of \"native.repository_name()\". Please rename it.",
+		}, false)
+
+	checkFindings(t, "repository-name", `
+REPOSITORY_NAME = "foo"
+foo(a = REPOSITORY_NAME)
+`, []string{}, false)
+
+	checkFindings(t, "repository-name", `
+load(":foo.bzl", "REPOSITORY_NAME")
+foo(a = REPOSITORY_NAME)
+`, []string{}, false)
+}

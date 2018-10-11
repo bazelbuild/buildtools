@@ -33,7 +33,7 @@ def _buildifier_impl(ctx):
         executable = out_file,
     )]
 
-buildifier = rule(
+_buildifier = rule(
     implementation = _buildifier_impl,
     attrs = {
         "verbose": attr.bool(
@@ -52,15 +52,23 @@ buildifier = rule(
             doc = "A list of glob patterns passed to the find command. E.g. './vendor/*' to exclude the Go vendor directory",
         ),
         "_buildifier": attr.label(
-            default = Label("@com_github_bazelbuild_buildtools//buildifier"),
+            default = "@com_github_bazelbuild_buildtools//buildifier",
             cfg = "host",
-            allow_single_file = True,
             executable = True,
         ),
         "_runner": attr.label(
-            default = Label("@com_github_bazelbuild_buildtools//buildifier:runner.bash.template"),
+            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bash.template",
             allow_single_file = True,
         ),
     },
     executable = True,
 )
+
+def buildifier(**kwargs):
+    tags = kwargs.get("tags", [])
+    if "manual" not in tags:
+        tags.append("manual")
+        kwargs["tags"] = tags
+    _buildifier(
+        **kwargs
+    )
