@@ -1,7 +1,7 @@
 package warn
 
 import (
-	"github.com/bazelbuild/buildtools/warn/bzlenv"
+	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/build"
 )
 

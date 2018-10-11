@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["bzlenv.go"],
+    importpath = "github.com/bazelbuild/buildtools/bzlenv",
+    visibility = ["//visibility:public"],
+    deps = ["//build:go_default_library"],
+)
+
+go_test(
+    name = "bzlenv_test",
+    size = "small",
+    srcs = ["bzlenv_test.go"],
+    embed = [":go_default_library"],
+)
