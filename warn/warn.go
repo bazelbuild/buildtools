@@ -147,7 +147,7 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 				// To disable the warning, put a comment that contains '@unused'
 				start, end := to.Span()
 				findings = append(findings,
-					makeFinding(f, start, end, "unused-load",
+					makeFinding(f, start, end, "load",
 						"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
 							"To disable the warning, add '@unused' in a comment.", true, nil))
 				if fix {
@@ -406,12 +406,12 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"ctx-actions":        ctxActionsWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"integer-division":   integerDivisionWarning,
+	"load":        unusedLoadWarning,
 	"no-effect":          noEffectWarning,
 	"package-name":       packageNameWarning,
 	"package-on-top":     packageOnTopWarning,
 	"redefined-variable": redefinedVariableWarning,
 	"repository-name":    repositoryNameWarning,
-	"unused-load":        unusedLoadWarning,
 	"unused-variable":    unusedVariableWarning,
 }
 
