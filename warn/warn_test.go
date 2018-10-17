@@ -188,7 +188,7 @@ php_library(name = "x")`,
 }
 
 func TestWarnUnusedLoad(t *testing.T) {
-	checkFindingsAndFix(t, "unused-load", `
+	checkFindingsAndFix(t, "load", `
 load(":f.bzl", "s1", "s2")
 load("f", "s1")
 foo(name = s1)`, `
@@ -198,7 +198,7 @@ foo(name = s1)`,
 			":2: Symbol \"s1\" has already been loaded."},
 		false)
 
-	checkFindingsAndFix(t, "unused-load", `
+	checkFindingsAndFix(t, "load", `
 load(
   ":f.bzl",
    "s1",
@@ -225,7 +225,7 @@ load(
 		[]string{":3: Loaded symbol \"s1\" is unused."},
 		false)
 
-	checkFindingsAndFix(t, "unused-load", `
+	checkFindingsAndFix(t, "load", `
 load(":f.bzl", "x")
 x = "unused"`, `
 x = "unused"`,

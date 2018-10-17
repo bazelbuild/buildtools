@@ -101,7 +101,7 @@ the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## <a name="unused-load"></a>Loaded symbol is unused
+## <a name="load"></a>Loaded symbol is unused
 
 ### Background
 
