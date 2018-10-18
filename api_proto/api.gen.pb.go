@@ -42,7 +42,7 @@ func (Output_Record_Field_ERROR) EnumDescriptor() ([]byte, []int) {
 }
 
 type Output struct {
-	Records              []*Output_Record `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+	Records              []*Output_Record `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -80,7 +80,7 @@ func (m *Output) GetRecords() []*Output_Record {
 }
 
 type Output_Record struct {
-	Fields               []*Output_Record_Field `protobuf:"bytes,1,rep,name=fields" json:"fields,omitempty"`
+	Fields               []*Output_Record_Field `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -124,7 +124,7 @@ type Output_Record_Field struct {
 	//	*Output_Record_Field_Error
 	//	*Output_Record_Field_List
 	Value                isOutput_Record_Field_Value `protobuf_oneof:"value"`
-	QuoteWhenPrinting    bool                        `protobuf:"varint,7,opt,name=quote_when_printing,json=quoteWhenPrinting" json:"quote_when_printing,omitempty"`
+	QuoteWhenPrinting    bool                        `protobuf:"varint,7,opt,name=quote_when_printing,json=quoteWhenPrinting,proto3" json:"quote_when_printing,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -159,22 +159,28 @@ type isOutput_Record_Field_Value interface {
 }
 
 type Output_Record_Field_Text struct {
-	Text string `protobuf:"bytes,1,opt,name=text,oneof"`
-}
-type Output_Record_Field_Number struct {
-	Number int32 `protobuf:"varint,2,opt,name=number,oneof"`
-}
-type Output_Record_Field_Error struct {
-	Error Output_Record_Field_ERROR `protobuf:"varint,3,opt,name=error,enum=devtools.buildozer.Output_Record_Field_ERROR,oneof"`
-}
-type Output_Record_Field_List struct {
-	List *RepeatedString `protobuf:"bytes,5,opt,name=list,oneof"`
+	Text string `protobuf:"bytes,1,opt,name=text,proto3,oneof"`
 }
 
-func (*Output_Record_Field_Text) isOutput_Record_Field_Value()   {}
+type Output_Record_Field_Number struct {
+	Number int32 `protobuf:"varint,2,opt,name=number,proto3,oneof"`
+}
+
+type Output_Record_Field_Error struct {
+	Error Output_Record_Field_ERROR `protobuf:"varint,3,opt,name=error,proto3,enum=devtools.buildozer.Output_Record_Field_ERROR,oneof"`
+}
+
+type Output_Record_Field_List struct {
+	List *RepeatedString `protobuf:"bytes,5,opt,name=list,proto3,oneof"`
+}
+
+func (*Output_Record_Field_Text) isOutput_Record_Field_Value() {}
+
 func (*Output_Record_Field_Number) isOutput_Record_Field_Value() {}
-func (*Output_Record_Field_Error) isOutput_Record_Field_Value()  {}
-func (*Output_Record_Field_List) isOutput_Record_Field_Value()   {}
+
+func (*Output_Record_Field_Error) isOutput_Record_Field_Value() {}
+
+func (*Output_Record_Field_List) isOutput_Record_Field_Value() {}
 
 func (m *Output_Record_Field) GetValue() isOutput_Record_Field_Value {
 	if m != nil {
@@ -317,7 +323,7 @@ func _Output_Record_Field_OneofSizer(msg proto.Message) (n int) {
 }
 
 type RepeatedString struct {
-	Strings              []string `protobuf:"bytes,1,rep,name=strings" json:"strings,omitempty"`
+	Strings              []string `protobuf:"bytes,1,rep,name=strings,proto3" json:"strings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
