@@ -531,7 +531,7 @@ func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showRepl
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string) {
 	for _, w := range FileWarnings(f, pkg, enabledWarnings, true) {
-		formatString := "fixed: %s:%d: %s (%s)\n"
+		formatString := "not fixed: %s:%d: %s (%s)\n"
 		if !w.Actionable {
 			formatString = "not fixed: %s:%d: %s [%s]\n"
 		}
