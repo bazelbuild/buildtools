@@ -82,7 +82,7 @@ func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Fin
 			continue
 		}
 		start, end := arg.Span()
-		return makeFinding(f, start, end, "positional-args", msg, true, nil)
+		return makeFinding(f, start, end, "positional-args", msg, false, nil)
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 				start, end := str.Span()
 				findings = append(findings, makeFinding(f, start, end, "constant-glob",
 					"Glob pattern `"+str.Value+"` has no wildcard ('*'). "+
-						"Constant patterns can be error-prone, move the file outside the glob.", true, nil))
+						"Constant patterns can be error-prone, move the file outside the glob.", false, nil))
 				return nil // at most one warning per glob
 			}
 		}
@@ -187,7 +187,7 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 				makeFinding(f, start, end, "redefined-variable",
 					"Variable \""+left.Name+"\" has already been defined. "+
 						"Redefining a global value is discouraged and will be forbidden in the future.\n"+
-						"Consider using a new variable instead.", true, nil))
+						"Consider using a new variable instead.", false, nil))
 			continue
 		}
 		definedSymbols[left.Name] = true
@@ -221,7 +221,7 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 		}
 		if line, ok := names[name]; ok {
 			findings = append(findings,
-				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), true, nil))
+				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), false, nil))
 		} else {
 			names[name] = start.Line
 		}
@@ -249,7 +249,7 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 			return []*Finding{makeFinding(f, start, end, "package-on-top",
 				"Package declaration should be at the top of the file, after the load() statements, "+
 					"but before any call to a rule or a macro. "+
-					"package_group() and licenses() may be called before package().", true, nil)}
+					"package_group() and licenses() may be called before package().", false, nil)}
 		}
 		seenRule = true
 	}
@@ -315,13 +315,13 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 				// List comprehensions are allowed on top-level.
 				findings = append(findings,
 					makeFinding(f, start, end, "no-effect",
-						"Expression result is not used. Use a for-loop instead of a list comprehension.", true, nil))
+						"Expression result is not used. Use a for-loop instead of a list comprehension.", false, nil))
 			}
 			continue
 		}
 		findings = append(findings,
 			makeFinding(f, start, end, "no-effect",
-				"Expression result is not used.", true, nil))
+				"Expression result is not used.", false, nil))
 	}
 	return findings
 }
@@ -367,7 +367,7 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 		findings = append(findings,
 			makeFinding(f, start, end, "unused-variable",
 				"Variable \""+left.Name+"\" is unused. Please remove it.\n"+
-					"To disable the warning, add '@unused' in a comment.", true, nil))
+					"To disable the warning, add '@unused' in a comment.", false, nil))
 	}
 	return findings
 }
