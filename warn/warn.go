@@ -82,7 +82,7 @@ func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Fin
 			continue
 		}
 		start, end := arg.Span()
-		return makeFinding(f, start, end, "positional-args", msg, false, nil)
+		return makeFinding(f, start, end, "positional-args", msg, true, nil)
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 				start, end := str.Span()
 				findings = append(findings, makeFinding(f, start, end, "constant-glob",
 					"Glob pattern `"+str.Value+"` has no wildcard ('*'). "+
-						"Constant patterns can be error-prone, move the file outside the glob.", false, nil))
+						"Constant patterns can be error-prone, move the file outside the glob.", true, nil))
 				return nil // at most one warning per glob
 			}
 		}
@@ -118,7 +118,6 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	loaded := make(map[string]bool)
-	fix = true
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -131,29 +130,32 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			to := load.To[i]
 			// Check if the symbol was already loaded
 			if loaded[to.Name] {
-				start, end := to.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "usused-load",
-						"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
 				if fix {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
+				} else {
+					start, end := to.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "usused-load",
+							"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
 				}
 				continue
 			}
 			_, ok := symbols[to.Name]
 			if !ok && !edit.ContainsComments(load, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
 				// To disable the warning, put a comment that contains '@unused'
-				start, end := to.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "load",
-						"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
-							"To disable the warning, add '@unused' in a comment.", true, nil))
 				if fix {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
+				} else {
+					start, end := to.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "load",
+							"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
+								"To disable the warning, add '@unused' in a comment.", true, nil))
+
 				}
 			}
 			loaded[to.Name] = true
@@ -187,7 +189,7 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 				makeFinding(f, start, end, "redefined-variable",
 					"Variable \""+left.Name+"\" has already been defined. "+
 						"Redefining a global value is discouraged and will be forbidden in the future.\n"+
-						"Consider using a new variable instead.", false, nil))
+						"Consider using a new variable instead.", true, nil))
 			continue
 		}
 		definedSymbols[left.Name] = true
@@ -221,7 +223,7 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 		}
 		if line, ok := names[name]; ok {
 			findings = append(findings,
-				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), false, nil))
+				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), true, nil))
 		} else {
 			names[name] = start.Line
 		}
@@ -249,7 +251,7 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 			return []*Finding{makeFinding(f, start, end, "package-on-top",
 				"Package declaration should be at the top of the file, after the load() statements, "+
 					"but before any call to a rule or a macro. "+
-					"package_group() and licenses() may be called before package().", false, nil)}
+					"package_group() and licenses() may be called before package().", true, nil)}
 		}
 		seenRule = true
 	}
@@ -261,12 +263,13 @@ func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		if binary, ok := expr.(*build.BinaryExpr); ok {
 			if binary.Op == "/" || binary.Op == "/=" {
-				start, end := binary.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "integer-division",
-						"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 				if fix {
 					binary.Op = "/" + binary.Op
+				} else {
+					start, end := binary.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "integer-division",
+							"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 				}
 			}
 		}
@@ -315,13 +318,13 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 				// List comprehensions are allowed on top-level.
 				findings = append(findings,
 					makeFinding(f, start, end, "no-effect",
-						"Expression result is not used. Use a for-loop instead of a list comprehension.", false, nil))
+						"Expression result is not used. Use a for-loop instead of a list comprehension.", true, nil))
 			}
 			continue
 		}
 		findings = append(findings,
 			makeFinding(f, start, end, "no-effect",
-				"Expression result is not used.", false, nil))
+				"Expression result is not used.", true, nil))
 	}
 	return findings
 }
@@ -367,7 +370,7 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 		findings = append(findings,
 			makeFinding(f, start, end, "unused-variable",
 				"Variable \""+left.Name+"\" is unused. Please remove it.\n"+
-					"To disable the warning, add '@unused' in a comment.", false, nil))
+					"To disable the warning, add '@unused' in a comment.", true, nil))
 	}
 	return findings
 }
@@ -406,7 +409,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"ctx-actions":        ctxActionsWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"integer-division":   integerDivisionWarning,
-	"load":        unusedLoadWarning,
+	"load":               unusedLoadWarning,
 	"no-effect":          noEffectWarning,
 	"package-name":       packageNameWarning,
 	"package-on-top":     packageOnTopWarning,
