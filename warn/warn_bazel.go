@@ -1,8 +1,8 @@
 package warn
 
 import (
-	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/bzlenv"
 )
 
 // Bazel-specific warnings
@@ -91,14 +91,15 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 		if ident, ok := (*e).(*build.Ident); ok {
 			if ident.Name == global {
 				if binding := env.Get(ident.Name); binding == nil {
-					start, end := ident.Span()
-					findings = append(findings,
-						makeFinding(f, start, end, category,
-							"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
 					if fix {
 						// It may be not correct to just replace the ident's name with `alternative` as it may be something complex
 						// like `native.package_name()` which is not a valid ident, but it's fine for reformatting.
 						ident.Name = alternative
+					} else {
+						start, end := ident.Span()
+						findings = append(findings,
+							makeFinding(f, start, end, category,
+								"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
 					}
 				}
 			}
@@ -135,12 +136,13 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		if !ok || value.Value != "data" {
 			return
 		}
-		start, end := param.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "attr-cfg",
-				"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
 		if fix {
 			call.List = append(call.List[:i], call.List[i+1:]...)
+		} else {
+			start, end := param.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "attr-cfg",
+					"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
 		}
 	})
 	return findings
@@ -166,13 +168,14 @@ func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 		if param == nil {
 			return
 		}
-		start, end := param.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "attr-non-empty",
-				"non_empty attributes for attr definitions are deprecated in favor of allow_empty.", true, nil))
 		if fix {
 			name.Name = "allow_empty"
 			param.Y = negateExpression(param.Y)
+		} else {
+			start, end := param.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "attr-non-empty",
+					"non_empty attributes for attr definitions are deprecated in favor of allow_empty.", true, nil))
 		}
 	})
 	return findings
@@ -198,10 +201,6 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 		if singleFileParam == nil {
 			return
 		}
-		start, end := singleFileParam.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "attr-single-file",
-				"single_file is deprecated in favor of allow_single_file.", true, nil))
 		if fix {
 			value := singleFileParam.Y
 			if boolean, ok := value.(*build.Ident); ok && boolean.Name == "False" {
@@ -217,6 +216,11 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 				singleFileParam.Y = value
 				name.Name = "allow_single_file"
 			}
+		} else {
+			start, end := singleFileParam.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "attr-single-file",
+					"single_file is deprecated in favor of allow_single_file.", true, nil))
 		}
 	})
 	return findings
@@ -242,14 +246,15 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		if !ok {
 			return
 		}
-		start, end := dot.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "ctx-actions",
-				"\"ctx."+dot.Name+"\" is deprecated in favor of \"ctx."+newName+"\".", true, nil))
 		if fix {
 			// Not entirely coorect because `newName` may be a sequence of attributes, e.g. `actions.run`.
 			// But that's fine for formatting purposes.
 			dot.Name = newName
+		} else {
+			start, end := dot.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "ctx-actions",
+					"\"ctx."+dot.Name+"\" is deprecated in favor of \"ctx."+newName+"\".", true, nil))
 		}
 	})
 	return findings

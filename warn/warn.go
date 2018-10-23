@@ -118,7 +118,6 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	loaded := make(map[string]bool)
-	fix = true
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -131,29 +130,32 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			to := load.To[i]
 			// Check if the symbol was already loaded
 			if loaded[to.Name] {
-				start, end := to.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "usused-load",
-						"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
 				if fix {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
+				} else {
+					start, end := to.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "usused-load",
+							"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
 				}
 				continue
 			}
 			_, ok := symbols[to.Name]
 			if !ok && !edit.ContainsComments(load, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
 				// To disable the warning, put a comment that contains '@unused'
-				start, end := to.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "load",
-						"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
-							"To disable the warning, add '@unused' in a comment.", true, nil))
 				if fix {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
+				} else {
+					start, end := to.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "load",
+							"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
+								"To disable the warning, add '@unused' in a comment.", true, nil))
+
 				}
 			}
 			loaded[to.Name] = true
@@ -261,12 +263,13 @@ func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		if binary, ok := expr.(*build.BinaryExpr); ok {
 			if binary.Op == "/" || binary.Op == "/=" {
-				start, end := binary.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "integer-division",
-						"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 				if fix {
 					binary.Op = "/" + binary.Op
+				} else {
+					start, end := binary.Span()
+					findings = append(findings,
+						makeFinding(f, start, end, "integer-division",
+							"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 				}
 			}
 		}
@@ -406,7 +409,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"ctx-actions":        ctxActionsWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"integer-division":   integerDivisionWarning,
-	"load":        unusedLoadWarning,
+	"load":               unusedLoadWarning,
 	"no-effect":          noEffectWarning,
 	"package-name":       packageNameWarning,
 	"package-on-top":     packageOnTopWarning,
@@ -528,7 +531,7 @@ func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showRepl
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string) {
 	for _, w := range FileWarnings(f, pkg, enabledWarnings, true) {
-		formatString := "fixed: %s:%d: %s (%s)\n"
+		formatString := "not fixed: %s:%d: %s (%s)\n"
 		if !w.Actionable {
 			formatString = "not fixed: %s:%d: %s [%s]\n"
 		}
