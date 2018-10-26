@@ -320,6 +320,56 @@ package()`,
 		false)
 }
 
+func TestLoadOnTop(t *testing.T) {
+	checkFindingsAndFix(t, "load-on-top", `
+foo()
+load(":f.bzl", "x")
+x()`, `
+load(":f.bzl", "x")
+
+foo()
+
+x()`,
+		[]string{":2: Load statements should be at the top of the file."},
+		false)
+
+	checkFindingsAndFix(t, "load-on-top", `
+"""Docstring"""
+
+# Comment block
+
+# this is foo
+foo()
+
+# load
+load(":f.bzl", "bar")
+
+# this is bar
+bar()
+
+# another load
+load(":f.bzl", "foobar")`, `
+"""Docstring"""
+
+# Comment block
+
+# load
+load(":f.bzl", "bar")
+
+# another load
+load(":f.bzl", "foobar")
+
+# this is foo
+foo()
+
+# this is bar
+bar()`,
+		[]string{
+			":9: Load statements should be at the top of the file.",
+			":15: Load statements should be at the top of the file.",
+		}, false)
+}
+
 func TestPositionalArguments(t *testing.T) {
 	checkFindings(t, "positional-args", `
 my_macro(foo = "bar")

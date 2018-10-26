@@ -258,6 +258,41 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 	return nil
 }
 
+func loadOnTopWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	firstStmtIndex := -1 // index of the first seen non-load statement
+	for i := 0; i < len(f.Stmt); i++ {
+		stmt := f.Stmt[i]
+		_, isString := stmt.(*build.StringExpr) // typically a docstring
+		_, isComment := stmt.(*build.CommentBlock)
+		if isString || isComment {
+			continue
+		}
+		if load, ok := stmt.(*build.LoadStmt); ok {
+			if firstStmtIndex != -1 {
+				if fix {
+					stmts := []build.Expr{}
+					stmts = append(stmts, f.Stmt[:firstStmtIndex]...)
+					stmts = append(stmts, load)
+					stmts = append(stmts, f.Stmt[firstStmtIndex:i]...)
+					stmts = append(stmts, f.Stmt[i+1:]...)
+					f.Stmt = stmts
+					firstStmtIndex++
+				} else {
+					start, end := load.Span()
+					findings = append(findings, makeFinding(f, start, end, "load-on-top",
+						"Load statements should be at the top of the file.", true, nil))
+				}
+			}
+		} else {
+			if firstStmtIndex == -1 {
+				firstStmtIndex = i
+			}
+		}
+	}
+	return findings
+}
+
 func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -410,6 +445,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"duplicated-name":    duplicatedNameWarning,
 	"integer-division":   integerDivisionWarning,
 	"load":               unusedLoadWarning,
+	"load-on-top":        loadOnTopWarning,
 	"no-effect":          noEffectWarning,
 	"package-name":       packageNameWarning,
 	"package-on-top":     packageOnTopWarning,
