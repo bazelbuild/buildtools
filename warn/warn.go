@@ -268,27 +268,29 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 		if isString || isComment {
 			continue
 		}
-		if load, ok := stmt.(*build.LoadStmt); ok {
-			if firstStmtIndex != -1 {
-				if fix {
-					stmts := []build.Expr{}
-					stmts = append(stmts, f.Stmt[:firstStmtIndex]...)
-					stmts = append(stmts, load)
-					stmts = append(stmts, f.Stmt[firstStmtIndex:i]...)
-					stmts = append(stmts, f.Stmt[i+1:]...)
-					f.Stmt = stmts
-					firstStmtIndex++
-				} else {
-					start, end := load.Span()
-					findings = append(findings, makeFinding(f, start, end, "load-on-top",
-						"Load statements should be at the top of the file.", true, nil))
-				}
-			}
-		} else {
+		load, ok := stmt.(*build.LoadStmt)
+		if !ok {
 			if firstStmtIndex == -1 {
 				firstStmtIndex = i
 			}
+			continue
 		}
+		if firstStmtIndex == -1 {
+			continue
+		}
+		if !fix {
+			start, end := load.Span()
+			findings = append(findings, makeFinding(f, start, end, "load-on-top",
+				"Load statements should be at the top of the file.", true, nil))
+			continue
+		}
+		stmts := []build.Expr{}
+		stmts = append(stmts, f.Stmt[:firstStmtIndex]...)
+		stmts = append(stmts, load)
+		stmts = append(stmts, f.Stmt[firstStmtIndex:i]...)
+		stmts = append(stmts, f.Stmt[i+1:]...)
+		f.Stmt = stmts
+		firstStmtIndex++
 	}
 	return findings
 }
