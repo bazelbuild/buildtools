@@ -262,42 +262,28 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 
 func fileTypeWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	toReplace := map[build.Expr]build.Expr{}
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
-		if call, ok := (*e).(*build.CallExpr); ok {
-			if ident, ok := (call.X).(*build.Ident); ok && ident.Name == "FileType" {
-				if binding := env.Get("FileType"); binding == nil {
-					if fix {
-						if len(call.List) > 0 {
-							// Assuming that the first and the only argument of FileType is a list of strings.
-							arg := call.List[0]
-							if binary, ok := arg.(*build.BinaryExpr); ok && binary.Op == "=" {
-								// Assuming that it's a named argument `types`
-								arg = binary.Y
-							}
-							toReplace[*e] = arg
-							return
-						}
-					}
-					start, end := call.Span()
-					findings = append(findings,
-						makeFinding(f, start, end, "filetype",
-							"The FileType function is deprecated, use lists instead.", true, nil))
-				}
-			}
+		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+
+		call, ok := (*e).(*build.CallExpr)
+		if !ok {
+			return
 		}
-		bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+		ident, ok := (call.X).(*build.Ident)
+		if !ok || ident.Name != "FileType" {
+			return
+		}
+		if binding := env.Get("FileType"); binding == nil {
+			start, end := call.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "filetype",
+					"The FileType function is deprecated.", true, nil))
+		}
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
-
-	if fix {
-		build.Edit(f, func(x build.Expr, stk []build.Expr) build.Expr {
-			return toReplace[x]
-		})
-	}
 
 	return findings
 }
