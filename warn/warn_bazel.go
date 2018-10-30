@@ -295,3 +295,39 @@ func packageNameWarning(f *build.File, fix bool) []*Finding {
 func repositoryNameWarning(f *build.File, fix bool) []*Finding {
 	return globalVariableUsageCheck(f, "repository-name", "REPOSITORY_NAME", "native.repository_name()", fix)
 }
+
+func outputGroupWarning(f* build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+		// Find nodes that match the following pattern: ctx.attr.xxx.output_group
+		outputGroup, ok := (expr).(*build.DotExpr)
+		if !ok || outputGroup.Name != "output_group"{
+			return nil
+		}
+		dep, ok := (outputGroup.X).(*build.DotExpr)
+		if !ok {
+			return nil
+		}
+		attr, ok := (dep.X).(*build.DotExpr)
+		if !ok || attr.Name != "attr" {
+			return nil
+		}
+		ctx, ok := (attr.X).(*build.Ident)
+		if !ok || ctx.Name != "ctx" {
+			return nil
+		}
+		if !fix {
+			start, end := outputGroup.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "output-group",
+					"\"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".", true, nil))
+			return nil
+		}
+		// Replace `xxx.output_group` with `xxx[OutputGroupInfo]`
+		return &build.IndexExpr{
+			X: dep,
+			Y: &build.Ident{Name: "OutputGroupInfo"},
+		}
+	})
+	return findings
+}

@@ -283,3 +283,10 @@ instead.
 The function `FileType` is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated).
 Instead of using it as an argument to the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
 just use a list of strings.
+
+--------------------------------------------------------------------------------
+
+## <a name="output-group"></a>`ctx.attr.dep.output_group` is deprecated
+
+The `output_group` field of a target is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-output-group-field-on-target)
+in favor of the [`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).

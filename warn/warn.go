@@ -450,6 +450,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"load":               unusedLoadWarning,
 	"load-on-top":        loadOnTopWarning,
 	"no-effect":          noEffectWarning,
+	"output-group":       outputGroupWarning,
 	"package-name":       packageNameWarning,
 	"package-on-top":     packageOnTopWarning,
 	"redefined-variable": redefinedVariableWarning,
