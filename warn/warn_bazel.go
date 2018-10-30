@@ -296,12 +296,12 @@ func repositoryNameWarning(f *build.File, fix bool) []*Finding {
 	return globalVariableUsageCheck(f, "repository-name", "REPOSITORY_NAME", "native.repository_name()", fix)
 }
 
-func outputGroupWarning(f* build.File, fix bool) []*Finding {
+func outputGroupWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
 		// Find nodes that match the following pattern: ctx.attr.xxx.output_group
 		outputGroup, ok := (expr).(*build.DotExpr)
-		if !ok || outputGroup.Name != "output_group"{
+		if !ok || outputGroup.Name != "output_group" {
 			return nil
 		}
 		dep, ok := (outputGroup.X).(*build.DotExpr)

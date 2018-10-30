@@ -1,9 +1,9 @@
 package testutils
 
 import (
-	"testing"
 	"os"
 	"path/filepath"
+	"testing"
 )
 
 // FindTests finds all files matching the given pattern.

@@ -286,7 +286,6 @@ func isDifferentLines(p1, p2 Position) bool {
 	return p1.Line != p2.Line
 }
 
-
 // Expression formatting.
 
 // The expression formatter must introduce parentheses to force the
@@ -658,14 +657,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.comment = append(p.comment, block.ElsePos.Comment().Suffix...)
 			p.nestedStatements(block.False)
 		}
-		case *ForClause:
-			p.printf("for ")
-			p.expr(v.Vars, precLow)
-			p.printf(" in ")
-			p.expr(v.X, precLow)
-		case *IfClause:
-			p.printf("if ")
-			p.expr(v.Cond, precLow)
+	case *ForClause:
+		p.printf("for ")
+		p.expr(v.Vars, precLow)
+		p.printf(" in ")
+		p.expr(v.X, precLow)
+	case *IfClause:
+		p.printf("if ")
+		p.expr(v.Cond, precLow)
 	}
 
 	// Add closing parenthesis if needed.
