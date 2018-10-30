@@ -586,10 +586,10 @@ func FixWarnings(f *build.File, pkg string, enabledWarnings []string) {
 func collectAllWarnings() []string {
 	var result []string
 	// Collect list of all warnings.
-	for k, _ := range FileWarningMap {
+	for k := range FileWarningMap {
 		result = append(result, k)
 	}
-	for k, _ := range RuleWarningMap {
+	for k := range RuleWarningMap {
 		result = append(result, k)
 	}
 	sort.Strings(result)

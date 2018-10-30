@@ -144,7 +144,7 @@ func TestPrintBzlAsBuild(t *testing.T) {
 // and returns a function to call to change back to the current directory.
 // This allows tests to assert on alias finding between absolute and relative labels.
 func findTests(t *testing.T, suffix string) ([]string, func()) {
-	return testutils.FindTests(t, "build", "testdata/*" + suffix)
+	return testutils.FindTests(t, "build", "testdata/*"+suffix)
 }
 
 // testPrint is a helper for testing the printer.

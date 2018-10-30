@@ -200,7 +200,7 @@ func convExpr(e syntax.Expr) build.Expr {
 		return &build.ListExpr{List: list, Comments: convComments(e.Comments())}
 	case *syntax.DictExpr:
 		list := []build.Expr{}
-		for i, _ := range e.List {
+		for i := range e.List {
 			entry := e.List[i].(*syntax.DictEntry)
 			list = append(list, &build.KeyValueExpr{
 				Key:      convExpr(entry.Key),

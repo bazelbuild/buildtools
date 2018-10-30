@@ -96,20 +96,20 @@ var parseTests = []struct {
 )
 `,
 		out: &File{
-			Path: "BUILD",
+			Path:  "BUILD",
 			Build: true,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &Ident{
 						NamePos: Position{1, 1, 0},
-						Name: "go_binary",
+						Name:    "go_binary",
 					},
 					ListStart: Position{1, 10, 9},
 					List: []Expr{
 						&BinaryExpr{
 							X: &Ident{
 								NamePos: Position{1, 11, 10},
-								Name: "name",
+								Name:    "name",
 							},
 							OpStart: Position{1, 16, 15},
 							Op:      "=",
@@ -130,7 +130,7 @@ var parseTests = []struct {
 	{
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
-			Path: "test",
+			Path:  "test",
 			Build: false,
 			Stmt: []Expr{
 				&CallExpr{
@@ -138,7 +138,7 @@ var parseTests = []struct {
 						X: &DotExpr{
 							X: &Ident{
 								NamePos: Position{1, 1, 0},
-								Name: "foo",
+								Name:    "foo",
 							},
 							Dot:     Position{1, 4, 3},
 							NamePos: Position{1, 5, 4},
@@ -153,7 +153,7 @@ var parseTests = []struct {
 						&BinaryExpr{
 							X: &Ident{
 								NamePos: Position{1, 13, 12},
-								Name: "name",
+								Name:    "name",
 							},
 							OpStart: Position{1, 18, 17},
 							Op:      "=",
@@ -192,58 +192,57 @@ var parseTests = []struct {
 		in: `load(":foo.bzl", "foo", """bar""", baz="foo", foo="""baz""")
 `,
 		out: &File{
-			Path: "BUILD",
+			Path:  "BUILD",
 			Build: true,
 			Stmt: []Expr{
 				&LoadStmt{
-					Load:   Position{1, 1, 0},
+					Load: Position{1, 1, 0},
 					Module: &StringExpr{
-						Value:    ":foo.bzl",
-						Token:    "\":foo.bzl\"",
-						Start:   Position{1, 6, 5},
+						Value: ":foo.bzl",
+						Token: "\":foo.bzl\"",
+						Start: Position{1, 6, 5},
 						End:   Position{1, 16, 15},
 					},
 					From: []*Ident{
-						&Ident{
-							Name: "foo",
+						{
+							Name:    "foo",
 							NamePos: Position{1, 19, 18},
 						},
-						&Ident{
-							Name: "bar",
+						{
+							Name:    "bar",
 							NamePos: Position{1, 28, 27},
 						},
-						&Ident{
-							Name: "foo",
+						{
+							Name:    "foo",
 							NamePos: Position{1, 41, 40},
 						},
-						&Ident{
-							Name: "baz",
+						{
+							Name:    "baz",
 							NamePos: Position{1, 54, 53},
 						},
 					},
 					To: []*Ident{
-						&Ident{
-							Name: "foo",
+						{
+							Name:    "foo",
 							NamePos: Position{1, 19, 18},
 						},
-						&Ident{
-							Name: "bar",
+						{
+							Name:    "bar",
 							NamePos: Position{1, 28, 27},
 						},
-						&Ident{
-							Name: "baz",
+						{
+							Name:    "baz",
 							NamePos: Position{1, 36, 35},
 						},
-						&Ident{
-							Name: "foo",
+						{
+							Name:    "foo",
 							NamePos: Position{1, 47, 46},
 						},
 					},
-					Rparen: End{Pos: Position{1, 60, 59}},
+					Rparen:       End{Pos: Position{1, 60, 59}},
 					ForceCompact: true,
 				},
 			},
 		},
 	},
-
 }

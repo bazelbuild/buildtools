@@ -81,7 +81,7 @@ func (c *Comments) Comment() *Comments {
 
 // A File represents an entire BUILD file.
 type File struct {
-	Path string // file path, relative to workspace directory
+	Path  string // file path, relative to workspace directory
 	Build bool
 	Comments
 	Stmt []Expr
