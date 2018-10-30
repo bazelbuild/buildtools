@@ -280,7 +280,6 @@ instead.
 
 ## <a name="filetype"></a>The `FileType` function is deprecated
 
-The function `FileType` is deprecated. The main use-case was as an argument to
-the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule).
-It's no longer needed, you can simply pass a list of strings to restrict the
-file types the rule accepts.
+The function `FileType` is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated).
+Instead of using it as an argument to the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
+just use a list of strings.
