@@ -191,3 +191,31 @@ load(":foo.bzl", "REPOSITORY_NAME")
 foo(a = REPOSITORY_NAME)
 `, []string{}, false)
 }
+
+func TestFilTypeNameWarning(t *testing.T) {
+	checkFindings(t, "filetype", `
+rule1(types=FileType([".cc", ".h"]))
+rule2(types=FileType(types=[".cc", ".h"]))
+
+FileType(foobar)
+
+def macro1():
+    a = FileType([".py"])
+
+def macro2():
+    FileType = foo
+    b = FileType([".java"])
+`, []string{
+		":1: The FileType function is deprecated.",
+		":2: The FileType function is deprecated.",
+		":4: The FileType function is deprecated.",
+		":7: The FileType function is deprecated.",
+	}, false)
+
+	checkFindings(t, "filetype", `
+FileType = foo
+
+rule1(types=FileType([".cc", ".h"]))
+rule2(types=FileType(types=[".cc", ".h"]))
+`, []string{}, false)
+}

@@ -275,3 +275,11 @@ instead.
 The global variable `REPOSITORY_NAME` is deprecated, please use
 [`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
 instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="filetype"></a>The `FileType` function is deprecated
+
+The function `FileType` is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated).
+Instead of using it as an argument to the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
+just use a list of strings.

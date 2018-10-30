@@ -260,6 +260,34 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func fileTypeWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	var walk func(e *build.Expr, env *bzlenv.Environment)
+	walk = func(e *build.Expr, env *bzlenv.Environment) {
+		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+
+		call, ok := (*e).(*build.CallExpr)
+		if !ok {
+			return
+		}
+		ident, ok := (call.X).(*build.Ident)
+		if !ok || ident.Name != "FileType" {
+			return
+		}
+		if binding := env.Get("FileType"); binding == nil {
+			start, end := call.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "filetype",
+					"The FileType function is deprecated.", true, nil))
+		}
+	}
+	var expr build.Expr = f
+	walk(&expr, bzlenv.NewEnvironment())
+
+	return findings
+}
+
 func packageNameWarning(f *build.File, fix bool) []*Finding {
 	return globalVariableUsageCheck(f, "package-name", "PACKAGE_NAME", "native.package_name()", fix)
 }
