@@ -192,7 +192,7 @@ foo(a = REPOSITORY_NAME)
 `, []string{}, false)
 }
 
-func TestFilTypeNameWarning(t *testing.T) {
+func TestFileTypeNameWarning(t *testing.T) {
 	checkFindings(t, "filetype", `
 rule1(types=FileType([".cc", ".h"]))
 rule2(types=FileType(types=[".cc", ".h"]))
@@ -218,4 +218,18 @@ FileType = foo
 rule1(types=FileType([".cc", ".h"]))
 rule2(types=FileType(types=[".cc", ".h"]))
 `, []string{}, false)
+}
+
+func TestOutputGroupWarning(t *testing.T) {
+	checkFindingsAndFix(t, "output-group", `
+def _impl(ctx):
+    bin = ctx.attr.my_dep.output_group.bin
+`, `
+def _impl(ctx):
+    bin = ctx.attr.my_dep[OutputGroupInfo].bin
+`,
+		[]string{
+			":2: \"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".",
+		},
+		false)
 }

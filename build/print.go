@@ -276,6 +276,17 @@ func isFunctionDefinition(x Expr) bool {
 	}
 }
 
+// isDifferentLines reports whether two positions belong to different lines.
+// If one of the positions is null (Line == 0), it's not a real position but probably an indicator
+// of manually inserted node. Return false in this case
+func isDifferentLines(p1, p2 Position) bool {
+	if p1.Line == 0 || p2.Line == 0 {
+		return false
+	}
+	return p1.Line != p2.Line
+}
+
+
 // Expression formatting.
 
 // The expression formatter must introduce parentheses to force the
@@ -420,7 +431,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
 		_, xEnd := v.X.Span()
-		isMultiline := v.NamePos.Line > xEnd.Line
+		isMultiline := isDifferentLines(v.NamePos, xEnd)
 		if isMultiline {
 			p.margin += listIndentation
 			p.breakline()
