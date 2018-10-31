@@ -279,7 +279,7 @@ func isFunctionDefinition(x Expr) bool {
 // isDifferentLines reports whether two positions belong to different lines.
 // If one of the positions is null (Line == 0), it's not a real position but probably an indicator
 // of manually inserted node. Return false in this case
-func isDifferentLines(p1, p2 Position) bool {
+func isDifferentLines(p1, p2 *Position) bool {
 	if p1.Line == 0 || p2.Line == 0 {
 		return false
 	}
@@ -430,7 +430,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
 		_, xEnd := v.X.Span()
-		isMultiline := isDifferentLines(v.NamePos, xEnd)
+		isMultiline := isDifferentLines(&v.NamePos, &xEnd)
 		if isMultiline {
 			p.margin += listIndentation
 			p.breakline()
@@ -717,16 +717,20 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	// should also keep the original style regardless of the mode.
 	if p.level != 0 || !p.buildMode || mode == modeDef {
 		// If every element (including the brackets) ends on the same line where the next element starts,
-		// use the compact mode, otherwise use multiline mode
-		previousEnd := start.Line
+		// use the compact mode, otherwise use multiline mode.
+		// If an node's line number is 0, it means it doesn't appear in the original file,
+		// its position shouldn't be taken into account.
+		previousEnd := start
 		for _, x := range *list {
 			start, end := x.Span()
-			if start.Line != previousEnd {
+			if isDifferentLines(&start, previousEnd) {
 				return false
 			}
-			previousEnd = end.Line
+			if end.Line != 0 {
+				previousEnd = &end
+			}
 		}
-		if end != nil && previousEnd != end.Pos.Line {
+		if end != nil && isDifferentLines(previousEnd, &end.Pos) {
 			return false
 		}
 		return true
