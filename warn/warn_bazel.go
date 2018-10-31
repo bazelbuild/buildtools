@@ -105,13 +105,12 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 			// It may be not correct to just replace the ident's name with `alternative` as it may be something complex
 			// like `native.package_name()` which is not a valid ident, but it's fine for reformatting.
 			ident.Name = alternative
-		} else {
-			start, end := ident.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, category,
-					"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
+			return
 		}
-
+		start, end := ident.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, category,
+				"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
@@ -191,12 +190,12 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		}
 		if fix {
 			call.List = append(call.List[:i], call.List[i+1:]...)
-		} else {
-			start, end := param.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "attr-cfg",
-					"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
+			return
 		}
+		start, end := param.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "attr-cfg",
+				"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
 	})
 	return findings
 }
