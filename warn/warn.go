@@ -527,7 +527,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 		} else {
 			fn := RuleWarningMap[warn]
 			if fn == nil {
-				log.Fatalf("unexpected warning %q in package %s", warn, pkg)
+				log.Fatalf("unexpected warning %q", warn)
 			}
 			if !f.Build {
 				continue
