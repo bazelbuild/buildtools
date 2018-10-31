@@ -32,12 +32,10 @@ rule(
       "bar": attr.label_list(mandatory = True, non_empty = False),
       "baz": attr.label_list(mandatory = True, non_empty = foo.bar()),
       "qux": attr.label_list(mandatory = True, non_empty = not foo.bar()),
-      "aaa": attr.label_list(mandatory = True, non_empty = (
-					foo.bar())
-			),
+      "aaa": attr.label_list(mandatory = True, non_empty = (foo.bar())),
       "bbb": attr.label_list(mandatory = True, non_empty = (
-					not foo.bar())
-			),
+					not foo.bar()
+			)),
   }
 )`, `
 rule(
@@ -46,12 +44,10 @@ rule(
       "bar": attr.label_list(mandatory = True, allow_empty = True),
       "baz": attr.label_list(mandatory = True, allow_empty = not foo.bar()),
       "qux": attr.label_list(mandatory = True, allow_empty = foo.bar()),
-      "aaa": attr.label_list(mandatory = True, allow_empty = (
-					not foo.bar())
-			),
+      "aaa": attr.label_list(mandatory = True, allow_empty = (not foo.bar())),
       "bbb": attr.label_list(mandatory = True, allow_empty = (
-					foo.bar())
-			),
+					foo.bar()
+			)),
   }
 )`,
 		[]string{
@@ -60,7 +56,7 @@ rule(
 			":5: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 			":6: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 			":7: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
-			":10: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+			":8: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 		},
 		false)
 }
@@ -230,6 +226,89 @@ def _impl(ctx):
 `,
 		[]string{
 			":2: \"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".",
+		},
+		false)
+}
+
+func TestNativeGitRepositoryWarning(t *testing.T) {
+	checkFindingsAndFix(t, "git-repository", `
+"""My file"""
+
+def macro():
+    git_repository(foo, bar)
+`, `
+"""My file"""
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+def macro():
+    git_repository(foo, bar)
+`,
+		[]string{
+			":4: Function \"git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+		},
+		false)
+
+	checkFindingsAndFix(t, "git-repository", `
+"""My file"""
+
+def macro():
+    git_repository(foo, bar)
+    new_git_repository(foo, bar)
+`, `
+"""My file"""
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+
+def macro():
+    git_repository(foo, bar)
+    new_git_repository(foo, bar)
+`,
+		[]string{
+			":4: Function \"git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+			":5: Function \"new_git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+		},
+		false)
+
+	checkFindingsAndFix(t, "git-repository", `
+"""My file"""
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+def macro():
+    git_repository(foo, bar)
+    new_git_repository(foo, bar)
+`, `
+"""My file"""
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+
+def macro():
+    git_repository(foo, bar)
+    new_git_repository(foo, bar)
+`,
+		[]string{
+			":7: Function \"new_git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+		},
+		false)
+}
+
+func TestNativeHttpArchiveWarning(t *testing.T) {
+	checkFindingsAndFix(t, "http-archive", `
+"""My file"""
+
+def macro():
+    http_archive(foo, bar)
+`, `
+"""My file"""
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+def macro():
+    http_archive(foo, bar)
+`,
+		[]string{
+			":4: Function \"http_archive\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:http.bzl\".",
 		},
 		false)
 }

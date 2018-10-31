@@ -297,3 +297,21 @@ just use a list of strings.
 
 The `output_group` field of a target is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-output-group-field-on-target)
 in favor of the [`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+
+--------------------------------------------------------------------------------
+
+## <a name="git-repository"></a>Function `git_repository` is not global anymore
+
+Native `git_repository` and `new_git_repository` functions are [being removed](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-git-repository).
+Please use the Starklark versions instead:
+
+    load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+
+--------------------------------------------------------------------------------
+
+## <a name="http-archive"></a>Function `http_archive` is not global anymore
+
+Native `http_archive` function are [being removed](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-http-archive).
+Please use the Starklark versions instead:
+
+    load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

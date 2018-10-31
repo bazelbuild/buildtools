@@ -3,6 +3,7 @@ package warn
 import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
+	"github.com/bazelbuild/buildtools/edit"
 )
 
 // Bazel-specific warnings
@@ -108,6 +109,52 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
+
+	return findings
+}
+
+// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported  function in the file
+// and adds a load statement if necessary.
+func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
+	findings := []*Finding{}
+	toLoad := []string{}
+
+	var walk func(e *build.Expr, env *bzlenv.Environment)
+	walk = func(e *build.Expr, env *bzlenv.Environment) {
+		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+
+		call, ok := (*e).(*build.CallExpr)
+		if !ok {
+			return
+		}
+
+		ident, ok := (call.X).(*build.Ident)
+		if !ok {
+			return
+		}
+
+		if binding := env.Get(ident.Name); binding != nil {
+			return
+		}
+		for _, global := range globals {
+			if ident.Name == global {
+				if fix {
+					toLoad = append(toLoad, global)
+					return
+				}
+				start, end := call.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, category,
+						"Function \""+global+"\" is not global anymore and needs to be loaded from \""+loadFrom+"\".", true, nil))
+			}
+		}
+	}
+	var expr build.Expr = f
+	walk(&expr, bzlenv.NewEnvironment())
+
+	if fix && len(toLoad) > 0 {
+		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, toLoad, toLoad)
+	}
 
 	return findings
 }
@@ -330,4 +377,12 @@ func outputGroupWarning(f *build.File, fix bool) []*Finding {
 		}
 	})
 	return findings
+}
+
+func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
+	return notLoadedFunctionUsageCheck(f, "git-repository", []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl", fix)
+}
+
+func nativeHttpArchiveWarning(f *build.File, fix bool) []*Finding {
+	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
 }
