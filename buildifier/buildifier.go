@@ -46,6 +46,7 @@ var (
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
+	warnings      = flag.String("warnings", "all", "comma-separated warnings used in the lint mode or \"all\" (default all)")
 	filePath      = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
@@ -157,6 +158,15 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Check lint warnings
+	var warningsList []string
+	switch *warnings {
+	case "", "all":
+		warningsList = warn.AllWarnings
+	default:
+		warningsList = strings.Split(*warnings, ",")
+	}
+
 	// If the path flag is set, must only be formatting a single file.
 	// It doesn't make sense for multiple files to have the same path.
 	if (*filePath != "" || *mode == "print_if_changed") && len(args) > 1 {
@@ -190,9 +200,9 @@ func main() {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("stdin", data, *inputType, *lint)
+		processFile("stdin", data, *inputType, *lint, warningsList)
 	} else {
-		processFiles(args, *inputType, *lint)
+		processFiles(args, *inputType, *lint, warningsList)
 	}
 
 	if err := diff.Run(); err != nil {
@@ -207,7 +217,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func processFiles(files []string, inputType, lint string) {
+func processFiles(files []string, inputType, lint string, warningsList []string) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -252,7 +262,7 @@ func processFiles(files []string, inputType, lint string) {
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data, inputType, lint)
+		processFile(file, res.data, inputType, lint, warningsList)
 	}
 }
 
@@ -274,7 +284,7 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList []string) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -299,9 +309,9 @@ func processFile(filename string, data []byte, inputType, lint string) {
 	pkg := getPackageName(filename)
 	switch lint {
 	case "warn":
-		warn.PrintWarnings(f, pkg, warn.AllWarnings, false)
+		warn.PrintWarnings(f, pkg, warningsList, false)
 	case "fix":
-		warn.FixWarnings(f, pkg, warn.AllWarnings)
+		warn.FixWarnings(f, pkg, warningsList)
 	}
 
 	if *filePath != "" {
