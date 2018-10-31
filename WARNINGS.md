@@ -278,6 +278,13 @@ instead.
 
 --------------------------------------------------------------------------------
 
+## <a name="load-on-top"></a>Load statements should be at the top of the file.
+
+Load statements should be first statements (with the exception of `WORKSPACE` files),
+they can follow only comments and docstrings.
+
+--------------------------------------------------------------------------------
+
 ## <a name="filetype"></a>The `FileType` function is deprecated
 
 The function `FileType` is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated).
