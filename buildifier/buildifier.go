@@ -164,7 +164,7 @@ func main() {
 	case "", "all":
 		warningsList = warn.AllWarnings
 	default:
-		warningsList = strings.Split(strings.Replace(*warnings, "_", "-", -1), ",")
+		warningsList = strings.Split(*warnings, ",")
 	}
 
 	// If the path flag is set, must only be formatting a single file.
