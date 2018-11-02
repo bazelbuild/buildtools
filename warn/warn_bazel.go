@@ -89,23 +89,28 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
-		if ident, ok := (*e).(*build.Ident); ok {
-			if ident.Name == global {
-				if binding := env.Get(ident.Name); binding == nil {
-					if fix {
-						// It may be not correct to just replace the ident's name with `alternative` as it may be something complex
-						// like `native.package_name()` which is not a valid ident, but it's fine for reformatting.
-						ident.Name = alternative
-					} else {
-						start, end := ident.Span()
-						findings = append(findings,
-							makeFinding(f, start, end, category,
-								"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
-					}
-				}
-			}
+		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+
+		ident, ok := (*e).(*build.Ident)
+		if !ok {
+			return
 		}
-		bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+		if ident.Name != global {
+			return
+		}
+		if binding := env.Get(ident.Name); binding != nil {
+			return
+		}
+		if fix {
+			// It may be not correct to just replace the ident's name with `alternative` as it may be something complex
+			// like `native.package_name()` which is not a valid ident, but it's fine for reformatting.
+			ident.Name = alternative
+			return
+		}
+		start, end := ident.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, category,
+				"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
@@ -185,12 +190,12 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		}
 		if fix {
 			call.List = append(call.List[:i], call.List[i+1:]...)
-		} else {
-			start, end := param.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "attr-cfg",
-					"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
+			return
 		}
+		start, end := param.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "attr-cfg",
+				"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
 	})
 	return findings
 }
@@ -248,26 +253,26 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 		if singleFileParam == nil {
 			return
 		}
-		if fix {
-			value := singleFileParam.Y
-			if boolean, ok := value.(*build.Ident); ok && boolean.Name == "False" {
-				// if the value is `False`, just remove the whole parameter
-				call.List = append(call.List[:i], call.List[i+1:]...)
-			} else {
-				// search for `allow_files` parameter in the same attr definition and remove it
-				j, _, allowFilesParam := getParam(call.List, "allow_files")
-				if allowFilesParam != nil {
-					value = allowFilesParam.Y
-					call.List = append(call.List[:j], call.List[j+1:]...)
-				}
-				singleFileParam.Y = value
-				name.Name = "allow_single_file"
-			}
-		} else {
+		if !fix {
 			start, end := singleFileParam.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "attr-single-file",
 					"single_file is deprecated in favor of allow_single_file.", true, nil))
+			return
+		}
+		value := singleFileParam.Y
+		if boolean, ok := value.(*build.Ident); ok && boolean.Name == "False" {
+			// if the value is `False`, just remove the whole parameter
+			call.List = append(call.List[:i], call.List[i+1:]...)
+		} else {
+			// search for `allow_files` parameter in the same attr definition and remove it
+			j, _, allowFilesParam := getParam(call.List, "allow_files")
+			if allowFilesParam != nil {
+				value = allowFilesParam.Y
+				call.List = append(call.List[:j], call.List[j+1:]...)
+			}
+			singleFileParam.Y = value
+			name.Name = "allow_single_file"
 		}
 	})
 	return findings
