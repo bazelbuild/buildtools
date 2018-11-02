@@ -549,7 +549,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 // their link in square brackets.
 func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showReplacements bool) {
 	warnings := FileWarnings(f, pkg, enabledWarnings, false)
-	sort.Slice(warnings, func(i, j int) bool {return warnings[i].Start.Line < warnings[j].Start.Line})
+	sort.Slice(warnings, func(i, j int) bool { return warnings[i].Start.Line < warnings[j].Start.Line })
 	for _, w := range warnings {
 		formatString := "%s:%d: %s: %s (%s)"
 		if !w.Actionable {
