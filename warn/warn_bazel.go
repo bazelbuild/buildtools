@@ -388,6 +388,6 @@ func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "git-repository", []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl", fix)
 }
 
-func nativeHttpArchiveWarning(f *build.File, fix bool) []*Finding {
+func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
 }

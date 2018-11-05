@@ -447,7 +447,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"duplicated-name":    duplicatedNameWarning,
 	"filetype":           fileTypeWarning,
 	"git-repository":     nativeGitRepositoryWarning,
-	"http-archive":       nativeHttpArchiveWarning,
+	"http-archive":       nativeHTTPArchiveWarning,
 	"integer-division":   integerDivisionWarning,
 	"load":               unusedLoadWarning,
 	"load-on-top":        loadOnTopWarning,
