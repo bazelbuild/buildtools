@@ -548,14 +548,17 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 // Actionable warnings list their link in parens, inactionable warnings list
 // their link in square brackets.
 func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showReplacements bool) {
-	for _, w := range FileWarnings(f, pkg, enabledWarnings, false) {
-		formatString := "%s:%d: %s (%s)"
+	warnings := FileWarnings(f, pkg, enabledWarnings, false)
+	sort.Slice(warnings, func(i, j int) bool { return warnings[i].Start.Line < warnings[j].Start.Line })
+	for _, w := range warnings {
+		formatString := "%s:%d: %s: %s (%s)"
 		if !w.Actionable {
-			formatString = "%s:%d: %s [%s]"
+			formatString = "%s:%d: %s: %s [%s]"
 		}
 		fmt.Fprintf(os.Stderr, formatString,
 			w.File.Path,
 			w.Start.Line,
+			w.Category,
 			w.Message,
 			w.URL)
 		if showReplacements && w.Replacement != nil {
@@ -572,17 +575,10 @@ func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showRepl
 
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string) {
-	for _, w := range FileWarnings(f, pkg, enabledWarnings, true) {
-		formatString := "not fixed: %s:%d: %s (%s)\n"
-		if !w.Actionable {
-			formatString = "not fixed: %s:%d: %s [%s]\n"
-		}
-		fmt.Fprintf(os.Stderr, formatString,
-			w.File.Path,
-			w.Start.Line,
-			w.Message,
-			w.URL)
-	}
+	warnings := FileWarnings(f, pkg, enabledWarnings, true)
+	fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
+		f.Path,
+		len(warnings))
 }
 
 func collectAllWarnings() []string {
