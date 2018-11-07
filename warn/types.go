@@ -15,6 +15,7 @@ const (
 	Depset
 	Dict
 	Int
+	None
 	String
 )
 
@@ -25,12 +26,13 @@ func(t Type) String() string {
 		"depset",
 		"dict",
 		"int",
+		"none",
 		"string",
 	}[t]
 }
 
 func detectTypes(f *build.File) map[build.Expr]Type {
-	variables := make(map[bzlenv.NameInfo]Type)
+	variables := make(map[int]Type)
   result := make(map[build.Expr]Type)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
@@ -63,13 +65,17 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		case *build.ParenExpr:
 			nodeType = result[node.X]
 		case *build.Ident:
-			if node.Name == "True" || node.Name == "False" {
+			switch node.Name {
+			case "True", "False":
 				nodeType = Bool
+				break
+			case "None":
+				nodeType = None
 				break
 			}
 			binding := env.Get(node.Name)
 			if binding != nil {
-				if t, ok := variables[*binding]; ok {
+				if t, ok := variables[binding.ID]; ok {
 					nodeType = t
 				}
 			}
@@ -89,7 +95,7 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				if binding == nil {
 					break
 				}
-				variables[*binding] = t
+				variables[binding.ID] = t
 
 			case ">", ">=", "<", "<=", "==", "!=", "in", "not in":
 				// Boolean
