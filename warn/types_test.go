@@ -2,9 +2,9 @@ package warn
 
 import (
 	"bytes"
-	"testing"
-	"strings"
 	"fmt"
+	"strings"
+	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/testutils"
@@ -25,7 +25,7 @@ func checkTypes(t *testing.T, input, output string) {
 			build.EditChildren(expr, edit)
 			start, _ := expr.Span()
 			return &build.Ident{
-				Name: fmt.Sprintf("%s:<%s>", t, build.FormatString(expr)),
+				Name:    fmt.Sprintf("%s:<%s>", t, build.FormatString(expr)),
 				NamePos: start,
 			}
 		}

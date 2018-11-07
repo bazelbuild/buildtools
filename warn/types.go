@@ -19,7 +19,7 @@ const (
 	String
 )
 
-func(t Type) String() string {
+func (t Type) String() string {
 	return [...]string{
 		"unknown",
 		"bool",
@@ -33,7 +33,7 @@ func(t Type) String() string {
 
 func detectTypes(f *build.File) map[build.Expr]Type {
 	variables := make(map[int]Type)
-  result := make(map[build.Expr]Type)
+	result := make(map[build.Expr]Type)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
@@ -112,8 +112,8 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			}
 		}
 
-    if nodeType != Unknown {
-    	result[*e] = nodeType
+		if nodeType != Unknown {
+			result[*e] = nodeType
 		}
 	}
 	var expr build.Expr = f
