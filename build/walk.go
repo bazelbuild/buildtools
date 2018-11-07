@@ -42,6 +42,15 @@ func Edit(v Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	return walk1(&v, &stack, f)
 }
 
+// EditChildren is similar to Edit but doesn't visit the initial node, instead goes
+// directly to its children.
+func EditChildren(v Expr, f func(x Expr, stk []Expr) Expr) {
+	stack := []Expr{v}
+	WalkOnce(v, func(x *Expr) {
+		walk1(x, &stack, f)
+	})
+}
+
 // walk1 is a helper function for Walk, WalkWithPostfix, and Edit.
 func walk1(v *Expr, stack *[]Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	if v == nil {
