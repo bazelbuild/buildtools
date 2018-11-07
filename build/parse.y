@@ -549,13 +549,13 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($1, $2, $3),
 		}
 	}
-|	'{' tests_opt '}'  // TODO: remove, not supported
+|	'{' tests comma_opt '}'  // TODO: remove, not supported
 	{
 		$$ = &SetExpr{
 			Start: $1,
 			List: $2,
-			End: End{Pos: $3},
-			ForceMultiLine: forceMultiLine($1, $2, $3),
+			End: End{Pos: $4},
+			ForceMultiLine: forceMultiLine($1, $2, $4),
 		}
 	}
 |	'(' tests_opt ')'
@@ -835,7 +835,10 @@ keyvalues_no_comma:
 	}
 
 keyvalues:
-	keyvalues_no_comma
+	{
+		$$ = nil
+	}
+|	keyvalues_no_comma
 	{
 		$$ = $1
 	}
