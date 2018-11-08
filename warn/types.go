@@ -41,6 +41,11 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		walkOnce(*e, env, walk)
 
 		nodeType := Unknown
+		defer func() {
+			if nodeType != Unknown {
+				result[*e] = nodeType
+			}
+		}()
 
 		switch node := (*e).(type) {
 		case *build.StringExpr:
@@ -68,10 +73,10 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			switch node.Name {
 			case "True", "False":
 				nodeType = Bool
-				break
+				return
 			case "None":
 				nodeType = None
-				break
+				return
 			}
 			binding := env.Get(node.Name)
 			if binding != nil {
@@ -85,15 +90,15 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				// Assignments
 				t, ok := result[node.Y]
 				if !ok {
-					break
+					return
 				}
 				ident, ok := (node.X).(*build.Ident)
 				if !ok {
-					break
+					return
 				}
 				binding := env.Get(ident.Name)
 				if binding == nil {
-					break
+					return
 				}
 				variables[binding.ID] = t
 
@@ -110,10 +115,6 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 					nodeType = t
 				}
 			}
-		}
-
-		if nodeType != Unknown {
-			result[*e] = nodeType
 		}
 	}
 	var expr build.Expr = f

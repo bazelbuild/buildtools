@@ -14,7 +14,7 @@ func checkTypes(t *testing.T, input, output string) {
 	input = strings.TrimLeft(input, "\n")
 	f, err := build.Parse("test.bzl", []byte(input))
 	if err != nil {
-		panic(fmt.Sprintf("%v", err))
+		t.Fatalf("%v", err)
 	}
 	types := detectTypes(f)
 
