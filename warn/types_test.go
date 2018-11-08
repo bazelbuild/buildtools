@@ -20,16 +20,17 @@ func checkTypes(t *testing.T, input, output string) {
 
 	var edit func(expr build.Expr, stack []build.Expr) build.Expr
 	edit = func(expr build.Expr, stack []build.Expr) build.Expr {
-		if t, ok := types[expr]; ok {
-			// Traverse the node's children before modifying this node.
-			build.EditChildren(expr, edit)
-			start, _ := expr.Span()
-			return &build.Ident{
-				Name:    fmt.Sprintf("%s:<%s>", t, build.FormatString(expr)),
-				NamePos: start,
-			}
+		t, ok := types[expr]
+		if !ok {
+			return nil
 		}
-		return nil
+		// Traverse the node's children before modifying this node.
+		build.EditChildren(expr, edit)
+		start, _ := expr.Span()
+		return &build.Ident{
+			Name:    fmt.Sprintf("%s:<%s>", t, build.FormatString(expr)),
+			NamePos: start,
+		}
 	}
 
 	build.Edit(f, edit)
