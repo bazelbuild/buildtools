@@ -413,3 +413,45 @@ d += foo + bar
 		},
 		false)
 }
+
+func TestStringIteration(t *testing.T) {
+	checkFindings(t, "string-iteration", `
+s = "foo" + bar
+
+max(s)
+min(s)
+all(s)
+any(s)
+reversed(s)
+zip(s, a, b)
+zip(a, s)
+
+[foo(x) for x in s]
+
+for x in s:
+    pass
+
+# The following iterations over a list don't trigger warnings
+
+l = list()
+
+max(l)
+zip(l, foo)
+[foo(x) for x in l]
+
+for x in l:
+    pass
+`,
+		[]string{
+			":3: String iteration is deprecated.",
+			":4: String iteration is deprecated.",
+			":5: String iteration is deprecated.",
+			":6: String iteration is deprecated.",
+			":7: String iteration is deprecated.",
+			":8: String iteration is deprecated.",
+			":9: String iteration is deprecated.",
+			":11: String iteration is deprecated.",
+			":13: String iteration is deprecated.",
+		},
+		false)
+}
