@@ -452,6 +452,52 @@ func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func stringIterationWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	addWarning := func(expr build.Expr) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "string-iteration",
+				"String iteration is deprecated.", true, nil))
+	}
+
+	types := detectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		switch expr := expr.(type) {
+		case *build.ForStmt:
+			if types[expr.X] == String {
+				addWarning(expr.X)
+			}
+		case *build.ForClause:
+			if types[expr.X] == String {
+				addWarning(expr.X)
+			}
+		case *build.CallExpr:
+			ident, ok := expr.X.(*build.Ident)
+			if !ok {
+				return
+			}
+			switch ident.Name {
+			case "all", "any", "reversed", "max", "min":
+				if len(expr.List) != 1 {
+					return
+				}
+				if types[expr.List[0]] == String {
+					addWarning(expr.List[0])
+				}
+			case "zip":
+				for _, arg := range expr.List {
+					if types[arg] == String {
+						addWarning(arg)
+					}
+				}
+			}
+		}
+	})
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -479,6 +525,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"package-on-top":     packageOnTopWarning,
 	"redefined-variable": redefinedVariableWarning,
 	"repository-name":    repositoryNameWarning,
+	"string-iteration":   stringIterationWarning,
 	"unused-variable":    unusedVariableWarning,
 }
 
