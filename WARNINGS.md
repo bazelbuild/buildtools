@@ -361,7 +361,6 @@ Depsets are complex structures, iterations over them and lookups require flatten
 a list which may be a heavy operation. To make it more obvious it's now required to call
 the `.to_list()` method on them in order to be able to iterate their items:
 
-
     deps = depset()
     [x.path for x in deps]  # deprecated
     [x.path for x in deps.to_list()]  # recommended

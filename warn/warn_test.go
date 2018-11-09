@@ -486,6 +486,11 @@ len(d)
 for x in d:
     pass
 
+# Non-iteration is ok
+
+foobar(d)
+d == b
+
 # The following iterations over a list don't trigger warnings
 
 l = list([1, 2, 3])
@@ -525,6 +530,11 @@ len(d.to_list())
 
 for x in d.to_list():
     pass
+
+# Non-iteration is ok
+
+foobar(d)
+d == b
 
 # The following iterations over a list don't trigger warnings
 
