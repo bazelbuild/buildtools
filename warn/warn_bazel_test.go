@@ -91,9 +91,7 @@ def impl(ctx):
   ctx.new_file(foo)
   ctx.new_file(foo, bar)
   ctx.new_file(foo, bar, baz)
-  ctx.experimental_new_directory(foo)
   ctx.experimental_new_directory(foo, bar)
-  ctx.experimental_new_directory(foo, bar, baz)
   ctx.file_action(foo, bar)
   ctx.file_action(foo, bar, executable = True)
   ctx.action(foo, bar, command = "foo")
@@ -107,9 +105,7 @@ def impl(ctx):
   ctx.actions.declare_file(foo)
   ctx.actions.declare_file(bar, sibling = foo)
   ctx.new_file(foo, bar, baz)
-  ctx.actions.declare_directory(foo)
-  ctx.actions.declare_directory(bar, sibling = foo)
-  ctx.experimental_new_directory(foo, bar, baz)
+  ctx.actions.declare_directory(foo, bar)
   ctx.actions.write(foo, bar)
   ctx.actions.write(foo, bar, is_executable = True)
   ctx.actions.run_shell(foo, bar, command = "foo")
@@ -124,25 +120,21 @@ def impl(ctx):
 			":3: \"ctx.new_file\" is deprecated.",
 			":4: \"ctx.new_file\" is deprecated.",
 			":5: \"ctx.experimental_new_directory\" is deprecated.",
-			":6: \"ctx.experimental_new_directory\" is deprecated.",
-			":7: \"ctx.experimental_new_directory\" is deprecated.",
-			":8: \"ctx.file_action\" is deprecated.",
-			":9: \"ctx.file_action\" is deprecated.",
-			":10: \"ctx.action\" is deprecated.",
-			":11: \"ctx.action\" is deprecated.",
-			":12: \"ctx.empty_action\" is deprecated.",
-			":13: \"ctx.template_action\" is deprecated.",
-			":14: \"ctx.template_action\" is deprecated.",
+			":6: \"ctx.file_action\" is deprecated.",
+			":7: \"ctx.file_action\" is deprecated.",
+			":8: \"ctx.action\" is deprecated.",
+			":9: \"ctx.action\" is deprecated.",
+			":10: \"ctx.empty_action\" is deprecated.",
+			":11: \"ctx.template_action\" is deprecated.",
+			":12: \"ctx.template_action\" is deprecated.",
 		},
 		false)
 
 	checkFindings(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo, bar, baz)
-  ctx.experimental_new_directory(foo, bar, baz)
 `, []string{
 		":2: \"ctx.new_file\" is deprecated.",
-		":3: \"ctx.experimental_new_directory\" is deprecated.",
 	}, false)
 }
 

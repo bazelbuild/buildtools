@@ -316,7 +316,7 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		switch dot.Name {
 		case "new_file":
 			if len(call.List) > 2 {
-				// Can't fix automatically
+				// Can't fix automatically because the new API doesn't support the 3 arguments signature
 				addWarning(dot, dot.Name)
 				return
 			}
@@ -327,17 +327,7 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 				call.List[0], call.List[1] = makePositional(call.List[1]), makeKeyword(call.List[0], "sibling")
 			}
 		case "experimental_new_directory":
-			if len(call.List) > 2 {
-				// Can't fix automatically
-				addWarning(dot, dot.Name)
-				return
-			}
 			dot.Name = "actions.declare_directory"
-			if len(call.List) == 2 {
-				// swap arguments:
-				// ctx.new_file(sibling, name) -> ctx.actions.declare_file(name, sibling=sibling)
-				call.List[0], call.List[1] = makePositional(call.List[1]), makeKeyword(call.List[0], "sibling")
-			}
 		case "file_action":
 			dot.Name = "actions.write"
 			_, ident, _ := getParam(call.List, "executable")
