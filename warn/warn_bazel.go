@@ -59,29 +59,6 @@ func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.B
 	return -1, nil, nil
 }
 
-func getNewActionName(name string, params []build.Expr) (string, bool) {
-	switch name {
-	case "new_file":
-		return "actions.declare_file", true
-	case "experimental_new_directory":
-		return "actions.declare_directory", true
-	case "file_action":
-		return "actions.write", true
-	case "action":
-		_, _, command := getParam(params, "command")
-		if command != nil {
-			return "actions.run_shell", true
-		}
-		return "actions.run", true
-	case "empty_action":
-		return "actions.do_nothing", true
-	case "template_action":
-		return "actions.expand_template", true
-	default:
-		return "", false
-	}
-}
-
 // globalVariableUsageCheck checks whether there's a usage of a given global variable in the file.
 // It's ok to shadow the name with a local variable and use it.
 func globalVariableUsageCheck(f *build.File, category, global, alternative string, fix bool) []*Finding {
@@ -162,6 +139,33 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 	}
 
 	return findings
+}
+
+// makePositional makes the function argument positional (removes the keyword if it exists)
+func makePositional(argument build.Expr) build.Expr {
+	if binary, ok := argument.(*build.BinaryExpr); ok {
+		return binary.Y
+	}
+	return argument
+}
+
+// makeKeyword makes the function argument keyword (adds or edits the keyword name)
+func makeKeyword(argument build.Expr, name string) build.Expr {
+	binary, ok := argument.(*build.BinaryExpr)
+	if !ok {
+		return &build.BinaryExpr{
+			X:  &build.Ident{Name: name},
+			Op: "=",
+			Y:  argument,
+		}
+	}
+	ident, ok := binary.X.(*build.Ident)
+	if !ok {
+		binary.X = &build.Ident{Name: name}
+		return binary
+	}
+	ident.Name = name
+	return argument
 }
 
 func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
@@ -280,6 +284,14 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 
 func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	addWarning := func(expr build.Expr, name string) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "ctx-actions",
+				"\"ctx."+name+"\" is deprecated.", true, nil))
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: ctx.xxxx(...)
 		call, ok := expr.(*build.CallExpr)
@@ -294,20 +306,49 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		if !ok || base.Name != "ctx" {
 			return
 		}
-		newName, ok := getNewActionName(dot.Name, call.List)
-		if !ok {
+		if !fix {
+			switch dot.Name {
+			case "new_file", "experimental_new_directory", "file_action", "action", "empty_action", "template_action":
+				addWarning(dot, dot.Name)
+			}
 			return
 		}
-		if fix {
-			// Not entirely coorect because `newName` may be a sequence of attributes, e.g. `actions.run`.
-			// But that's fine for formatting purposes.
-			dot.Name = newName
-		} else {
-			start, end := dot.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "ctx-actions",
-					"\"ctx."+dot.Name+"\" is deprecated in favor of \"ctx."+newName+"\".", true, nil))
+		switch dot.Name {
+		case "new_file":
+			if len(call.List) > 2 {
+				// Can't fix automatically because the new API doesn't support the 3 arguments signature
+				addWarning(dot, dot.Name)
+				return
+			}
+			dot.Name = "actions.declare_file"
+			if len(call.List) == 2 {
+				// swap arguments:
+				// ctx.new_file(sibling, name) -> ctx.actions.declare_file(name, sibling=sibling)
+				call.List[0], call.List[1] = makePositional(call.List[1]), makeKeyword(call.List[0], "sibling")
+			}
+		case "experimental_new_directory":
+			dot.Name = "actions.declare_directory"
+		case "file_action":
+			dot.Name = "actions.write"
+			_, ident, _ := getParam(call.List, "executable")
+			if ident != nil {
+				ident.Name = "is_executable"
+			}
+		case "action":
+			dot.Name = "actions.run"
+			_, _, command := getParam(call.List, "command")
+			if command != nil {
+				dot.Name = "actions.run_shell"
+			}
+		case "empty_action":
+			dot.Name = "actions.do_nothing"
+		case "template_action":
+			dot.Name = "actions.expand_template"
+			if _, ident, _ := getParam(call.List, "executable"); ident != nil {
+				ident.Name = "is_executable"
+			}
 		}
+		return
 	})
 	return findings
 }
