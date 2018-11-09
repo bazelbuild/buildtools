@@ -339,3 +339,16 @@ you can use one of the following:
     d = dict(d1)  # If you don't want `d1` to be mutated
     d.update(d2)
     d.update(d3)
+
+--------------------------------------------------------------------------------
+
+## <a name="string-iteration"></a>String iteration is deprecated
+
+Iteration over strings often leads to confusion with iteration over a sequence of strings,
+therefore strings won't be recognized as sequences of 1-element strings (like in Python).
+Use string indexing and `len` instead:
+
+    my_string = "hello world"
+    for i in range(len(my_string)):
+        char = my_string[i]
+        # do something with char
