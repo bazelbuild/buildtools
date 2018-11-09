@@ -430,6 +430,17 @@ zip(a, s)
 
 for x in s:
     pass
+
+# The following iterations over a list don't trigger warnings
+
+l = list()
+
+max(l)
+zip(l, foo)
+[foo(x) for x in l]
+
+for x in l:
+    pass
 `,
 		[]string{
 			":3: String iteration is deprecated.",
