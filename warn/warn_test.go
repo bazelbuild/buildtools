@@ -392,3 +392,24 @@ d //= e
 		},
 		false)
 }
+
+func TestDictionaryConcatenation(t *testing.T) {
+	checkFindings(t, "dict-concatenation", `
+d = {}
+
+d + foo
+foo + d
+d + foo + bar  # Should trigger 2 warnings: (d + foo) is recognized as a dict
+foo + bar + d  # Should trigger 1 warning: (foo + bar) is unknown
+d += foo + bar
+`,
+		[]string{
+			":3: Dictionary concatenation is deprecated.",
+			":4: Dictionary concatenation is deprecated.",
+			":5: Dictionary concatenation is deprecated.",
+			":5: Dictionary concatenation is deprecated.",
+			":6: Dictionary concatenation is deprecated.",
+			":7: Dictionary concatenation is deprecated.",
+		},
+		false)
+}

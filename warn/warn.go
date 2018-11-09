@@ -431,6 +431,27 @@ func noEffectWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	types := detectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		binary, ok := expr.(*build.BinaryExpr)
+		if !ok {
+			return
+		}
+		if binary.Op != "+" && binary.Op != "+=" {
+			return
+		}
+		if types[binary.X] == Dict || types[binary.Y] == Dict {
+			start, end := binary.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "dict-concatenation",
+					"Dictionary concatenation is deprecated.", true, nil))
+		}
+	})
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -444,6 +465,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"attr-single-file":   attrSingleFileWarning,
 	"constant-glob":      constantGlobWarning,
 	"ctx-actions":        ctxActionsWarning,
+	"dict-concatenation": dictionaryConcatenationWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"filetype":           fileTypeWarning,
 	"git-repository":     nativeGitRepositoryWarning,
