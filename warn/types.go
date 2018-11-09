@@ -92,6 +92,10 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				if !ok {
 					return
 				}
+				if node.Op == "%=" && t != String {
+					// If the right hand side is not a string, the left hand side can still be a string
+					return
+				}
 				ident, ok := (node.X).(*build.Ident)
 				if !ok {
 					return
@@ -112,7 +116,12 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				if t, ok := result[node.X]; ok {
 					nodeType = t
 				} else if t, ok := result[node.Y]; ok {
-					nodeType = t
+					if node.Op != "%" || t == String {
+						// The percent operator is special because it can be applied to to arguments of
+						// different types (`"%s\n" % foo`), and we can't assume that the expression has
+						// type X if the right-hand side has the type X.
+						nodeType = t
+					}
 				}
 			}
 		}
