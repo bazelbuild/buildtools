@@ -410,6 +410,6 @@ d += foo + bar
 			":5: Dictionary concatenation is deprecated.",
 			":6: Dictionary concatenation is deprecated.",
 			":7: Dictionary concatenation is deprecated.",
-	},
+		},
 		false)
 }
