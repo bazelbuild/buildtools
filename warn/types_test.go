@@ -143,4 +143,48 @@ dict:<bar + dict:<d>>
 depset:<depset:<s> | baz>
 depset:<baz | depset:<s>>
 `)
+
+	checkTypes(t, `
+n = 3
+s = "foo"
+
+foo % n
+foo % s
+foo % bar
+
+n % foo
+s % foo
+
+s %= foo
+n %= foo
+
+baz = unknown
+baz %= s
+baz
+
+boq = unknown
+boq %= n
+boq
+`, `
+n = int:<3>
+s = string:<"foo">
+
+foo % int:<n>
+string:<foo % string:<s>>
+foo % bar
+
+int:<int:<n> % foo>
+string:<string:<s> % foo>
+
+string:<s> %= foo
+int:<n> %= foo
+
+baz = unknown
+baz %= string:<s>
+string:<baz>
+
+boq = unknown
+boq %= int:<n>
+boq
+`)
 }
