@@ -315,3 +315,27 @@ Native `http_archive` function are [being removed](https://docs.bazel.build/vers
 Please use the Starklark versions instead:
 
     load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+--------------------------------------------------------------------------------
+
+## <a name="dict-concatenation"></a>Dictionary concatenation is deprecated
+
+The `+` operator to concatenate dicts is deprecated. The operator used to create a new dict and
+copy the data to it. There are several ways to avoid it, for example, instead of `d = d1 + d2 + d3`
+you can use one of the following:
+
+  * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
+  
+    load("@bazel_skylib//lib/dicts.bzl", "dicts")
+    
+    d = dicts.add(d1, d2, d3)
+
+  * The same if you don't want to use Skylib:
+
+    d = dict(d1.items() + d2.items() + d3.items())
+
+  * The same in several steps:
+
+    d = dict(d1)  # If you don't want `d1` to be mutated
+    d.update(d2)
+    d.update(d3)
