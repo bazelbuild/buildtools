@@ -38,8 +38,7 @@ the line or at the beginning of a rule.
   * Category name: `constant-glob`
   * Automatic fix: no
 
-[Glob function]
-(https://docs.bazel.build/versions/master/be/functions.html#glob)
+[Glob function](https://docs.bazel.build/versions/master/be/functions.html#glob)
 is used to get a list of files from the depot. The patterns (the first argument)
 typically include a wildcard (* character). A pattern without a wildcard is
 often useless and sometimes harmful.
