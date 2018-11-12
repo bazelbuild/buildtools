@@ -432,3 +432,58 @@ func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
 func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
 }
+
+func argsAPIWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	types := detectTypes(f)
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Search for `<ctx.actions.args>.add()` nodes
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := call.X.(*build.DotExpr)
+		if !ok || dot.Name != "add" || types[dot.X] != CtxActionsArgs {
+			return
+		}
+
+		// If neither before_each nor join_with nor map_fn is specified, the node is ok.
+		// Otherwise if join_with is specified, use `.add_joined` instead.
+		// Otherwise use `.add_all` instead.
+
+		_, beforeEachKw, beforeEach := getParam(call.List, "before_each")
+		_, _, joinWith := getParam(call.List, "join_with")
+		_, mapFnKw, mapFn := getParam(call.List, "map_fn")
+		if beforeEach == nil && joinWith == nil && mapFn == nil {
+			// No deprecated API detected
+			return
+		}
+		if !fix {
+			start, end := call.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "args-api",
+					"\"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".", true, nil))
+			return
+		}
+
+		dot.Name = "add_all"
+		if joinWith != nil {
+			dot.Name = "add_joined"
+			if beforeEach != nil {
+				// `add_joined` doesn't have a `before_each` parameter, replace it with `format_each`:
+				// `before_each = foo` -> `format_each = foo + "%s"`
+				beforeEachKw.Name = "format_each"
+				beforeEach.Y = &build.BinaryExpr{
+					X:  beforeEach.Y,
+					Op: "+",
+					Y:  &build.StringExpr{Value: "%s"},
+				}
+			}
+		}
+		if mapFnKw != nil {
+			mapFnKw.Name = "map_each"
+		}
+	})
+	return findings
+}

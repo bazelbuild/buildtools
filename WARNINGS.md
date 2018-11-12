@@ -465,3 +465,17 @@ Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/dep
 instead:
 
     depset(transitive = [depset1, depset2])
+
+--------------------------------------------------------------------------------
+
+## <a name="args-api"></a>`ctx.actions.args().add()` for multiple arguments is deprecated
+
+  * Category_name: `args-api`
+  * Flag in Bazel: [`--incompatible_disallow_old_style_args_add`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#new-args-api)
+  * Automatic fix: yes
+
+It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)
+method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either
+[`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
+[`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
+depending on the desired behavior.

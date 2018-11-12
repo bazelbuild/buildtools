@@ -188,3 +188,39 @@ boq %= int:<n>
 boq
 `)
 }
+
+func TestContext(t *testing.T) {
+	checkTypes(t, `
+def foobar(ctx, foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
+
+    actions = ctx.actions
+    not_args = actions.args
+    args = actions.args()
+    args
+`, `
+def foobar(ctx:<ctx>, foo, bar):
+    ctx:<ctx>
+    ctx.actions:<ctx:<ctx>.actions>
+    ctx.actions.args:<ctx.actions:<ctx:<ctx>.actions>.args()>
+
+    actions = ctx.actions:<ctx:<ctx>.actions>
+    not_args = ctx.actions:<actions>.args
+    args = ctx.actions.args:<ctx.actions:<actions>.args()>
+    ctx.actions.args:<args>
+`)
+
+	checkTypes(t, `
+def foobar(foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
+`, `
+def foobar(foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
+`)
+}

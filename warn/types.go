@@ -12,6 +12,9 @@ type Type int
 const (
 	Unknown Type = iota
 	Bool
+	Ctx
+	CtxActions
+	CtxActionsArgs
 	Depset
 	Dict
 	Int
@@ -23,6 +26,9 @@ func (t Type) String() string {
 	return [...]string{
 		"unknown",
 		"bool",
+		"ctx",
+		"ctx.actions",
+		"ctx.actions.args",
 		"depset",
 		"dict",
 		"int",
@@ -66,6 +72,10 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				case "dict":
 					nodeType = Dict
 				}
+			} else if dot, ok := (node.X).(*build.DotExpr); ok {
+				if result[dot.X] == CtxActions && dot.Name == "args" {
+					nodeType = CtxActionsArgs
+				}
 			}
 		case *build.ParenExpr:
 			nodeType = result[node.X]
@@ -77,12 +87,22 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			case "None":
 				nodeType = None
 				return
+			case "ctx":
+				binding := env.Get(node.Name)
+				if binding != nil && binding.Kind == bzlenv.Parameter {
+					nodeType = Ctx
+					return
+				}
 			}
 			binding := env.Get(node.Name)
 			if binding != nil {
 				if t, ok := variables[binding.ID]; ok {
 					nodeType = t
 				}
+			}
+		case *build.DotExpr:
+			if result[node.X] == Ctx && node.Name == "actions" {
+				nodeType = CtxActions
 			}
 		case *build.BinaryExpr:
 			switch node.Op {
