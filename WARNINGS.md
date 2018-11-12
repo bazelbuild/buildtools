@@ -352,3 +352,15 @@ Use string indexing and `len` instead:
     for i in range(len(my_string)):
         char = my_string[i]
         # do something with char
+
+--------------------------------------------------------------------------------
+
+## <a name="depset-iteration"></a>Depset iteration is deprecated
+
+Depsets are complex structures, iterations over them and lookups require flattening them to
+a list which may be a heavy operation. To make it more obvious it's now required to call
+the `.to_list()` method on them in order to be able to iterate their items:
+
+    deps = depset()
+    [x.path for x in deps]  # deprecated
+    [x.path for x in deps.to_list()]  # recommended

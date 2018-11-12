@@ -144,7 +144,7 @@ func walkOnce(node build.Expr, env *bzlenv.Environment, fct func(e *build.Expr, 
 	case *build.CallExpr:
 		fct(&expr.X, env)
 		for _, param := range expr.List {
-			if binary, ok := param.(*build.BinaryExpr); ok {
+			if binary, ok := param.(*build.BinaryExpr); ok && binary.Op == "=" {
 				fct(&binary.Y, env)
 			} else {
 				fct(&param, env)

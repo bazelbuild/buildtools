@@ -93,7 +93,7 @@ y = 4
 z = 5
 
 foo(y = "bar")
-foo(x, y = bar(z = z))
+foo(x, y = bar(z = z), t + z)
 
 
 def f(z = "bar"):
@@ -106,7 +106,7 @@ y = int:<4>
 z = int:<5>
 
 foo(y = string:<"bar">)
-foo(int:<x>, y = bar(z = int:<z>))
+foo(int:<x>, y = bar(z = int:<z>), int:<t + int:<z>>)
 
 def f(z = string:<"bar">):
     return string:<z>
