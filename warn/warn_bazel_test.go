@@ -331,3 +331,39 @@ def macro():
 		},
 		false)
 }
+
+func TestArgsApiWarning(t *testing.T) {
+	checkFindingsAndFix(t, "args-api", `
+def impl(ctx):
+    args = ctx.actions.args()
+    args.add(foo, bar)
+    args.add(foo, bar, before_each = aaa)
+    args.add(foo, bar, join_with = bbb)
+    args.add(foo, bar, before_each = ccc, join_with = ddd)
+    args.add(foo, bar, map_fn = eee)
+    args.add(foo, bar, map_fn = fff, before_each = ggg)
+    args.add(foo, bar, map_fn = hhh, join_with = iii)
+    args.add(foo, bar, map_fn = jjj, before_each = kkk, join_with = lll)
+`, `
+def impl(ctx):
+    args = ctx.actions.args()
+    args.add(foo, bar)
+    args.add_all(foo, bar, before_each = aaa)
+    args.add_joined(foo, bar, join_with = bbb)
+    args.add_joined(foo, bar, format_each = ccc + "%s", join_with = ddd)
+    args.add_all(foo, bar, map_each = eee)
+    args.add_all(foo, bar, map_each = fff, before_each = ggg)
+    args.add_joined(foo, bar, map_each = hhh, join_with = iii)
+    args.add_joined(foo, bar, map_each = jjj, format_each = kkk + "%s", join_with = lll)
+`,
+		[]string{
+			":4: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":5: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":6: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":7: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":8: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":9: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			":10: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+		},
+		false)
+}
