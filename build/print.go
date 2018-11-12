@@ -252,28 +252,10 @@ func isCommentBlock(x Expr) bool {
 	return ok
 }
 
-// isCodeBlock checks if the statement is a code block (def, if, for, etc.)
-func isCodeBlock(x Expr) bool {
-	switch x.(type) {
-	case *DefStmt:
-		return true
-	case *ForStmt:
-		return true
-	case *IfStmt:
-		return true
-	default:
-		return false
-	}
-}
-
 // isFunctionDefinition checks if the statement is a def code block
 func isFunctionDefinition(x Expr) bool {
-	switch x.(type) {
-	case *DefStmt:
-		return true
-	default:
-		return false
-	}
+	_, ok := x.(*DefStmt)
+	return ok
 }
 
 // isDifferentLines reports whether two positions belong to different lines.
