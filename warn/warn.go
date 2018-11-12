@@ -452,6 +452,48 @@ func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func depsetUnionWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	addWarning := func(expr build.Expr) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "depset-union",
+				"Depsets should be joined using the depset constructor.", true, nil))
+	}
+
+	types := detectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		switch expr := expr.(type) {
+		case *build.BinaryExpr:
+			// `depset1 + depset2` or `depset1 | depset2`
+			if types[expr.X] != Depset && types[expr.Y] != Depset {
+				return
+			}
+			switch expr.Op {
+			case "+", "|", "+=", "|=":
+				addWarning(expr)
+			}
+		case *build.CallExpr:
+			// `depset1.union(depset2)`
+			if len(expr.List) == 0 {
+				return
+			}
+			dot, ok := expr.X.(*build.DotExpr)
+			if !ok {
+				return
+			}
+			if dot.Name != "union" {
+				return
+			}
+			if types[dot.X] != Depset && types[expr.List[0]] != Depset {
+				return
+			}
+			addWarning(expr)
+		}
+	})
+	return findings
+}
+
 func stringIterationWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
@@ -609,6 +651,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"constant-glob":      constantGlobWarning,
 	"ctx-actions":        ctxActionsWarning,
 	"depset-iteration":   depsetIterationWarning,
+	"depset-union":       depsetUnionWarning,
 	"dict-concatenation": dictionaryConcatenationWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"filetype":           fileTypeWarning,

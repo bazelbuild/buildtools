@@ -32,7 +32,9 @@ func compareFinding(t *testing.T, input string, expected []string, findings []*F
 	if len(expected) != len(findings) {
 		t.Errorf("Input: %s", input)
 		t.Errorf("number of matches: %d, want %d", len(findings), len(expected))
-		t.Errorf("expected findings: %v", expected)
+		for _, e := range expected {
+			t.Errorf("expected: %s", e)
+		}
 		for _, f := range findings {
 			t.Errorf("got: %d: %s", f.Start.Line, f.Message)
 		}
@@ -564,6 +566,52 @@ for x in l:
 			":22: Depset iteration is deprecated.",
 			":24: Depset iteration is deprecated.",
 			":26: Depset iteration is deprecated.",
+		},
+		false)
+}
+
+func TestDepsetUnion(t *testing.T) {
+	checkFindings(t, "depset-union", `
+d = depset([1, 2, 3])
+
+d + foo
+foo + d
+d + foo + bar
+foo + bar + d
+
+d | foo
+foo | d
+d | foo | bar
+foo | bar | d
+
+d += foo
+d |= bar
+foo += d
+bar |= d
+
+d.union(aaa)
+bbb.union(d)
+
+ccc.union(ddd)
+eee + fff | ggg
+`,
+		[]string{
+			":3: Depsets should be joined using the depset constructor",
+			":4: Depsets should be joined using the depset constructor",
+			":5: Depsets should be joined using the depset constructor",
+			":5: Depsets should be joined using the depset constructor",
+			":6: Depsets should be joined using the depset constructor",
+			":8: Depsets should be joined using the depset constructor",
+			":9: Depsets should be joined using the depset constructor",
+			":10: Depsets should be joined using the depset constructor",
+			":10: Depsets should be joined using the depset constructor",
+			":11: Depsets should be joined using the depset constructor",
+			":13: Depsets should be joined using the depset constructor",
+			":14: Depsets should be joined using the depset constructor",
+			":15: Depsets should be joined using the depset constructor",
+			":16: Depsets should be joined using the depset constructor",
+			":18: Depsets should be joined using the depset constructor",
+			":19: Depsets should be joined using the depset constructor",
 		},
 		false)
 }

@@ -364,3 +364,18 @@ the `.to_list()` method on them in order to be able to iterate their items:
     deps = depset()
     [x.path for x in deps]  # deprecated
     [x.path for x in deps.to_list()]  # recommended
+
+--------------------------------------------------------------------------------
+
+## <a name="depset-union"></a>Depsets should be joined using the depset constructor
+
+The following ways to merge two depsets are deprecated:
+
+    depset1 + depset2
+    depset1 | depset2
+    depset1.union(depset2)
+
+Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
+instead:
+
+    depset(transitive = [depset1, depset2])
