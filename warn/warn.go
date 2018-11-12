@@ -485,7 +485,7 @@ func depsetUnionWarning(f *build.File, fix bool) []*Finding {
 			if dot.Name != "union" {
 				return
 			}
-			if types[dot.X] != Depset && types[expr.List[0]] != Depset{
+			if types[dot.X] != Depset && types[expr.List[0]] != Depset {
 				return
 			}
 			addWarning(expr)
