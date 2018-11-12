@@ -298,18 +298,21 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		if binary, ok := expr.(*build.BinaryExpr); ok {
-			if binary.Op == "/" || binary.Op == "/=" {
-				if fix {
-					binary.Op = "/" + binary.Op
-				} else {
-					start, end := binary.Span()
-					findings = append(findings,
-						makeFinding(f, start, end, "integer-division",
-							"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
-				}
-			}
+		binary, ok := expr.(*build.BinaryExpr)
+		if !ok {
+			return
 		}
+		if binary.Op != "/" && binary.Op != "/=" {
+			return
+		}
+		if fix {
+			binary.Op = "/" + binary.Op
+			return
+		}
+		start, end := binary.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "integer-division",
+				"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 	})
 	return findings
 }
