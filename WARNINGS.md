@@ -116,8 +116,7 @@ the line or at the beginning of a rule.
 
 ### Background
 
-[load]
-(https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the definition is not used in
 the file, the load can be safely removed. If a symbol is loaded two times, you
 will get a warning on the second occurrence.
