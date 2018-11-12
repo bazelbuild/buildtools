@@ -296,13 +296,13 @@ is deprecated, please use `allow_single_file` instead.
 The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
 are deprecated, please use the new API:
 
-  * `ctx.new_file` -> `ctx.actions.declare_file`
-  * `ctx.experimental_new_directory` -> `ctx.actions.declare_directory`
-  * `ctx.file_action` -> `ctx.actions.write`
-  * `ctx.action(command = "...")` -> `ctx.actions.run_shell`
-  * `ctx.action(executable = "...")` -> `ctx.actions.run`
-  * `ctx.empty_action` -> `ctx.actions.do_nothing`
-  * `ctx.template_action` -> `ctx.actions.expand_template`
+  * [`ctx.new_file`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)
+  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)
+  * [`ctx.file_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#write)
+  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)
+  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run)
+  * [`ctx.empty_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)
+  * [`ctx.template_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)
 
 --------------------------------------------------------------------------------
 
