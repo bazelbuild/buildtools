@@ -31,7 +31,7 @@ def go_yacc(src, out, visibility = None):
         tools = [_GO_YACC_TOOL],
         cmd = ("export GOROOT=$$(dirname $(location " + _GO_YACC_TOOL + "))/..;" +
                " $(location " + _GO_YACC_TOOL + ") " +
-               " -o $(location " + out + ") $(SRCS)"),
+               " -o $(location " + out + ") $(SRCS) > /dev/null"),
         visibility = visibility,
         local = 1,
     )
