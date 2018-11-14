@@ -1,6 +1,7 @@
 package warn
 
 import (
+	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
@@ -87,7 +88,7 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 		start, end := ident.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, category,
-				"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
+				fmt.Sprintf(`Global variable "%s" is deprecated in favor of "%s". Please rename it.`, global, alternative), true, nil))
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
@@ -127,7 +128,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 				start, end := call.Span()
 				findings = append(findings,
 					makeFinding(f, start, end, category,
-						"Function \""+global+"\" is not global anymore and needs to be loaded from \""+loadFrom+"\".", true, nil))
+						fmt.Sprintf(`Function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
 			}
 		}
 	}
@@ -199,7 +200,7 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		start, end := param.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "attr-cfg",
-				"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
+				`cfg = "data" for attr definitions has no effect and should be removed.`, true, nil))
 	})
 	return findings
 }
@@ -289,7 +290,7 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		start, end := expr.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "ctx-actions",
-				"\"ctx."+name+"\" is deprecated.", true, nil))
+				fmt.Sprintf(`"ctx.%s" is deprecated.`, name), true, nil))
 	}
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -413,7 +414,7 @@ func outputGroupWarning(f *build.File, fix bool) []*Finding {
 			start, end := outputGroup.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "output-group",
-					"\"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".", true, nil))
+					`"ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`, true, nil))
 			return nil
 		}
 		// Replace `xxx.output_group` with `xxx[OutputGroupInfo]`
@@ -463,7 +464,7 @@ func argsAPIWarning(f *build.File, fix bool) []*Finding {
 			start, end := call.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "args-api",
-					"\"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".", true, nil))
+					`"ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`, true, nil))
 			return
 		}
 
