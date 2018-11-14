@@ -20,7 +20,7 @@ rule(
 )
 
 attr.label_list(mandatory = True, cfg = "host")`,
-		[]string{":3: cfg = \"data\" for attr definitions has no effect and should be removed."},
+		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
 		false)
 }
 
@@ -116,17 +116,17 @@ def impl(ctx):
 	ctx.foobar(foo, bar)
 `,
 		[]string{
-			":2: \"ctx.new_file\" is deprecated.",
-			":3: \"ctx.new_file\" is deprecated.",
-			":4: \"ctx.new_file\" is deprecated.",
-			":5: \"ctx.experimental_new_directory\" is deprecated.",
-			":6: \"ctx.file_action\" is deprecated.",
-			":7: \"ctx.file_action\" is deprecated.",
-			":8: \"ctx.action\" is deprecated.",
-			":9: \"ctx.action\" is deprecated.",
-			":10: \"ctx.empty_action\" is deprecated.",
-			":11: \"ctx.template_action\" is deprecated.",
-			":12: \"ctx.template_action\" is deprecated.",
+			`:2: "ctx.new_file" is deprecated.`,
+			`:3: "ctx.new_file" is deprecated.`,
+			`:4: "ctx.new_file" is deprecated.`,
+			`:5: "ctx.experimental_new_directory" is deprecated.`,
+			`:6: "ctx.file_action" is deprecated.`,
+			`:7: "ctx.file_action" is deprecated.`,
+			`:8: "ctx.action" is deprecated.`,
+			`:9: "ctx.action" is deprecated.`,
+			`:10: "ctx.empty_action" is deprecated.`,
+			`:11: "ctx.template_action" is deprecated.`,
+			`:12: "ctx.template_action" is deprecated.`,
 		},
 		false)
 
@@ -134,7 +134,7 @@ def impl(ctx):
 def impl(ctx):
   ctx.new_file(foo, bar, baz)
 `, []string{
-		":2: \"ctx.new_file\" is deprecated.",
+		`:2: "ctx.new_file" is deprecated.`,
 	}, false)
 }
 
@@ -157,8 +157,8 @@ def g():
     foo(a = native.package_name())
 `,
 		[]string{
-			":1: Global variable \"PACKAGE_NAME\" is deprecated in favor of \"native.package_name()\". Please rename it.",
-			":7: Global variable \"PACKAGE_NAME\" is deprecated in favor of \"native.package_name()\". Please rename it.",
+			`:1: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
+			`:7: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
 		},
 		false)
 
@@ -192,8 +192,8 @@ def g():
     foo(a = native.repository_name())
 `,
 		[]string{
-			":1: Global variable \"REPOSITORY_NAME\" is deprecated in favor of \"native.repository_name()\". Please rename it.",
-			":7: Global variable \"REPOSITORY_NAME\" is deprecated in favor of \"native.repository_name()\". Please rename it.",
+			`:1: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
+			`:7: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
 		}, false)
 
 	checkFindings(t, "repository-name", `
@@ -244,7 +244,7 @@ def _impl(ctx):
     bin = ctx.attr.my_dep[OutputGroupInfo].bin
 `,
 		[]string{
-			":2: \"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".",
+			`:2: "ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`,
 		},
 		false)
 }
@@ -264,7 +264,7 @@ def macro():
     git_repository(foo, bar)
 `,
 		[]string{
-			":4: Function \"git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
 		false)
 
@@ -284,8 +284,8 @@ def macro():
     new_git_repository(foo, bar)
 `,
 		[]string{
-			":4: Function \"git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
-			":5: Function \"new_git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
+			`:5: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
 		false)
 
@@ -307,7 +307,7 @@ def macro():
     new_git_repository(foo, bar)
 `,
 		[]string{
-			":7: Function \"new_git_repository\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:git.bzl\".",
+			`:7: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
 		false)
 }
@@ -327,7 +327,7 @@ def macro():
     http_archive(foo, bar)
 `,
 		[]string{
-			":4: Function \"http_archive\" is not global anymore and needs to be loaded from \"@bazel_tools//tools/build_defs/repo:http.bzl\".",
+			`:4: Function "http_archive" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:http.bzl".`,
 		},
 		false)
 }
@@ -357,13 +357,13 @@ def impl(ctx):
     args.add_joined(foo, bar, map_each = jjj, format_each = kkk + "%s", join_with = lll)
 `,
 		[]string{
-			":4: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":5: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":6: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":7: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":8: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":9: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
-			":10: \"ctx.actions.args().add()\" for multiple arguments is deprecated in favor of \"add_all()\" or \"add_joined()\".",
+			`:4: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:5: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:6: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:7: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:8: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:9: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+			`:10: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
 		},
 		false)
 }
