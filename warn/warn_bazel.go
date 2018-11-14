@@ -434,7 +434,7 @@ func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
 }
 
-func argsAPIWarning(f *build.File, fix bool) []*Finding {
+func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	types := detectTypes(f)
 
@@ -463,7 +463,7 @@ func argsAPIWarning(f *build.File, fix bool) []*Finding {
 		if !fix {
 			start, end := call.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "args-api",
+				makeFinding(f, start, end, "ctx-args",
 					`"ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`, true, nil))
 			return
 		}

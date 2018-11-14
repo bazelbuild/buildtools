@@ -640,6 +640,52 @@ func depsetIterationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func argumentsOrderWarning(f *build.File, fix bool) []*Finding {
+	argumentType := func(expr build.Expr) int {
+		switch expr := expr.(type) {
+		case *build.UnaryExpr:
+			switch expr.Op {
+			case "**":
+				return 4
+			case "*":
+				return 3
+			}
+		case *build.BinaryExpr:
+			if expr.Op == "=" {
+				return 2
+			}
+		}
+		return 1
+	}
+
+	getComparator := func(args []build.Expr) func(i, j int) bool {
+		return func(i, j int) bool {
+			return argumentType(args[i]) < argumentType(args[j])
+		}
+	}
+
+	findings := []*Finding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		comparator := getComparator(call.List)
+		if fix {
+			sort.SliceStable(call.List, comparator)
+			return
+		}
+		if sort.SliceIsSorted(call.List, comparator) {
+			return
+		}
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "args-order",
+				"Function call arguments should be in the following order: positional, keyword, *args, **kwargs.", true, nil))
+	})
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -648,12 +694,13 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
-	"args-api":           argsAPIWarning,
+	"args-order":         argumentsOrderWarning,
 	"attr-cfg":           attrConfigurationWarning,
 	"attr-non-empty":     attrNonEmptyWarning,
 	"attr-single-file":   attrSingleFileWarning,
 	"constant-glob":      constantGlobWarning,
 	"ctx-actions":        ctxActionsWarning,
+	"ctx-args":           contextArgsAPIWarning,
 	"depset-iteration":   depsetIterationWarning,
 	"depset-union":       depsetUnionWarning,
 	"dict-concatenation": dictionaryConcatenationWarning,

@@ -468,9 +468,9 @@ instead:
 
 --------------------------------------------------------------------------------
 
-## <a name="args-api"></a>`ctx.actions.args().add()` for multiple arguments is deprecated
+## <a name="ctx-args"></a>`ctx.actions.args().add()` for multiple arguments is deprecated
 
-  * Category_name: `args-api`
+  * Category_name: `ctx-args`
   * Flag in Bazel: [`--incompatible_disallow_old_style_args_add`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#new-args-api)
   * Automatic fix: yes
 
@@ -479,3 +479,18 @@ method of `ctx.actions.args()` to add a list (or a depset) of variables. Please 
 [`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
 [`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
 depending on the desired behavior.
+
+--------------------------------------------------------------------------------
+
+## <a name="args-order"></a>Function call arguments should be in the following order
+
+  * Category_name: `args-order`
+  * Flag in Bazel: `--incompatible_strict_argument_ordering`
+  * Automatic fix: yes
+
+Function call arguments should be in the following order:
+
+  * Positional arguments
+  * Keyword arguments
+  * Optional `*arg`
+  * Optional `**kwarg`

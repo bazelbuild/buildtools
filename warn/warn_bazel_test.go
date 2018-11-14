@@ -332,8 +332,8 @@ def macro():
 		false)
 }
 
-func TestArgsApiWarning(t *testing.T) {
-	checkFindingsAndFix(t, "args-api", `
+func TestContextArgsAPIWarning(t *testing.T) {
+	checkFindingsAndFix(t, "ctx-args", `
 def impl(ctx):
     args = ctx.actions.args()
     args.add(foo, bar)
