@@ -141,6 +141,34 @@ or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
+## <a name="same-origin-load"></a>Same label is used for multiple loads
+
+  * Category_name: `same-origin-load`
+  * Automatic fix: yes
+
+### Background
+
+[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+is used to import definitions in a BUILD file. If the same label is used for loading
+symbols more the ones, all such loads can be merged into a single one.
+
+### How to fix it
+
+Merge all loads into a single one. For example,
+
+```
+load(":f.bzl", "s1")
+load(":f.bzl", "s2")
+```
+
+can be written more compactly as
+
+```
+load(":f.bzl", "s1", "s2")
+```
+
+--------------------------------------------------------------------------------
+
 ## <a name="unused-variable"></a>Variable is unused
 
   * Category_name: `unused-variable`
@@ -399,9 +427,9 @@ copy the data to it. There are several ways to avoid it, for example, instead of
 you can use one of the following:
 
   * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
-  
+
     load("@bazel_skylib//lib/dicts.bzl", "dicts")
-    
+
     d = dicts.add(d1, d2, d3)
 
   * The same if you don't want to use Skylib:
