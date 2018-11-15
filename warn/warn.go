@@ -169,6 +169,36 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func sameOriginLoadWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	loaded := make(map[string]*build.LoadStmt)
+	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
+		load, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
+		if !ok {
+			continue
+		}
+
+		previousLoad := loaded[load.Module.Value]
+		if previousLoad == nil {
+			loaded[load.Module.Value] = load
+			continue
+		}
+
+		if fix {
+			previousLoad.To = append(previousLoad.To, load.To...)
+			previousLoad.From = append(previousLoad.From, load.From...)
+			f.Stmt = append(f.Stmt[:stmtIndex], f.Stmt[stmtIndex+1:]...)
+			stmtIndex--
+		} else {
+			start, end := load.Module.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "same-origin-load",
+					"There is already a load from \""+load.Module.Value+"\". Please merge all loads from the same origin into a single one.", true, nil))
+		}
+	}
+	return findings
+}
+
 func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	definedSymbols := make(map[string]bool)
@@ -717,6 +747,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"package-on-top":     packageOnTopWarning,
 	"redefined-variable": redefinedVariableWarning,
 	"repository-name":    repositoryNameWarning,
+	"same-origin-load":   sameOriginLoadWarning,
 	"string-iteration":   stringIterationWarning,
 	"unused-variable":    unusedVariableWarning,
 }

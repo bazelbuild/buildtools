@@ -235,6 +235,54 @@ x = "unused"`,
 		false)
 }
 
+func TestWarnSameOriginLoad(t *testing.T) {
+	category := "same-origin-load"
+
+	checkFindingsAndFix(t, category, `
+	load(
+		":f.bzl",
+		"s1"
+	)
+	load(":t.bzl", "s3")
+	load(
+		":f.bzl",
+		"s2"
+	)`, `
+	load(
+		":f.bzl",
+		"s1",
+		"s2"
+	)
+	load(":t.bzl", "s3")`,
+		[]string{":7: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		false,
+	)
+
+	checkFindingsAndFix(t, category, `
+	load(
+		":f.bzl",
+		"s1"
+	)
+	load(
+		":f.bzl",
+		"s2"
+	)
+	load(
+		":f.bzl",
+		"s3"
+	)`, `
+	load(
+		":f.bzl",
+		"s1",
+		"s2",
+		"s3"
+	)`,
+		[]string{":6: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
+			":10: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		false,
+	)
+}
+
 func TestWarnUnusedVariables(t *testing.T) {
 	checkFindings(t, "unused-variable", `
 load(":f.bzl", "x")
