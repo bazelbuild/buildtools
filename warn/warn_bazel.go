@@ -1,6 +1,7 @@
 package warn
 
 import (
+	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
@@ -87,7 +88,7 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 		start, end := ident.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, category,
-				"Global variable \""+global+"\" is deprecated in favor of \""+alternative+"\". Please rename it.", true, nil))
+				fmt.Sprintf(`Global variable "%s" is deprecated in favor of "%s". Please rename it.`, global, alternative), true, nil))
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
@@ -127,7 +128,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 				start, end := call.Span()
 				findings = append(findings,
 					makeFinding(f, start, end, category,
-						"Function \""+global+"\" is not global anymore and needs to be loaded from \""+loadFrom+"\".", true, nil))
+						fmt.Sprintf(`Function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
 			}
 		}
 	}
@@ -199,7 +200,7 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		start, end := param.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "attr-cfg",
-				"cfg = \"data\" for attr definitions has no effect and should be removed.", true, nil))
+				`cfg = "data" for attr definitions has no effect and should be removed.`, true, nil))
 	})
 	return findings
 }
@@ -289,7 +290,7 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		start, end := expr.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "ctx-actions",
-				"\"ctx."+name+"\" is deprecated.", true, nil))
+				fmt.Sprintf(`"ctx.%s" is deprecated.`, name), true, nil))
 	}
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -413,7 +414,7 @@ func outputGroupWarning(f *build.File, fix bool) []*Finding {
 			start, end := outputGroup.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "output-group",
-					"\"ctx.attr.dep.output_group\" is deprecated in favor of \"ctx.attr.dep[OutputGroupInfo]\".", true, nil))
+					`"ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`, true, nil))
 			return nil
 		}
 		// Replace `xxx.output_group` with `xxx[OutputGroupInfo]`
@@ -431,4 +432,59 @@ func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
 
 func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
+}
+
+func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	types := detectTypes(f)
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Search for `<ctx.actions.args>.add()` nodes
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := call.X.(*build.DotExpr)
+		if !ok || dot.Name != "add" || types[dot.X] != CtxActionsArgs {
+			return
+		}
+
+		// If neither before_each nor join_with nor map_fn is specified, the node is ok.
+		// Otherwise if join_with is specified, use `.add_joined` instead.
+		// Otherwise use `.add_all` instead.
+
+		_, beforeEachKw, beforeEach := getParam(call.List, "before_each")
+		_, _, joinWith := getParam(call.List, "join_with")
+		_, mapFnKw, mapFn := getParam(call.List, "map_fn")
+		if beforeEach == nil && joinWith == nil && mapFn == nil {
+			// No deprecated API detected
+			return
+		}
+		if !fix {
+			start, end := call.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "ctx-args",
+					`"ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`, true, nil))
+			return
+		}
+
+		dot.Name = "add_all"
+		if joinWith != nil {
+			dot.Name = "add_joined"
+			if beforeEach != nil {
+				// `add_joined` doesn't have a `before_each` parameter, replace it with `format_each`:
+				// `before_each = foo` -> `format_each = foo + "%s"`
+				beforeEachKw.Name = "format_each"
+				beforeEach.Y = &build.BinaryExpr{
+					X:  beforeEach.Y,
+					Op: "+",
+					Y:  &build.StringExpr{Value: "%s"},
+				}
+			}
+		}
+		if mapFnKw != nil {
+			mapFnKw.Name = "map_each"
+		}
+	})
+	return findings
 }

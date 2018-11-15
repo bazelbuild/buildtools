@@ -68,7 +68,7 @@ foo = bar
 `)
 }
 
-func TestScopes(t *testing.T) {
+func TestScopesFunction(t *testing.T) {
 	checkTypes(t, `
 s = "string"
 
@@ -86,14 +86,16 @@ def f():
 def g():
     s2 = s1
 `)
+}
 
+func TestScopesParameters(t *testing.T) {
 	checkTypes(t, `
 x = 3
 y = 4
 z = 5
 
 foo(y = "bar")
-foo(x, y = bar(z = z))
+foo(x, y = bar(z = z), t + z)
 
 
 def f(z = "bar"):
@@ -106,7 +108,7 @@ y = int:<4>
 z = int:<5>
 
 foo(y = string:<"bar">)
-foo(int:<x>, y = bar(z = int:<z>))
+foo(int:<x>, y = bar(z = int:<z>), int:<t + int:<z>>)
 
 def f(z = string:<"bar">):
     return string:<z>
@@ -143,7 +145,9 @@ dict:<bar + dict:<d>>
 depset:<depset:<s> | baz>
 depset:<baz | depset:<s>>
 `)
+}
 
+func TestPercentOperator(t *testing.T) {
 	checkTypes(t, `
 n = 3
 s = "foo"
@@ -186,5 +190,43 @@ string:<baz>
 boq = unknown
 boq %= int:<n>
 boq
+`)
+}
+
+func TestContext(t *testing.T) {
+	checkTypes(t, `
+def foobar(ctx, foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
+
+    actions = ctx.actions
+    not_args = actions.args
+    args = actions.args()
+    args
+`, `
+def foobar(ctx:<ctx>, foo, bar):
+    ctx:<ctx>
+    ctx.actions:<ctx:<ctx>.actions>
+    ctx.actions.args:<ctx.actions:<ctx:<ctx>.actions>.args()>
+
+    actions = ctx.actions:<ctx:<ctx>.actions>
+    not_args = ctx.actions:<actions>.args
+    args = ctx.actions.args:<ctx.actions:<actions>.args()>
+    ctx.actions.args:<args>
+`)
+}
+
+func TestContextFalse(t *testing.T) {
+	checkTypes(t, `
+def foobar(foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
+`, `
+def foobar(foo, bar):
+    ctx
+    ctx.actions
+    ctx.actions.args()
 `)
 }

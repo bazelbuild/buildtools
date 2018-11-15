@@ -298,18 +298,21 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		if binary, ok := expr.(*build.BinaryExpr); ok {
-			if binary.Op == "/" || binary.Op == "/=" {
-				if fix {
-					binary.Op = "/" + binary.Op
-				} else {
-					start, end := binary.Span()
-					findings = append(findings,
-						makeFinding(f, start, end, "integer-division",
-							"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
-				}
-			}
+		binary, ok := expr.(*build.BinaryExpr)
+		if !ok {
+			return
 		}
+		if binary.Op != "/" && binary.Op != "/=" {
+			return
+		}
+		if fix {
+			binary.Op = "/" + binary.Op
+			return
+		}
+		start, end := binary.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "integer-division",
+				"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
 	})
 	return findings
 }
@@ -452,6 +455,48 @@ func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func depsetUnionWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	addWarning := func(expr build.Expr) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "depset-union",
+				"Depsets should be joined using the depset constructor.", true, nil))
+	}
+
+	types := detectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		switch expr := expr.(type) {
+		case *build.BinaryExpr:
+			// `depset1 + depset2` or `depset1 | depset2`
+			if types[expr.X] != Depset && types[expr.Y] != Depset {
+				return
+			}
+			switch expr.Op {
+			case "+", "|", "+=", "|=":
+				addWarning(expr)
+			}
+		case *build.CallExpr:
+			// `depset1.union(depset2)`
+			if len(expr.List) == 0 {
+				return
+			}
+			dot, ok := expr.X.(*build.DotExpr)
+			if !ok {
+				return
+			}
+			if dot.Name != "union" {
+				return
+			}
+			if types[dot.X] != Depset && types[expr.List[0]] != Depset {
+				return
+			}
+			addWarning(expr)
+		}
+	})
+	return findings
+}
+
 func stringIterationWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
@@ -498,6 +543,149 @@ func stringIterationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func depsetIterationWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	addWarning := func(expr build.Expr) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "depset-iteration",
+				"Depset iteration is deprecated.", true, nil))
+	}
+
+	// fixNode returns a call for .to_list() on the input node (assuming that it's a depset)
+	fixNode := func(expr build.Expr) build.Expr {
+		_, end := expr.Span()
+		return &build.CallExpr{
+			X: &build.DotExpr{
+				X:    expr,
+				Name: "to_list",
+			},
+			End: build.End{Pos: end},
+		}
+	}
+
+	types := detectTypes(f)
+	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+		switch expr := expr.(type) {
+		case *build.ForStmt:
+			if types[expr.X] != Depset {
+				return nil
+			}
+			if !fix {
+				addWarning(expr.X)
+				return nil
+			}
+			expr.X = fixNode(expr.X)
+		case *build.ForClause:
+			if types[expr.X] != Depset {
+				return nil
+			}
+			if !fix {
+				addWarning(expr.X)
+				return nil
+			}
+			expr.X = fixNode(expr.X)
+		case *build.BinaryExpr:
+			if expr.Op != "in" && expr.Op != "not in" {
+				return nil
+			}
+			if types[expr.Y] != Depset {
+				return nil
+			}
+			if !fix {
+				addWarning(expr.Y)
+				return nil
+			}
+			expr.Y = fixNode(expr.Y)
+		case *build.CallExpr:
+			ident, ok := expr.X.(*build.Ident)
+			if !ok {
+				return nil
+			}
+			switch ident.Name {
+			case "all", "any", "depset", "len", "sorted", "max", "min", "list", "tuple":
+				if len(expr.List) != 1 {
+					return nil
+				}
+				if types[expr.List[0]] != Depset {
+					return nil
+				}
+				if !fix {
+					addWarning(expr.List[0])
+					return nil
+				}
+				newNode := fixNode(expr.List[0])
+				if ident.Name != "list" {
+					expr.List[0] = newNode
+					return nil
+				}
+				// `list(d.to_list())` can be simplified to just `d.to_list()`
+				return newNode
+			case "zip":
+				for i, arg := range expr.List {
+					if types[arg] != Depset {
+						continue
+					}
+					if !fix {
+						addWarning(arg)
+						return nil
+					}
+					expr.List[i] = fixNode(arg)
+				}
+			}
+		}
+		return nil
+	})
+	return findings
+}
+
+func argumentsOrderWarning(f *build.File, fix bool) []*Finding {
+	argumentType := func(expr build.Expr) int {
+		switch expr := expr.(type) {
+		case *build.UnaryExpr:
+			switch expr.Op {
+			case "**":
+				return 4
+			case "*":
+				return 3
+			}
+		case *build.BinaryExpr:
+			if expr.Op == "=" {
+				return 2
+			}
+		}
+		return 1
+	}
+
+	getComparator := func(args []build.Expr) func(i, j int) bool {
+		return func(i, j int) bool {
+			return argumentType(args[i]) < argumentType(args[j])
+		}
+	}
+
+	findings := []*Finding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		comparator := getComparator(call.List)
+		if fix {
+			sort.SliceStable(call.List, comparator)
+			return
+		}
+		if sort.SliceIsSorted(call.List, comparator) {
+			return
+		}
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "args-order",
+				"Function call arguments should be in the following order: positional, keyword, *args, **kwargs.", true, nil))
+	})
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -506,11 +694,15 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
+	"args-order":         argumentsOrderWarning,
 	"attr-cfg":           attrConfigurationWarning,
 	"attr-non-empty":     attrNonEmptyWarning,
 	"attr-single-file":   attrSingleFileWarning,
 	"constant-glob":      constantGlobWarning,
 	"ctx-actions":        ctxActionsWarning,
+	"ctx-args":           contextArgsAPIWarning,
+	"depset-iteration":   depsetIterationWarning,
+	"depset-union":       depsetUnionWarning,
 	"dict-concatenation": dictionaryConcatenationWarning,
 	"duplicated-name":    duplicatedNameWarning,
 	"filetype":           fileTypeWarning,

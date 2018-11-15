@@ -32,7 +32,9 @@ func compareFinding(t *testing.T, input string, expected []string, findings []*F
 	if len(expected) != len(findings) {
 		t.Errorf("Input: %s", input)
 		t.Errorf("number of matches: %d, want %d", len(findings), len(expected))
-		t.Errorf("expected findings: %v", expected)
+		for _, e := range expected {
+			t.Errorf("expected: %s", e)
+		}
 		for _, f := range findings {
 			t.Errorf("got: %d: %s", f.Start.Line, f.Message)
 		}
@@ -452,6 +454,201 @@ for x in l:
 			":9: String iteration is deprecated.",
 			":11: String iteration is deprecated.",
 			":13: String iteration is deprecated.",
+		},
+		false)
+}
+
+func TestDepsetIteration(t *testing.T) {
+	checkFindingsAndFix(t, "depset-iteration", `
+d = depset([1, 2, 3]) + bar
+
+max(d + foo)
+min(d)
+all(d)
+any(d)
+sorted(d)
+zip(
+    d,
+    a,
+    b,
+)
+zip(
+     a,
+     d,
+)
+list(d)
+tuple(d)
+depset(d)
+len(d)
+1 in d
+2 not in d
+
+[foo(x) for x in d]
+
+for x in d:
+    pass
+
+# Non-iteration is ok
+
+foobar(d)
+d == b
+
+# The following iterations over a list don't trigger warnings
+
+l = list([1, 2, 3])
+
+max(l)
+zip(l, foo)
+[foo(x) for x in l]
+1 in l
+
+for x in l:
+    pass
+`, `
+d = depset([1, 2, 3]) + bar
+
+max((d + foo).to_list())
+min(d.to_list())
+all(d.to_list())
+any(d.to_list())
+sorted(d.to_list())
+zip(
+    d.to_list(),
+    a,
+    b,
+)
+zip(
+    a,
+    d.to_list(),
+)
+d.to_list()
+tuple(d.to_list())
+depset(d.to_list())
+len(d.to_list())
+1 in d.to_list()
+2 not in d.to_list()
+
+[foo(x) for x in d.to_list()]
+
+for x in d.to_list():
+    pass
+
+# Non-iteration is ok
+
+foobar(d)
+d == b
+
+# The following iterations over a list don't trigger warnings
+
+l = list([1, 2, 3])
+
+max(l)
+zip(l, foo)
+[foo(x) for x in l]
+1 in l
+
+for x in l:
+    pass
+`,
+		[]string{
+			":3: Depset iteration is deprecated.",
+			":4: Depset iteration is deprecated.",
+			":5: Depset iteration is deprecated.",
+			":6: Depset iteration is deprecated.",
+			":7: Depset iteration is deprecated.",
+			":9: Depset iteration is deprecated.",
+			":15: Depset iteration is deprecated.",
+			":17: Depset iteration is deprecated.",
+			":18: Depset iteration is deprecated.",
+			":19: Depset iteration is deprecated.",
+			":20: Depset iteration is deprecated.",
+			":21: Depset iteration is deprecated.",
+			":22: Depset iteration is deprecated.",
+			":24: Depset iteration is deprecated.",
+			":26: Depset iteration is deprecated.",
+		},
+		false)
+}
+
+func TestDepsetUnion(t *testing.T) {
+	checkFindings(t, "depset-union", `
+d = depset([1, 2, 3])
+
+d + foo
+foo + d
+d + foo + bar
+foo + bar + d
+
+d | foo
+foo | d
+d | foo | bar
+foo | bar | d
+
+d += foo
+d |= bar
+foo += d
+bar |= d
+
+d.union(aaa)
+bbb.union(d)
+
+ccc.union(ddd)
+eee + fff | ggg
+`,
+		[]string{
+			":3: Depsets should be joined using the depset constructor",
+			":4: Depsets should be joined using the depset constructor",
+			":5: Depsets should be joined using the depset constructor",
+			":5: Depsets should be joined using the depset constructor",
+			":6: Depsets should be joined using the depset constructor",
+			":8: Depsets should be joined using the depset constructor",
+			":9: Depsets should be joined using the depset constructor",
+			":10: Depsets should be joined using the depset constructor",
+			":10: Depsets should be joined using the depset constructor",
+			":11: Depsets should be joined using the depset constructor",
+			":13: Depsets should be joined using the depset constructor",
+			":14: Depsets should be joined using the depset constructor",
+			":15: Depsets should be joined using the depset constructor",
+			":16: Depsets should be joined using the depset constructor",
+			":18: Depsets should be joined using the depset constructor",
+			":19: Depsets should be joined using the depset constructor",
+		},
+		false)
+}
+
+func TestArgumentsOrder(t *testing.T) {
+	checkFindingsAndFix(t, "args-order", `
+foo(1, a = b, c + d, **e, *f)
+foo(b = c, a)
+foo(*d, a)
+foo(**e, a)
+foo(*d, b = c)
+foo(**e, b = c)
+foo(**e, *d)
+foo(**e, *d, b = c, b2 = c2, a, a2)
+foo(bar = bar(x = y, z), baz * 2)
+`, `
+foo(1, c + d, a = b, *f, **e)
+foo(a, b = c)
+foo(a, *d)
+foo(a, **e)
+foo(b = c, *d)
+foo(b = c, **e)
+foo(*d, **e)
+foo(a, a2, b = c, b2 = c2, *d, **e)
+foo(baz * 2, bar = bar(z, x = y))
+`,
+		[]string{
+			":1: Function call arguments should be in the following order",
+			":2: Function call arguments should be in the following order",
+			":3: Function call arguments should be in the following order",
+			":4: Function call arguments should be in the following order",
+			":5: Function call arguments should be in the following order",
+			":6: Function call arguments should be in the following order",
+			":7: Function call arguments should be in the following order",
+			":8: Function call arguments should be in the following order",
+			":9: Function call arguments should be in the following order",
+			":9: Function call arguments should be in the following order",
 		},
 		false)
 }
