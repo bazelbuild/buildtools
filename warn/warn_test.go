@@ -269,7 +269,7 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	)
 	load(":t.bzl", "s3")`,
 		[]string{":7: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
-		false,
+		scopeEverywhere,
 	)
 
 	checkFindingsAndFix(t, category, `
@@ -293,7 +293,7 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	)`,
 		[]string{":6: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
 			":10: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
-		false,
+		scopeEverywhere,
 	)
 }
 
@@ -712,5 +712,20 @@ foo(baz * 2, bar = bar(z, x = y))
 			":9: Function call arguments should be in the following order",
 			":9: Function call arguments should be in the following order",
 		},
-		false)
+		scopeEverywhere)
+}
+
+func TestNativeInBuildFiles(t *testing.T) {
+	checkFindingsAndFix(t, "native-build", `
+native.package("foo")
+
+native.cc_library(name = "lib")
+`, `
+package("foo")
+
+cc_library(name = "lib")
+`, []string{
+		`:1: "The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
+		`:3: "The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
+	}, scopeBuild)
 }
