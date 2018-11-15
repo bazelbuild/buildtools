@@ -736,8 +736,8 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 
 		if fix {
 			start, _ := dot.Span()
-			return &build.Ident {
-				Name: dot.Name,
+			return &build.Ident{
+				Name:    dot.Name,
 				NamePos: start,
 			}
 		}
