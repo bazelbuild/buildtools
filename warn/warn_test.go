@@ -36,7 +36,7 @@ func getFindings(category, input string, isBuildFile bool) []*Finding {
 
 func compareFindings(t *testing.T, category, input string, expected []string, scope testScope, isBuildFile bool) {
 	// If scope doesn't match the file type, no warnings are expected
-	if (scope & scopeBuild == 0 && isBuildFile) || (scope & scopeBzl == 0 && !isBuildFile) {
+	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
 		expected = []string{}
 	}
 
@@ -65,7 +65,7 @@ func compareFindings(t *testing.T, category, input string, expected []string, sc
 
 func checkFix(t *testing.T, category, input, expected string, scope testScope, isBuildFile bool) {
 	// If scope doesn't match the file type, no changes are expected
-	if (scope & scopeBuild == 0 && isBuildFile) || (scope & scopeBzl == 0 && !isBuildFile) {
+	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
 		expected = input
 	}
 
@@ -725,7 +725,17 @@ package("foo")
 
 cc_library(name = "lib")
 `, []string{
-		`:1: "The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
-		`:3: "The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
+		`:1: The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
+		`:3: The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
 	}, scopeBuild)
+}
+
+func TestNativePackage(t *testing.T) {
+	checkFindings(t, "native-package", `
+native.package("foo")
+
+native.cc_library(name = "lib")
+`, []string{
+		`:1: "native.package()" shouldn't be used in .bzl files.`,
+	}, scopeBzl)
 }

@@ -744,9 +744,39 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 		start, end := expr.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "native-build",
-				`"The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`, true, nil))
+				`The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`, true, nil))
 
 		return nil
+	})
+	return findings
+}
+
+func nativePackageWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	if f.Build {
+		return findings
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Search for `native.package()` nodes
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := call.X.(*build.DotExpr)
+		if !ok || dot.Name != "package" {
+			return
+		}
+		ident, ok := dot.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return
+		}
+
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "native-package",
+				`"native.package()" shouldn't be used in .bzl files.`, true, nil))
 	})
 	return findings
 }
@@ -777,6 +807,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"load":               unusedLoadWarning,
 	"load-on-top":        loadOnTopWarning,
 	"native-build":       nativeInBuildFilesWarning,
+	"native-package":     nativePackageWarning,
 	"no-effect":          noEffectWarning,
 	"output-group":       outputGroupWarning,
 	"package-name":       packageNameWarning,
