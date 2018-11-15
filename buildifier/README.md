@@ -1,6 +1,6 @@
 # Buildifier
 
-buildifier is a tool for formatting bazel BUILD files with a standard convention.
+buildifier is a tool for formatting bazel BUILD and .bzl files with a standard convention.
 
 ## Setup
 
@@ -12,10 +12,43 @@ Build the tool:
 
 ## Usage
 
-Use buildifier to create standardized formatting for BUILD files in the
+Use buildifier to create standardized formatting for BUILD and .bzl files in the
 same way that clang-format is used for source files.
 
-`$ buildifier -showlog -mode=check $(find . -type f \( -iname BUILD -or -iname BUILD.bazel \))`
+    $ buildifier path/to/file
+
+You can also process multiple files at once:
+
+Buildifier automatically detects the file type (either BUILD or .bzl) by its filename. If you 
+
+    $ buildifier $(find . -type f \( -iname BUILD -or -iname BUILD.bazel \))
+
+Files with unknown names (e.g. `foo.bar`) will be formatted as .bzl files because the format for
+.bzl files is more flexible and less harmful.
+
+You can use Buildifier as a filter by invoking it with no arguments. In that mode it reads from
+standard input and writes the reformatted version to standard output. In this case it won't be
+able to see its name to choose the correct formatting rules, and for compatibility reasons it
+will use the BUILD format in such situations. This may be changed in the future, and to enforce
+a special format explicitly use the `--type` flag:
+
+    $ cat foo.bar | buildifier --type=build
+    $ cat foo.baz | buildifier --type=bzl
+
+## Linter
+
+Buildifier has an integrated linter that can point out and in some cases automatically fix various
+issues. To use it launch one of the following commands to show and to fix the issues
+correspondingly:
+
+    buildifier --lint=warn path/to/file
+    buildifier --lint=fix path/to/file
+
+By default the linter searches for all known issues, but you can limit the list of categories:
+
+    buildifier --lint=warn --warnings=positional-args,duplicated-name
+
+See also the [full list](../WARNINGS.md) or the supported warnings.
 
 ## Setup and usage via Bazel
 
