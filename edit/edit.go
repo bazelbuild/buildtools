@@ -682,6 +682,21 @@ func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Exp
 	return nil
 }
 
+// DictionaryGet looks for the key in the dictionary expression, and returns the
+// current value. If it is unset, it returns nil.
+func DictionaryGet(dict *build.DictExpr, key string) build.Expr {
+	for _, e := range dict.List {
+		kv, ok := e.(*build.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
+			return kv.Value
+		}
+	}
+	return nil
+}
+
 // DictionaryDelete looks for the key in the dictionary expression. If the key exists,
 // it removes the key-value pair and returns it. Otherwise it returns nil.
 func DictionaryDelete(dict *build.DictExpr, key string) (deleted build.Expr) {
