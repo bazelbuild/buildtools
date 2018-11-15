@@ -27,6 +27,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
@@ -44,6 +45,28 @@ var (
 	buildOptions        = stringList("extra_build_flags", "Extra build flags to use when building the targets.")
 
 	blazeFlags = []string{"--tool_tag=unused_deps", "--keep_going", "--color=yes", "--curses=yes"}
+
+	aspect = `
+# Explicitly creates a params file for a Javac action.
+def _javac_params(target, ctx):
+    params = []
+    for action in target.actions:
+        if not action.mnemonic == "Javac":
+            continue
+        output = ctx.actions.declare_file("%s.javac_params" % target.label.name)
+        args = ctx.actions.args()
+        args.add_all(action.argv)
+        ctx.actions.write(
+            output = output,
+            content = args,
+        )
+        params.append(output)
+    return [OutputGroupInfo(unused_deps_outputs = depset(params))]
+
+javac_params = aspect(
+    implementation = _javac_params,
+)
+`
 )
 
 func stringList(name, help string) func() []string {
@@ -253,6 +276,24 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 	return anyCommandPrinted
 }
 
+// setupAspect creates a workspace in a tmpdir and populates it with an aspect,
+// which is used with --override_repository below.
+func setupAspect() (string, error) {
+	tmp, err := ioutil.TempDir(os.TempDir(), "unused_deps")
+	if err != nil {
+		return "", err
+	}
+	for _, f := range []string{"WORKSPACE", "BUILD"} {
+		if err := ioutil.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
+			return "", err
+		}
+	}
+	if err := ioutil.WriteFile(path.Join(tmp, "unused_deps.bzl"), []byte(aspect), 0666); err != nil {
+		return "", err
+	}
+	return tmp, nil
+}
+
 func usage() {
 	fmt.Fprintf(os.Stderr, `usage: unused_deps TARGET...
 
@@ -277,7 +318,6 @@ func main() {
 	if len(targetPatterns) == 0 {
 		targetPatterns = []string{"//..."}
 	}
-
 	queryCmd := append([]string{"query"}, blazeFlags...)
 	queryCmd = append(
 		queryCmd, fmt.Sprintf("kind('(java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
@@ -292,7 +332,21 @@ func main() {
 		usage()
 	}
 
-	buildCmd := append(append([]string{"build"}, blazeFlags...), config.DefaultExtraBuildFlags...)
+	aspectDir, err := setupAspect()
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+	defer func() {
+		os.RemoveAll(aspectDir)
+	}()
+
+	buildCmd := []string{"build"}
+	buildCmd = append(buildCmd, blazeFlags...)
+	buildCmd = append(buildCmd, config.DefaultExtraBuildFlags...)
+	buildCmd = append(buildCmd, "--output_groups=+unused_deps_outputs")
+	buildCmd = append(buildCmd, "--override_repository=unused_deps="+aspectDir)
+	buildCmd = append(buildCmd, "--aspects=@unused_deps//:unused_deps.bzl%javac_params")
 	buildCmd = append(buildCmd, buildOptions()...)
 
 	blazeArgs := append(buildCmd, targetPatterns...)
@@ -306,10 +360,7 @@ func main() {
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
 		_, pkg, ruleName := edit.InterpretLabel(label)
-		depsByJar := directDepParams(
-			blazeOutputPath,
-			inputFileName(blazeBin, pkg, ruleName, "jar-2.params"),
-			inputFileName(blazeBin, pkg, ruleName+"-class", "jar-2.params"))
+		depsByJar := directDepParams(blazeOutputPath, inputFileName(blazeBin, pkg, ruleName, "javac_params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
 		// TODO(bazel-team): instead of printing, have buildifier-like modes?
 		anyCommandPrinted = printCommands(label, depsToRemove) || anyCommandPrinted
