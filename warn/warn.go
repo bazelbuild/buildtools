@@ -744,7 +744,7 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 		start, end := expr.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "native-build",
-				`The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`, true, nil))
+				`The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`, true, nil))
 
 		return nil
 	})

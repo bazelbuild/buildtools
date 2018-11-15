@@ -725,8 +725,8 @@ package("foo")
 
 cc_library(name = "lib")
 `, []string{
-		`:1: The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
-		`:3: The "native" module shouldn't be used in BUILD files, its fields are available as global symbols.`,
+		`:1: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
+		`:3: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
 	}, scopeBuild)
 }
 

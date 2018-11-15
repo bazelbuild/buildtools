@@ -522,3 +522,23 @@ Function call arguments should be in the following order:
   * Keyword arguments
   * Optional `*arg`
   * Optional `**kwarg`
+
+--------------------------------------------------------------------------------
+
+## <a name="native-build"></a>The `native` module shouldn't be used in BUILD files
+
+  * Category_name: `native-build`
+  * Automatic fix: yes
+
+There's no need in using `native.` in BUILD files, its members are available as global symbols
+there.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-package"></a>`native.package()` shouldn't be used in .bzl files
+
+  * Category_name: `native-package`
+  * Automatic fix: no
+
+It's discouraged and will be disallowed to use `native.package()` in .bzl files. It can silently
+modify the semantics of a BUILD file and makes it hard to maintain.
