@@ -21,7 +21,7 @@ rule(
 
 attr.label_list(mandatory = True, cfg = "host")`,
 		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
-		false)
+		scopeEverywhere)
 }
 
 func TestAttrNonEmptyWarning(t *testing.T) {
@@ -58,7 +58,7 @@ rule(
 			":7: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 			":8: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestAttrSingleFileWarning(t *testing.T) {
@@ -82,7 +82,7 @@ rule(
 			":4: single_file is deprecated in favor of allow_single_file.",
 			":5: single_file is deprecated in favor of allow_single_file.",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestCtxActionsWarning(t *testing.T) {
@@ -128,14 +128,14 @@ def impl(ctx):
 			`:11: "ctx.template_action" is deprecated.`,
 			`:12: "ctx.template_action" is deprecated.`,
 		},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo, bar, baz)
 `, []string{
 		`:2: "ctx.new_file" is deprecated.`,
-	}, false)
+	}, scopeEverywhere)
 }
 
 func TestPackageNameWarning(t *testing.T) {
@@ -160,17 +160,17 @@ def g():
 			`:1: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
 			`:7: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
 		},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "package-name", `
 PACKAGE_NAME = "foo"
 foo(a = PACKAGE_NAME)
-`, []string{}, false)
+`, []string{}, scopeEverywhere)
 
 	checkFindings(t, "package-name", `
 load(":foo.bzl", "PACKAGE_NAME")
 foo(a = PACKAGE_NAME)
-`, []string{}, false)
+`, []string{}, scopeEverywhere)
 }
 
 func TestRepositoryNameWarning(t *testing.T) {
@@ -194,17 +194,17 @@ def g():
 		[]string{
 			`:1: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
 			`:7: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
-		}, false)
+		}, scopeEverywhere)
 
 	checkFindings(t, "repository-name", `
 REPOSITORY_NAME = "foo"
 foo(a = REPOSITORY_NAME)
-`, []string{}, false)
+`, []string{}, scopeEverywhere)
 
 	checkFindings(t, "repository-name", `
 load(":foo.bzl", "REPOSITORY_NAME")
 foo(a = REPOSITORY_NAME)
-`, []string{}, false)
+`, []string{}, scopeEverywhere)
 }
 
 func TestFileTypeNameWarning(t *testing.T) {
@@ -225,14 +225,14 @@ def macro2():
 		":2: The FileType function is deprecated.",
 		":4: The FileType function is deprecated.",
 		":7: The FileType function is deprecated.",
-	}, false)
+	}, scopeEverywhere)
 
 	checkFindings(t, "filetype", `
 FileType = foo
 
 rule1(types=FileType([".cc", ".h"]))
 rule2(types=FileType(types=[".cc", ".h"]))
-`, []string{}, false)
+`, []string{}, scopeEverywhere)
 }
 
 func TestOutputGroupWarning(t *testing.T) {
@@ -246,7 +246,7 @@ def _impl(ctx):
 		[]string{
 			`:2: "ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`,
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestNativeGitRepositoryWarning(t *testing.T) {
@@ -266,7 +266,7 @@ def macro():
 		[]string{
 			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		false)
+		scopeEverywhere)
 
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
@@ -287,7 +287,7 @@ def macro():
 			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 			`:5: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		false)
+		scopeEverywhere)
 
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
@@ -309,7 +309,7 @@ def macro():
 		[]string{
 			`:7: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestNativeHttpArchiveWarning(t *testing.T) {
@@ -329,7 +329,7 @@ def macro():
 		[]string{
 			`:4: Function "http_archive" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:http.bzl".`,
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestContextArgsAPIWarning(t *testing.T) {
@@ -365,5 +365,5 @@ def impl(ctx):
 			`:9: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
 			`:10: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
 		},
-		false)
+		scopeEverywhere)
 }

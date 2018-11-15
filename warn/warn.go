@@ -716,6 +716,71 @@ func argumentsOrderWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	if !f.Build {
+		return findings
+	}
+
+	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+		// Search for `native.xxx` nodes
+		dot, ok := expr.(*build.DotExpr)
+		if !ok {
+			return nil
+		}
+		ident, ok := dot.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return nil
+		}
+
+		if fix {
+			start, _ := dot.Span()
+			return &build.Ident{
+				Name:    dot.Name,
+				NamePos: start,
+			}
+		}
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "native-build",
+				`The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`, true, nil))
+
+		return nil
+	})
+	return findings
+}
+
+func nativePackageWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	if f.Build {
+		return findings
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Search for `native.package()` nodes
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := call.X.(*build.DotExpr)
+		if !ok || dot.Name != "package" {
+			return
+		}
+		ident, ok := dot.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return
+		}
+
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "native-package",
+				`"native.package()" shouldn't be used in .bzl files.`, true, nil))
+	})
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -741,6 +806,8 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"integer-division":   integerDivisionWarning,
 	"load":               unusedLoadWarning,
 	"load-on-top":        loadOnTopWarning,
+	"native-build":       nativeInBuildFilesWarning,
+	"native-package":     nativePackageWarning,
 	"no-effect":          noEffectWarning,
 	"output-group":       outputGroupWarning,
 	"package-name":       packageNameWarning,

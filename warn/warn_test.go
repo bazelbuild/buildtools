@@ -10,6 +10,14 @@ import (
 	"github.com/bazelbuild/buildtools/testutils"
 )
 
+type testScope int
+
+const (
+	scopeBuild testScope = 1 << iota
+	scopeBzl
+	scopeEverywhere = scopeBuild | scopeBzl
+)
+
 func getFilename(isBuildFile bool) string {
 	if isBuildFile {
 		return "BUILD"
@@ -26,7 +34,13 @@ func getFindings(category, input string, isBuildFile bool) []*Finding {
 	return FileWarnings(buildFile, "the_package", []string{category}, false)
 }
 
-func compareFinding(t *testing.T, input string, expected []string, findings []*Finding) {
+func compareFindings(t *testing.T, category, input string, expected []string, scope testScope, isBuildFile bool) {
+	// If scope doesn't match the file type, no warnings are expected
+	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
+		expected = []string{}
+	}
+
+	findings := getFindings(category, input, isBuildFile)
 	// We ensure that there is the expected number of warnings.
 	// At the moment, we check only the line numbers.
 	if len(expected) != len(findings) {
@@ -49,7 +63,12 @@ func compareFinding(t *testing.T, input string, expected []string, findings []*F
 	}
 }
 
-func checkFix(t *testing.T, category, input, expected string, isBuildFile bool) {
+func checkFix(t *testing.T, category, input, expected string, scope testScope, isBuildFile bool) {
+	// If scope doesn't match the file type, no changes are expected
+	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
+		expected = input
+	}
+
 	buildFile, err := build.Parse(getFilename(isBuildFile), []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
@@ -72,24 +91,19 @@ func checkFix(t *testing.T, category, input, expected string, isBuildFile bool) 
 	}
 }
 
-func checkFindings(t *testing.T, category, input string, expected []string, isBuildFileSpecific bool) {
+func checkFindings(t *testing.T, category, input string, expected []string, scope testScope) {
 	// The same as checkFindingsAndFix but ensure that fixes don't change the file (except for formatting)
-	checkFindingsAndFix(t, category, input, input, expected, isBuildFileSpecific)
+	checkFindingsAndFix(t, category, input, input, expected, scope)
 }
 
-func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, isBuildFileSpecific bool) {
-	// All warnings should be found for BUILD-files
-	compareFinding(t, input, expected, getFindings(category, input, true))
-	checkFix(t, category, input, output, true)
+func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope testScope) {
+	// BUILD file
+	compareFindings(t, category, input, expected, scope, true)
+	checkFix(t, category, input, output, scope, true)
 
-	if isBuildFileSpecific {
-		// BUILD-file specific warnings shouldn't be shown for .bzl files
-		expected = []string{}
-		// BUILD-file specific fixes shouldn't affect .bzl files
-		output = input
-	}
-	compareFinding(t, input, expected, getFindings(category, input, false))
-	checkFix(t, category, input, output, false)
+	// Bzl file
+	compareFindings(t, category, input, expected, scope, false)
+	checkFix(t, category, input, output, scope, false)
 }
 
 func TestNoEffect(t *testing.T) {
@@ -104,18 +118,18 @@ def bar():
 [f() for i in range(3)] # top-level comprehension is okay
 `,
 		[]string{},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "no-effect", `
 def foo():
     [fct() for i in range(3)]
 	`,
 		[]string{":2: Expression result is not used. Use a for-loop instead"},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "no-effect", `None`,
 		[]string{":1: Expression result is not used."},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "no-effect", `
 foo             # 1
@@ -127,7 +141,7 @@ def bar():
       "string"  # 7
 `,
 		[]string{":1:", ":5:", ":7:"},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "no-effect", `
 # A comment
@@ -144,7 +158,7 @@ def bar():
     return foo
 `,
 		[]string{":7:", ":11:"},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "no-effect", `
 foo == bar
@@ -159,7 +173,7 @@ bar -= bar
 
 `,
 		[]string{":1:", ":3:", ":4:", ":5:", ":6:"},
-		false)
+		scopeEverywhere)
 }
 
 func TestConstantGlob(t *testing.T) {
@@ -174,7 +188,7 @@ cc_library(srcs =
 )`,
 		[]string{":1: Glob pattern `foo.cc` has no wildcard",
 			":6: Glob pattern `test.cpp` has no wildcard"},
-		false)
+		scopeEverywhere)
 }
 
 func TestDuplicatedName(t *testing.T) {
@@ -186,7 +200,7 @@ py_library(name = "z")
 php_library(name = "x")`,
 		[]string{":3: A rule with name `x' was already found on line 1",
 			":5: A rule with name `x' was already found on line 1"},
-		true)
+		scopeBuild)
 }
 
 func TestWarnUnusedLoad(t *testing.T) {
@@ -198,7 +212,7 @@ load(":f.bzl", "s1")
 foo(name = s1)`,
 		[]string{":1: Loaded symbol \"s2\" is unused.",
 			":2: Symbol \"s1\" has already been loaded."},
-		false)
+		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
 load(
@@ -225,14 +239,14 @@ load(
    "s4",
 )`,
 		[]string{":3: Loaded symbol \"s1\" is unused."},
-		false)
+		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
 load(":f.bzl", "x")
 x = "unused"`, `
 x = "unused"`,
 		[]string{":1: Loaded symbol \"x\" is unused."},
-		false)
+		scopeEverywhere)
 }
 
 func TestWarnSameOriginLoad(t *testing.T) {
@@ -255,7 +269,7 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	)
 	load(":t.bzl", "s3")`,
 		[]string{":7: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
-		false,
+		scopeEverywhere,
 	)
 
 	checkFindingsAndFix(t, category, `
@@ -279,7 +293,7 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	)`,
 		[]string{":6: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
 			":10: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
-		false,
+		scopeEverywhere,
 	)
 }
 
@@ -292,7 +306,7 @@ z = "name"
 cc_library(name = z)`,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused."},
-		true)
+		scopeBuild)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -303,7 +317,7 @@ e = 5 # @unused
 # @unused
 f = 7`,
 		[]string{":4: Variable \"d\" is unused."},
-		true)
+		scopeBuild)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -318,7 +332,7 @@ def foo():
   g = 8
   return g`,
 		[]string{":6: Variable \"d\" is unused."},
-		true)
+		scopeBuild)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -335,7 +349,7 @@ def bar(b):
 			":4: Variable \"b\" is unused.",
 			":8: Variable \"c\" is unused.",
 		},
-		true)
+		scopeBuild)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -344,7 +358,7 @@ x = "old_value"
 x = "new_value"
 cc_library(name = x)`,
 		[]string{":2: Variable \"x\" has already been defined."},
-		false)
+		scopeEverywhere)
 
 	checkFindings(t, "redefined-variable", `
 x = "a"
@@ -359,7 +373,7 @@ def bar():
   y = "f"
   y = "g"`,
 		[]string{},
-		false)
+		scopeEverywhere)
 }
 
 func TestPackageOnTop(t *testing.T) {
@@ -367,7 +381,7 @@ func TestPackageOnTop(t *testing.T) {
 my_macro(name = "foo")
 package()`,
 		[]string{":2: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
-		false)
+		scopeEverywhere)
 }
 
 func TestLoadOnTop(t *testing.T) {
@@ -381,7 +395,7 @@ foo()
 
 x()`,
 		[]string{":2: Load statements should be at the top of the file."},
-		false)
+		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -417,7 +431,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, false)
+		}, scopeEverywhere)
 }
 
 func TestPositionalArguments(t *testing.T) {
@@ -425,7 +439,7 @@ func TestPositionalArguments(t *testing.T) {
 my_macro(foo = "bar")
 my_macro("foo", "bar")`,
 		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
-		true)
+		scopeBuild)
 }
 
 func TestIntegerDivision(t *testing.T) {
@@ -440,7 +454,7 @@ d //= e
 			":1: The \"/\" operator for integer division is deprecated in favor of \"//\".",
 			":2: The \"/=\" operator for integer division is deprecated in favor of \"//=\".",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestDictionaryConcatenation(t *testing.T) {
@@ -461,7 +475,7 @@ d += foo + bar
 			":6: Dictionary concatenation is deprecated.",
 			":7: Dictionary concatenation is deprecated.",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestStringIteration(t *testing.T) {
@@ -503,7 +517,7 @@ for x in l:
 			":11: String iteration is deprecated.",
 			":13: String iteration is deprecated.",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestDepsetIteration(t *testing.T) {
@@ -615,7 +629,7 @@ for x in l:
 			":24: Depset iteration is deprecated.",
 			":26: Depset iteration is deprecated.",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestDepsetUnion(t *testing.T) {
@@ -661,7 +675,7 @@ eee + fff | ggg
 			":18: Depsets should be joined using the depset constructor",
 			":19: Depsets should be joined using the depset constructor",
 		},
-		false)
+		scopeEverywhere)
 }
 
 func TestArgumentsOrder(t *testing.T) {
@@ -698,5 +712,30 @@ foo(baz * 2, bar = bar(z, x = y))
 			":9: Function call arguments should be in the following order",
 			":9: Function call arguments should be in the following order",
 		},
-		false)
+		scopeEverywhere)
+}
+
+func TestNativeInBuildFiles(t *testing.T) {
+	checkFindingsAndFix(t, "native-build", `
+native.package("foo")
+
+native.cc_library(name = "lib")
+`, `
+package("foo")
+
+cc_library(name = "lib")
+`, []string{
+		`:1: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
+		`:3: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
+	}, scopeBuild)
+}
+
+func TestNativePackage(t *testing.T) {
+	checkFindings(t, "native-package", `
+native.package("foo")
+
+native.cc_library(name = "lib")
+`, []string{
+		`:1: "native.package()" shouldn't be used in .bzl files.`,
+	}, scopeBzl)
 }
