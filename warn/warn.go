@@ -290,6 +290,12 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Build {
+		// Not applicable for BUILD or WORKSPACE files
+		return findings
+	}
+
 	firstStmtIndex := -1 // index of the first seen non-load statement
 	for i := 0; i < len(f.Stmt); i++ {
 		stmt := f.Stmt[i]
