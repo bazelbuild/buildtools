@@ -120,7 +120,10 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	loaded := make(map[string]bool)
 
 	symbols := edit.UsedSymbols(f)
-	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
+	// statements are considered in reserve order to make sure that the last
+	// load wins, just like what happens during evaluation, which is very
+	// important if same symbol is loaded from different files.
+	for stmtIndex := len(f.Stmt) - 1; stmtIndex >= 0; stmtIndex-- {
 		load, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
 			continue
@@ -163,7 +166,6 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 		// If there are no loaded symbols left remove the entire load statement
 		if fix && len(load.To) == 0 {
 			f.Stmt = append(f.Stmt[:stmtIndex], f.Stmt[stmtIndex+1:]...)
-			stmtIndex--
 		}
 	}
 	return findings
