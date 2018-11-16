@@ -542,3 +542,13 @@ there.
 
 It's discouraged and will be disallowed to use `native.package()` in .bzl files. It can silently
 modify the semantics of a BUILD file and makes it hard to maintain.
+
+--------------------------------------------------------------------------------
+
+## <a name="attr-license"></a>`attr.license()` is deprecated and shouldn't be used
+
+  * Category_name: `attr-license`
+  * Flag in Bazel: `--incompatible_no_attr_license`
+  * Automatic fix: no
+
+The `attr.license()` method is almost never used and being deprecated.
