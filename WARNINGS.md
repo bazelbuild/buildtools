@@ -545,6 +545,16 @@ modify the semantics of a BUILD file and makes it hard to maintain.
 
 --------------------------------------------------------------------------------
 
+## <a name="attr-output-default"></a>The `default` parameter for `attr.output()`is deprecated
+
+  * Category_name: `attr-output-default`
+  * Flag in Bazel: [`--incompatible_no_output_attr_default`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-default-parameter-of-output-attributes)
+  * Automatic fix: no
+
+The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
+unable to exist in the same package under default behavior. Use Starlark macros to specify defaults
+for these attributes instead.
+
 ## <a name="attr-license"></a>`attr.license()` is deprecated and shouldn't be used
 
   * Category_name: `attr-license`

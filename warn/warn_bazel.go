@@ -489,6 +489,34 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Find nodes that match the following pattern: attr.output(..., default = ...)
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := (call.X).(*build.DotExpr)
+		if !ok || dot.Name != "output" {
+			return
+		}
+		base, ok := dot.X.(*build.Ident)
+		if !ok || base.Name != "attr" {
+			return
+		}
+		_, _, param := getParam(call.List, "default")
+		if param == nil {
+			return
+		}
+		start, end := param.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "attr-output-default",
+				`The "default" parameter for attr.output() is deprecated.`, true, nil))
+	})
+	return findings
+}
+
 func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
