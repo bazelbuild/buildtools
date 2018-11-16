@@ -86,7 +86,8 @@ func checkFix(t *testing.T, category, input, expected string, scope testScope, i
 		if isBuildFile {
 			fileType = "BUILD"
 		}
-		t.Errorf("fixed %s (type %s) incorrectly: diff shows -expected, +ours", input, fileType)
+		t.Errorf("fixed a test (type %s) incorrectly:\ninput:\n%s\ndiff (-expected, +ours)\n",
+			fileType, input)
 		testutils.Tdiff(t, want, have)
 	}
 }
@@ -394,8 +395,7 @@ load(":f.bzl", "x")
 foo()
 
 x()`,
-		[]string{":2: Load statements should be at the top of the file."},
-		scopeEverywhere)
+		[]string{":2: Load statements should be at the top of the file."}, scopeBzl)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -431,7 +431,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, scopeEverywhere)
+		}, scopeBzl)
 }
 
 func TestPositionalArguments(t *testing.T) {
