@@ -554,3 +554,11 @@ modify the semantics of a BUILD file and makes it hard to maintain.
 The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
 unable to exist in the same package under default behavior. Use Starlark macros to specify defaults
 for these attributes instead.
+
+## <a name="attr-license"></a>`attr.license()` is deprecated and shouldn't be used
+
+  * Category_name: `attr-license`
+  * Flag in Bazel: `--incompatible_no_attr_license`
+  * Automatic fix: no
+
+The `attr.license()` method is almost never used and being deprecated.

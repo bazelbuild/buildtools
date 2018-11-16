@@ -290,6 +290,12 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Build {
+		// Not applicable for BUILD or WORKSPACE files
+		return findings
+	}
+
 	firstStmtIndex := -1 // index of the first seen non-load statement
 	for i := 0; i < len(f.Stmt); i++ {
 		stmt := f.Stmt[i]
@@ -791,6 +797,7 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"args-order":          argumentsOrderWarning,
 	"attr-cfg":            attrConfigurationWarning,
+	"attr-license":        attrLicenseWarning,
 	"attr-non-empty":      attrNonEmptyWarning,
 	"attr-output-default": attrOutputDefaultWarning,
 	"attr-single-file":    attrSingleFileWarning,
