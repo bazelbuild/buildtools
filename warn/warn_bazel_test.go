@@ -367,3 +367,18 @@ def impl(ctx):
 		},
 		scopeEverywhere)
 }
+
+func TestAttrLicense(t *testing.T) {
+	checkFindings(t, "attr-license", `
+rule(
+  attrs = {
+      "foo": attr.license(foo),
+      "bar": attr.license(),
+      "baz": attr.no_license(),
+  }
+)
+`, []string{
+		`:3: "attr.license()" is deprecated and shouldn't be used.`,
+		`:4: "attr.license()" is deprecated and shouldn't be used.`,
+	}, scopeEverywhere)
+}

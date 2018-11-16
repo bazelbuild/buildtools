@@ -488,3 +488,27 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 	})
 	return findings
 }
+
+func attrLicenseWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Find nodes that match the following pattern: attr.license(...)
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := (call.X).(*build.DotExpr)
+		if !ok || dot.Name != "license" {
+			return
+		}
+		base, ok := dot.X.(*build.Ident)
+		if !ok || base.Name != "attr" {
+			return
+		}
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "attr-license",
+				`"attr.license()" is deprecated and shouldn't be used.`, true, nil))
+	})
+	return findings
+}
