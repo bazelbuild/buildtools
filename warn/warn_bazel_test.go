@@ -367,3 +367,34 @@ def impl(ctx):
 		},
 		scopeEverywhere)
 }
+
+func TestAttrOutputDefault(t *testing.T) {
+	checkFindings(t, "attr-output-default", `
+rule(
+  attrs = {
+      "foo": attr.output(default="foo"),
+      "bar": attr.output(not_default="foo"),
+      "baz": attr.string(default="foo"),
+  }
+)
+`,
+		[]string{
+			`:3: The "default" parameter for attr.output() is deprecated.`,
+		},
+		scopeEverywhere)
+}
+
+func TestAttrLicense(t *testing.T) {
+	checkFindings(t, "attr-license", `
+rule(
+  attrs = {
+      "foo": attr.license(foo),
+      "bar": attr.license(),
+      "baz": attr.no_license(),
+  }
+)
+`, []string{
+		`:3: "attr.license()" is deprecated and shouldn't be used.`,
+		`:4: "attr.license()" is deprecated and shouldn't be used.`,
+	}, scopeEverywhere)
+}

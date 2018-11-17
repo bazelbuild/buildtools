@@ -292,6 +292,12 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Build {
+		// Not applicable for BUILD or WORKSPACE files
+		return findings
+	}
+
 	firstStmtIndex := -1 // index of the first seen non-load statement
 	for i := 0; i < len(f.Stmt); i++ {
 		stmt := f.Stmt[i]
@@ -791,34 +797,36 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
-	"args-order":         argumentsOrderWarning,
-	"attr-cfg":           attrConfigurationWarning,
-	"attr-non-empty":     attrNonEmptyWarning,
-	"attr-single-file":   attrSingleFileWarning,
-	"constant-glob":      constantGlobWarning,
-	"ctx-actions":        ctxActionsWarning,
-	"ctx-args":           contextArgsAPIWarning,
-	"depset-iteration":   depsetIterationWarning,
-	"depset-union":       depsetUnionWarning,
-	"dict-concatenation": dictionaryConcatenationWarning,
-	"duplicated-name":    duplicatedNameWarning,
-	"filetype":           fileTypeWarning,
-	"git-repository":     nativeGitRepositoryWarning,
-	"http-archive":       nativeHTTPArchiveWarning,
-	"integer-division":   integerDivisionWarning,
-	"load":               unusedLoadWarning,
-	"load-on-top":        loadOnTopWarning,
-	"native-build":       nativeInBuildFilesWarning,
-	"native-package":     nativePackageWarning,
-	"no-effect":          noEffectWarning,
-	"output-group":       outputGroupWarning,
-	"package-name":       packageNameWarning,
-	"package-on-top":     packageOnTopWarning,
-	"redefined-variable": redefinedVariableWarning,
-	"repository-name":    repositoryNameWarning,
-	"same-origin-load":   sameOriginLoadWarning,
-	"string-iteration":   stringIterationWarning,
-	"unused-variable":    unusedVariableWarning,
+	"args-order":          argumentsOrderWarning,
+	"attr-cfg":            attrConfigurationWarning,
+	"attr-license":        attrLicenseWarning,
+	"attr-non-empty":      attrNonEmptyWarning,
+	"attr-output-default": attrOutputDefaultWarning,
+	"attr-single-file":    attrSingleFileWarning,
+	"constant-glob":       constantGlobWarning,
+	"ctx-actions":         ctxActionsWarning,
+	"ctx-args":            contextArgsAPIWarning,
+	"depset-iteration":    depsetIterationWarning,
+	"depset-union":        depsetUnionWarning,
+	"dict-concatenation":  dictionaryConcatenationWarning,
+	"duplicated-name":     duplicatedNameWarning,
+	"filetype":            fileTypeWarning,
+	"git-repository":      nativeGitRepositoryWarning,
+	"http-archive":        nativeHTTPArchiveWarning,
+	"integer-division":    integerDivisionWarning,
+	"load":                unusedLoadWarning,
+	"load-on-top":         loadOnTopWarning,
+	"native-build":        nativeInBuildFilesWarning,
+	"native-package":      nativePackageWarning,
+	"no-effect":           noEffectWarning,
+	"output-group":        outputGroupWarning,
+	"package-name":        packageNameWarning,
+	"package-on-top":      packageOnTopWarning,
+	"redefined-variable":  redefinedVariableWarning,
+	"repository-name":     repositoryNameWarning,
+	"same-origin-load":    sameOriginLoadWarning,
+	"string-iteration":    stringIterationWarning,
+	"unused-variable":     unusedVariableWarning,
 }
 
 // DisabledWarning checks if the warning was disabled by a comment.
