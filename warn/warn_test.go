@@ -207,12 +207,29 @@ php_library(name = "x")`,
 func TestWarnUnusedLoad(t *testing.T) {
 	checkFindingsAndFix(t, "load", `
 load(":f.bzl", "s1", "s2")
-load("f", "s1")
+load(":bar.bzl", "s1")
 foo(name = s1)`, `
-load(":f.bzl", "s1")
+load(":bar.bzl", "s1")
 foo(name = s1)`,
-		[]string{":1: Loaded symbol \"s2\" is unused.",
-			":2: Symbol \"s1\" has already been loaded."},
+		[]string{
+			":1: Symbol \"s1\" has already been loaded.",
+			":1: Loaded symbol \"s2\" is unused."},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "load", `
+load("foo", "a", "b", "c")
+load("bar", "a", "d", "e")
+
+z = a + b + d`, `
+load("foo", "b")
+load("bar", "a", "d")
+
+z = a + b + d`,
+		[]string{
+			":2: Loaded symbol \"e\" is unused.",
+			":1: Symbol \"a\" has already been loaded.",
+			":1: Loaded symbol \"c\" is unused.",
+		},
 		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
