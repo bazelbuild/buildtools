@@ -5,7 +5,7 @@ go_binary(
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
     x_defs = {
-        "main.buildifierVersion": "{STABLE_buildifierVersion}",
+        "main.buildVersion": "{STABLE_buildVersion}",
         "main.buildScmRevision": "{STABLE_buildScmRevision}",
     },
 )

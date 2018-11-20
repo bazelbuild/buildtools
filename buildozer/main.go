@@ -26,6 +26,10 @@ import (
 )
 
 var (
+	buildVersion     = "redacted"
+	buildScmRevision = "redacted"
+
+	version           = flag.Bool("version", false, "Print the version of buildozer")
 	stdout            = flag.Bool("stdout", false, "write changed BUILD file to stdout")
 	buildifier        = flag.String("buildifier", "", "format output using a specific buildifier binary. If empty, use built-in formatter")
 	parallelism       = flag.Int("P", 0, "number of cores to use for concurrent actions")
@@ -61,6 +65,12 @@ func stringList(name, help string) func() []string {
 
 func main() {
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("buildozer version: %s \n", buildVersion)
+		fmt.Printf("buildozer scm revision: %s \n", buildScmRevision)
+		os.Exit(0)
+	}
 
 	if *tablesPath != "" {
 		if err := tables.ParseAndUpdateJSONDefinitions(*tablesPath, false); err != nil {

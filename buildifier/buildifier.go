@@ -35,7 +35,7 @@ import (
 	"github.com/bazelbuild/buildtools/warn"
 )
 
-var buildifierVersion = "redacted"
+var buildVersion = "redacted"
 var buildScmRevision = "redacted"
 
 var (
@@ -96,7 +96,7 @@ func main() {
 	args := flag.Args()
 
 	if *version {
-		fmt.Printf("buildifier version: %s \n", buildifierVersion)
+		fmt.Printf("buildifier version: %s \n", buildVersion)
 		fmt.Printf("buildifier scm revision: %s \n", buildScmRevision)
 
 		if len(args) == 0 {
