@@ -22,6 +22,10 @@ go_binary(
     name = "unused_deps",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
+    x_defs = {
+        "main.buildVersion": "{STABLE_buildVersion}",
+        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+    },
 )
 
 go_test(

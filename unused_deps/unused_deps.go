@@ -39,6 +39,10 @@ import (
 )
 
 var (
+	buildVersion     = "redacted"
+	buildScmRevision = "redacted"
+
+	version             = flag.Bool("version", false, "Print the version of unused_deps")
 	buildTool           = flag.String("build_tool", config.DefaultBuildTool, config.BuildToolHelp)
 	extraActionFileName = flag.String("extra_action_file", "", config.ExtraActionFileNameHelp)
 	outputFileName      = flag.String("output_file", "", "used only with extra_action_file")
@@ -306,6 +310,12 @@ Note these may be used at run time; see documentation for more information.
 func main() {
 	flag.Usage = usage
 	flag.Parse()
+	if *version {
+		fmt.Printf("unused_deps version: %s \n", buildVersion)
+		fmt.Printf("unused_deps scm revision: %s \n", buildScmRevision)
+		os.Exit(0)
+	}
+
 	if *extraActionFileName != "" {
 		jarPath, err := getJarPath(*extraActionFileName)
 		if err != nil {
