@@ -4,21 +4,21 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "ee5fe78fe417c685ecb77a0a725dc9f6040ae5beb44a0ba4ddb55453aad23a8a",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.0/rules_go-0.16.0.tar.gz",
+    sha256 = "f87fa87475ea107b3c69196f39c82b7bbf58fe27c62a338684c20ca17d1d8613",
+    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.2/rules_go-0.16.2.tar.gz",
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "c0a5739d12c6d05b6c1ad56f2200cb0b57c5a70e03ebd2f7b87ce88cabf09c7b",
-    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.14.0/bazel-gazelle-0.14.0.tar.gz",
+    sha256 = "6e875ab4b6bf64a38c352887760f21203ab054676d9c1b274963907e0768740d",
+    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.15.0/bazel-gazelle-0.15.0.tar.gz",
 )
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "57e8737fbfa2eaee76b86dd8c1184251720c840cd9abe5c3f1566d331cdf7d65",
-    strip_prefix = "bazel-skylib-0.4.0",
-    url = "https://github.com/bazelbuild/bazel-skylib/archive/0.4.0.tar.gz",
+    sha256 = "b5f6abe419da897b7901f90cbab08af958b97a8f3575b0d3dd062ac7ce78541f",
+    strip_prefix = "bazel-skylib-0.5.0",
+    url = "https://github.com/bazelbuild/bazel-skylib/archive/0.5.0.tar.gz",
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -36,16 +36,16 @@ buildifier_dependencies()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "66135f877d0cc075b683474c50b1f7c3e2749bf0a40e446f20392f44494fefff",
-    strip_prefix = "bazel-0.12.0",
+    sha256 = "dd07fb88a3f4c9bb68416eb277bfbea20c982a9f4bd6525368d4e4beea55cb57",
+    strip_prefix = "bazel-0.19.2",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.12.0.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.19.2.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.19.2.tar.gz",
     ],
 )
 
 go_repository(
     name = "skylark_syntax",
-    commit = "ede9b31f30c07f7081ae3c112b223d024c7f7a15",
+    commit = "a5f7082aabed29c0e429c722292c66ec8ecf9591",
     importpath = "github.com/google/skylark",
 )
