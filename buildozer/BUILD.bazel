@@ -10,6 +10,10 @@ go_library(
         "//edit:go_default_library",
         "//tables:go_default_library",
     ],
+    x_defs = {
+        "main.buildVersion": "{STABLE_buildVersion}",
+        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+    },
 )
 
 go_binary(
