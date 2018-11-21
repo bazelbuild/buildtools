@@ -5,4 +5,4 @@ ARGS=@@ARGS@@
 
 buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
 cd "$BUILD_WORKSPACE_DIRECTORY"
-"$buildifier_short_path" "${ARGS[@]}" $(find . -type f @@EXCLUDE_PATTERNS@@ \( -name '*.bzl' -or -name 'BUILD.bazel' -or -name 'BUILD' -or -name 'WORKSPACE' \))
+"$buildifier_short_path" "${ARGS[@]}" $(find . -type f @@EXCLUDE_PATTERNS@@ \( -name '*.bzl' -or -name 'BUILD.bazel' -or -name 'BUILD' -or -name '*.BUILD' -or -name 'WORKSPACE' \))
