@@ -311,7 +311,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	case "warn":
 		warn.PrintWarnings(f, pkg, warningsList, false)
 	case "fix":
-		warn.FixWarnings(f, pkg, warningsList)
+		warn.FixWarnings(f, pkg, warningsList, *vflag)
 	}
 
 	if *filePath != "" {

@@ -81,7 +81,7 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	FixWarnings(buildFile, "the_package", []string{category})
+	FixWarnings(buildFile, "the_package", []string{category}, false)
 	have := build.Format(buildFile)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
