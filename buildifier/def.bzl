@@ -9,6 +9,9 @@ def _buildifier_impl(ctx):
         "-showlog=%s" % str(ctx.attr.show_log).lower(),
     ]
 
+    if ctx.attr.lint_mode:
+        args.append("-lint=%s" % ctx.attr.lint_mode)
+
     exclude_patterns_str = ""
     if ctx.attr.exclude_patterns:
         exclude_patterns = ["-not -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
@@ -46,6 +49,10 @@ _buildifier = rule(
             default = "fix",
             doc = "Formatting mode",
             values = ["check", "diff", "fix"],
+        ),
+        "lint_mode": attr.string(
+            doc = "Linting mode",
+            values = ["", "fix", "warn"],
         ),
         "exclude_patterns": attr.string_list(
             allow_empty = True,
