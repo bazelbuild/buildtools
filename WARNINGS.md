@@ -367,6 +367,21 @@ they can follow only comments and docstrings.
 
 --------------------------------------------------------------------------------
 
+## <a name="load-out-of-order"></a>Load statements should be ordered by their labels.
+
+  * Category_name: `load-out-of-order`
+  * Automatic fix: yes
+
+Load statements should be ordered by their first argument - extension file label.
+This makes it easier to developers to locate loads of interest and reduces chances
+for conflicts when performing large-scale automated refactoring.
+
+When applying automated fixes, it's highly recommended to also use
+<a name="load-on-top">load-on-top</a> fixes, since otherwise the relative order
+of a symbol load and its usage can change resulting in runtime error.
+
+--------------------------------------------------------------------------------
+
 ## <a name="filetype"></a>The `FileType` function is deprecated
 
   * Category_name: `filetype`

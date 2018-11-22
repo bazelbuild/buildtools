@@ -451,6 +451,60 @@ bar()`,
 		}, scopeBzl)
 }
 
+func TestOutOfOrderLoad(t *testing.T) {
+	checkFindingsAndFix(t, "out-of-order-load", `
+# b comment
+load(":b.bzl", "b")
+b += 2
+# a comment
+load(":a.bzl", "a")
+a + b`, `
+# a comment
+load(":a.bzl", "a")
+b += 2
+# b comment
+load(":b.bzl", "b")
+a + b`,
+		[]string{":5: Load statement is out of its lexicographical order."},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "out-of-order-load", `
+# b comment
+load(":b.bzl", "b")
+# c comment
+load(":c.bzl", "c")
+# a comment
+load(":a.bzl", "a")
+a + b + c`, `
+# a comment
+load(":a.bzl", "a")
+# b comment
+load(":b.bzl", "b")
+# c comment
+load(":c.bzl", "c")
+a + b + c`,
+		[]string{":6: Load statement is out of its lexicographical order."},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "out-of-order-load", `
+load(":a.bzl", "a")
+load("//a:a.bzl", "a")
+load("@a//a:a.bzl", "a")
+load("//b:b.bzl", "b")
+load(":b.bzl", "b")
+load("@b//b:b.bzl", "b")`, `
+load("@a//a:a.bzl", "a")
+load("@b//b:b.bzl", "b")
+load("//a:a.bzl", "a")
+load("//b:b.bzl", "b")
+load(":a.bzl", "a")
+load(":b.bzl", "b")
+`,
+		[]string{":2: Load statement is out of its lexicographical order.",
+			":4: Load statement is out of its lexicographical order."},
+		scopeEverywhere)
+}
+
 func TestPositionalArguments(t *testing.T) {
 	checkFindings(t, "positional-args", `
 my_macro(foo = "bar")

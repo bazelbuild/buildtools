@@ -333,6 +333,48 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	sortedLoads := []*build.LoadStmt{}
+	for i := 0; i < len(f.Stmt); i++ {
+		load, ok := f.Stmt[i].(*build.LoadStmt)
+		if !ok {
+			continue
+		}
+		sortedLoads = append(sortedLoads, load)
+	}
+	if fix {
+		sort.SliceStable(sortedLoads, func(i, j int) bool {
+			load1Label := sortedLoads[i].Module.Value
+			load2Label := sortedLoads[j].Module.Value
+			// handle absolute labels with explicit repositories separately to
+			// make sure they preceed absolute and relative labels without repos
+			if strings.HasPrefix(load1Label, "@") && !strings.HasPrefix(load2Label, "@") {
+				return true
+			}
+			return load1Label < load2Label
+		})
+		sortedLoadIndex := 0
+		for globalLoadIndex := 0; globalLoadIndex < len(f.Stmt); globalLoadIndex++ {
+			if _, ok := f.Stmt[globalLoadIndex].(*build.LoadStmt); !ok {
+				continue
+			}
+			f.Stmt[globalLoadIndex] = sortedLoads[sortedLoadIndex]
+			sortedLoadIndex++
+		}
+		return findings
+	}
+
+	for i := 1; i < len(sortedLoads); i++ {
+		if sortedLoads[i].Module.Value < sortedLoads[i-1].Module.Value {
+			start, end := sortedLoads[i].Span()
+			findings = append(findings, makeFinding(f, start, end, "out-of-order-load",
+				"Load statement is out of its lexicographical order.", true, nil))
+		}
+	}
+	return findings
+}
+
 func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -819,6 +861,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"native-build":        nativeInBuildFilesWarning,
 	"native-package":      nativePackageWarning,
 	"no-effect":           noEffectWarning,
+	"out-of-order-load":   outOfOrderLoadWarning,
 	"output-group":        outputGroupWarning,
 	"package-name":        packageNameWarning,
 	"package-on-top":      packageOnTopWarning,
