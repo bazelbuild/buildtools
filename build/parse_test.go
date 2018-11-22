@@ -96,8 +96,8 @@ var parseTests = []struct {
 )
 `,
 		out: &File{
-			Path:  "BUILD",
-			Build: true,
+			Path: "BUILD",
+			Type: TypeBuild,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &Ident{
@@ -130,8 +130,8 @@ var parseTests = []struct {
 	{
 		in: `foo.bar.baz(name = "x")`,
 		out: &File{
-			Path:  "test",
-			Build: false,
+			Path: "test",
+			Type: TypeDefault,
 			Stmt: []Expr{
 				&CallExpr{
 					X: &DotExpr{
@@ -192,8 +192,8 @@ var parseTests = []struct {
 		in: `load(":foo.bzl", "foo", """bar""", baz="foo", foo="""baz""")
 `,
 		out: &File{
-			Path:  "BUILD",
-			Build: true,
+			Path: "BUILD",
+			Type: TypeBuild,
 			Stmt: []Expr{
 				&LoadStmt{
 					Load: Position{1, 1, 0},

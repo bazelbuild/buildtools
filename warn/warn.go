@@ -235,8 +235,8 @@ func unusedVariableWarning(f *build.File, fix bool) []*Finding {
 
 func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	if !f.Build {
-		// Not applicable to non-BUILD files.
+	if f.Type == build.TypeDefault {
+		// Not applicable to .bzl files.
 		return findings
 	}
 	names := make(map[string]int) // map from name to line number
@@ -293,7 +293,7 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Build {
+	if f.Type != build.TypeDefault {
 		// Not applicable for BUILD or WORKSPACE files
 		return findings
 	}
@@ -452,8 +452,8 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 // unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
 // *build.DefStmt) and reports unused and already defined variables.
 func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding) []*Finding {
-	if !f.Build {
-		// Not applicable to non-BUILD files, unused symbols may be loaded and used in other files.
+	if f.Type == build.TypeDefault {
+		// Not applicable to .bzl files, unused symbols may be loaded and used in other files.
 		return findings
 	}
 	usedSymbols := make(map[string]bool)
@@ -769,7 +769,7 @@ func argumentsOrderWarning(f *build.File, fix bool) []*Finding {
 func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if !f.Build {
+	if f.Type != build.TypeBuild {
 		return findings
 	}
 
@@ -804,7 +804,7 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 func nativePackageWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Build {
+	if f.Type != build.TypeDefault {
 		return findings
 	}
 
@@ -941,7 +941,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 			if fn == nil {
 				log.Fatalf("unexpected warning %q", warn)
 			}
-			if !f.Build {
+			if f.Type == build.TypeDefault {
 				continue
 			}
 			for _, stmt := range f.Stmt {

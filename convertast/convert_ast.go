@@ -20,6 +20,7 @@ func ConvFile(f *syntax.File) *build.File {
 	}
 
 	return &build.File{
+		Type:     build.TypeDefault,
 		Stmt:     stmts,
 		Comments: convComments(f.Comments()),
 	}
