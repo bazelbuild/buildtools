@@ -38,12 +38,12 @@ func Format(f *File) []byte {
 
 // FormatString returns the string form of the given expression.
 func FormatString(x Expr) string {
-	buildMode := TypeBuild // for compatibility
+	fileType := TypeBuild // for compatibility
 	if file, ok := x.(*File); ok {
-		buildMode = file.Type
+		fileType = file.Type
 	}
 
-	pr := &printer{fileType: buildMode}
+	pr := &printer{fileType: fileType}
 	switch x := x.(type) {
 	case *File:
 		pr.file(x)
