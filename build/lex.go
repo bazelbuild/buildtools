@@ -33,8 +33,11 @@ import (
 type FileType int
 
 const (
+	// TypeDefault represents .bzl or other Starlark files
 	TypeDefault FileType = 1 << iota
+	// TypeBuild represents BUILD files
 	TypeBuild
+	// TypeWorkspace represents WORKSPACE files
 	TypeWorkspace
 )
 
@@ -58,7 +61,7 @@ func ParseBuild(filename string, data []byte) (*File, error) {
 	return f, err
 }
 
-// ParseBuild parses a file, marks it as a WORKSPACE file and returns the corresponding parse tree.
+// ParseWorkspace parses a file, marks it as a WORKSPACE file and returns the corresponding parse tree.
 //
 // The filename is used only for generating error messages.
 func ParseWorkspace(filename string, data []byte) (*File, error) {
