@@ -13,7 +13,8 @@ import (
 const (
 	scopeBuild      = build.TypeBuild
 	scopeBzl        = build.TypeDefault
-	scopeEverywhere = scopeBuild | scopeBzl
+	scopeWorkspace  = build.TypeWorkspace
+	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace
 )
 
 func getFilename(fileType build.FileType) string {
@@ -103,6 +104,10 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 	// Bzl file
 	compareFindings(t, category, input, expected, scope, build.TypeDefault)
 	checkFix(t, category, input, output, scope, build.TypeDefault)
+
+	// WORKSPACE file
+	compareFindings(t, category, input, expected, scope, build.TypeWorkspace)
+	checkFix(t, category, input, output, scope, build.TypeWorkspace)
 }
 
 func TestNoEffect(t *testing.T) {
@@ -199,7 +204,7 @@ py_library(name = "z")
 php_library(name = "x")`,
 		[]string{":3: A rule with name `x' was already found on line 1",
 			":5: A rule with name `x' was already found on line 1"},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 }
 
 func TestWarnUnusedLoad(t *testing.T) {
@@ -322,7 +327,7 @@ z = "name"
 cc_library(name = z)`,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused."},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -333,7 +338,7 @@ e = 5 # @unused
 # @unused
 f = 7`,
 		[]string{":4: Variable \"d\" is unused."},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -348,7 +353,7 @@ def foo():
   g = 8
   return g`,
 		[]string{":6: Variable \"d\" is unused."},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -365,7 +370,7 @@ def bar(b):
 			":4: Variable \"b\" is unused.",
 			":8: Variable \"c\" is unused.",
 		},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -410,7 +415,7 @@ load(":f.bzl", "x")
 foo()
 
 x()`,
-		[]string{":2: Load statements should be at the top of the file."}, scopeBzl)
+		[]string{":2: Load statements should be at the top of the file."}, scopeBuild | scopeBzl)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -446,7 +451,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, scopeBzl)
+		}, scopeBuild | scopeBzl)
 }
 
 func TestOutOfOrderLoad(t *testing.T) {
@@ -464,7 +469,7 @@ b += 2
 load(":b.bzl", "b")
 a + b`,
 		[]string{":5: Load statement is out of its lexicographical order."},
-		scopeEverywhere)
+		scopeBuild | scopeBzl)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 # b comment
@@ -482,7 +487,7 @@ load(":b.bzl", "b")
 load(":c.bzl", "c")
 a + b + c`,
 		[]string{":6: Load statement is out of its lexicographical order."},
-		scopeEverywhere)
+		scopeBuild | scopeBzl)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load(":a.bzl", "a")
@@ -500,7 +505,7 @@ load(":b.bzl", "b")
 `,
 		[]string{":2: Load statement is out of its lexicographical order.",
 			":4: Load statement is out of its lexicographical order."},
-		scopeEverywhere)
+		scopeBuild | scopeBzl)
 }
 
 func TestPositionalArguments(t *testing.T) {
@@ -508,7 +513,7 @@ func TestPositionalArguments(t *testing.T) {
 my_macro(foo = "bar")
 my_macro("foo", "bar")`,
 		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
-		scopeBuild)
+		scopeBuild | scopeWorkspace)
 }
 
 func TestIntegerDivision(t *testing.T) {

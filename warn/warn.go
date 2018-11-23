@@ -140,7 +140,7 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 				} else {
 					start, end := to.Span()
 					findings = append(findings,
-						makeFinding(f, start, end, "usused-load",
+						makeFinding(f, start, end, "load",
 							"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
 				}
 				continue
@@ -293,8 +293,8 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Type != build.TypeDefault {
-		// Not applicable for BUILD or WORKSPACE files
+	if f.Type == build.TypeWorkspace {
+		// Not applicable for WORKSPACE files
 		return findings
 	}
 
@@ -335,6 +335,12 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 
 func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type == build.TypeWorkspace {
+		// Not applicable for WORKSPACE files
+		return findings
+	}
+
 	sortedLoads := []*build.LoadStmt{}
 	for i := 0; i < len(f.Stmt); i++ {
 		load, ok := f.Stmt[i].(*build.LoadStmt)
