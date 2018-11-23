@@ -10,37 +10,39 @@ import (
 	"github.com/bazelbuild/buildtools/testutils"
 )
 
-type testScope int
-
 const (
-	scopeBuild testScope = 1 << iota
-	scopeBzl
+	scopeBuild      = build.TypeBuild
+	scopeBzl        = build.TypeDefault
 	scopeEverywhere = scopeBuild | scopeBzl
 )
 
-func getFilename(isBuildFile bool) string {
-	if isBuildFile {
+func getFilename(fileType build.FileType) string {
+	switch fileType {
+	case build.TypeBuild:
 		return "BUILD"
+	case build.TypeWorkspace:
+		return "WORKSPACE"
+	default:
+		return "test_file.bzl"
 	}
-	return "test_file.bzl"
 }
 
-func getFindings(category, input string, isBuildFile bool) []*Finding {
+func getFindings(category, input string, fileType build.FileType) []*Finding {
 	input = strings.TrimLeft(input, "\n")
-	buildFile, err := build.Parse(getFilename(isBuildFile), []byte(input))
+	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
 	return FileWarnings(buildFile, "the_package", []string{category}, false)
 }
 
-func compareFindings(t *testing.T, category, input string, expected []string, scope testScope, isBuildFile bool) {
+func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no warnings are expected
-	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
+	if scope&fileType == 0 {
 		expected = []string{}
 	}
 
-	findings := getFindings(category, input, isBuildFile)
+	findings := getFindings(category, input, fileType)
 	// We ensure that there is the expected number of warnings.
 	// At the moment, we check only the line numbers.
 	if len(expected) != len(findings) {
@@ -63,17 +65,17 @@ func compareFindings(t *testing.T, category, input string, expected []string, sc
 	}
 }
 
-func checkFix(t *testing.T, category, input, expected string, scope testScope, isBuildFile bool) {
+func checkFix(t *testing.T, category, input, expected string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no changes are expected
-	if (scope&scopeBuild == 0 && isBuildFile) || (scope&scopeBzl == 0 && !isBuildFile) {
+	if scope&fileType == 0 {
 		expected = input
 	}
 
-	buildFile, err := build.Parse(getFilename(isBuildFile), []byte(input))
+	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	goldenFile, err := build.Parse(getFilename(isBuildFile), []byte(expected))
+	goldenFile, err := build.Parse(getFilename(fileType), []byte(expected))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
@@ -82,29 +84,25 @@ func checkFix(t *testing.T, category, input, expected string, scope testScope, i
 	have := build.Format(buildFile)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
-		fileType := "bzl"
-		if isBuildFile {
-			fileType = "BUILD"
-		}
 		t.Errorf("fixed a test (type %s) incorrectly:\ninput:\n%s\ndiff (-expected, +ours)\n",
 			fileType, input)
 		testutils.Tdiff(t, want, have)
 	}
 }
 
-func checkFindings(t *testing.T, category, input string, expected []string, scope testScope) {
+func checkFindings(t *testing.T, category, input string, expected []string, scope build.FileType) {
 	// The same as checkFindingsAndFix but ensure that fixes don't change the file (except for formatting)
 	checkFindingsAndFix(t, category, input, input, expected, scope)
 }
 
-func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope testScope) {
+func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope build.FileType) {
 	// BUILD file
-	compareFindings(t, category, input, expected, scope, true)
-	checkFix(t, category, input, output, scope, true)
+	compareFindings(t, category, input, expected, scope, build.TypeBuild)
+	checkFix(t, category, input, output, scope, build.TypeBuild)
 
 	// Bzl file
-	compareFindings(t, category, input, expected, scope, false)
-	checkFix(t, category, input, output, scope, false)
+	compareFindings(t, category, input, expected, scope, build.TypeDefault)
+	checkFix(t, category, input, output, scope, build.TypeDefault)
 }
 
 func TestNoEffect(t *testing.T) {

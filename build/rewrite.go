@@ -62,9 +62,7 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 	for _, r := range rewrites {
 		if !disabled(r.name) {
-			if r.scope == scopeBoth ||
-				(f.Build && r.scope == scopeBuild) ||
-				(!f.Build && r.scope == scopeDefault) {
+			if f.Type & r.scope != 0 {
 				r.fn(f, info)
 			}
 		}
@@ -115,9 +113,9 @@ func (info *RewriteInfo) String() string {
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
 // or all files.
 const (
-	scopeDefault = iota
-	scopeBuild
-	scopeBoth
+	scopeDefault = TypeDefault
+	scopeBuild = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
+	scopeBoth = scopeDefault | scopeBuild
 )
 
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
@@ -126,7 +124,7 @@ const (
 var rewrites = []struct {
 	name  string
 	fn    func(*File, *RewriteInfo)
-	scope int
+	scope FileType
 }{
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
@@ -460,7 +458,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || !f.Build {
+				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || f.Type == TypeDefault {
 					continue
 				}
 				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {

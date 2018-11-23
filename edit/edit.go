@@ -230,7 +230,7 @@ func RemoveEmptyPackage(f *build.File) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
 }
 
 // InsertAfter inserts an expression after index i.
@@ -339,7 +339,7 @@ func DeleteRule(f *build.File, rule *build.Rule) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
 }
 
 // DeleteRuleByName returns the AST without the rules that have the
@@ -357,7 +357,7 @@ func DeleteRuleByName(f *build.File, name string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
 }
 
 // DeleteRuleByKind removes the rules of the specified kind from the AST.
@@ -375,7 +375,7 @@ func DeleteRuleByKind(f *build.File, kind string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Build: true}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
 }
 
 // AllLists returns all the lists concatenated in an expression.

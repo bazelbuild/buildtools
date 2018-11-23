@@ -21,26 +21,28 @@ import (
 )
 
 func TestIsBuildFilename(t *testing.T) {
-	cases := map[string]bool{
-		"BUILD":           true,
-		"build":           true,
-		"bUIld":           true,
-		"BUILD.bazel":     true,
-		"build.bzl":       false,
-		"build.sky":       false,
-		"WORKSPACE":       true,
-		"external.BUILD":  true,
-		"BUILD.external":  true,
-		"aBUILD":          false,
-		"thing.sky":       false,
-		"my.WORKSPACE":    true,
-		"thing.bzl":       false,
-		"workspace.bazel": true,
+	cases := map[string]FileType{
+		"BUILD":           TypeBuild,
+		"build":           TypeBuild,
+		"bUIld":           TypeBuild,
+		"BUILD.bazel":     TypeBuild,
+		"build.bzl":       TypeDefault,
+		"build.sky":       TypeDefault,
+		"WORKSPACE":       TypeWorkspace,
+		"external.BUILD":  TypeBuild,
+		"BUILD.external":  TypeBuild,
+		"aBUILD":          TypeDefault,
+		"thing.sky":       TypeDefault,
+		"my.WORKSPACE":    TypeWorkspace,
+		"thing.bzl":       TypeDefault,
+		"workspace.bazel": TypeWorkspace,
+		"workspace.bzl":   TypeDefault,
+		"foo.bar":         TypeDefault,
 	}
-	for name, isBuild := range cases {
-		res := isBuildFilename(name)
-		if res != isBuild {
-			t.Errorf("isBuildFilename(%q) should be %v but was %v", name, isBuild, res)
+	for name, fileType := range cases {
+		res := getFileType(name)
+		if res != fileType {
+			t.Errorf("isBuildFilename(%q) should be %v but was %v", name, fileType, res)
 		}
 	}
 }

@@ -26,9 +26,24 @@ import (
 	"unicode/utf8"
 )
 
-// BuildFilenames is a collection of filenames in lowercase that are treated as BUILD files.
-var BuildFilenames = map[string]bool{
-	"stdin": true,
+// FileType represents a type of a file (default (for .bzl files), BUILD, or WORKSPACE).
+// Certain formatting or refactoring rules can be applied to several file types, so they support
+// bitwise operations: `type1 | type2` can represent a scope (e.g. BUILD and WORKSPACE files) and
+// `scope & fileType` can be used to check whether a file type belongs to a scope.
+type FileType int
+
+const (
+	TypeDefault FileType = 1 << iota
+	TypeBuild
+	TypeWorkspace
+)
+
+func (t FileType) String() string {
+	return [...]string{
+		".bzl",
+		"BUILD",
+		"WORKSPACE",
+	}[t]
 }
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
@@ -38,7 +53,19 @@ func ParseBuild(filename string, data []byte) (*File, error) {
 	in := newInput(filename, data)
 	f, err := in.parse()
 	if f != nil {
-		f.Build = true
+		f.Type = TypeBuild
+	}
+	return f, err
+}
+
+// ParseBuild parses a file, marks it as a WORKSPACE file and returns the corresponding parse tree.
+//
+// The filename is used only for generating error messages.
+func ParseWorkspace(filename string, data []byte) (*File, error) {
+	in := newInput(filename, data)
+	f, err := in.parse()
+	if f != nil {
+		f.Type = TypeWorkspace
 	}
 	return f, err
 }
@@ -50,32 +77,41 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 	in := newInput(filename, data)
 	f, err := in.parse()
 	if f != nil {
-		f.Build = false
+		f.Type = TypeDefault
 	}
 	return f, err
 }
 
-func isBuildFilename(basename string) bool {
+func getFileType(basename string) FileType {
 	basename = strings.ToLower(basename)
-	if isBuild, ok := BuildFilenames[basename]; ok {
-		return isBuild
+	if basename == "stdin" {
+		return TypeBuild // For compatibility
 	}
 	ext := filepath.Ext(basename)
 	if ext == ".bzl" || ext == ".sky" {
-		return false
+		return TypeDefault
 	}
 	base := basename[:len(basename)-len(ext)]
-	return ext == ".build" || ext == ".workspace" || base == "build" || base == "workspace"
+	switch {
+	case ext == ".build" || base == "build":
+		return TypeBuild
+	case ext == ".workspace" || base == "workspace":
+		return TypeWorkspace
+	}
+	return TypeDefault
 }
 
 // Parse parses the input data and returns the corresponding parse tree.
 //
-// Uses the filename to detect the formatting type (either build or default) and calls
-// either ParseBuild or to ParseDefault correspondingly.
+// Uses the filename to detect the formatting type (build, workspace, or default) and calls
+// ParseBuild, ParseWorkspace, or ParseDefault correspondingly.
 func Parse(filename string, data []byte) (*File, error) {
 	basename := filepath.Base(filename)
-	if isBuildFilename(basename) {
+	switch getFileType(basename) {
+	case TypeBuild:
 		return ParseBuild(filename, data)
+	case TypeWorkspace:
+		return ParseWorkspace(filename, data)
 	}
 	return ParseDefault(filename, data)
 }
