@@ -20,10 +20,10 @@
   * [integer-division](#integer-division)
   * [load](#load)
   * [load-on-top](#load-on-top)
-  * [load-out-of-order](#load-out-of-order)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
+  * [out-of-order-load](#out-of-order-load)
   * [output-group](#output-group)
   * [package-name](#package-name)
   * [package-on-top](#package-on-top)
@@ -375,21 +375,6 @@ they can follow only comments and docstrings.
 
 --------------------------------------------------------------------------------
 
-## <a name="load-out-of-order"></a>Load statements should be ordered by their labels.
-
-  * Category_name: `load-out-of-order`
-  * Automatic fix: yes
-
-Load statements should be ordered by their first argument - extension file label.
-This makes it easier to developers to locate loads of interest and reduces chances
-for conflicts when performing large-scale automated refactoring.
-
-When applying automated fixes, it's highly recommended to also use
-[`load-on-top`](#load-on-top) fixes, since otherwise the relative order
-of a symbol load and its usage can change resulting in runtime error.
-
---------------------------------------------------------------------------------
-
 ## <a name="native-build"></a>The `native` module shouldn't be used in BUILD files
 
   * Category_name: `native-build`
@@ -417,6 +402,21 @@ modify the semantics of a BUILD file and makes it hard to maintain.
 
 The statement has no effect. Consider removing it or storing its result in a
 variable.
+
+--------------------------------------------------------------------------------
+
+## <a name="out-of-order-load"></a>Load statements should be ordered by their labels.
+
+  * Category_name: `out-of-order-load`
+  * Automatic fix: yes
+
+Load statements should be ordered by their first argument - extension file label.
+This makes it easier to developers to locate loads of interest and reduces chances
+for conflicts when performing large-scale automated refactoring.
+
+When applying automated fixes, it's highly recommended to also use
+[`load-on-top`](#load-on-top) fixes, since otherwise the relative order
+of a symbol load and its usage can change resulting in runtime error.
 
 --------------------------------------------------------------------------------
 
