@@ -97,17 +97,17 @@ func checkFindings(t *testing.T, category, input string, expected []string, scop
 }
 
 func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope build.FileType) {
-	// BUILD file
-	compareFindings(t, category, input, expected, scope, build.TypeBuild)
-	checkFix(t, category, input, output, scope, build.TypeBuild)
+	fileTypes := []build.FileType{
+		build.TypeDefault,
+		build.TypeBuild,
+		build.TypeWorkspace,
+	}
 
-	// Bzl file
-	compareFindings(t, category, input, expected, scope, build.TypeDefault)
-	checkFix(t, category, input, output, scope, build.TypeDefault)
-
-	// WORKSPACE file
-	compareFindings(t, category, input, expected, scope, build.TypeWorkspace)
-	checkFix(t, category, input, output, scope, build.TypeWorkspace)
+	for _, fileType := range fileTypes {
+		compareFindings(t, category, input, expected, scope, fileType)
+		checkFix(t, category, input, output, scope, fileType)
+		checkFix(t, category, output, output, scope, fileType)
+	}
 }
 
 func TestNoEffect(t *testing.T) {
@@ -204,7 +204,7 @@ py_library(name = "z")
 php_library(name = "x")`,
 		[]string{":3: A rule with name `x' was already found on line 1",
 			":5: A rule with name `x' was already found on line 1"},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 }
 
 func TestWarnUnusedLoad(t *testing.T) {
@@ -327,7 +327,7 @@ z = "name"
 cc_library(name = z)`,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused."},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -338,7 +338,7 @@ e = 5 # @unused
 # @unused
 f = 7`,
 		[]string{":4: Variable \"d\" is unused."},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -353,7 +353,7 @@ def foo():
   g = 8
   return g`,
 		[]string{":6: Variable \"d\" is unused."},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 
 	checkFindings(t, "unused-variable", `
 a = 1
@@ -370,7 +370,7 @@ def bar(b):
 			":4: Variable \"b\" is unused.",
 			":8: Variable \"c\" is unused.",
 		},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -415,7 +415,7 @@ load(":f.bzl", "x")
 foo()
 
 x()`,
-		[]string{":2: Load statements should be at the top of the file."}, scopeBuild | scopeBzl)
+		[]string{":2: Load statements should be at the top of the file."}, scopeBuild|scopeBzl)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -451,7 +451,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, scopeBuild | scopeBzl)
+		}, scopeBuild|scopeBzl)
 }
 
 func TestOutOfOrderLoad(t *testing.T) {
@@ -469,7 +469,7 @@ b += 2
 load(":b.bzl", "b")
 a + b`,
 		[]string{":5: Load statement is out of its lexicographical order."},
-		scopeBuild | scopeBzl)
+		scopeBuild|scopeBzl)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 # b comment
@@ -487,7 +487,7 @@ load(":b.bzl", "b")
 load(":c.bzl", "c")
 a + b + c`,
 		[]string{":6: Load statement is out of its lexicographical order."},
-		scopeBuild | scopeBzl)
+		scopeBuild|scopeBzl)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load(":a.bzl", "a")
@@ -503,9 +503,11 @@ load("//b:b.bzl", "b")
 load(":a.bzl", "a")
 load(":b.bzl", "b")
 `,
-		[]string{":2: Load statement is out of its lexicographical order.",
-			":4: Load statement is out of its lexicographical order."},
-		scopeBuild | scopeBzl)
+		[]string{
+			":2: Load statement is out of its lexicographical order.",
+			":3: Load statement is out of its lexicographical order.",
+			":6: Load statement is out of its lexicographical order.",
+		}, scopeBuild|scopeBzl)
 }
 
 func TestPositionalArguments(t *testing.T) {
@@ -513,7 +515,7 @@ func TestPositionalArguments(t *testing.T) {
 my_macro(foo = "bar")
 my_macro("foo", "bar")`,
 		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
-		scopeBuild | scopeWorkspace)
+		scopeBuild|scopeWorkspace)
 }
 
 func TestIntegerDivision(t *testing.T) {

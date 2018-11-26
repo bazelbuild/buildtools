@@ -334,6 +334,20 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 }
 
 func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
+	// compareLoadLabels compares two module names
+	compareLoadLabels := func(load1Label, load2Label string) bool {
+		// handle absolute labels with explicit repositories separately to
+		// make sure they preceed absolute and relative labels without repos
+		isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
+		isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
+		if isExplicitRepo1 == isExplicitRepo2 {
+			// Either both labels have explicit repository names or both don't, compare lexicographically
+			return load1Label < load2Label
+		}
+		// Exactly one label has an explicit repository name, it should be the first one.
+		return isExplicitRepo1
+	}
+
 	findings := []*Finding{}
 
 	if f.Type == build.TypeWorkspace {
@@ -353,12 +367,7 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 		sort.SliceStable(sortedLoads, func(i, j int) bool {
 			load1Label := sortedLoads[i].Module.Value
 			load2Label := sortedLoads[j].Module.Value
-			// handle absolute labels with explicit repositories separately to
-			// make sure they preceed absolute and relative labels without repos
-			if strings.HasPrefix(load1Label, "@") && !strings.HasPrefix(load2Label, "@") {
-				return true
-			}
-			return load1Label < load2Label
+			return compareLoadLabels(load1Label, load2Label)
 		})
 		sortedLoadIndex := 0
 		for globalLoadIndex := 0; globalLoadIndex < len(f.Stmt); globalLoadIndex++ {
@@ -372,7 +381,7 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 	}
 
 	for i := 1; i < len(sortedLoads); i++ {
-		if sortedLoads[i].Module.Value < sortedLoads[i-1].Module.Value {
+		if !compareLoadLabels(sortedLoads[i-1].Module.Value, sortedLoads[i].Module.Value) {
 			start, end := sortedLoads[i].Span()
 			findings = append(findings, makeFinding(f, start, end, "out-of-order-load",
 				"Load statement is out of its lexicographical order.", true, nil))
