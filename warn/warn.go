@@ -33,11 +33,12 @@ type Replacement struct {
 }
 
 var functionsWithPositionalArguments = map[string]bool{
-	"distribs":      true,
-	"exports_files": true,
-	"licenses":      true,
-	"print":         true,
-	"vardef":        true,
+	"distribs":            true,
+	"exports_files":       true,
+	"licenses":            true,
+	"print":               true,
+	"register_toolchains": true,
+	"vardef":              true,
 }
 
 func docURL(cat string) string {

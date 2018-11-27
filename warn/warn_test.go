@@ -516,6 +516,14 @@ my_macro(foo = "bar")
 my_macro("foo", "bar")`,
 		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
 		scopeBuild|scopeWorkspace)
+
+	checkFindings(t, "positional-args", `
+register_toolchains(
+	"//foo",
+	"//bar",
+)`,
+		[]string{},
+		scopeBuild|scopeWorkspace)
 }
 
 func TestIntegerDivision(t *testing.T) {
