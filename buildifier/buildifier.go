@@ -77,6 +77,14 @@ if the -v flag is given, prints their names to standard error.
 In print_if_changed mode, buildifier shows the file contents it would write.
 The default mode is fix. -d is an alias for -mode=diff.
 
+The lint flag selects the lint mode to be used: off, warn, fix.
+In off mode, the linting is not performed.
+In warn mode, buildifier prints warnings for common mistakes and suboptimal
+coding practices that include links providing more context and fix suggestions.
+In fix mode, buildifier updates the files with all warning resolutions produced
+by automated fixes.
+The default lint mode is off.
+
 If no files are listed, buildifier reads a BUILD file from standard input. In
 fix mode, it writes the reformatted BUILD file to standard output, even if no
 changes are necessary.
