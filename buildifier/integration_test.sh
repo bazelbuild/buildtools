@@ -54,9 +54,18 @@ test/to_fix.bzl: applied fixes, 0 warnings left
 fixed test/to_fix.bzl
 EOF
 
-$1 --lint=warn test/to_fix.bzl 2> test/error
+ret=0
+$1 --lint=warn test/to_fix.bzl 2> test/error || ret=$?
+if [[ $ret -ne 4 ]]; then
+  echo "Expected buildifier to exit with 4" >&2
+  exit 1
+fi
 diff test/error test/error_golden
 
-$1 --lint=fix -v test/to_fix.bzl 2> test/fix_report
+$1 --lint=fix -v test/to_fix.bzl 2> test/fix_report || ret=$?
+if [[ $ret -ne 4 ]]; then
+  echo "Expected buildifier to exit with 4" >&2
+  exit 1
+fi
 diff test/to_fix.bzl test/fixed_golden.bzl
 diff test/fix_report test/fix_report_golden

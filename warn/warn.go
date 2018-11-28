@@ -33,11 +33,12 @@ type Replacement struct {
 }
 
 var functionsWithPositionalArguments = map[string]bool{
-	"distribs":      true,
-	"exports_files": true,
-	"licenses":      true,
-	"print":         true,
-	"vardef":        true,
+	"distribs":            true,
+	"exports_files":       true,
+	"licenses":            true,
+	"print":               true,
+	"register_toolchains": true,
+	"vardef":              true,
 }
 
 func docURL(cat string) string {
@@ -974,7 +975,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 // PrintWarnings prints the list of warnings returned from calling FileWarnings.
 // Actionable warnings list their link in parens, inactionable warnings list
 // their link in square brackets.
-func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showReplacements bool) {
+func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showReplacements bool) bool {
 	warnings := FileWarnings(f, pkg, enabledWarnings, false)
 	sort.Slice(warnings, func(i, j int) bool { return warnings[i].Start.Line < warnings[j].Start.Line })
 	for _, w := range warnings {
@@ -998,6 +999,8 @@ func PrintWarnings(f *build.File, pkg string, enabledWarnings []string, showRepl
 			fmt.Fprintf(os.Stderr, "\n")
 		}
 	}
+
+	return len(warnings) > 0
 }
 
 // FixWarnings fixes all warnings that can be fixed automatically.

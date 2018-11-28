@@ -66,7 +66,7 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-path=path] [files...]
+	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
 
 Buildifier applies a standard formatting to the named BUILD files.
 The mode flag selects the processing: check, diff, fix, or print_if_changed.
@@ -76,6 +76,14 @@ In fix mode, buildifier updates the files that need reformatting and,
 if the -v flag is given, prints their names to standard error.
 In print_if_changed mode, buildifier shows the file contents it would write.
 The default mode is fix. -d is an alias for -mode=diff.
+
+The lint flag selects the lint mode to be used: off, warn, fix.
+In off mode, the linting is not performed.
+In warn mode, buildifier prints warnings for common mistakes and suboptimal
+coding practices that include links providing more context and fix suggestions.
+In fix mode, buildifier updates the files with all warning resolutions produced
+by automated fixes.
+The default lint mode is off.
 
 If no files are listed, buildifier reads a BUILD file from standard input. In
 fix mode, it writes the reformatted BUILD file to standard output, even if no
@@ -309,7 +317,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	pkg := getPackageName(filename)
 	switch lint {
 	case "warn":
-		warn.PrintWarnings(f, pkg, warningsList, false)
+		hasWarnings := warn.PrintWarnings(f, pkg, warningsList, false)
+		if hasWarnings == true {
+			exitCode = 4
+		}
 	case "fix":
 		warn.FixWarnings(f, pkg, warningsList, *vflag)
 	}
