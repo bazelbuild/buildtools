@@ -66,7 +66,7 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-path=path] [files...]
+	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
 
 Buildifier applies a standard formatting to the named BUILD files.
 The mode flag selects the processing: check, diff, fix, or print_if_changed.
