@@ -508,6 +508,14 @@ load(":b.bzl", "b")
 			":3: Load statement is out of its lexicographical order.",
 			":6: Load statement is out of its lexicographical order.",
 		}, scopeBuild|scopeBzl)
+
+	checkFindingsAndFix(t, "out-of-order-load", `
+load(":a.bzl", "a")
+load(":a.bzl", "a")
+`, `
+load(":a.bzl", "a")
+load(":a.bzl", "a")`,
+		[]string{}, scopeBuild|scopeBzl)
 }
 
 func TestPositionalArguments(t *testing.T) {
