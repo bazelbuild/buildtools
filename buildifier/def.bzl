@@ -1,4 +1,4 @@
-load("@bazel_skylib//:lib.bzl", "shell")
+load("@bazel_skylib//lib:shell.bzl", "shell")
 
 def _buildifier_impl(ctx):
     # That way we don't depends on defaults encoded in the binary but always
