@@ -4,9 +4,9 @@ def buildifier_dependencies():
     _maybe(
         http_archive,
         name = "bazel_skylib",
-        sha256 = "b5f6abe419da897b7901f90cbab08af958b97a8f3575b0d3dd062ac7ce78541f",
-        strip_prefix = "bazel-skylib-0.5.0",
-        urls = ["https://github.com/bazelbuild/bazel-skylib/archive/0.5.0.tar.gz"],
+        sha256 = "3b61715da37bc552cba875351e0c79ae150450d4cf3844b54b8c03cd2d0f481b",
+        strip_prefix = "bazel-skylib-d7c5518fa061ae18a20d00b14082705d3d2d885d",
+        url = "https://github.com/bazelbuild/bazel-skylib/archive/d7c5518fa061ae18a20d00b14082705d3d2d885d.tar.gz",  # 2018-11-21
     )
     _maybe(
         http_archive,
