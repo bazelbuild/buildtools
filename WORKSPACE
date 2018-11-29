@@ -4,21 +4,23 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "f87fa87475ea107b3c69196f39c82b7bbf58fe27c62a338684c20ca17d1d8613",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.2/rules_go-0.16.2.tar.gz",
+    sha256 = "ed8b5e0ee6f8855b3bfb5bdb418ee76066f54ccc60fad53aff6e3ccd6d7610d0",
+    strip_prefix = "rules_go-b5a862a50c434c36996cf273ea33240cf0d95640",
+    url = "https://github.com/bazelbuild/rules_go/archive/b5a862a50c434c36996cf273ea33240cf0d95640.tar.gz",
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "6e875ab4b6bf64a38c352887760f21203ab054676d9c1b274963907e0768740d",
-    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.15.0/bazel-gazelle-0.15.0.tar.gz",
+    sha256 = "c3511bfefc5734df6388d18ffe7d31de266c2ce35c172e9da8bf7ab5ad6e44f5",
+    strip_prefix = "bazel-gazelle-422ea009aca276245ac5152e5d598d1e2c3e2813",
+    url = "https://github.com/bazelbuild/bazel-gazelle/archive/422ea009aca276245ac5152e5d598d1e2c3e2813.tar.gz", # 2018-11-28
 )
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "b5f6abe419da897b7901f90cbab08af958b97a8f3575b0d3dd062ac7ce78541f",
-    strip_prefix = "bazel-skylib-0.5.0",
-    url = "https://github.com/bazelbuild/bazel-skylib/archive/0.5.0.tar.gz",
+    sha256 = "3b61715da37bc552cba875351e0c79ae150450d4cf3844b54b8c03cd2d0f481b",
+    strip_prefix = "bazel-skylib-d7c5518fa061ae18a20d00b14082705d3d2d885d",
+    url = "https://github.com/bazelbuild/bazel-skylib/archive/d7c5518fa061ae18a20d00b14082705d3d2d885d.tar.gz",  # 2018-11-21
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
