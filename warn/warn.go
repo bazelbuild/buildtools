@@ -382,7 +382,7 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 	}
 
 	for i := 1; i < len(sortedLoads); i++ {
-		if !compareLoadLabels(sortedLoads[i-1].Module.Value, sortedLoads[i].Module.Value) {
+		if compareLoadLabels(sortedLoads[i].Module.Value, sortedLoads[i-1].Module.Value) {
 			start, end := sortedLoads[i].Span()
 			findings = append(findings, makeFinding(f, start, end, "out-of-order-load",
 				"Load statement is out of its lexicographical order.", true, nil))
