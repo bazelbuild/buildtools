@@ -32,6 +32,7 @@
   * [repository-name](#repository-name)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
+  * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
 
 --------------------------------------------------------------------------------
@@ -48,7 +49,7 @@ Function call arguments should be in the following order:
   * Keyword arguments
   * Optional `*arg`
   * Optional `**kwarg`
-  
+
 --------------------------------------------------------------------------------
 
 ## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
@@ -417,6 +418,30 @@ for conflicts when performing large-scale automated refactoring.
 When applying automated fixes, it's highly recommended to also use
 [`load-on-top`](#load-on-top) fixes, since otherwise the relative order
 of a symbol load and its usage can change resulting in runtime error.
+
+--------------------------------------------------------------------------------
+
+## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys.
+
+  * Category_name: `unsorted-dict-items`
+  * Automatic fix: yes
+
+Dictionary items should be sorted lexicagraphically by their keys. This makes
+it easier to find the item of interest and reduces chances of conflicts when
+performing large-scale automated refactoring.
+
+If you want to preserve the original dictionary items order, you can disable
+the warning by adding a comment `# @unsorted-dict-items` to the dictionary
+expression or any of its enclosing expressins (binary, if etc). For example,
+
+    # @unsorted-dict-items
+    d = {
+      "b": "bvalue",
+      "a": "avalue",
+    }
+
+will not be reported as an issue because the assignment operation that uses
+the dictionary with unsorted items has a comment disabling this warning.
 
 --------------------------------------------------------------------------------
 

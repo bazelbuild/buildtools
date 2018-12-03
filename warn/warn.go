@@ -413,6 +413,75 @@ func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+func unsortedDictItemsWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	compareItems := func(item1, item2 *build.KeyValueExpr) bool {
+		key1 := item1.Key.(*build.StringExpr)
+		key2 := item2.Key.(*build.StringExpr)
+		return key1.Value < key2.Value
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		dict, ok := expr.(*build.DictExpr)
+
+		mustSkipCheck := func(expr build.Expr) bool {
+			return edit.ContainsComments(expr, "@unsorted-dict-items")
+		}
+
+		if !ok || mustSkipCheck(dict) {
+			return
+		}
+		// do not process dictionaries nested within expressions that do not
+		// want dict items to be sorted
+		for i := len(stack) - 1; i >= 0; i-- {
+			if mustSkipCheck(stack[i]) {
+				return
+			}
+		}
+		sortedItems := []*build.KeyValueExpr{}
+		for _, stmt := range dict.List {
+			item, ok := stmt.(*build.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			// include only string literal keys into consideration
+			if _, ok = item.Key.(*build.StringExpr); !ok {
+				continue
+			}
+			sortedItems = append(sortedItems, item)
+		}
+		if fix {
+			sort.SliceStable(sortedItems, func(i, j int) bool {
+				return compareItems(sortedItems[i], sortedItems[j])
+			})
+			sortedItemIndex := 0
+			for originalItemIndex := 0; originalItemIndex < len(dict.List); originalItemIndex++ {
+				item, ok := dict.List[originalItemIndex].(*build.KeyValueExpr)
+				if !ok {
+					continue
+				}
+				if _, ok := item.Key.(*build.StringExpr); !ok {
+					continue
+				}
+				dict.List[originalItemIndex] = sortedItems[sortedItemIndex]
+				sortedItemIndex++
+			}
+			return
+		}
+
+		for i := 1; i < len(sortedItems); i++ {
+			if compareItems(sortedItems[i], sortedItems[i-1]) {
+				start, end := sortedItems[i].Span()
+				findings = append(findings, makeFinding(f, start, end, "unsorted-dict-items",
+					"Dictionary items are out of their lexicographical order.", true, nil))
+			}
+		}
+		return
+	})
+	return findings
+}
+
 func isBranchStmt(e build.Expr) bool {
 	// TODO(laurentlb): This should be a separate node in the AST.
 	if id, ok := e.(*build.Ident); ok {
@@ -885,6 +954,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"repository-name":     repositoryNameWarning,
 	"same-origin-load":    sameOriginLoadWarning,
 	"string-iteration":    stringIterationWarning,
+	"unsorted-dict-items": unsortedDictItemsWarning,
 	"unused-variable":     unusedVariableWarning,
 }
 

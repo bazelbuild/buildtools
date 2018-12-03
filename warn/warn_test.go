@@ -518,6 +518,122 @@ load(":a.bzl", "a")`,
 		[]string{}, scopeBuild|scopeBzl)
 }
 
+func TestUnsortedDictItems(t *testing.T) {
+	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = {
+	"b": "b value",
+	"a": "a value",
+}`, `
+d = {
+	"a": "a value",
+	"b": "b value",
+}`,
+		[]string{":3: Dictionary items are out of their lexicographical order."},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+d = {
+	"a": "a value",
+	"a": "a value",
+}`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = {
+	2: "two",
+	"b": "b value",
+	1: "one",
+	"a": "a value",
+	3: "three",
+}`, `
+d = {
+	2: "two",
+	"a": "a value",
+	1: "one",
+	"b": "b value",
+	3: "three",
+}`,
+		[]string{":5: Dictionary items are out of their lexicographical order."},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+d = {}`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = {
+	# b comment
+	"b": "b value",
+	"a": "a value",
+}`, `
+d = {
+	"a": "a value",
+	# b comment
+	"b": "b value",
+}`,
+		[]string{":4: Dictionary items are out of their lexicographical order."},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+# @unsorted-dict-items
+d = {
+	"b": "b value",
+	"a": "a value",
+}`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = {
+	"key" : {
+		"b": "b value",
+		"a": "a value",
+	}
+}`, `
+d = {
+	"key" : {
+		"a": "a value",
+		"b": "b value",
+	}
+}`,
+		[]string{"4: Dictionary items are out of their lexicographical order."},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+# @unsorted-dict-items
+d = {
+	"key" : {
+		"b": "b value",
+		"a": "a value",
+	}
+}`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+d.update(
+	# @unsorted-dict-items
+	{
+		"b": "value2",
+		"a": "value1",
+	},
+)`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "unsorted-dict-items", `
+d.update(
+	{
+		"b": "value2",
+		"a": "value1",
+	}, # @unsorted-dict-items
+)`,
+		[]string{},
+		scopeEverywhere)
+}
+
 func TestPositionalArguments(t *testing.T) {
 	checkFindings(t, "positional-args", `
 my_macro(foo = "bar")
