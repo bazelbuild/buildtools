@@ -430,6 +430,9 @@ Dictionary items should be sorted lexicagraphically by their keys. This makes
 it easier to find the item of interest and reduces chances of conflicts when
 performing large-scale automated refactoring.
 
+The order is affected by `NamePriority` dictionary passed using `-tables` or
+`-add_tables` flags.
+
 If you want to preserve the original dictionary items order, you can disable
 the warning by adding a comment `# @unsorted-dict-items` to the dictionary
 expression or any of its enclosing expressins (binary, if etc). For example,

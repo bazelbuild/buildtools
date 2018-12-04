@@ -10,6 +10,7 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // A Finding is a warning reported by the analyzer. It may contain an optional suggested fix.
@@ -417,9 +418,14 @@ func unsortedDictItemsWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
 	compareItems := func(item1, item2 *build.KeyValueExpr) bool {
-		key1 := item1.Key.(*build.StringExpr)
-		key2 := item2.Key.(*build.StringExpr)
-		return key1.Value < key2.Value
+		key1 := item1.Key.(*build.StringExpr).Value
+		key2 := item2.Key.(*build.StringExpr).Value
+		key1Priority := tables.NamePriority[key1]
+		key2Priority := tables.NamePriority[key2]
+		if key1Priority != key2Priority {
+			return key1Priority < key2Priority
+		}
+		return key1 < key2
 	}
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {

@@ -601,6 +601,18 @@ d = {
 		[]string{"4: Dictionary items are out of their lexicographical order."},
 		scopeEverywhere)
 
+	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = {
+	"deps": [],
+	"srcs": ["foo.go"],
+}`, `
+d = {
+	"srcs": ["foo.go"],
+	"deps": [],
+}`,
+		[]string{"3: Dictionary items are out of their lexicographical order."},
+		scopeEverywhere)
+
 	checkFindings(t, "unsorted-dict-items", `
 # @unsorted-dict-items
 d = {
