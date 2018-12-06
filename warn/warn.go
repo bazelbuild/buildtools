@@ -420,6 +420,13 @@ func unsortedDictItemsWarning(f *build.File, fix bool) []*Finding {
 	compareItems := func(item1, item2 *build.KeyValueExpr) bool {
 		key1 := item1.Key.(*build.StringExpr).Value
 		key2 := item2.Key.(*build.StringExpr).Value
+		// regular keys should preceed private ones (start with "_")
+		if strings.HasPrefix(key1, "_") {
+			return strings.HasPrefix(key2, "_") && key1 < key2
+		}
+		if strings.HasPrefix(key2, "_") {
+			return true
+		}
 		key1Priority := tables.NamePriority[key1]
 		key2Priority := tables.NamePriority[key2]
 		if key1Priority != key2Priority {
