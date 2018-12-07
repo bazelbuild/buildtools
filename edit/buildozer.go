@@ -52,6 +52,9 @@ type Options struct {
 	Quiet             bool     // suppress informational messages.
 	EditVariables     bool     // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool     // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	PrintListSep      string   // line separator for printing out rule attributes
+	PrintFieldSep     string   // field separator for printing out rule attributes
+	PrintLineSep      string   // line separator for printing out rule attributes
 }
 
 // NewOpts returns a new Options struct with some defaults set.
@@ -992,7 +995,7 @@ func appendCommandsFromFile(opts *Options, commandsByFile map[string][]commandsF
 	}
 }
 
-func printRecord(writer io.Writer, record *apipb.Output_Record) {
+func printRecord(writer io.Writer, record *apipb.Output_Record, listSep string, fieldSep string, lineSep string) {
 	fields := record.Fields
 	line := make([]string, len(fields))
 	for i, field := range fields {
@@ -1018,12 +1021,12 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 			}
 			break
 		case *apipb.Output_Record_Field_List:
-			line[i] = fmt.Sprintf("[%s]", strings.Join(value.List.Strings, " "))
+			line[i] = fmt.Sprintf("[%s]", strings.Join(value.List.Strings, listSep))
 			break
 		}
 	}
 
-	fmt.Fprint(writer, strings.Join(line, " ")+"\n")
+	fmt.Fprint(writer, strings.Join(line, fieldSep)+lineSep)
 }
 
 // Buildozer loops over all arguments on the command line fixing BUILD files.
@@ -1084,7 +1087,7 @@ func Buildozer(opts *Options, args []string) int {
 		fmt.Fprintf(os.Stdout, "%s", data)
 	} else {
 		for _, record := range records {
-			printRecord(os.Stdout, record)
+			printRecord(os.Stdout, record, opts.PrintListSep, opts.PrintFieldSep, opts.PrintLineSep)
 		}
 	}
 

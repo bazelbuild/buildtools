@@ -47,6 +47,9 @@ var (
 
 	shortenLabelsFlag  = flag.Bool("shorten_labels", true, "convert added labels to short form, e.g. //foo:bar => :bar")
 	deleteWithComments = flag.Bool("delete_with_comments", true, "If a list attribute should be deleted even if there is a comment attached to it")
+	printListSep       = flag.String("print_list_separator", " ", "when using the print command, characters that should separate list elements")
+	printFieldSep      = flag.String("print_field_separator", " ", "when using the print command, characters that should separate fields")
+	printLineSep       = flag.String("print_line_separator", "\n", "when using the print command, characters that should separate lines")
 )
 
 func stringList(name, help string) func() []string {
@@ -104,6 +107,9 @@ func main() {
 		Quiet:             *quiet,
 		EditVariables:     *editVariables,
 		IsPrintingProto:   *isPrintingProto,
+		PrintListSep:      *printListSep,
+		PrintFieldSep:     *printFieldSep,
+		PrintLineSep:      *printLineSep,
 	}
 	os.Exit(edit.Buildozer(opts, flag.Args()))
 }
