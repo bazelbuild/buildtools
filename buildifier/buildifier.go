@@ -317,8 +317,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	pkg := getPackageName(filename)
 	switch lint {
 	case "warn":
-		hasWarnings := warn.PrintWarnings(f, pkg, warningsList, false)
-		if hasWarnings == true {
+		warnings := warn.FileWarnings(f, pkg, warningsList, false)
+		warn.PrintWarnings(f, warnings, false)
+		hasWarnings := len(warnings) > 0
+		if hasWarnings {
 			exitCode = 4
 		}
 	case "fix":
