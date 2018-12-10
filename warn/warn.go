@@ -228,13 +228,15 @@ func PrintWarnings(f *build.File, warnings []*Finding, showReplacements bool) {
 }
 
 // FixWarnings fixes all warnings that can be fixed automatically.
-func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
+func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) bool {
 	warnings := FileWarnings(f, pkg, enabledWarnings, true)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),
 			len(warnings))
 	}
+
+	return len(warnings) > 0
 }
 
 func collectAllWarnings() []string {

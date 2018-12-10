@@ -373,7 +373,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			exitCode = 4
 		}
 	case "fix":
-		warn.FixWarnings(f, pkg, warningsList, *vflag)
+		hasWarnings := warn.FixWarnings(f, pkg, warningsList, *vflag)
+		if hasWarnings == true {
+			exitCode = 4
+		}
 	}
 
 	if *filePath != "" {
