@@ -4,23 +4,24 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "ed8b5e0ee6f8855b3bfb5bdb418ee76066f54ccc60fad53aff6e3ccd6d7610d0",
-    strip_prefix = "rules_go-b5a862a50c434c36996cf273ea33240cf0d95640",
-    url = "https://github.com/bazelbuild/rules_go/archive/b5a862a50c434c36996cf273ea33240cf0d95640.tar.gz",
+    sha256 = "278c669f9dd472a1687263e89647397b8e54b588f0228cb57071a2048a049a4d",
+    strip_prefix = "rules_go-01e5a9f8483167962eddd167f7689408bdeb4e76",
+    # 0.16.3
+    url = "https://github.com/bazelbuild/rules_go/archive/01e5a9f8483167962eddd167f7689408bdeb4e76.tar.gz",
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "c3511bfefc5734df6388d18ffe7d31de266c2ce35c172e9da8bf7ab5ad6e44f5",
-    strip_prefix = "bazel-gazelle-422ea009aca276245ac5152e5d598d1e2c3e2813",
-    url = "https://github.com/bazelbuild/bazel-gazelle/archive/422ea009aca276245ac5152e5d598d1e2c3e2813.tar.gz", # 2018-11-28
+    sha256 = "f490124dd4b97c136cb8565f3aeefc2f2c1736afda7728b9b227b2b8aeadc88c",
+    strip_prefix = "bazel-gazelle-44ce230b3399a5d4472198740358fcd825b0c3c9",
+    url = "https://github.com/bazelbuild/bazel-gazelle/archive/44ce230b3399a5d4472198740358fcd825b0c3c9.tar.gz",  # 2018-12-10
 )
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "3b61715da37bc552cba875351e0c79ae150450d4cf3844b54b8c03cd2d0f481b",
-    strip_prefix = "bazel-skylib-d7c5518fa061ae18a20d00b14082705d3d2d885d",
-    url = "https://github.com/bazelbuild/bazel-skylib/archive/d7c5518fa061ae18a20d00b14082705d3d2d885d.tar.gz",  # 2018-11-21
+    sha256 = "7363ae6721c1648017e23a200013510c9e71ca69f398d52886ee6af7f26af436",
+    strip_prefix = "bazel-skylib-c00ef493869e2966d47508e8625aae723a4a3054",
+    url = "https://github.com/bazelbuild/bazel-skylib/archive/c00ef493869e2966d47508e8625aae723a4a3054.tar.gz",  # 2018-12-06
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -38,11 +39,11 @@ buildifier_dependencies()
 # used for build.proto
 http_archive(
     name = "io_bazel",
-    sha256 = "dd07fb88a3f4c9bb68416eb277bfbea20c982a9f4bd6525368d4e4beea55cb57",
-    strip_prefix = "bazel-0.19.2",
+    sha256 = "f59608e56b0b68fe9b18661ae3d10f6a61aaa5f70ed11f2db52e7bc6db516454",
+    strip_prefix = "bazel-0.20.0",
     urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.19.2.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.19.2.tar.gz",
+        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.20.0.tar.gz",
+        "https://github.com/bazelbuild/bazel/archive/0.20.0.tar.gz",
     ],
 )
 
