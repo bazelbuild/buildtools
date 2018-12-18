@@ -46,7 +46,7 @@ func (d *Differ) run(command string, args ...string) error {
 	if command == "FC" {
 		cmd = exec.Command(command, "/T")
 	} else {
-		cmd = exec.Command("/bin/bash", "-c", command+` "$@"`, "--")
+		cmd = exec.Command("/usr/bin/env", "bash", "-c", command+` "$@"`, "--")
 	}
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Stdout = os.Stdout
