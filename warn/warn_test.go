@@ -614,6 +614,18 @@ d = {
 		scopeEverywhere)
 
 	checkFindingsAndFix(t, "unsorted-dict-items", `
+d = select({
+	"//conditions:zzz": ["myrule_b.sh"],
+	"//conditions:default": ["myrule_default.sh"],
+})`, `
+d = select({
+	"//conditions:zzz": ["myrule_b.sh"],
+	"//conditions:default": ["myrule_default.sh"],
+})`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "unsorted-dict-items", `
 foo_binary = rule(
 	implementation = _foo_binary_impl,
 	attrs = {

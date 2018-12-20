@@ -199,6 +199,9 @@ var NamePriority = map[string]int{
 	"implementation": 5,
 	"implements":     6,
 	"alwayslink":     7,
+	// default condition in a dictionary literal passed to select should be
+	// the last one by convention.
+	"//conditions:default": 50,
 }
 
 var StripLabelLeadingSlashes = false
