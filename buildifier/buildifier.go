@@ -94,7 +94,10 @@ to the workspace directory. Normally buildifier deduces that path from the
 file names given, but the path can be given explicitly with the -path
 argument. This is especially useful when reformatting standard input,
 or in scripts that reformat a temporary copy of a file.
+
+Full list of flags with their defaults:
 `)
+	flag.PrintDefaults()
 	os.Exit(2)
 }
 
