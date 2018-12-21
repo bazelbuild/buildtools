@@ -17,13 +17,6 @@ http_archive(
     url = "https://github.com/bazelbuild/bazel-gazelle/archive/44ce230b3399a5d4472198740358fcd825b0c3c9.tar.gz",  # 2018-12-10
 )
 
-http_archive(
-    name = "bazel_skylib",
-    sha256 = "7363ae6721c1648017e23a200013510c9e71ca69f398d52886ee6af7f26af436",
-    strip_prefix = "bazel-skylib-c00ef493869e2966d47508e8625aae723a4a3054",
-    url = "https://github.com/bazelbuild/bazel-skylib/archive/c00ef493869e2966d47508e8625aae723a4a3054.tar.gz",  # 2018-12-06
-)
-
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
@@ -35,17 +28,6 @@ go_rules_dependencies()
 go_register_toolchains()
 
 buildifier_dependencies()
-
-# used for build.proto
-http_archive(
-    name = "io_bazel",
-    sha256 = "f59608e56b0b68fe9b18661ae3d10f6a61aaa5f70ed11f2db52e7bc6db516454",
-    strip_prefix = "bazel-0.20.0",
-    urls = [
-        "http://mirror.bazel.build/github.com/bazelbuild/bazel/archive/0.20.0.tar.gz",
-        "https://github.com/bazelbuild/bazel/archive/0.20.0.tar.gz",
-    ],
-)
 
 go_repository(
     name = "skylark_syntax",
