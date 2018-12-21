@@ -379,7 +379,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			return
 		}
 		infile := filename
+		displayFilename := ""
 		if filename == "" {
+			displayFilename = "<stdin>"
 			// data was read from standard filename.
 			// Write it to a temporary file so diff can read it.
 			infile, err = writeTemp(data)
@@ -388,7 +390,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 				exitCode = 3
 				return
 			}
+		} else {
+			displayFilename = filename
 		}
+		fmt.Fprintf(os.Stderr, "%v:\n", displayFilename)
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			exitCode = 4
