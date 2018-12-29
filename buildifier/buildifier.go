@@ -45,6 +45,8 @@ var (
 	vflag         = flag.Bool("v", false, "print verbose information on standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
+	diffProgram   = flag.String("diff_command", "", "command to run when the formatting mode is diff (default uses the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables to create the diff command)")
+	multiDiff     = flag.Bool("multi_diff", false, "the command specified by the -diff_command flag can diff multiple files in the style of tkdiff (default false)")
 	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
 	warnings      = flag.String("warnings", "", "comma-separated warnings used in the lint mode or \"all\"")
 	filePath      = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
@@ -66,16 +68,19 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
+	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-diff_command=command] [-multi_diff] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
 
-Buildifier applies a standard formatting to the named BUILD files.
-The mode flag selects the processing: check, diff, fix, or print_if_changed.
-In check mode, buildifier prints a list of files that need reformatting.
-In diff mode, buildifier shows the diffs that it would make.
-In fix mode, buildifier updates the files that need reformatting and,
-if the -v flag is given, prints their names to standard error.
-In print_if_changed mode, buildifier shows the file contents it would write.
-The default mode is fix. -d is an alias for -mode=diff.
+Buildifier applies standard formatting to the named Starlark files.  The mode
+flag selects the processing: check, diff, fix, or print_if_changed.  In check
+mode, buildifier prints a list of files that need reformatting.  In diff mode,
+buildifier shows the diffs that it would make.  It creates the diffs by running
+a diff command, which can be specified using the -diff_command flag. You can
+indicate that the diff command can show differences between more than two files
+in the manner of tkdiff by specifying the -multi_diff flag.  In fix mode,
+buildifier updates the files that need reformatting and, if the -v flag is
+given, prints their names to standard error.  In print_if_changed mode,
+buildifier shows the file contents it would write.  The default mode is fix. -d
+is an alias for -mode=diff.
 
 The lint flag selects the lint mode to be used: off, warn, fix.
 In off mode, the linting is not performed.
@@ -85,9 +90,9 @@ In fix mode, buildifier updates the files with all warning resolutions produced
 by automated fixes.
 The default lint mode is off.
 
-If no files are listed, buildifier reads a BUILD file from standard input. In
-fix mode, it writes the reformatted BUILD file to standard output, even if no
-changes are necessary.
+If no files are listed, buildifier reads a Starlark file from standard
+input. In fix mode, it writes the reformatted Starlark file to standard output,
+even if no changes are necessary.
 
 Buildifier's reformatting depends in part on the path to the file relative
 to the workspace directory. Normally buildifier deduces that path from the
@@ -229,6 +234,10 @@ func main() {
 	}
 
 	diff = differ.Find()
+	if *diffProgram != "" {
+		diff.Cmd = *diffProgram
+		diff.MultiDiff = *multiDiff
+	}
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
 		// Read from stdin, write to stdout.

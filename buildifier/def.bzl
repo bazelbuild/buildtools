@@ -1,8 +1,8 @@
 load("@bazel_skylib//lib:shell.bzl", "shell")
 
 def _buildifier_impl(ctx):
-    # That way we don't depends on defaults encoded in the binary but always
-    # use defaults set on attributes of the rule
+    # Do not depend on defaults encoded in the binary.  Always use defaults set
+    # on attributes of the rule.
     args = [
         "-mode=%s" % ctx.attr.mode,
         "-v=%s" % str(ctx.attr.verbose).lower(),
@@ -11,11 +11,15 @@ def _buildifier_impl(ctx):
 
     if ctx.attr.lint_mode:
         args.append("-lint=%s" % ctx.attr.lint_mode)
+    if ctx.attr.multi_diff:
+        args.append("-multi_diff")
+    if ctx.attr.diff_command:
+        args.append("-diff_command=%s" % ctx.attr.diff_command)
 
     exclude_patterns_str = ""
     if ctx.attr.exclude_patterns:
-        exclude_patterns = ["-not -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
-        exclude_patterns_str = " ".join(exclude_patterns) + " -and"
+        exclude_patterns = ["\! -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
+        exclude_patterns_str = " ".join(exclude_patterns)
 
     out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
     substitutions = {
@@ -58,6 +62,13 @@ _buildifier = rule(
             allow_empty = True,
             doc = "A list of glob patterns passed to the find command. E.g. './vendor/*' to exclude the Go vendor directory",
         ),
+        "diff_command": attr.string(
+            doc = "Command to use to show diff, with mode=diff. E.g. 'diff -u'",
+        ),
+        "multi_diff": attr.bool(
+            default = False,
+            doc = "Set to True if the diff command specified by the 'diff_command' can diff multiple files in the style of 'tkdiff'",
+        ),
         "_buildifier": attr.label(
             default = "@com_github_bazelbuild_buildtools//buildifier",
             cfg = "host",
@@ -76,6 +87,4 @@ def buildifier(**kwargs):
     if "manual" not in tags:
         tags.append("manual")
         kwargs["tags"] = tags
-    _buildifier(
-        **kwargs
-    )
+    _buildifier(**kwargs)

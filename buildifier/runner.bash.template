@@ -1,8 +1,18 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 
 BUILDIFIER_SHORT_PATH=@@BUILDIFIER_SHORT_PATH@@
 ARGS=@@ARGS@@
 
 buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
-cd "$BUILD_WORKSPACE_DIRECTORY"
-"$buildifier_short_path" "${ARGS[@]}" $(find . -type f @@EXCLUDE_PATTERNS@@ \( -name '*.bzl' -or -name 'BUILD.bazel' -or -name 'BUILD' -or -name '*.BUILD' -or -name 'WORKSPACE' \))
+(cd "$BUILD_WORKSPACE_DIRECTORY" \
+     && find . \
+             -type f \
+             @@EXCLUDE_PATTERNS@@ \
+             \( -name '*.bzl' \
+                -o -name '*.sky' \
+                -o -name BUILD.bazel \
+                -o -name BUILD \
+                -o -name '*.BUILD' \
+                -o -name WORKSPACE \) \
+             -print \
+        | xargs "$buildifier_short_path" "${ARGS[@]}")
