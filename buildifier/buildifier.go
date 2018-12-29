@@ -211,7 +211,7 @@ func main() {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("stdin", data, *inputType, *lint, warningsList)
+		processFile("stdin", data, *inputType, *lint, warningsList, false)
 	} else {
 		processFiles(args, *inputType, *lint, warningsList)
 	}
@@ -273,7 +273,7 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data, inputType, lint, warningsList)
+		processFile(file, res.data, inputType, lint, warningsList, len(files) > 1)
 	}
 }
 
@@ -295,7 +295,7 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string, warningsList []string) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList []string, displayFileNames bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -379,9 +379,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			return
 		}
 		infile := filename
-		displayFilename := ""
 		if filename == "" {
-			displayFilename = "<stdin>"
 			// data was read from standard filename.
 			// Write it to a temporary file so diff can read it.
 			infile, err = writeTemp(data)
@@ -390,10 +388,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 				exitCode = 3
 				return
 			}
-		} else {
-			displayFilename = filename
 		}
-		fmt.Fprintf(os.Stderr, "%v:\n", displayFilename)
+		if displayFileNames {
+			fmt.Fprintf(os.Stderr, "%v:\n", filename)
+		}
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			exitCode = 4
