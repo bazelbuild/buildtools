@@ -11,10 +11,10 @@ def buildifier_dependencies():
     _maybe(
         http_archive,
         name = "io_bazel",
-        sha256 = "71b4294c18429fb730e223d1ceca135245fecda43191998d6afef39e1ba48e78",
-        strip_prefix = "bazel-0.21.0",
+        sha256 = "6ccb831e683179e0cfb351cb11ea297b4db48f9eab987601c038aa0f83037db4",
         urls = [
-            "https://github.com/bazelbuild/bazel/archive/0.21.0.tar.gz",
+            "https://releases.bazel.build/0.21.0/release/bazel-0.21.0-dist.zip",
+            "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-dist.zip",
         ],
     )
 
