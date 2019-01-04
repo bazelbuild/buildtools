@@ -1066,7 +1066,7 @@ func PrintWarnings(f *build.File, warnings []*Finding, showReplacements bool) {
 			formatString = "%s:%d: %s: %s [%s]"
 		}
 		fmt.Fprintf(os.Stderr, formatString,
-			w.File.Path,
+			w.File.DisplayPath(),
 			w.Start.Line,
 			w.Category,
 			w.Message,
@@ -1088,7 +1088,7 @@ func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bo
 	warnings := FileWarnings(f, pkg, enabledWarnings, true)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
-			f.Path,
+			f.DisplayPath(),
 			len(warnings))
 	}
 }

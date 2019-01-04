@@ -211,7 +211,7 @@ func main() {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("stdin", data, *inputType, *lint, warningsList, false)
+		processFile("", data, *inputType, *lint, warningsList, false)
 	} else {
 		processFiles(args, *inputType, *lint, warningsList)
 	}
