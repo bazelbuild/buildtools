@@ -295,8 +295,8 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Type == build.TypeWorkspace {
-		// Not applicable for WORKSPACE files
+	if f.Type != build.TypeDefault {
+		// Only applicable to .bzl files
 		return findings
 	}
 
