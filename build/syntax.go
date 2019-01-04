@@ -87,6 +87,14 @@ type File struct {
 	Stmt []Expr
 }
 
+// DisplayPath returns the filename if it's not empty, "<stdin>" otherwise
+func (f *File) DisplayPath() string {
+	if f.Path == "" {
+		return "<stdin>"
+	}
+	return f.Path
+}
+
 func (f *File) Span() (start, end Position) {
 	if len(f.Stmt) == 0 {
 		return

@@ -85,11 +85,11 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 	return f, err
 }
 
-func getFileType(basename string) FileType {
-	basename = strings.ToLower(basename)
-	if basename == "stdin" {
+func getFileType(filename string) FileType {
+	if filename == "" { // stdin
 		return TypeBuild // For compatibility
 	}
+	basename := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(basename)
 	if ext == ".bzl" || ext == ".sky" {
 		return TypeDefault
@@ -109,8 +109,7 @@ func getFileType(basename string) FileType {
 // Uses the filename to detect the formatting type (build, workspace, or default) and calls
 // ParseBuild, ParseWorkspace, or ParseDefault correspondingly.
 func Parse(filename string, data []byte) (*File, error) {
-	basename := filepath.Base(filename)
-	switch getFileType(basename) {
+	switch getFileType(filename) {
 	case TypeBuild:
 		return ParseBuild(filename, data)
 	case TypeWorkspace:
@@ -128,7 +127,11 @@ type ParseError struct {
 
 // Error returns a string representation of the parse error.
 func (e ParseError) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %v", e.Filename, e.Pos.Line, e.Pos.LineRune, e.Message)
+	filename := e.Filename
+	if filename == "" {
+		filename = "<stdin>"
+	}
+	return fmt.Sprintf("%s:%d:%d: %v", filename, e.Pos.Line, e.Pos.LineRune, e.Message)
 }
 
 // An input represents a single input file being parsed.
