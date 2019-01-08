@@ -343,8 +343,26 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 		isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
 		isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
 		if isExplicitRepo1 == isExplicitRepo2 {
-			// Either both labels have explicit repository names or both don't, compare lexicographically
-			return load1Label < load2Label
+			// Either both labels have explicit repository names or both don't, compare their packages
+			// and break ties using file names if necessary
+
+			module1Parts := strings.Split(strings.TrimLeft(load1Label, "@"), ":")
+			package1, filename1 := module1Parts[0], module1Parts[1]
+			module2Parts := strings.Split(strings.TrimLeft(load2Label, "@"), ":")
+			package2, filename2 := module2Parts[0], module2Parts[1]
+
+			// in case both packages are the same, use file names to break ties
+			if package1 == package2 {
+				return filename1 < filename2
+			}
+
+			// in case one of the packages is empty, the empty one goes first
+			if len(package1) == 0 || len(package2) == 0 {
+				return len(package1) > 0
+			}
+
+			// both packages are non-empty and not equal, so compare them
+			return package1 < package2
 		}
 		// Exactly one label has an explicit repository name, it should be the first one.
 		return isExplicitRepo1
