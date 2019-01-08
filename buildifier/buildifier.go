@@ -46,7 +46,7 @@ var (
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
-	warnings      = flag.String("warnings", "all", "comma-separated warnings used in the lint mode or \"all\" (default all)")
+	warnings      = flag.String("warnings", "", "comma-separated warnings used in the lint mode or \"all\"")
 	filePath      = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
@@ -172,10 +172,38 @@ func main() {
 	// Check lint warnings
 	var warningsList []string
 	switch *warnings {
-	case "", "all":
+	case "", "default":
+		warningsList = warn.DefaultWarnings
+	case "all":
 		warningsList = warn.AllWarnings
 	default:
-		warningsList = strings.Split(*warnings, ",")
+		// Either all or no warning categories should start with "+" or "-".
+		// If all of them start, the semantics is "default set of warnings + something - something".
+		plus := map[string]bool{}
+		minus := map[string]bool{}
+		for _, warning := range strings.Split(*warnings, ",") {
+			if strings.HasPrefix(warning, "+") {
+				plus[warning[1:]] = true
+			} else if strings.HasPrefix(warning, "-") {
+				minus[warning[1:]] = true
+			} else {
+				warningsList = append(warningsList, warning)
+			}
+		}
+		if len(warningsList) > 0 && (len(plus) > 0 || len(minus) > 0) {
+			fmt.Fprintf(os.Stderr, "buildifier: warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories\n")
+			os.Exit(2)
+		}
+		if len(warningsList) == 0 {
+			for _, warning := range warn.DefaultWarnings {
+				if !minus[warning] {
+					warningsList = append(warningsList, warning)
+				}
+			}
+			for warning := range plus {
+				warningsList = append(warningsList, warning)
+			}
+		}
 	}
 
 	// If the path flag is set, must only be formatting a single file.

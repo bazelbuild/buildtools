@@ -13,6 +13,13 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
+// nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
+// for all files and cause too much diff noise when applied.
+var nonDefaultWarnings = map[string]bool{
+	"out-of-order-load":   true, // load statements should be sorted by their labels
+	"unsorted-dict-items": true, // dict items should be sorted
+}
+
 // A Finding is a warning reported by the analyzer. It may contain an optional suggested fix.
 type Finding struct {
 	File        *build.File
@@ -1108,3 +1115,16 @@ func collectAllWarnings() []string {
 
 // AllWarnings is the list of all available warnings.
 var AllWarnings = collectAllWarnings()
+
+func collectDefaultWarnings() []string {
+	warnings := []string{}
+	for _, warning := range AllWarnings {
+		if !nonDefaultWarnings[warning] {
+			warnings = append(warnings, warning)
+		}
+	}
+	return warnings
+}
+
+// DefaultWarnings is the list of all warnings that should be used inside google3
+var DefaultWarnings = collectDefaultWarnings()
