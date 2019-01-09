@@ -178,7 +178,8 @@ func main() {
 		warningsList = warn.AllWarnings
 	default:
 		// Either all or no warning categories should start with "+" or "-".
-		// If all of them start, the semantics is "default set of warnings + something - something".
+		// If all of them start with "+" or "-", the semantics is
+		// "default set of warnings + something - something".
 		plus := map[string]bool{}
 		minus := map[string]bool{}
 		for _, warning := range strings.Split(*warnings, ",") {
