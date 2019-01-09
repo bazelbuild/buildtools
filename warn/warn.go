@@ -971,6 +971,13 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"unused-variable":     unusedVariableWarning,
 }
 
+// nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
+// for all files and cause too much diff noise when applied.
+var nonDefaultWarnings = map[string]bool{
+	"out-of-order-load":   true, // load statements should be sorted by their labels
+	"unsorted-dict-items": true, // dict items should be sorted
+}
+
 // DisabledWarning checks if the warning was disabled by a comment.
 // The comment format is buildozer: disable=<warning>
 func DisabledWarning(f *build.File, finding *Finding, warning string) bool {
@@ -1108,3 +1115,16 @@ func collectAllWarnings() []string {
 
 // AllWarnings is the list of all available warnings.
 var AllWarnings = collectAllWarnings()
+
+func collectDefaultWarnings() []string {
+	warnings := []string{}
+	for _, warning := range AllWarnings {
+		if !nonDefaultWarnings[warning] {
+			warnings = append(warnings, warning)
+		}
+	}
+	return warnings
+}
+
+// DefaultWarnings is the list of all warnings that should be used inside google3
+var DefaultWarnings = collectDefaultWarnings()
