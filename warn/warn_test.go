@@ -342,8 +342,27 @@ func TestWarnSameOriginLoad(t *testing.T) {
 		[]string{":2: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
 		scopeEverywhere,
 	)
-}
 
+	checkFindingsAndFix(t, category, `
+	load(":f.bzl", "s1")
+	load(":f.bzl", "s2", "s3")
+	load(":f.bzl",
+    "s4")
+	`, `
+	load(
+      ":f.bzl",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+  )`,
+		[]string{
+			":2: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
+			":3: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
+		}, scopeEverywhere,
+	)
+
+}
 func TestWarnUnusedVariables(t *testing.T) {
 	checkFindings(t, "unused-variable", `
 load(":f.bzl", "x")
