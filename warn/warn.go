@@ -182,6 +182,13 @@ func sameOriginLoadWarning(f *build.File, fix bool) []*Finding {
 			continue
 		}
 
+		if fix {
+			start, end := load.Span()
+			if start.Line == end.Line {
+				load.ForceCompact = true
+			}
+		}
+
 		previousLoad := loaded[load.Module.Value]
 		if previousLoad == nil {
 			loaded[load.Module.Value] = load
@@ -191,6 +198,12 @@ func sameOriginLoadWarning(f *build.File, fix bool) []*Finding {
 		if fix {
 			previousLoad.To = append(previousLoad.To, load.To...)
 			previousLoad.From = append(previousLoad.From, load.From...)
+
+			// Force the merged load statement to be compact if both previous and current load statements are compact
+			if !load.ForceCompact {
+				previousLoad.ForceCompact = false
+			}
+
 			f.Stmt = append(f.Stmt[:stmtIndex], f.Stmt[stmtIndex+1:]...)
 			stmtIndex--
 		} else {

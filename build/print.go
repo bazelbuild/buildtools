@@ -541,7 +541,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 			args = append(args, arg)
 		}
-		p.seq("()", &v.Load, &args, &v.Rparen, modeCall, v.ForceCompact, false)
+		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
 
 	case *ListExpr:
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
@@ -674,6 +674,7 @@ const (
 	modeDict  // {x:y}
 	modeSeq   // x, y
 	modeDef   // def f(x, y)
+	modeLoad  // load(a, b, c)
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
@@ -697,7 +698,7 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	// In the Default printing mode try to keep the original printing style.
 	// Non-top-level statements and lists of arguments of a function definition
 	// should also keep the original style regardless of the mode.
-	if p.level != 0 || p.fileType == TypeDefault || mode == modeDef {
+	if (p.level != 0 || p.fileType == TypeDefault || mode == modeDef) && mode != modeLoad {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode.
 		// If an node's line number is 0, it means it doesn't appear in the original file,
