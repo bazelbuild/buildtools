@@ -48,7 +48,7 @@ _buildifier = rule(
         "mode": attr.string(
             default = "fix",
             doc = "Formatting mode",
-            values = ["check", "diff", "fix"],
+            values = ["check", "diff", "fix", "print_if_changed"],
         ),
         "lint_mode": attr.string(
             doc = "Linting mode",
