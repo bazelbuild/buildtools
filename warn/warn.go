@@ -119,13 +119,10 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	loaded := make(map[string]bool)
+	loaded := make(map[string]string)
 
 	symbols := edit.UsedSymbols(f)
-	// statements are considered in reserve order to make sure that the last
-	// load wins, just like what happens during evaluation, which is very
-	// important if same symbol is loaded from different files.
-	for stmtIndex := len(f.Stmt) - 1; stmtIndex >= 0; stmtIndex-- {
+	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
 		load, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
 			continue
@@ -134,8 +131,9 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			from := load.From[i]
 			to := load.To[i]
 			// Check if the symbol was already loaded
-			if loaded[to.Name] {
-				if fix {
+			if label, ok := loaded[to.Name]; ok {
+				if fix && label == load.Module.Token {
+					// Only fix if it's loaded from the label
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
@@ -163,7 +161,7 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 
 				}
 			}
-			loaded[to.Name] = true
+			loaded[to.Name] = load.Module.Token
 		}
 		// If there are no loaded symbols left remove the entire load statement
 		if fix && len(load.To) == 0 {
