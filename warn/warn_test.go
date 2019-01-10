@@ -238,6 +238,35 @@ z = a + b + d`,
 		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
+load("foo", "a")
+a()
+load("bar", "a")
+a()
+load("bar", "a")
+a()
+load("foo", "a")
+a()
+load("foo", "a")
+a()`, `
+load("foo", "a")
+a()
+load("bar", "a")
+a()
+
+a()
+load("foo", "a")
+a()
+
+a()`,
+		[]string{
+			":3: Symbol \"a\" has already been loaded.",
+			":5: Symbol \"a\" has already been loaded.",
+			":7: Symbol \"a\" has already been loaded.",
+			":9: Symbol \"a\" has already been loaded.",
+		},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "load", `
 load(
   ":f.bzl",
    "s1",

@@ -131,7 +131,10 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			from := load.From[i]
 			to := load.To[i]
 			// Check if the symbol was already loaded
-			if label, ok := loaded[to.Name]; ok {
+			label, alreadyLoaded := loaded[to.Name]
+			loaded[to.Name] = load.Module.Token
+
+			if alreadyLoaded {
 				if fix && label == load.Module.Token {
 					// Only fix if it's loaded from the label
 					load.To = append(load.To[:i], load.To[i+1:]...)
@@ -161,7 +164,6 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 
 				}
 			}
-			loaded[to.Name] = load.Module.Token
 		}
 		// If there are no loaded symbols left remove the entire load statement
 		if fix && len(load.To) == 0 {

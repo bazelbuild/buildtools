@@ -42,11 +42,15 @@ const (
 )
 
 func (t FileType) String() string {
-	return [...]string{
-		".bzl",
-		"BUILD",
-		"WORKSPACE",
-	}[t]
+	switch t {
+	case TypeDefault:
+		return ".bzl"
+	case TypeBuild:
+		return "BUILD"
+	case TypeWorkspace:
+		return "WORKSPACE"
+	}
+	return "unknown"
 }
 
 // ParseBuild parses a file, marks it as a BUILD file and returns the corresponding parse tree.
