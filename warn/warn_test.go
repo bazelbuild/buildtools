@@ -402,8 +402,8 @@ func TestWarnSameOriginLoad(t *testing.T) {
 			":3: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
 		}, scopeEverywhere,
 	)
-
 }
+
 func TestWarnUnusedVariables(t *testing.T) {
 	checkFindings(t, "unused-variable", `
 load(":f.bzl", "x")

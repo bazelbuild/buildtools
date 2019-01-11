@@ -62,7 +62,7 @@ func Rewrite(f *File, info *RewriteInfo) {
 
 	for _, r := range rewrites {
 		if !disabled(r.name) {
-			if f.Type & r.scope != 0 {
+			if f.Type&r.scope != 0 {
 				r.fn(f, info)
 			}
 		}
@@ -114,8 +114,8 @@ func (info *RewriteInfo) String() string {
 // or all files.
 const (
 	scopeDefault = TypeDefault
-	scopeBuild = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
-	scopeBoth = scopeDefault | scopeBuild
+	scopeBuild   = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
+	scopeBoth    = scopeDefault | scopeBuild
 )
 
 // rewrites is the list of all Buildifier rewrites, in the order in which they are applied.
