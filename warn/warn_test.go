@@ -212,26 +212,67 @@ func TestWarnUnusedLoad(t *testing.T) {
 load(":f.bzl", "s1", "s2")
 load(":bar.bzl", "s1")
 foo(name = s1)`, `
+load(":f.bzl", "s1")
 load(":bar.bzl", "s1")
 foo(name = s1)`,
 		[]string{
-			":1: Symbol \"s1\" has already been loaded.",
-			":1: Loaded symbol \"s2\" is unused."},
+			":1: Loaded symbol \"s2\" is unused.",
+			":2: Symbol \"s1\" has already been loaded.",
+		},
 		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
 load("foo", "a", "b", "c")
-load("bar", "a", "d", "e")
+load("foo", "a", "d", "e")
 
 z = a + b + d`, `
-load("foo", "b")
-load("bar", "a", "d")
+load("foo", "a", "b")
+load("foo", "d")
 
 z = a + b + d`,
 		[]string{
-			":2: Loaded symbol \"e\" is unused.",
-			":1: Symbol \"a\" has already been loaded.",
 			":1: Loaded symbol \"c\" is unused.",
+			":2: Symbol \"a\" has already been loaded.",
+			":2: Loaded symbol \"e\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "load", `
+load("foo", "a")
+a(1)
+load("bar", "a")
+a(2)
+load("bar", a = "a")
+a(3)
+load("bar", a = "b")
+a(4)
+load("foo", "a")
+a(5)
+load("foo", "a")
+a(6)
+load("foo", a = "a")
+a(7)`, `
+load("foo", "a")
+a(1)
+load("bar", "a")
+a(2)
+
+a(3)
+load("bar", a = "b")
+a(4)
+load("foo", "a")
+a(5)
+
+a(6)
+
+a(7)`,
+		[]string{
+			":3: Symbol \"a\" has already been loaded.",
+			":5: Symbol \"a\" has already been loaded.",
+			":7: Symbol \"a\" has already been loaded.",
+			":9: Symbol \"a\" has already been loaded.",
+			":11: Symbol \"a\" has already been loaded.",
+			":13: Symbol \"a\" has already been loaded.",
 		},
 		scopeEverywhere)
 
