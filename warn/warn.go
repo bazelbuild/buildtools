@@ -119,7 +119,7 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	loaded := make(map[string]struct{label, from string})
+	loaded := make(map[string]struct{ label, from string })
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -132,7 +132,7 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			to := load.To[i]
 			// Check if the symbol was already loaded
 			origin, alreadyLoaded := loaded[to.Name]
-			loaded[to.Name] = struct{label, from string}{load.Module.Token, from.Name}
+			loaded[to.Name] = struct{ label, from string }{load.Module.Token, from.Name}
 
 			if alreadyLoaded {
 				if fix && origin.label == load.Module.Token && origin.from == from.Name {
