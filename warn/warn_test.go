@@ -239,30 +239,40 @@ z = a + b + d`,
 
 	checkFindingsAndFix(t, "load", `
 load("foo", "a")
-a()
+a(1)
 load("bar", "a")
-a()
+a(2)
+load("bar", a = "a")
+a(3)
+load("bar", a = "b")
+a(4)
+load("foo", "a")
+a(5)
+load("foo", "a")
+a(6)
+load("foo", a = "a")
+a(7)`, `
+load("foo", "a")
+a(1)
 load("bar", "a")
-a()
-load("foo", "a")
-a()
-load("foo", "a")
-a()`, `
-load("foo", "a")
-a()
-load("bar", "a")
-a()
+a(2)
 
-a()
+a(3)
+load("bar", a = "b")
+a(4)
 load("foo", "a")
-a()
+a(5)
 
-a()`,
+a(6)
+
+a(7)`,
 		[]string{
 			":3: Symbol \"a\" has already been loaded.",
 			":5: Symbol \"a\" has already been loaded.",
 			":7: Symbol \"a\" has already been loaded.",
 			":9: Symbol \"a\" has already been loaded.",
+			":11: Symbol \"a\" has already been loaded.",
+			":13: Symbol \"a\" has already been loaded.",
 		},
 		scopeEverywhere)
 
