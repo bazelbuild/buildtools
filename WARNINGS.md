@@ -30,6 +30,7 @@
   * [positional-args](#positional-args)
   * [redefined-variable](#redefined-variable)
   * [repository-name](#repository-name)
+  * [return-value](#return-value)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
   * [unsorted-dict-items](#unsorted-dict-items)
@@ -569,6 +570,19 @@ the line or at the beginning of a rule.
 The global variable `REPOSITORY_NAME` is deprecated, please use
 [`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
 instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="return-value"></a>Some but not all execution paths of a function return a value
+
+  * Category_name: `return-value`
+  * Automatic fix: no
+
+Some but not all execution paths of a function return a value. Either there's
+an explicit empty `return` statement, or an implcit return in the end of a
+function. If it is intentional, make it explicit using `return None`. If you
+know certain parts of the code cannot be reached, add the statement
+`fail("unreachable")` to them.
 
 --------------------------------------------------------------------------------
 
