@@ -963,7 +963,7 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 // findEmptyReturns searches for return statements without a value and returns whether
 // the current list of statements terminates (either by a return or fail() statements on the current
 // level in all subranches.
-func findEmptyReturns (stmts []build.Expr, callback func(build.Expr)) bool {
+func findEmptyReturns(stmts []build.Expr, callback func(build.Expr)) bool {
 	if len(stmts) == 0 {
 		// May occur in empty else-clauses
 		return false
@@ -997,12 +997,12 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
 	for _, stmt := range f.Stmt {
-  	function, ok := stmt.(*build.DefStmt)
-  	if !ok {
+		function, ok := stmt.(*build.DefStmt)
+		if !ok {
 			continue
 		}
 
-  	var hasNonEmptyReturns bool
+		var hasNonEmptyReturns bool
 		build.Walk(function, func(expr build.Expr, stack []build.Expr) {
 			ret, ok := expr.(*build.ReturnStmt)
 			if !ok {
@@ -1016,13 +1016,13 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 		if !hasNonEmptyReturns {
 			continue
 		}
-  	explicitReturn := findEmptyReturns(function.Body, func(expr build.Expr) {
+		explicitReturn := findEmptyReturns(function.Body, func(expr build.Expr) {
 			start, end := expr.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "return-value",
 					`Some but not all execution paths of "`+function.Name+`" return a value.`, true, nil))
 		})
-  	if !explicitReturn {
+		if !explicitReturn {
 			start, end := function.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "return-value",
