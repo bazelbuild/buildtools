@@ -59,7 +59,7 @@ Function call arguments should be in the following order:
   * Automatic fix: yes
 
 The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
-`cfg = "data" is deprecated and has no effect. Consider removing it.
+`cfg = "data"` is deprecated and has no effect. Consider removing it.
 
 --------------------------------------------------------------------------------
 
