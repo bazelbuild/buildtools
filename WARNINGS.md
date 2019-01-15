@@ -33,6 +33,7 @@
   * [return-value](#return-value)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
+  * [unreachable](#unreachable)
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
 
@@ -628,6 +629,16 @@ Use string indexing and `len` instead:
     for i in range(len(my_string)):
         char = my_string[i]
         # do something with char
+
+--------------------------------------------------------------------------------
+
+## <a name="unreachable"></a>The statement is unreachable
+
+  * Category_name: `unreachable`
+  * Automatic fix: no
+
+The statement is unreachable because it follows a `return`, `break`, `continue`,
+or `fail()` statement.
 
 --------------------------------------------------------------------------------
 
