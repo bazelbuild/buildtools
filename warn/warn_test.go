@@ -1242,6 +1242,17 @@ func TestUnreachableStatementWarning(t *testing.T) {
 def foo():
   return
   bar()
+  baz()
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// after fail()
+	checkFindings(t, "unreachable", `
+def foo():
+  fail("die")
+  bar()
+  baz()
 `, []string{
 		`:3: The statement is unreachable.`,
 	}, scopeEverywhere)
@@ -1279,6 +1290,13 @@ def bar():
 def foo():
   if x:
     return
+  bar()
+`, []string{}, scopeEverywhere)
+
+	// ok
+	checkFindings(t, "unreachable", `
+def foo():
+  x() or fail("maybe")
   bar()
 `, []string{}, scopeEverywhere)
 }
