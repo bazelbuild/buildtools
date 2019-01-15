@@ -448,6 +448,10 @@ rule(
 
 rule(
   _impl1(),  # not an identifier
-)`, []string{
+)
+
+rule()  # no parameters
+rule(foo = bar)  # no matching parameters
+`, []string{
 	}, scopeEverywhere)
 }
