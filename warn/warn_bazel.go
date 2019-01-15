@@ -602,6 +602,5 @@ func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 		})
 	}
 
-
 	return findings
 }
