@@ -963,7 +963,7 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on
 // them and returns whether the current list of statements terminates (either by a return or fail()
 // statements on the current level in all subranches.
-func findReturnsWithoutValue(stmts []build.Expr, callback func(build.Expr)) bool {
+func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt)) bool {
 	if len(stmts) == 0 {
 		// May occur in empty else-clauses
 		return false
@@ -1022,8 +1022,8 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 		if !hasNonEmptyReturns {
 			continue
 		}
-		explicitReturn := findReturnsWithoutValue(function.Body, func(expr build.Expr) {
-			start, end := expr.Span()
+		explicitReturn := findReturnsWithoutValue(function.Body, func(ret *build.ReturnStmt) {
+			start, end := ret.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "return-value",
 					`Some but not all execution paths of "`+function.Name+`" return a value.`, true, nil))
