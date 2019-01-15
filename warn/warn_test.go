@@ -1234,5 +1234,4 @@ def foobar():
   if foo:
     fail()
 `, []string{}, scopeEverywhere)
-
 }

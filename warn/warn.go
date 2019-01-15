@@ -960,10 +960,10 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-// findEmptyReturns searches for return statements without a value and returns whether
-// the current list of statements terminates (either by a return or fail() statements on the current
-// level in all subranches.
-func findEmptyReturns(stmts []build.Expr, callback func(build.Expr)) bool {
+// findReturnsWithoutValue searches for return statements without a value, calls `callback` on
+// them and returns whether the current list of statements terminates (either by a return or fail()
+// statements on the current level in all subranches.
+func findReturnsWithoutValue(stmts []build.Expr, callback func(build.Expr)) bool {
 	if len(stmts) == 0 {
 		// May occur in empty else-clauses
 		return false
@@ -982,13 +982,15 @@ func findEmptyReturns(stmts []build.Expr, callback func(build.Expr)) bool {
 				terminated = true
 			}
 		case *build.ForStmt:
+			// Call recursively to find all return statements without a value there.
 			// Even if a for-loop is guaranteed to terminate in each iteration, buildifier still can't
-			// check whether the loop is not empty
-			findEmptyReturns(stmt.Body, callback)
+			// check whether the loop is not empty, so we can't say that the statement after the ForStmt
+			// is unreachable.
+			findReturnsWithoutValue(stmt.Body, callback)
 		case *build.IfStmt:
 			// Save to separate values to avoid short circuit evaluation
-			term1 := findEmptyReturns(stmt.True, callback)
-			term2 := findEmptyReturns(stmt.False, callback)
+			term1 := findReturnsWithoutValue(stmt.True, callback)
+			term2 := findReturnsWithoutValue(stmt.False, callback)
 			if term1 && term2 {
 				terminated = true
 			}
@@ -1020,7 +1022,7 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 		if !hasNonEmptyReturns {
 			continue
 		}
-		explicitReturn := findEmptyReturns(function.Body, func(expr build.Expr) {
+		explicitReturn := findReturnsWithoutValue(function.Body, func(expr build.Expr) {
 			start, end := expr.Span()
 			findings = append(findings,
 				makeFinding(f, start, end, "return-value",
