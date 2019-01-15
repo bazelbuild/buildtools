@@ -999,6 +999,7 @@ func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt
 	return terminated
 }
 
+// missingReturnValueWarning warns if a function returns both explicit and implicit values.
 func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
@@ -1010,11 +1011,7 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 
 		var hasNonEmptyReturns bool
 		build.Walk(function, func(expr build.Expr, stack []build.Expr) {
-			ret, ok := expr.(*build.ReturnStmt)
-			if !ok {
-				return
-			}
-			if ret.Result != nil {
+			if ret, ok := expr.(*build.ReturnStmt); ok && ret.Result != nil {
 				hasNonEmptyReturns = true
 			}
 		})
