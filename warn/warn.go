@@ -981,6 +981,10 @@ func findEmptyReturns(stmts []build.Expr, callback func(build.Expr)) bool {
 			if ok && ident.Name == "fail" {
 				terminated = true
 			}
+		case *build.ForStmt:
+			// Even if a for-loop is guaranteed to terminate in each iteration, buildifier still can't
+			// check whether the loop is not empty
+			findEmptyReturns(stmt.Body, callback)
 		case *build.IfStmt:
 			// Save to separate values to avoid short circuit evaluation
 			term1 := findEmptyReturns(stmt.True, callback)

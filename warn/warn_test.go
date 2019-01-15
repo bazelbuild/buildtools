@@ -1128,11 +1128,12 @@ def bar():
   elif y:
     return y
   else:
-    return
+    for z in t:
+      return
 `, []string{
 		`:1: Some but not all execution paths of "bar" return a value.
 The function may terminate by an implicit return in the end.`,
-		`:7: Some but not all execution paths of "bar" return a value.`,
+		`:8: Some but not all execution paths of "bar" return a value.`,
 	}, scopeEverywhere)
 
 	// implicit return in the end
