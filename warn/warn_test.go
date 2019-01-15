@@ -1247,6 +1247,15 @@ def foo():
 		`:3: The statement is unreachable.`,
 	}, scopeEverywhere)
 
+	// two returns
+	checkFindings(t, "unreachable", `
+def foo():
+  return 1
+  return 2
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
 	// after fail()
 	checkFindings(t, "unreachable", `
 def foo():
@@ -1263,10 +1272,10 @@ def foo():
   for x in y:
     if x:
       break
-      bar()
+      bar()  # unreachable
     if y:
       continue
-      bar()
+      bar()  # unreachable
 
 def bar():
   for x in y:
@@ -1277,7 +1286,7 @@ def bar():
     else:
       return x
 
-    foo()
+    foo()  # unreachable
   foobar()  # potentially reachable
 `, []string{
 		`:5: The statement is unreachable.`,
