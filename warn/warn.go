@@ -960,6 +960,82 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
+// findReturnsWithoutValue searches for return statements without a value, calls `callback` on
+// them and returns whether the current list of statements terminates (either by a return or fail()
+// statements on the current level in all subranches.
+func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt)) bool {
+	if len(stmts) == 0 {
+		// May occur in empty else-clauses
+		return false
+	}
+	terminated := false
+	for _, stmt := range stmts {
+		switch stmt := stmt.(type) {
+		case *build.ReturnStmt:
+			if stmt.Result == nil {
+				callback(stmt)
+			}
+			terminated = true
+		case *build.CallExpr:
+			ident, ok := stmt.X.(*build.Ident)
+			if ok && ident.Name == "fail" {
+				terminated = true
+			}
+		case *build.ForStmt:
+			// Call recursively to find all return statements without a value there.
+			// Even if a for-loop is guaranteed to terminate in each iteration, buildifier still can't
+			// check whether the loop is not empty, so we can't say that the statement after the ForStmt
+			// is unreachable.
+			findReturnsWithoutValue(stmt.Body, callback)
+		case *build.IfStmt:
+			// Save to separate values to avoid short circuit evaluation
+			term1 := findReturnsWithoutValue(stmt.True, callback)
+			term2 := findReturnsWithoutValue(stmt.False, callback)
+			if term1 && term2 {
+				terminated = true
+			}
+		}
+	}
+	return terminated
+}
+
+// missingReturnValueWarning warns if a function returns both explicit and implicit values.
+func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	for _, stmt := range f.Stmt {
+		function, ok := stmt.(*build.DefStmt)
+		if !ok {
+			continue
+		}
+
+		var hasNonEmptyReturns bool
+		build.Walk(function, func(expr build.Expr, stack []build.Expr) {
+			if ret, ok := expr.(*build.ReturnStmt); ok && ret.Result != nil {
+				hasNonEmptyReturns = true
+			}
+		})
+
+		if !hasNonEmptyReturns {
+			continue
+		}
+		explicitReturn := findReturnsWithoutValue(function.Body, func(ret *build.ReturnStmt) {
+			start, end := ret.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "return-value",
+					`Some but not all execution paths of "`+function.Name+`" return a value.`, true, nil))
+		})
+		if !explicitReturn {
+			start, end := function.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "return-value",
+					`Some but not all execution paths of "`+function.Name+`" return a value.
+The function may terminate by an implicit return in the end.`, true, nil))
+		}
+	}
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -987,6 +1063,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"integer-division":    integerDivisionWarning,
 	"load":                unusedLoadWarning,
 	"load-on-top":         loadOnTopWarning,
+	"return-value":        missingReturnValueWarning,
 	"native-build":        nativeInBuildFilesWarning,
 	"native-package":      nativePackageWarning,
 	"no-effect":           noEffectWarning,
@@ -1090,6 +1167,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 			}
 		}
 	}
+	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })
 	return findings
 }
 
@@ -1097,7 +1175,6 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 // Actionable warnings list their link in parens, inactionable warnings list
 // their link in square brackets.
 func PrintWarnings(f *build.File, warnings []*Finding, showReplacements bool) {
-	sort.Slice(warnings, func(i, j int) bool { return warnings[i].Start.Line < warnings[j].Start.Line })
 	for _, w := range warnings {
 		formatString := "%s:%d: %s: %s (%s)"
 		if !w.Actionable {
