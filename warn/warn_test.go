@@ -1235,3 +1235,50 @@ def foobar():
     fail()
 `, []string{}, scopeEverywhere)
 }
+
+func TestUnreachableStatementWarning(t *testing.T) {
+	// after return
+	checkFindings(t, "unreachable", `
+def foo():
+  return
+  bar()
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// after break and continue
+	checkFindings(t, "unreachable", `
+def foo():
+  for x in y:
+    if x:
+      break
+      bar()
+    if y:
+      continue
+      bar()
+
+def bar():
+  for x in y:
+    if x:
+      break
+    elif y:
+      continue
+    else:
+      return x
+
+    foo()
+  foobar()  # potentially reachable
+`, []string{
+		`:5: The statement is unreachable.`,
+		`:8: The statement is unreachable.`,
+		`:19: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// ok
+	checkFindings(t, "unreachable", `
+def foo():
+  if x:
+    return
+  bar()
+`, []string{}, scopeEverywhere)
+}

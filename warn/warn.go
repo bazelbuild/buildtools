@@ -1036,6 +1036,63 @@ The function may terminate by an implicit return in the end.`, true, nil))
 	return findings
 }
 
+// findUnreachableStatements searches for unreachable statements (i.e. statements that immediately
+// follow `return`, `break`, `continue`, and `fail()` statements and calls `callback` on them.
+// If there are several consequent unreachable statements, it only reports the first of them.
+// Returns whether the execution is terminated explicitly.
+func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bool {
+	unreachable := false
+	for _, stmt := range stmts {
+		if unreachable {
+			callback(stmt)
+			return true
+		}
+		switch stmt := stmt.(type) {
+		case *build.ReturnStmt:
+			unreachable = true
+		case *build.CallExpr:
+			ident, ok := stmt.X.(*build.Ident)
+			if ok && ident.Name == "fail" {
+				unreachable = true
+			}
+		case *build.Ident:
+			switch stmt.Name {
+			case "continue", "break":
+				unreachable = true
+			}
+		case *build.ForStmt:
+			findUnreachableStatements(stmt.Body, callback)
+		case *build.IfStmt:
+			// Save to separate values to avoid short circuit evaluation
+			term1 := findUnreachableStatements(stmt.True, callback)
+			term2 := findUnreachableStatements(stmt.False, callback)
+			if term1 && term2 {
+				unreachable = true
+			}
+		}
+	}
+	return unreachable
+}
+
+func unreachableStatementWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	for _, stmt := range f.Stmt {
+		function, ok := stmt.(*build.DefStmt)
+		if !ok {
+			continue
+		}
+
+		findUnreachableStatements(function.Body, func(expr build.Expr) {
+			start, end := expr.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "unreachable",
+					`The statement is unreachable.`, true, nil))
+		})
+	}
+	return findings
+}
+
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
 var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
@@ -1075,6 +1132,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"repository-name":     repositoryNameWarning,
 	"same-origin-load":    sameOriginLoadWarning,
 	"string-iteration":    stringIterationWarning,
+	"unreachable":         unreachableStatementWarning,
 	"unsorted-dict-items": unsortedDictItemsWarning,
 	"unused-variable":     unusedVariableWarning,
 }
