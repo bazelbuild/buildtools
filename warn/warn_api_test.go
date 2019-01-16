@@ -452,6 +452,33 @@ rule(
 
 rule()  # no parameters
 rule(foo = bar)  # no matching parameters
-`, []string{
-	}, scopeEverywhere)
+`, []string{}, scopeEverywhere)
+}
+
+func TestDuplicatedName(t *testing.T) {
+	checkFindings(t, "duplicated-name", `
+cc_library(name = "x")
+cc_library(name = "y")
+py_library(name = "x")
+py_library(name = "z")
+php_library(name = "x")`,
+		[]string{":3: A rule with name `x' was already found on line 1",
+			":5: A rule with name `x' was already found on line 1"},
+		scopeBuild|scopeWorkspace)
+}
+
+func TestPositionalArguments(t *testing.T) {
+	checkFindings(t, "positional-args", `
+my_macro(foo = "bar")
+my_macro("foo", "bar")`,
+		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
+		scopeBuild|scopeWorkspace)
+
+	checkFindings(t, "positional-args", `
+register_toolchains(
+	"//foo",
+	"//bar",
+)`,
+		[]string{},
+		scopeBuild|scopeWorkspace)
 }

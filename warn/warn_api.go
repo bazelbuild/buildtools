@@ -8,7 +8,16 @@ import (
 	"github.com/bazelbuild/buildtools/edit"
 )
 
-// Bazel-specific warnings
+// Bazel API-specific warnings
+
+var functionsWithPositionalArguments = map[string]bool{
+	"distribs":            true,
+	"exports_files":       true,
+	"licenses":            true,
+	"print":               true,
+	"register_toolchains": true,
+	"vardef":              true,
+}
 
 // negateExpression returns an expression which is a negation of the input.
 // If it's a boolean literal (true or false), just return the opposite literal.
@@ -603,4 +612,53 @@ func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 	}
 
 	return findings
+}
+
+func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	if f.Type == build.TypeDefault {
+		// Not applicable to .bzl files.
+		return findings
+	}
+	names := make(map[string]int) // map from name to line number
+	msg := "A rule with name `%s' was already found on line %d. " +
+		"Even if it's valid for Blaze, this may confuse other tools. " +
+		"Please rename it and use different names."
+
+	for _, rule := range f.Rules("") {
+		name := rule.Name()
+		if name == "" {
+			continue
+		}
+		start, end := rule.Call.Span()
+		if nameNode := rule.Attr("name"); nameNode != nil {
+			start, end = nameNode.Span()
+		}
+		if line, ok := names[name]; ok {
+			findings = append(findings,
+				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), true, nil))
+		} else {
+			names[name] = start.Line
+		}
+	}
+	return findings
+}
+
+func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Finding {
+	msg := "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."
+	call, ok := stmt.(*build.CallExpr)
+	if !ok {
+		return nil
+	}
+	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
+		return nil
+	}
+	for _, arg := range call.List {
+		if op, ok := arg.(*build.BinaryExpr); ok && op.Op == "=" {
+			continue
+		}
+		start, end := arg.Span()
+		return makeFinding(f, start, end, "positional-args", msg, true, nil)
+	}
+	return nil
 }
