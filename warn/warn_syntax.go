@@ -1,3 +1,5 @@
+// Warnings about potential syntax errors
+
 package warn
 
 import (

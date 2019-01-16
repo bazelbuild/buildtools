@@ -1,3 +1,5 @@
+// Cosmetic warnings (e.g. for improved readability of Starlark files)
+
 package warn
 
 import (

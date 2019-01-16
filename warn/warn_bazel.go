@@ -1,3 +1,5 @@
+// General Bazel-related warnings
+
 package warn
 
 import (

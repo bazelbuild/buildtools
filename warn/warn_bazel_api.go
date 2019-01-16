@@ -1,3 +1,5 @@
+// Warnings for incompatible changes in the Bazel API
+
 package warn
 
 import (

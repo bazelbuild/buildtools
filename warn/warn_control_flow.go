@@ -1,3 +1,5 @@
+// Warnings related to the control flow
+
 package warn
 
 import (

@@ -1,3 +1,5 @@
+// Warnings about deprecated operations in Starlark
+
 package warn
 
 import "github.com/bazelbuild/buildtools/build"

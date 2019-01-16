@@ -1,3 +1,5 @@
+// Warnings about deprecated Bazel-related operations
+
 package warn
 
 import "github.com/bazelbuild/buildtools/build"
