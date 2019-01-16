@@ -30,8 +30,10 @@
   * [positional-args](#positional-args)
   * [redefined-variable](#redefined-variable)
   * [repository-name](#repository-name)
+  * [return-value](#return-value)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
+  * [unreachable](#unreachable)
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
 
@@ -572,6 +574,19 @@ instead.
 
 --------------------------------------------------------------------------------
 
+## <a name="return-value"></a>Some but not all execution paths of a function return a value
+
+  * Category_name: `return-value`
+  * Automatic fix: no
+
+Some but not all execution paths of a function return a value. Either there's
+an explicit empty `return` statement, or an implcit return in the end of a
+function. If it is intentional, make it explicit using `return None`. If you
+know certain parts of the code cannot be reached, add the statement
+`fail("unreachable")` to them.
+
+--------------------------------------------------------------------------------
+
 ## <a name="same-origin-load"></a>Same label is used for multiple loads
 
   * Category_name: `same-origin-load`
@@ -614,6 +629,16 @@ Use string indexing and `len` instead:
     for i in range(len(my_string)):
         char = my_string[i]
         # do something with char
+
+--------------------------------------------------------------------------------
+
+## <a name="unreachable"></a>The statement is unreachable
+
+  * Category_name: `unreachable`
+  * Automatic fix: no
+
+The statement is unreachable because it follows a `return`, `break`, `continue`,
+or `fail()` statement.
 
 --------------------------------------------------------------------------------
 

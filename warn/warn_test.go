@@ -1107,3 +1107,205 @@ native.cc_library(name = "lib")
 		`:1: "native.package()" shouldn't be used in .bzl files.`,
 	}, scopeBzl)
 }
+
+func TestMissingReturnValueWarning(t *testing.T) {
+	// empty return
+	checkFindings(t, "return-value", `
+def foo():
+  if x:
+    return x
+  else:
+    return
+`, []string{
+		`:5: Some but not all execution paths of "foo" return a value.`,
+	}, scopeEverywhere)
+
+	// empty return; implicit return in the end
+	checkFindings(t, "return-value", `
+def bar():
+  if x:
+    pass
+  elif y:
+    return y
+  else:
+    for z in t:
+      return
+`, []string{
+		`:1: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+		`:8: Some but not all execution paths of "bar" return a value.`,
+	}, scopeEverywhere)
+
+	// implicit return in the end
+	checkFindings(t, "return-value", `
+def foo():
+  if x:
+    return x
+  else:
+    bar()
+`, []string{
+		`:1: Some but not all execution paths of "foo" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// implicit return in the end
+	checkFindings(t, "return-value", `
+def bar():
+  if x:
+    return x
+  elif y:
+    return y
+  else:
+    foo
+    if z:
+      return z
+
+  if foo:
+     return not foo
+`, []string{
+		`:1: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// only returned values and fail() statements, ok
+	checkFindings(t, "return-value", `
+def bar():
+  if x:
+    return x
+  elif y:
+    return y
+  else:
+    foo
+    if z:
+      return z
+
+  if foo:
+     return not foo
+  else:
+     fail("unreachable")
+`, []string{}, scopeEverywhere)
+
+	// implicit return in the end because fail() is not a statement
+	checkFindings(t, "return-value", `
+def bar():
+  if x:
+    return x
+  elif y:
+    return y
+  else:
+    foo
+    if z:
+      return z
+
+  if foo:
+     return not foo
+  else:
+     foo() or fail("unreachable")
+`, []string{
+		`:1: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// only empty returns, ok
+	checkFindings(t, "return-value", `
+def bar():
+  if x:
+    x()
+  elif y:
+    return
+  else:
+    foo
+    if z:
+      fail()
+
+  if foo:
+     return
+`, []string{}, scopeEverywhere)
+
+	// no returns, ok
+	checkFindings(t, "return-value", `
+def foobar():
+  pass
+`, []string{}, scopeEverywhere)
+
+	// only fails, ok
+	checkFindings(t, "return-value", `
+def foobar():
+  if foo:
+    fail()
+`, []string{}, scopeEverywhere)
+}
+
+func TestUnreachableStatementWarning(t *testing.T) {
+	// after return
+	checkFindings(t, "unreachable", `
+def foo():
+  return
+  bar()
+  baz()
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// two returns
+	checkFindings(t, "unreachable", `
+def foo():
+  return 1
+  return 2
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// after fail()
+	checkFindings(t, "unreachable", `
+def foo():
+  fail("die")
+  bar()
+  baz()
+`, []string{
+		`:3: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// after break and continue
+	checkFindings(t, "unreachable", `
+def foo():
+  for x in y:
+    if x:
+      break
+      bar()  # unreachable
+    if y:
+      continue
+      bar()  # unreachable
+
+def bar():
+  for x in y:
+    if x:
+      break
+    elif y:
+      continue
+    else:
+      return x
+
+    foo()  # unreachable
+  foobar()  # potentially reachable
+`, []string{
+		`:5: The statement is unreachable.`,
+		`:8: The statement is unreachable.`,
+		`:19: The statement is unreachable.`,
+	}, scopeEverywhere)
+
+	// ok
+	checkFindings(t, "unreachable", `
+def foo():
+  if x:
+    return
+  bar()
+`, []string{}, scopeEverywhere)
+
+	// ok
+	checkFindings(t, "unreachable", `
+def foo():
+  x() or fail("maybe")
+  bar()
+`, []string{}, scopeEverywhere)
+}
