@@ -31,6 +31,7 @@
   * [redefined-variable](#redefined-variable)
   * [repository-name](#repository-name)
   * [return-value](#return-value)
+  * [rule-impl-return](#rule-impl-return)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
   * [unreachable](#unreachable)
@@ -584,6 +585,19 @@ an explicit empty `return` statement, or an implcit return in the end of a
 function. If it is intentional, make it explicit using `return None`. If you
 know certain parts of the code cannot be reached, add the statement
 `fail("unreachable")` to them.
+
+--------------------------------------------------------------------------------
+
+## <a name="rule-impl-return"></a>Avoid using the legacy provider syntax
+
+  * Category_name: `rule-impl-return`
+  * Automatic fix: no
+
+Returning structs from rule implementation functions is
+<a href="https://docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers">deprecated</a>,
+consider using
+<a href="https://docs.bazel.build/versions/master/skylark/rules.html#providers">providers</a>
+or lists of providers instead.
 
 --------------------------------------------------------------------------------
 

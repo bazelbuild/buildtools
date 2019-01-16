@@ -398,3 +398,60 @@ rule(
 		`:4: "attr.license()" is deprecated and shouldn't be used.`,
 	}, scopeEverywhere)
 }
+
+func TestRuleImplReturn(t *testing.T) {
+	checkFindings(t, "rule-impl-return", `
+def _impl(ctx):
+  return struct()
+
+rule(implementation=_impl)
+`, []string{
+		`:2: Avoid using the legacy provider syntax.`,
+	}, scopeEverywhere)
+
+	checkFindings(t, "rule-impl-return", `
+def _impl(ctx):
+  if True:
+    return struct()
+  return
+
+x = rule(_impl, attrs = {})
+`, []string{
+		`:3: Avoid using the legacy provider syntax.`,
+	}, scopeEverywhere)
+
+	checkFindings(t, "rule-impl-return", `
+def _impl(ctx):
+  pass  # no return statements
+
+x = rule(_impl, attrs = {})
+`, []string{}, scopeEverywhere)
+
+	checkFindings(t, "rule-impl-return", `
+def _impl1():  # not used as a rule implementation function
+  return struct()
+
+def _impl2():  # no structs returned
+  if x:
+    return []
+  elif y:
+    return foo()
+  return
+
+x = rule(
+  implementation=_impl2,
+)
+
+rule(
+  _impl3,  # not defined here
+)
+
+rule(
+  _impl1(),  # not an identifier
+)
+
+rule()  # no parameters
+rule(foo = bar)  # no matching parameters
+`, []string{
+	}, scopeEverywhere)
+}

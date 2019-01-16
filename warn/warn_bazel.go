@@ -61,6 +61,18 @@ func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.B
 	return -1, nil, nil
 }
 
+// isFunctionCall checks whether expr is a call of a function with a given name
+func isFunctionCall(expr build.Expr, name string) (*build.CallExpr, bool) {
+	call, ok := expr.(*build.CallExpr)
+	if !ok {
+		return nil, false
+	}
+	if ident, ok := call.X.(*build.Ident); ok && ident.Name == name {
+		return call, true
+	}
+	return nil, false
+}
+
 // globalVariableUsageCheck checks whether there's a usage of a given global variable in the file.
 // It's ok to shadow the name with a local variable and use it.
 func globalVariableUsageCheck(f *build.File, category, global, alternative string, fix bool) []*Finding {
@@ -539,5 +551,56 @@ func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 			makeFinding(f, start, end, "attr-license",
 				`"attr.license()" is deprecated and shouldn't be used.`, true, nil))
 	})
+	return findings
+}
+
+// ruleImplReturnWarning checks whether a rule implementation function returns an old-style struct
+func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	// iterate over rules and collect rule implementation function names
+	implNames := make(map[string]bool)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := isFunctionCall(expr, "rule")
+		if !ok {
+			return
+		}
+
+		// Try to get the implementaton parameter either by name or as the first argument
+		var impl build.Expr
+		_, _, param := getParam(call.List, "implementation")
+		if param != nil {
+			impl = param.Y
+		} else if len(call.List) > 0 {
+			impl = call.List[0]
+		}
+		if name, ok := impl.(*build.Ident); ok {
+			implNames[name.Name] = true
+		}
+	})
+
+	// iterate over functions
+	for _, stmt := range f.Stmt {
+		def, ok := stmt.(*build.DefStmt)
+		if !ok || !implNames[def.Name] {
+			// either not a function or not used in the file as a rule implementation function
+			continue
+		}
+		// traverse the function and find all of its return statements
+		build.Walk(def, func(expr build.Expr, stack []build.Expr) {
+			ret, ok := expr.(*build.ReturnStmt)
+			if !ok {
+				return
+			}
+			// check whether it returns a struct
+			if _, ok := isFunctionCall(ret.Result, "struct"); ok {
+				start, end := ret.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, "rule-impl-return",
+						`Avoid using the legacy provider syntax.`, true, nil))
+			}
+		})
+	}
+
 	return findings
 }
