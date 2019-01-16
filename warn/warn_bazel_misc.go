@@ -34,6 +34,7 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 	})
 	return findings
 }
+
 func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
