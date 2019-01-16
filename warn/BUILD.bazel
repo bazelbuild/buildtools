@@ -6,7 +6,7 @@ go_library(
         "types.go",
         "warn.go",
         "warn_bazel.go",
-        "warn_bazel_misc.go",
+        "warn_bazel_api.go",
         "warn_bazel_syntax.go",
         "warn_control_flow.go",
         "warn_cosmetic.go",
@@ -28,7 +28,7 @@ go_test(
     size = "small",
     srcs = [
         "types_test.go",
-        "warn_bazel_misc_test.go",
+        "warn_bazel_api_test.go",
         "warn_bazel_syntax_test.go",
         "warn_bazel_test.go",
         "warn_control_flow_test.go",
