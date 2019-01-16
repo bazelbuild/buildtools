@@ -1130,6 +1130,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"package-on-top":      packageOnTopWarning,
 	"redefined-variable":  redefinedVariableWarning,
 	"repository-name":     repositoryNameWarning,
+	"rule-impl-return":    ruleImplReturnWarning,
 	"same-origin-load":    sameOriginLoadWarning,
 	"string-iteration":    stringIterationWarning,
 	"unreachable":         unreachableStatementWarning,
