@@ -383,12 +383,8 @@ func fileTypeWarning(f *build.File, fix bool) []*Finding {
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
 
-		call, ok := (*e).(*build.CallExpr)
+		call, ok := isFunctionCall(*e, "FileType")
 		if !ok {
-			return
-		}
-		ident, ok := (call.X).(*build.Ident)
-		if !ok || ident.Name != "FileType" {
 			return
 		}
 		if binding := env.Get("FileType"); binding == nil {
