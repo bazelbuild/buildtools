@@ -90,15 +90,18 @@ func (d *Differ) Run() error {
 }
 
 // Find returns the differ to use, using various environment variables.
-func Find() *Differ {
+func Find() (*Differ, bool) {
 	d := &Differ{}
+	deprecationWarning := false
 	if cmd := os.Getenv("BUILDIFIER_DIFF"); cmd != "" {
+		deprecationWarning = true
 		d.Cmd = cmd
 	}
 
 	// Load MultiDiff setting from environment.
 	knowMultiDiff := false
 	if md := os.Getenv("BUILDIFIER_MULTIDIFF"); md == "0" || md == "1" {
+		deprecationWarning = true
 		d.MultiDiff = md == "1"
 		knowMultiDiff = true
 	}
@@ -112,16 +115,20 @@ func Find() *Differ {
 	} else {
 		if !knowMultiDiff {
 			d.MultiDiff = isatty(1) && os.Getenv("DISPLAY") != ""
+			if d.MultiDiff {
+				deprecationWarning = true
+			}
 		}
 		if d.MultiDiff {
 			d.Cmd = "tkdiff"
 		} else {
 			if runtime.GOOS == "windows" {
+				deprecationWarning = true
 				d.Cmd = "FC"
 			} else {
 				d.Cmd = "diff"
 			}
 		}
 	}
-	return d
+	return d, deprecationWarning
 }
