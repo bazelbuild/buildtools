@@ -233,10 +233,14 @@ func main() {
 		}
 	}
 
-	diff = differ.Find()
+	diff, deprecationWarning := differ.Find()
 	if *diffProgram != "" {
 		diff.Cmd = *diffProgram
 		diff.MultiDiff = *multiDiff
+	} else {
+		if deprecationWarning && *mode == "diff" {
+			fmt.Fprintf(os.Stderr, "buildifier: selecting diff program with the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables is deprecated, use flags -diff_command and -multi_diff instead\n")
+		}
 	}
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
