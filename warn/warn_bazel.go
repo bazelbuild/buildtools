@@ -111,8 +111,8 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 	}
 	names := make(map[string]int) // map from name to line number
 	msg := "A rule with name `%s' was already found on line %d. " +
-			"Even if it's valid for Blaze, this may confuse other tools. " +
-			"Please rename it and use different names."
+		"Even if it's valid for Blaze, this may confuse other tools. " +
+		"Please rename it and use different names."
 
 	for _, rule := range f.Rules("") {
 		name := rule.Name()

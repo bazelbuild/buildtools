@@ -78,6 +78,7 @@ type RewriteInfo struct {
 	UnsafeSort       int      // number of unsafe string lists sorted
 	SortLoad         int      // number of load argument lists sorted
 	FormatDocstrings int      // number of reindented docstrings
+	ReorderArguments int      // number of reordered function call arguments
 	Log              []string // log entries - may change
 }
 
@@ -103,6 +104,9 @@ func (info *RewriteInfo) String() string {
 	}
 	if info.FormatDocstrings > 0 {
 		s += " formatdocstrings"
+	}
+	if info.ReorderArguments > 0 {
+		s += " reorderarguments"
 	}
 	if s != "" {
 		s = s[1:]
@@ -132,6 +136,7 @@ var rewrites = []struct {
 	{"multiplus", fixMultilinePlus, scopeBuild},
 	{"loadsort", sortLoadArgs, scopeBoth},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
+	{"reorderarguments", reorderArguments, scopeBoth},
 }
 
 // DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
@@ -950,4 +955,41 @@ func formatString(value string, oldIndentation, newIndentation int) string {
 		lines[i] = line
 	}
 	return strings.Join(lines, "\n")
+}
+
+// argumentType returns an integer by which funcall arguments can be sorted:
+// 1 for positional, 2 for named, 3 for *args, 4 for **kwargs
+func argumentType(expr Expr) int {
+	switch expr := expr.(type) {
+	case *UnaryExpr:
+		switch expr.Op {
+		case "**":
+			return 4
+		case "*":
+			return 3
+		}
+	case *BinaryExpr:
+		if expr.Op == "=" {
+			return 2
+		}
+	}
+	return 1
+}
+
+// reorderArguments fixes the order of arguments of a function call
+// (positional, named, *args, **kwargs)
+func reorderArguments(f *File, info *RewriteInfo) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		call, ok := expr.(*CallExpr)
+		if !ok {
+			return
+		}
+		compare := func(i, j int) bool {
+			return argumentType(call.List[i]) < argumentType(call.List[j])
+		}
+		if !sort.SliceIsSorted(call.List, compare) {
+			sort.SliceStable(call.List, compare)
+			info.ReorderArguments++
+		}
+	})
 }
