@@ -67,7 +67,6 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
-	"args-order":          argumentsOrderWarning,
 	"attr-cfg":            attrConfigurationWarning,
 	"attr-license":        attrLicenseWarning,
 	"attr-non-empty":      attrNonEmptyWarning,

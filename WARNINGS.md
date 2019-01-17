@@ -1,7 +1,7 @@
 # Buildifier warnings
 
+Warning categories supported by buildifier's linter:
 
-  * [args-order](#args-order)
   * [attr-cfg](#attr-cfg)
   * [attr-license](#attr-license)
   * [attr-non-empty](#attr-non-empty)
@@ -37,21 +37,6 @@
   * [unreachable](#unreachable)
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
-
---------------------------------------------------------------------------------
-
-## <a name="args-order"></a>Function call arguments should be in the following order
-
-  * Category_name: `args-order`
-  * Flag in Bazel: `--incompatible_strict_argument_ordering`
-  * Automatic fix: yes
-
-Function call arguments should be in the following order:
-
-  * Positional arguments
-  * Keyword arguments
-  * Optional `*arg`
-  * Optional `**kwarg`
 
 --------------------------------------------------------------------------------
 

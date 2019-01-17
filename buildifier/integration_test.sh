@@ -48,31 +48,31 @@ diff test/test.bzl.out test/test.bzl.golden
 cat > test/to_fix.bzl <<EOF
 a = b / c
 d = {"b": 2, "a": 1}
-foo(**kwargs, *args)
+attr.foo(bar, cfg = "data")
 EOF
 
 cat > test/fixed_golden.bzl <<EOF
 a = b // c
 d = {"b": 2, "a": 1}
-foo(*args, **kwargs)
+attr.foo(bar)
 EOF
 
 cat > test/fixed_golden_all.bzl <<EOF
 a = b // c
 d = {"a": 1, "b": 2}
-foo(*args, **kwargs)
+attr.foo(bar)
 EOF
 
-cat > test/fixed_golden_dict_order.bzl <<EOF
+cat > test/fixed_golden_dict_cfg.bzl <<EOF
 a = b / c
 d = {"a": 1, "b": 2}
-foo(*args, **kwargs)
+attr.foo(bar)
 EOF
 
-cat > test/fixed_golden_order.bzl <<EOF
+cat > test/fixed_golden_cfg.bzl <<EOF
 a = b / c
 d = {"b": 2, "a": 1}
-foo(*args, **kwargs)
+attr.foo(bar)
 EOF
 
 cat > test/fix_report_golden <<EOF
@@ -82,7 +82,7 @@ EOF
 
 error_integer="test/to_fix_tmp.bzl:1: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
 error_dict="test/to_fix_tmp.bzl:2: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
-error_order="test/to_fix_tmp.bzl:3: args-order: Function call arguments should be in the following order: positional, keyword, *args, **kwargs. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#args-order)"
+error_cfg="test/to_fix_tmp.bzl:3: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
 
 test_lint () {
   ret=0
@@ -103,7 +103,7 @@ test_lint () {
   diff test/fix_report test/fix_report_golden || die "$1: wrong console output for --lint=fix"
 }
 
-test_lint "default" "" "test/fixed_golden.bzl" "$error_integer"$'\n'"$error_order"
-test_lint "all" "--warnings=all" "test/fixed_golden_all.bzl" "$error_integer"$'\n'"$error_dict"$'\n'"$error_order"
-test_lint "order" "--warnings=args-order" "test/fixed_golden_order.bzl" "$error_order"
-test_lint "custom" "--warnings=-integer-division,+unsorted-dict-items" "test/fixed_golden_dict_order.bzl" "$error_dict"$'\n'"$error_order"
+test_lint "default" "" "test/fixed_golden.bzl" "$error_integer"$'\n'"$error_cfg"
+test_lint "all" "--warnings=all" "test/fixed_golden_all.bzl" "$error_integer"$'\n'"$error_dict"$'\n'"$error_cfg"
+test_lint "cfg" "--warnings=attr-cfg" "test/fixed_golden_cfg.bzl" "$error_cfg"
+test_lint "custom" "--warnings=-integer-division,+unsorted-dict-items" "test/fixed_golden_dict_cfg.bzl" "$error_dict"$'\n'"$error_cfg"

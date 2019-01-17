@@ -42,7 +42,6 @@ native.cc_library(name = "lib")
 	}, scopeBzl)
 }
 
-
 func TestDuplicatedName(t *testing.T) {
 	checkFindings(t, "duplicated-name", `
 cc_library(name = "x")
