@@ -984,8 +984,12 @@ func reorderArguments(f *File, info *RewriteInfo) {
 		if !ok {
 			return
 		}
-		sort.SliceStable(call.List, func(i, j int) bool {
+		compare := func(i, j int) bool {
 			return argumentType(call.List[i]) < argumentType(call.List[j])
-		})
+		}
+		if !sort.SliceIsSorted(call.List, compare) {
+			sort.SliceStable(call.List, compare)
+			info.ReorderArguments++
+		}
 	})
 }
