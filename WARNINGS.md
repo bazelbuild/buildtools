@@ -34,6 +34,7 @@ Warning categories supported by buildifier's linter:
   * [rule-impl-return](#rule-impl-return)
   * [same-origin-load](#same-origin-load)
   * [string-iteration](#string-iteration)
+  * [uninitialized](#uninitialized)
   * [unreachable](#unreachable)
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
@@ -628,6 +629,17 @@ Use string indexing and `len` instead:
     for i in range(len(my_string)):
         char = my_string[i]
         # do something with char
+
+--------------------------------------------------------------------------------
+
+## <a name="uninitialized"></a>Variable may not have been initialized
+
+  * Category_name: `uninitialized`
+  * Automatic fix: no
+
+The local value can be not initialized at the time of execution. It may happen if it's
+initialized in one of the if-else clauses but not in all of them, or in a for-loop which
+can potentially be empty.
 
 --------------------------------------------------------------------------------
 

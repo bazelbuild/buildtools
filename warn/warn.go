@@ -98,6 +98,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"rule-impl-return":    ruleImplReturnWarning,
 	"same-origin-load":    sameOriginLoadWarning,
 	"string-iteration":    stringIterationWarning,
+	"uninitialized":       uninitializedVariableWarning,
 	"unreachable":         unreachableStatementWarning,
 	"unsorted-dict-items": unsortedDictItemsWarning,
 	"unused-variable":     unusedVariableWarning,
