@@ -9,3 +9,8 @@ platforms:
   macos:
     test_targets:
     - "//:tests"
+  windows:
+    test_flags:
+    - "--enable_runfiles"
+    test_targets:
+    - "//:tests"
