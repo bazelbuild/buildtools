@@ -378,7 +378,7 @@ func collectLocalVariables(stmts []build.Expr) map[string]bool {
 // initialized. An ident is considered initialized if it's initialized by every possible execution
 // path (before or by `stmts`).
 // Returns variables that are guaranteed to be defined by `stmts`.
-func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) map[string]bool {
+func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) (bool, map[string]bool) {
 	// Variables that are guaranteed to be de initialized
 	locallyInitialized := make(map[string]bool) // in the local block of `stmts`
 	initialized := make(map[string]bool)        // anywhere before the current line
@@ -400,6 +400,13 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		switch stmt := stmt.(type) {
 		case *build.DefStmt:
 			// Don't traverse nested functions
+		case *build.CallExpr:
+			if _, ok := isFunctionCall(stmt, "fail"); ok {
+				return true, locallyInitialized
+			}
+		case *build.ReturnStmt:
+			findUninitializedIdents(stmt, callback)
+			return true, locallyInitialized
 		case *build.ForStmt:
 			// Although loop variables are defined as local variables, buildifier doesn't know whether
 			// the loop will be empty or not
@@ -408,16 +415,36 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			// may be empty and the variable initialization may not happen.
 			findUninitializedIdents(stmt.X, callback)
 			findUninitializedVariables(stmt.Body, initialized, callback)
+			continue
 		case *build.IfStmt:
 			findUninitializedIdents(stmt.Cond, callback)
-			// If a variable is defined in both if- and else-clauses, it's considered as defined
-			definedInTrue := findUninitializedVariables(stmt.True, initialized, callback)
-			for key := range findUninitializedVariables(stmt.False, initialized, callback) {
-				if definedInTrue[key] {
+			// Check the variables defined in the if- and else-clauses.
+			terminatedTrue, definedInTrue := findUninitializedVariables(stmt.True, initialized, callback)
+			terminatedFalse, definedInFalse := findUninitializedVariables(stmt.False, initialized, callback)
+			if terminatedTrue && terminatedFalse {
+				return true, locallyInitialized
+			} else if terminatedTrue {
+				// Only take definedInFalse into account
+				for key := range definedInFalse {
 					locallyInitialized[key] = true
 					initialized[key] = true
 				}
+			} else if terminatedFalse {
+				// Only take definedInTrue into account
+				for key := range definedInTrue {
+					locallyInitialized[key] = true
+					initialized[key] = true
+				}
+			} else {
+				// If a variable is defined in both if- and else-clauses, it's considered as defined
+				for key := range definedInTrue {
+					if definedInFalse[key] {
+						locallyInitialized[key] = true
+						initialized[key] = true
+					}
+				}
 			}
+			continue
 		case *build.BinaryExpr:
 			if stmt.Op == "=" {
 				// Assignment expression. Collect all definitions from the lhs (they shouldn't be taken into
@@ -437,14 +464,12 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 					locallyInitialized[ident.Name] = true
 					initialized[ident.Name] = true
 				}
-			} else {
-				findUninitializedIdents(stmt, callback)
+				continue
 			}
-		default:
-			findUninitializedIdents(stmt, callback)
 		}
+		findUninitializedIdents(stmt, callback)
 	}
-	return locallyInitialized
+	return false, locallyInitialized
 }
 
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.

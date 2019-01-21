@@ -578,4 +578,34 @@ def foo():
 			":15: Variable \"t\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    x = -1
+  elif y > 0:
+    x = 1
+  else:
+    fail()
+
+  print(x)
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    return
+  elif y > 0:
+    x = 1
+  else:
+    return x  # not initialized
+
+  print(x)
+`,
+		[]string{
+			":7: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }
