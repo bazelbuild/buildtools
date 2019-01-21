@@ -377,7 +377,9 @@ func collectLocalVariables(stmts []build.Expr) map[string]bool {
 // and a map of previously initialized statements, and calls `callback` on all idents that are not
 // initialized. An ident is considered initialized if it's initialized by every possible execution
 // path (before or by `stmts`).
-// Returns variables that are guaranteed to be defined by `stmts`.
+// Returns a boolean indicating whether the current list of statements is guaranteed to be
+// terminated explicitly (by return or fail() statements) and a map of variables that are guaranteed
+// to be defined by `stmts`.
 func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) (bool, map[string]bool) {
 	// Variables that are guaranteed to be de initialized
 	locallyInitialized := make(map[string]bool) // in the local block of `stmts`

@@ -596,6 +596,23 @@ def foo(y):
 	checkFindings(t, "uninitialized", `
 def foo(y):
   if y < 0:
+    x = -1
+  elif y > 0:
+    x = 1
+  else:
+    if z:
+      fail("z")
+    else:
+      fail("not z")
+
+  print(x)
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
     return
   elif y > 0:
     x = 1
