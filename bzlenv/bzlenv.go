@@ -113,7 +113,7 @@ func declareGlobals(stmts []build.Expr, env *Environment) {
 				if env.Function == nil {
 					kind = Global
 				}
-				for _, id := range collectLValues(node.X) {
+				for _, id := range CollectLValues(node.X) {
 					env.declare(id.Name, kind, node)
 				}
 			}
@@ -123,20 +123,18 @@ func declareGlobals(stmts []build.Expr, env *Environment) {
 	}
 }
 
-// collectLValues returns the list of identifiers that are assigned (assuming that node is a valid
+// CollectLValues returns the list of identifiers that are assigned (assuming that node is a valid
 // LValue). For example, it returns `a`, `b` and `c` for the input `a, (b, c)`.
-func collectLValues(node build.Expr) []*build.Ident {
+func CollectLValues(node build.Expr) []*build.Ident {
 	var result []*build.Ident
-	// TODO: we collect a bit more, e.g.
-	//     f(x)[y] = 2
-	// should return only f
-	build.Walk(node, func(e build.Expr, stk []build.Expr) {
-		switch e := e.(type) {
-		case *build.Ident:
-			result = append(result, e)
-
+	switch node := node.(type) {
+	case *build.Ident:
+		result = append(result, node)
+	case *build.TupleExpr:
+		for _, item := range node.List {
+			result = append(result, CollectLValues(item)...)
 		}
-	})
+	}
 	return result
 }
 
@@ -168,7 +166,7 @@ func declareLocalVariables(stmts []build.Expr, env *Environment) {
 				if env.Function == nil {
 					kind = Global
 				}
-				for _, id := range collectLValues(node.X) {
+				for _, id := range CollectLValues(node.X) {
 					env.declare(id.Name, kind, node)
 				}
 			}
@@ -176,7 +174,7 @@ func declareLocalVariables(stmts []build.Expr, env *Environment) {
 			declareLocalVariables(node.True, env)
 			declareLocalVariables(node.False, env)
 		case *build.ForStmt:
-			for _, id := range collectLValues(node.Vars) {
+			for _, id := range CollectLValues(node.Vars) {
 				env.declare(id.Name, Local, node)
 			}
 			declareLocalVariables(node.Body, env)
@@ -204,7 +202,7 @@ func WalkOnceWithEnvironment(node build.Expr, env *Environment, fct func(e *buil
 		for _, clause := range node.Clauses {
 			switch clause := clause.(type) {
 			case *build.ForClause:
-				for _, id := range collectLValues(clause.Vars) {
+				for _, id := range CollectLValues(clause.Vars) {
 					env.declare(id.Name, Local, node)
 				}
 			}

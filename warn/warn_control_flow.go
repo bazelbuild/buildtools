@@ -3,7 +3,9 @@
 package warn
 
 import (
+	"fmt"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
 	"strings"
 )
@@ -333,6 +335,187 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 		if fix && len(load.To) == 0 {
 			f.Stmt = append(f.Stmt[:stmtIndex], f.Stmt[stmtIndex+1:]...)
 		}
+	}
+	return findings
+}
+
+// collectLocalVariables traverses statements (e.g. of a function definition) and returns a map of
+// variables defined anywhere inside the function.
+func collectLocalVariables(stmts []build.Expr) map[string]bool {
+	variables := make(map[string]bool)
+
+	for _, stmt := range stmts {
+		switch stmt := stmt.(type) {
+		case *build.DefStmt:
+			// Don't traverse nested functions
+		case *build.ForStmt:
+			for _, key := range bzlenv.CollectLValues(stmt.Vars) {
+				variables[key.Name] = true
+			}
+			for key := range collectLocalVariables(stmt.Body) {
+				variables[key] = true
+			}
+		case *build.IfStmt:
+			for key := range collectLocalVariables(stmt.True) {
+				variables[key] = true
+			}
+			for key := range collectLocalVariables(stmt.False) {
+				variables[key] = true
+			}
+		case *build.BinaryExpr:
+			if stmt.Op == "=" {
+				for _, key := range bzlenv.CollectLValues(stmt.X) {
+					variables[key.Name] = true
+				}
+			}
+		}
+	}
+	return variables
+}
+
+// searchUninitializedVariables takes a list of statements (e.g. body of a block statement)
+// and a map of previously initialized statements, and calls `callback` on all idents that are not
+// initialized. An ident is considered initialized if it's initialized by every possible execution
+// path (before or by `stmts`).
+// Returns a boolean indicating whether the current list of statements is guaranteed to be
+// terminated explicitly (by return or fail() statements) and a map of variables that are guaranteed
+// to be defined by `stmts`.
+func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) (bool, map[string]bool) {
+	// Variables that are guaranteed to be de initialized
+	locallyInitialized := make(map[string]bool) // in the local block of `stmts`
+	initialized := make(map[string]bool)        // anywhere before the current line
+	for key := range previouslyInitialized {
+		initialized[key] = true
+	}
+
+	// findUninitializedIdents traverses an expression (simple statement or a part of it), and calls
+	// `callback` on every *build.Ident that's not mentioned in the map of initialized variables
+	findUninitializedIdents := func(expr build.Expr, callback func(ident *build.Ident)) {
+		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
+			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] {
+				callback(ident)
+			}
+		})
+	}
+
+	for _, stmt := range stmts {
+		switch stmt := stmt.(type) {
+		case *build.DefStmt:
+			// Don't traverse nested functions
+		case *build.CallExpr:
+			if _, ok := isFunctionCall(stmt, "fail"); ok {
+				return true, locallyInitialized
+			}
+		case *build.ReturnStmt:
+			findUninitializedIdents(stmt, callback)
+			return true, locallyInitialized
+		case *build.ForStmt:
+			// Although loop variables are defined as local variables, buildifier doesn't know whether
+			// the loop will be empty or not
+
+			// Traverse but ignore the result. Even if something is defined inside a for-loop, the loop
+			// may be empty and the variable initialization may not happen.
+			findUninitializedIdents(stmt.X, callback)
+			findUninitializedVariables(stmt.Body, initialized, callback)
+			continue
+		case *build.IfStmt:
+			findUninitializedIdents(stmt.Cond, callback)
+			// Check the variables defined in the if- and else-clauses.
+			terminatedTrue, definedInTrue := findUninitializedVariables(stmt.True, initialized, callback)
+			terminatedFalse, definedInFalse := findUninitializedVariables(stmt.False, initialized, callback)
+			if terminatedTrue && terminatedFalse {
+				return true, locallyInitialized
+			} else if terminatedTrue {
+				// Only take definedInFalse into account
+				for key := range definedInFalse {
+					locallyInitialized[key] = true
+					initialized[key] = true
+				}
+			} else if terminatedFalse {
+				// Only take definedInTrue into account
+				for key := range definedInTrue {
+					locallyInitialized[key] = true
+					initialized[key] = true
+				}
+			} else {
+				// If a variable is defined in both if- and else-clauses, it's considered as defined
+				for key := range definedInTrue {
+					if definedInFalse[key] {
+						locallyInitialized[key] = true
+						initialized[key] = true
+					}
+				}
+			}
+			continue
+		case *build.BinaryExpr:
+			if stmt.Op == "=" {
+				// Assignment expression. Collect all definitions from the lhs (they shouldn't be taken into
+				// account while checking for undefined usages.
+				lValues := make(map[*build.Ident]bool)
+				for _, ident := range bzlenv.CollectLValues(stmt.X) {
+					lValues[ident] = true
+				}
+				// Traverse the statement and report all undefined idents expect LValues
+				findUninitializedIdents(stmt, func(ident *build.Ident) {
+					if !lValues[ident] {
+						callback(ident)
+					}
+				})
+				// Update locallyInitialized and defined with newly defined variables
+				for ident := range lValues {
+					locallyInitialized[ident.Name] = true
+					initialized[ident.Name] = true
+				}
+				continue
+			}
+		}
+		findUninitializedIdents(stmt, callback)
+	}
+	return false, locallyInitialized
+}
+
+// uninitializedVariableWarning warns about usages of values that may not have been initialized.
+func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
+	findings := []*Finding{}
+	for _, stmt := range f.Stmt {
+		def, ok := stmt.(*build.DefStmt)
+		if !ok {
+			continue
+		}
+
+		// Get all variables defined in the function body.
+		// If a variable is not defined there, it can be builtin, global, or loaded.
+		localVars := collectLocalVariables(def.Body)
+
+		// Function parameters are guaranteed to be defined everywhere in the function, even if they
+		// are redefined inside the function body. They shouldn't be taken into consideration.
+		for _, node := range def.Params {
+			switch node := node.(type) {
+			case *build.Ident:
+				delete(localVars, node.Name)
+			case *build.UnaryExpr:
+				// either *args or **kwargs
+				if ident, ok := node.X.(*build.Ident); ok {
+					delete(localVars, ident.Name)
+				}
+			case *build.BinaryExpr:
+				// x = value
+				if ident, ok := node.X.(*build.Ident); ok {
+					delete(localVars, ident.Name)
+				}
+			}
+		}
+
+		// Search for all potentially initialized variables in the function body
+		findUninitializedVariables(def.Body, make(map[string]bool), func(ident *build.Ident) {
+			// Check that the found ident represents a local variable
+			if localVars[ident.Name] {
+				start, end := ident.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, "uninitialized",
+						fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name), true, nil))
+			}
+		})
 	}
 	return findings
 }
