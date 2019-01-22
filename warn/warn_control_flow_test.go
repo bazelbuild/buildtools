@@ -456,3 +456,189 @@ x = "unused"`,
 		[]string{":1: Loaded symbol \"x\" is unused."},
 		scopeEverywhere)
 }
+
+func TestUninitializedVariable(t *testing.T) {
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
+    x = 1
+    y = 2
+
+  bar = True
+  print(x + y)
+`,
+		[]string{
+			":2: Variable \"bar\" may not have been initialized.",
+			":7: Variable \"y\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  for t in s:
+    x = 1
+    y = 2
+
+  print(x + y)
+`,
+		[]string{
+			":6: Variable \"y\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  if bar:
+    x = 1
+    y = 2
+  else:
+    if foobar:
+      x = 3
+      y = 4
+    else:
+      x = 5
+
+  print(x + y)
+`,
+		[]string{
+			":12: Variable \"y\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
+    t = 1
+  else:
+    for t in maybe_empty:  
+      pass
+
+  print(t)
+`,
+		[]string{
+			":8: Variable \"t\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
+    for t in [2, 3]:
+      pass
+
+  print(t)
+`,
+		[]string{
+			":6: Variable \"t\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  print(t)  # maybe global or loaded
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
+    y = 1
+
+  print(y)
+  x, y = y, x
+  print(y)
+`,
+		[]string{
+			":5: Variable \"y\" may not have been initialized.",
+			":6: Variable \"y\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  if a:
+    x = 1
+    y = 1
+    z = 1
+  elif b:
+    x = 2
+    z = 2
+    t = 2
+  else:
+    x = 3
+    y = 3
+    t = 3
+
+  print(x + y + z + t)
+`,
+		[]string{
+			":15: Variable \"y\" may not have been initialized.",
+			":15: Variable \"z\" may not have been initialized.",
+			":15: Variable \"t\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    x = -1
+  elif y > 0:
+    x = 1
+  else:
+    fail()
+
+  print(x)
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    x = -1
+  elif y > 0:
+    x = 1
+  else:
+    if z:
+      fail("z")
+    else:
+      fail("not z")
+
+  print(x)
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    return
+  elif y > 0:
+    x = 1
+  else:
+    return x  # not initialized
+
+  print(x)
+`,
+		[]string{
+			":7: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(y):
+  if y < 0:
+    return
+  elif y > 0:
+    x = 1
+  else:
+    pass
+
+  print(x)  # not initialized
+`,
+		[]string{
+			":9: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
+}
