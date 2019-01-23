@@ -42,7 +42,7 @@ func setFlags(file string) func() {
 		tables.StripLabelLeadingSlashes = true
 	}
 	// Test file 050 tests the ShortenAbsoluteLabelsToRelative behavior, all other tests assume that ShortenAbsoluteLabelsToRelative is false.
-	if strings.Contains(file, "/050.") {
+	if strings.Contains(file, string(os.PathSeparator)+"050.") {
 		tables.ShortenAbsoluteLabelsToRelative = true
 	}
 	return func() {
