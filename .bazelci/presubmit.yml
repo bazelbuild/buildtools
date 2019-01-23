@@ -9,3 +9,10 @@ platforms:
   macos:
     test_targets:
     - "//:tests"
+  windows:
+    test_flags:
+    - "--enable_runfiles"
+    test_targets:
+    - "--"
+    - "//:tests"
+    - "-//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest"
