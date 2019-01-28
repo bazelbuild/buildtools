@@ -105,9 +105,9 @@ func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bo
 			if ok && ident.Name == "fail" {
 				unreachable = true
 			}
-		case *build.Ident:
-			switch stmt.Name {
-			case "continue", "break":
+		case *build.BranchStmt:
+			if stmt.Token != "pass" {
+				// either break or continue
 				unreachable = true
 			}
 		case *build.ForStmt:
@@ -159,19 +159,14 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		}
 		switch s := (stmt).(type) {
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
-			*build.CallExpr, *build.CommentBlock:
+			*build.CallExpr, *build.CommentBlock, *build.BranchStmt:
 			continue
 		case *build.BinaryExpr:
 			if s.Op != "==" && s.Op != "!=" && strings.HasSuffix(s.Op, "=") {
 				continue
 			}
-		case *build.Ident:
-			if s.Name == "break" || s.Name == "continue" || s.Name == "pass" {
-				continue
-			}
-		}
-		if comp, ok := stmt.(*build.Comprehension); ok {
-			if !isTopLevel || comp.Curly {
+		case *build.Comprehension:
+			if !isTopLevel || s.Curly {
 				// List comprehensions are allowed on top-level.
 				findings = append(findings,
 					makeFinding(f, start, end, "no-effect",
