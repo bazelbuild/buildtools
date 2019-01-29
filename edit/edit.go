@@ -756,6 +756,13 @@ func EditFunction(v build.Expr, name string, f func(x *build.CallExpr, stk []bui
 func UsedSymbols(stmt build.Expr) map[string]bool {
 	symbols := make(map[string]bool)
 	build.Walk(stmt, func(expr build.Expr, stack []build.Expr) {
+		// Don't traverse inside load statements
+		if len(stack) > 0 {
+			if _, ok := stack[len(stack)-1].(*build.LoadStmt); ok {
+				return
+			}
+		}
+
 		literal, ok := expr.(*build.Ident)
 		if !ok {
 			return
