@@ -126,7 +126,7 @@ func Find() (*Differ, bool) {
 				deprecationWarning = true
 				d.Cmd = "FC"
 			} else {
-				d.Cmd = "diff"
+				d.Cmd = "diff --unified"
 			}
 		}
 	}
