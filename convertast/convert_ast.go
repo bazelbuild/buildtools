@@ -33,7 +33,7 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 		*s.Comment() = convComments(stmt.Comments())
 		return s
 	case *syntax.BranchStmt:
-		return &build.LiteralExpr{
+		return &build.BranchStmt{
 			Token:    stmt.Token.String(),
 			Comments: convComments(stmt.Comments()),
 		}
