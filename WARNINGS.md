@@ -221,7 +221,7 @@ you can use one of the following:
 
   * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
 
-    load("@bazel_skylib//lib/dicts.bzl", "dicts")
+    load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
     d = dicts.add(d1, d2, d3)
 
