@@ -81,8 +81,7 @@ func countLeadingSpaces(s string) int {
 	return spaces
 }
 
-var argHeaderRegex = regexp.MustCompile(`^ *(\*?\*?\w+)( *\([\w\ ,]+\))?:`)
-var argRegex = regexp.MustCompile(`[\*\w]+`)
+var argRegex = regexp.MustCompile(`^ *(\*?\*?\w+)( *\([\w\ ,]+\))?:`)
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
 // the parsed information about the function, its arguments and its return value.
@@ -151,13 +150,12 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 				// argument.
 				newIndentation := countLeadingSpaces(line)
 				if newIndentation <= argIndentation {
-					// Extract the header, e.g. "  my_arg (optional, deprecated):"
-					header := argHeaderRegex.FindString(line)
-					if len(header) > 0 {
+					// Extract the arg name from the first line of its description,
+					// e.g. "  my_arg (optional, deprecated): ..."
+					result := argRegex.FindStringSubmatch(line)
+					if len(result) > 1 {
 						argIndentation = newIndentation
-						// Extract the arg name
-						arg := argRegex.FindString(header)
-						info.args[arg] = build.Position{
+						info.args[result[1]] = build.Position{
 							Line:     block.startLineNo + i + 1, // the first line is skipped in the loop
 							LineRune: indent + argIndentation,
 						}
