@@ -171,6 +171,11 @@ def f(x, y):
 
    Arguments:
      x: something
+        y: something (this is in fact the description of x continued)
+     z: something else
+
+   Returns:
+     None
    """
    pass
    pass
@@ -181,6 +186,7 @@ def f(x, y):
 		[]string{
 			`2: Argument "y" is not documented.`,
 			`4: Prefer 'Args:' to 'Arguments:' when documenting function arguments.`,
+			`7: Argument "z" is documented but doesn't exist in the function signature.`,
 		}, scopeEverywhere)
 
 	checkFindings(t, "function-docstring", `

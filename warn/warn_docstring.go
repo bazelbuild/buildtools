@@ -56,10 +56,10 @@ func stmtsCount(stmts []build.Expr) int {
 
 // docstringInfo contains information about a function docstring
 type docstringInfo struct {
-	hasHeader     bool            // whether the docstring has a one-line header
-	args          map[string]bool // map of documented arguments
-	returns       bool            // whether the return value is documented
-	argumentsLine int             // line of the `Arguments:` block (not `Args:`), if it exists
+	hasHeader     bool                      // whether the docstring has a one-line header
+	args          map[string]build.Position // map of documented arguments, the values are line numbers
+	returns       bool                      // whether the return value is documented
+	argumentsLine int                       // line of the `Arguments:` block (not `Args:`), if it exists
 }
 
 // docstringBlock contains a block of a docstring (separated by empty lines)
@@ -81,8 +81,8 @@ func countLeadingSpaces(s string) int {
 	return spaces
 }
 
-var argHeaderRegex = regexp.MustCompile("^ *(\\*?\\*?\\w+)( *\\([\\w\\ ,]+\\))?:")
-var argRegex = regexp.MustCompile("[\\*\\w]+")
+var argHeaderRegex = regexp.MustCompile(`^ *(\*?\*?\w+)( *\([\w\ ,]+\))?:`)
+var argRegex = regexp.MustCompile(`[\*\w]+`)
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
 // the parsed information about the function, its arguments and its return value.
@@ -124,7 +124,7 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 	}
 
 	info := docstringInfo{}
-	info.args = make(map[string]bool)
+	info.args = make(map[string]build.Position)
 
 	if len(blocks) > 0 && len(blocks[0].lines) == 1 {
 		// Exactly one line in the first block
@@ -136,18 +136,28 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 		switch block.lines[0] {
 		case "Args:", "Arguments:":
 			if block.lines[0] == "Arguments:" {
+				// 'Args:' is preferred over 'Arguments:'
 				info.argumentsLine = block.startLineNo
 			}
 
-			argIndentation := -1
-			for _, line := range block.lines[1:] {
+			argIndentation := 1000000 // Indentation at which previous arg documentation started
+			for i, line := range block.lines[1:] {
+				// Iterate over line and parse arguments. If the current indentation level is the same as
+				// the indentation level of the previous argument (or lower), assume that the new argument
+				// is being described on this line, otherwise it's a continued description of the previous
+				// argument.
 				newIndentation := countLeadingSpaces(line)
-				if newIndentation <= argIndentation || argIndentation == -1 {
+				if newIndentation <= argIndentation {
+					// Extract the header, e.g. "  my_arg (optional, deprecated):"
 					header := argHeaderRegex.FindString(line)
 					if len(header) > 0 {
-						arg := argRegex.FindString(header)
-						info.args[arg] = true
 						argIndentation = newIndentation
+						// Extract the arg name
+						arg := argRegex.FindString(header)
+						info.args[arg] = build.Position{
+							Line:     block.startLineNo + i + 1, // the first line is skipped in the loop
+							LineRune: indent + argIndentation,
+						}
 					}
 				}
 			}
@@ -197,53 +207,60 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 		if !ok {
 			continue
 		}
-		if strings.HasPrefix(def.Name, "_") {
-			// Private functions aren't required to have docstrings
-			continue
-		}
-		if stmtsCount(def.Body) < FunctionLengthDocstringThreshold {
-			// The function is too short
-			continue
-		}
+
 		doc, ok := getDocstring(def.Body)
-		if ok {
-			// Docstring exists, check for its contents
-			info := parseFunctionDocstring(doc.(*build.StringExpr))
-			start, end := doc.Span()
 
-			if !info.hasHeader {
+		if !ok {
+			if !strings.HasPrefix(def.Name, "_") && stmtsCount(def.Body) >= FunctionLengthDocstringThreshold {
+				// Public functions that are not too short should have a docstring
+				start, end := stmt.Span()
 				findings = append(findings, makeFinding(f, start, end, "function-docstring",
-					fmt.Sprintf(`The docstring for the function "%s" should start with a one-line summary.`, def.Name), true, nil))
+					fmt.Sprintf(`The function "%s" has no docstring.`, def.Name), true, nil))
 			}
-			if info.argumentsLine > 0 {
-				argumentsStart := build.Position{
-					Line:     info.argumentsLine,
-					LineRune: start.LineRune,
-				}
-				argumentsEnd := argumentsStart
-				argumentsEnd.LineRune += len("Arguments:")
-				findings = append(findings, makeFinding(f, argumentsStart, argumentsEnd, "function-docstring",
-					`Prefer 'Args:' to 'Arguments:' when documenting function arguments.`, true, nil))
-			}
+			continue
+		}
 
-			for _, param := range def.Params {
-				name := getParamName(param)
-				if !info.args[name] {
-					findings = append(findings, makeFinding(f, start, end, "function-docstring",
-						fmt.Sprintf(`Argument "%s" is not documented.`, name), true, nil))
-				}
-			}
+		// Docstring exists, check for its contents
+		info := parseFunctionDocstring(doc.(*build.StringExpr))
+		start, end := doc.Span()
 
-			if hasReturnValues(def) && !info.returns {
-				findings = append(findings, makeFinding(f, start, end, "function-docstring",
-					fmt.Sprintf(`Return value of "%s" is not documented.`, def.Name), true, nil))
-
-			}
-
-		} else {
-			start, end := stmt.Span()
+		if !info.hasHeader {
 			findings = append(findings, makeFinding(f, start, end, "function-docstring",
-				fmt.Sprintf(`The function "%s" has no docstring.`, def.Name), true, nil))
+				fmt.Sprintf(`The docstring for the function "%s" should start with a one-line summary.`, def.Name), true, nil))
+		}
+		if info.argumentsLine > 0 {
+			argumentsStart := build.Position{
+				Line:     info.argumentsLine,
+				LineRune: start.LineRune,
+			}
+			argumentsEnd := argumentsStart
+			argumentsEnd.LineRune += len("Arguments:")
+			findings = append(findings, makeFinding(f, argumentsStart, argumentsEnd, "function-docstring",
+				`Prefer 'Args:' to 'Arguments:' when documenting function arguments.`, true, nil))
+		}
+
+		paramNames := make(map[string]bool)
+		for _, param := range def.Params {
+			name := getParamName(param)
+			paramNames[name] = true
+			if _, ok := info.args[name]; !ok {
+				findings = append(findings, makeFinding(f, start, end, "function-docstring",
+					fmt.Sprintf(`Argument "%s" is not documented.`, name), true, nil))
+			}
+		}
+
+		for name, pos := range info.args {
+			if !paramNames[name] {
+				posEnd := pos
+				posEnd.LineRune += len(name)
+				findings = append(findings, makeFinding(f, pos, posEnd, "function-docstring",
+					fmt.Sprintf(`Argument "%s" is documented but doesn't exist in the function signature.`, name), true, nil))
+			}
+		}
+
+		if hasReturnValues(def) && !info.returns {
+			findings = append(findings, makeFinding(f, start, end, "function-docstring",
+				fmt.Sprintf(`Return value of "%s" is not documented.`, def.Name), true, nil))
 		}
 	}
 	return findings
