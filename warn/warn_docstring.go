@@ -59,7 +59,7 @@ type docstringInfo struct {
 	hasHeader     bool                      // whether the docstring has a one-line header
 	args          map[string]build.Position // map of documented arguments, the values are line numbers
 	returns       bool                      // whether the return value is documented
-	argumentsLine int                       // line of the `Arguments:` block (not `Args:`), if it exists
+	argumentsPos  build.Position            // line of the `Arguments:` block (not `Args:`), if it exists
 }
 
 // docstringBlock contains a block of a docstring (separated by empty lines)
@@ -137,7 +137,10 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 		case "Args:", "Arguments:":
 			if block.lines[0] == "Arguments:" {
 				// 'Args:' is preferred over 'Arguments:'
-				info.argumentsLine = block.startLineNo
+				info.argumentsPos = build.Position{
+					Line: block.startLineNo,
+					LineRune: indent,
+				}
 			}
 
 			argIndentation := 1000000 // Indentation at which previous arg documentation started
@@ -227,14 +230,10 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 			findings = append(findings, makeFinding(f, start, end, "function-docstring",
 				fmt.Sprintf(`The docstring for the function "%s" should start with a one-line summary.`, def.Name), true, nil))
 		}
-		if info.argumentsLine > 0 {
-			argumentsStart := build.Position{
-				Line:     info.argumentsLine,
-				LineRune: start.LineRune,
-			}
-			argumentsEnd := argumentsStart
+		if info.argumentsPos.LineRune > 0 {
+			argumentsEnd := info.argumentsPos
 			argumentsEnd.LineRune += len("Arguments:")
-			findings = append(findings, makeFinding(f, argumentsStart, argumentsEnd, "function-docstring",
+			findings = append(findings, makeFinding(f, info.argumentsPos, argumentsEnd, "function-docstring",
 				`Prefer 'Args:' to 'Arguments:' when documenting function arguments.`, true, nil))
 		}
 
