@@ -42,7 +42,8 @@ var (
 	// Undocumented; for debugging.
 	showlog = flag.Bool("showlog", false, "show log in check mode")
 
-	vflag         = flag.Bool("v", false, "print verbose information on standard error")
+	help          = flag.Bool("help", false, "print usage information")
+	vflag         = flag.Bool("v", false, "print verbose information to standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	diffProgram   = flag.String("diff_command", "", "command to run when the formatting mode is diff (default uses the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables to create the diff command)")
@@ -68,7 +69,7 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: buildifier [-d] [-v] [-diff_command=command] [-multi_diff] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
+	fmt.Fprintf(flag.CommandLine.Output(), `usage: buildifier [-d] [-v] [-diff_command=command] [-help] [-multi_diff] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
 
 Buildifier applies standard formatting to the named Starlark files.  The mode
 flag selects the processing: check, diff, fix, or print_if_changed.  In check
@@ -103,7 +104,6 @@ or in scripts that reformat a temporary copy of a file.
 Full list of flags with their defaults:
 `)
 	flag.PrintDefaults()
-	os.Exit(2)
 }
 
 func main() {
@@ -111,13 +111,16 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
+	if *help {
+		flag.CommandLine.SetOutput(os.Stdout)
+		usage()
+		os.Exit(0)
+	}
+
 	if *version {
 		fmt.Printf("buildifier version: %s \n", buildVersion)
 		fmt.Printf("buildifier scm revision: %s \n", buildScmRevision)
-
-		if len(args) == 0 {
-			os.Exit(0)
-		}
+		os.Exit(0)
 	}
 
 	// Pass down debug flags into build package
