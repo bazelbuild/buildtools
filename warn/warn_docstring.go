@@ -85,7 +85,7 @@ var argHeaderRegex = regexp.MustCompile("^ *(\\*?\\*?\\w+)( *\\([\\w\\ ,]+\\))?:
 var argRegex = regexp.MustCompile("[\\*\\w]+")
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
-// the parsed information about the function, its arguments and its return value
+// the parsed information about the function, its arguments and its return value.
 func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 	start, _ := doc.Span()
 	indent := start.LineRune - 1
