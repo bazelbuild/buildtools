@@ -15,11 +15,13 @@ Warning categories supported by buildifier's linter:
   * [dict-concatenation](#dict-concatenation)
   * [duplicated-name](#duplicated-name)
   * [filetype](#filetype)
+  * [function-docstring](#function-docstring)
   * [git-repository](#git-repository)
   * [http-archive](#http-archive)
   * [integer-division](#integer-division)
   * [load](#load)
   * [load-on-top](#load-on-top)
+  * [module-docstring](#module-docstring)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
@@ -280,6 +282,40 @@ just use a list of strings.
 
 --------------------------------------------------------------------------------
 
+## <a name="function-docstring"></a>Function docstring
+
+  * Category_name: `function-docstring`
+  * Automatic fix: no
+
+Public functions should have docstrings describing functions and their signatures.
+A docstring is a string statement which should be the first statement of the file
+(it may follow comment lines). Docstrings are expected to be formatted in the
+following way:
+
+    """One-line summary: must be followed and may be preceded by a blank line.
+    
+    Optional additional description like this.
+    
+    If it's a function docstring and the function has more than one argument, the docstring has
+    to document these parameters as follows:
+
+    Args:
+      parameter1: description of the first parameter. Each parameter line
+        should be indented by one, preferably two, spaces (as here).
+      parameter2: description of the second
+        parameter that spans two lines. Each additional line should have a
+        hanging indentation of at least one, preferably two, additional spaces (as here).
+      another_parameter (unused, mutable): a parameter may be followed
+        by additional attributes in parentheses
+
+    Returns:
+      Description of the return value.
+      Should be indented by at least one, preferably two spaces (as here)
+      Can span multiple lines.
+    """
+
+--------------------------------------------------------------------------------
+
 ## <a name="git-repository"></a>Function `git_repository` is not global anymore
 
   * Category_name: `git-repository`
@@ -362,6 +398,16 @@ or at the beginning of a rule.
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
 they can follow only comments and docstrings.
+
+--------------------------------------------------------------------------------
+
+## <a name="module-docstring"></a>The file has no module docstring.
+
+  * Category_name: `module-docstring`
+  * Automatic fix: no
+
+`.bzl` files should have docstrings on top of them. A docstring is a string statement
+which should be the first statement of the file (it may follow comment lines). 
 
 --------------------------------------------------------------------------------
 
