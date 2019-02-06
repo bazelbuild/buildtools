@@ -362,7 +362,7 @@ func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
 			if LabelsEqual(e.Value, oldV, env.Pkg) {
-				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}))
+				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}, env))
 			}
 		} else {
 			ListReplace(attr, oldV, newV, env.Pkg)
@@ -385,7 +385,7 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 			continue
 		}
 		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
-			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}))
+			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}, env))
 		}
 	}
 	return env.File, nil
@@ -397,7 +397,7 @@ func cmdSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if attr == "kind" {
 		env.Rule.SetKind(args[0])
 	} else {
-		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args))
+		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args, env))
 	}
 	return env.File, nil
 }
@@ -409,12 +409,12 @@ func cmdSetIfAbsent(opts *Options, env CmdEnvironment) (*build.File, error) {
 		return nil, fmt.Errorf("setting 'kind' is not allowed for set_if_absent. Got %s", env.Args)
 	}
 	if env.Rule.Attr(attr) == nil {
-		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args))
+		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args, env))
 	}
 	return env.File, nil
 }
 
-func getAttrValueExpr(attr string, args []string) build.Expr {
+func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr {
 	switch {
 	case attr == "kind":
 		return nil
@@ -427,11 +427,11 @@ func getAttrValueExpr(attr string, args []string) build.Expr {
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
 		var list []build.Expr
 		for _, i := range args {
-			list = append(list, &build.StringExpr{Value: i})
+			list = append(list, &build.StringExpr{Value: ShortenLabel(i, env.Pkg)})
 		}
 		return &build.ListExpr{List: list}
 	case IsString(attr):
-		return &build.StringExpr{Value: args[0]}
+		return &build.StringExpr{Value: ShortenLabel(args[0], env.Pkg)}
 	default:
 		return &build.Ident{Name: args[0]}
 	}
