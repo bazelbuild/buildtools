@@ -209,7 +209,6 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 		}
 
 		doc, ok := getDocstring(def.Body)
-
 		if !ok {
 			if !strings.HasPrefix(def.Name, "_") && stmtsCount(def.Body) >= FunctionLengthDocstringThreshold {
 				// Public functions that are not too short should have a docstring
