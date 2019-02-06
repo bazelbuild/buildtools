@@ -56,10 +56,10 @@ func stmtsCount(stmts []build.Expr) int {
 
 // docstringInfo contains information about a function docstring
 type docstringInfo struct {
-	hasHeader     bool                      // whether the docstring has a one-line header
-	args          map[string]build.Position // map of documented arguments, the values are line numbers
-	returns       bool                      // whether the return value is documented
-	argumentsPos  build.Position            // line of the `Arguments:` block (not `Args:`), if it exists
+	hasHeader    bool                      // whether the docstring has a one-line header
+	args         map[string]build.Position // map of documented arguments, the values are line numbers
+	returns      bool                      // whether the return value is documented
+	argumentsPos build.Position            // line of the `Arguments:` block (not `Args:`), if it exists
 }
 
 // docstringBlock contains a block of a docstring (separated by empty lines)
@@ -138,7 +138,7 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 			if block.lines[0] == "Arguments:" {
 				// 'Args:' is preferred over 'Arguments:'
 				info.argumentsPos = build.Position{
-					Line: block.startLineNo,
+					Line:     block.startLineNo,
 					LineRune: indent,
 				}
 			}
