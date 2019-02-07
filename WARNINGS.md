@@ -99,7 +99,7 @@ is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
 
-## <a name="confusing-name"></a>Never use `l`, `I`, or `O` as names.
+## <a name="confusing-name"></a>Never use `l`, `I`, or `O` as names
 
   * Category_name: `confusing-name`
   * Automatic fix: no
