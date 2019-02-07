@@ -23,6 +23,7 @@ Warning categories supported by buildifier's linter:
   * [load](#load)
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
+  * [name-conventions](#name-conventions)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
@@ -418,6 +419,16 @@ they can follow only comments and docstrings.
 
 `.bzl` files should have docstrings on top of them. A docstring is a string statement
 which should be the first statement of the file (it may follow comment lines). 
+
+--------------------------------------------------------------------------------
+
+## <a name="name-conventions"></a>Name conventions
+
+  * Category_name: `name-conventions`
+  * Automatic fix: yes
+
+By convention, all variables should be lower_snake_case, constant should be
+UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
 
 --------------------------------------------------------------------------------
 

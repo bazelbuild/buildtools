@@ -1,8 +1,10 @@
 package warn
 
 import (
+	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
+	"strings"
 )
 
 var ambiguousNames = map[string]bool{
@@ -59,6 +61,68 @@ func confusingNameWarning(f *build.File, fix bool) []*Finding {
 				for _, ident := range bzlenv.CollectLValues(forClause.Vars) {
 					findings = ambiguousNameCheck(f, ident, findings)
 				}
+			}
+		}
+	})
+
+	return findings
+}
+
+// isProviderNode returns whether the node is a call of `provider()`
+func isProviderNode(expr build.Expr) bool {
+	call, ok := expr.(*build.CallExpr)
+	if !ok {
+		return false
+	}
+	name, ok := call.X.(*build.Ident)
+	return ok && name.Name == "provider"
+}
+
+func isUpperCamelCase(name string) bool {
+	if strings.HasPrefix(name, "_") {
+		// Private providers are allowed
+		name = name[1:]
+	}
+	return !strings.ContainsRune(name, '_') && name == strings.Title(name)
+}
+
+func isLowerSnakeCase(name string) bool {
+	return name == strings.ToLower(name)
+}
+
+func isUpperSnakeCase(name string) bool {
+	return name == strings.ToUpper(name)
+}
+
+func nameConventionsWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) {
+		// looking for provider declaration statements: `xxx = provider()`
+		// note that the code won't trigger on complex assignments, such as `x, y = foo, provider()`
+		binary, ok := stmt.(*build.BinaryExpr)
+		if !ok || binary.Op != "=" {
+			return
+		}
+		if isProviderNode(binary.Y) {
+			ident, ok := binary.X.(*build.Ident)
+			if !ok {
+				return
+			}
+			if !isUpperCamelCase(ident.Name) || !strings.HasSuffix(ident.Name, "Info") {
+				start, end := ident.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, "name-conventions",
+						fmt.Sprintf(`Provider name "%s" should be UpperCamelCase and should end with 'Info'.`, ident.Name), true, nil))
+			}
+			return
+		}
+		for _, ident := range bzlenv.CollectLValues(binary.X) {
+			if !isLowerSnakeCase(ident.Name) && !isUpperSnakeCase(ident.Name) {
+				start, end := ident.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, "name-conventions",
+						fmt.Sprintf(`Variable name "%s" should be lower_snake_case or UPPER_SNAKE_CASE (for constants).`, ident.Name), true, nil))
 			}
 		}
 	})
