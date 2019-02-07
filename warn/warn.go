@@ -72,6 +72,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"attr-non-empty":      attrNonEmptyWarning,
 	"attr-output-default": attrOutputDefaultWarning,
 	"attr-single-file":    attrSingleFileWarning,
+	"confusing-name":      confusingNameWarning,
 	"constant-glob":       constantGlobWarning,
 	"ctx-actions":         ctxActionsWarning,
 	"ctx-args":            contextArgsAPIWarning,

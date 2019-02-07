@@ -7,6 +7,7 @@ Warning categories supported by buildifier's linter:
   * [attr-non-empty](#attr-non-empty)
   * [attr-output-default](#attr-output-default)
   * [attr-single-file](#attr-single-file)
+  * [confusing-name](#confusing-name)
   * [constant-glob](#constant-glob)
   * [ctx-actions](#ctx-actions)
   * [ctx-args](#ctx-args)
@@ -95,6 +96,15 @@ for these attributes instead.
 
 The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="confusing-name"></a>Never use `l`, `I`, or `O` as names
+
+  * Category_name: `confusing-name`
+  * Automatic fix: no
+
+The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspondingly.
 
 --------------------------------------------------------------------------------
 

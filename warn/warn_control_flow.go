@@ -334,34 +334,24 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-// collectLocalVariables traverses statements (e.g. of a function definition) and returns a map of
-// variables defined anywhere inside the function.
-func collectLocalVariables(stmts []build.Expr) map[string]bool {
-	variables := make(map[string]bool)
+// collectLocalVariables traverses statements (e.g. of a function definition) and returns a list
+// of idents for variables defined anywhere inside the function.
+func collectLocalVariables(stmts []build.Expr) []*build.Ident {
+	variables := []*build.Ident{}
 
 	for _, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *build.DefStmt:
 			// Don't traverse nested functions
 		case *build.ForStmt:
-			for _, key := range bzlenv.CollectLValues(stmt.Vars) {
-				variables[key.Name] = true
-			}
-			for key := range collectLocalVariables(stmt.Body) {
-				variables[key] = true
-			}
+			variables = append(variables, bzlenv.CollectLValues(stmt.Vars)...)
+			variables = append(variables, collectLocalVariables(stmt.Body)...)
 		case *build.IfStmt:
-			for key := range collectLocalVariables(stmt.True) {
-				variables[key] = true
-			}
-			for key := range collectLocalVariables(stmt.False) {
-				variables[key] = true
-			}
+			variables = append(variables, collectLocalVariables(stmt.True)...)
+			variables = append(variables, collectLocalVariables(stmt.False)...)
 		case *build.BinaryExpr:
 			if stmt.Op == "=" {
-				for _, key := range bzlenv.CollectLValues(stmt.X) {
-					variables[key.Name] = true
-				}
+				variables = append(variables, bzlenv.CollectLValues(stmt.X)...)
 			}
 		}
 	}
@@ -469,6 +459,27 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	return false, locallyInitialized
 }
 
+func getFunctionParams(def *build.DefStmt) []*build.Ident {
+	params := []*build.Ident{}
+	for _, node := range def.Params {
+		switch node := node.(type) {
+		case *build.Ident:
+			params = append(params, node)
+		case *build.UnaryExpr:
+			// either *args or **kwargs
+			if ident, ok := node.X.(*build.Ident); ok {
+				params = append(params, ident)
+			}
+		case *build.BinaryExpr:
+			// x = value
+			if ident, ok := node.X.(*build.Ident); ok {
+				params = append(params, ident)
+			}
+		}
+	}
+	return params
+}
+
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
 func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
 	findings := []*Finding{}
@@ -480,25 +491,15 @@ func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
 
 		// Get all variables defined in the function body.
 		// If a variable is not defined there, it can be builtin, global, or loaded.
-		localVars := collectLocalVariables(def.Body)
+		localVars := make(map[string]bool)
+		for _, ident := range collectLocalVariables(def.Body) {
+			localVars[ident.Name] = true
+		}
 
 		// Function parameters are guaranteed to be defined everywhere in the function, even if they
 		// are redefined inside the function body. They shouldn't be taken into consideration.
-		for _, node := range def.Params {
-			switch node := node.(type) {
-			case *build.Ident:
-				delete(localVars, node.Name)
-			case *build.UnaryExpr:
-				// either *args or **kwargs
-				if ident, ok := node.X.(*build.Ident); ok {
-					delete(localVars, ident.Name)
-				}
-			case *build.BinaryExpr:
-				// x = value
-				if ident, ok := node.X.(*build.Ident); ok {
-					delete(localVars, ident.Name)
-				}
-			}
+		for _, ident := range getFunctionParams(def) {
+			delete(localVars, ident.Name)
 		}
 
 		// Search for all potentially initialized variables in the function body
