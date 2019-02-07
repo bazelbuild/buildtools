@@ -480,7 +480,6 @@ func getFunctionParams(def *build.DefStmt) []*build.Ident {
 	return params
 }
 
-
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
 func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
 	findings := []*Finding{}

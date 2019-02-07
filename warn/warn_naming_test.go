@@ -78,4 +78,3 @@ def f(x):
 			":5: Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').",
 		}, scopeEverywhere)
 }
-
