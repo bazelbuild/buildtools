@@ -8,7 +8,7 @@ import (
 )
 
 // FunctionLengthDocstringThreshold is a limit for a function size (in statements), above which
-// a function is public required to have a docstring.
+// a public function is required to have a docstring.
 const FunctionLengthDocstringThreshold = 5
 
 // getDocstrings returns a docstring of the statemenets and true if it exists.
