@@ -68,16 +68,6 @@ func confusingNameWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-// isProviderNode returns whether the node is a call of `provider()`
-func isProviderNode(expr build.Expr) bool {
-	call, ok := expr.(*build.CallExpr)
-	if !ok {
-		return false
-	}
-	name, ok := call.X.(*build.Ident)
-	return ok && name.Name == "provider"
-}
-
 func isUpperCamelCase(name string) bool {
 	if strings.HasPrefix(name, "_") {
 		// Private providers are allowed
@@ -104,26 +94,17 @@ func nameConventionsWarning(f *build.File, fix bool) []*Finding {
 		if !ok || binary.Op != "=" {
 			return
 		}
-		if isProviderNode(binary.Y) {
-			ident, ok := binary.X.(*build.Ident)
-			if !ok {
-				return
-			}
-			if !isUpperCamelCase(ident.Name) || !strings.HasSuffix(ident.Name, "Info") {
-				start, end := ident.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "name-conventions",
-						fmt.Sprintf(`Provider name "%s" should be UpperCamelCase and should end with 'Info'.`, ident.Name), true, nil))
-			}
-			return
-		}
 		for _, ident := range bzlenv.CollectLValues(binary.X) {
-			if !isLowerSnakeCase(ident.Name) && !isUpperSnakeCase(ident.Name) {
-				start, end := ident.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "name-conventions",
-						fmt.Sprintf(`Variable name "%s" should be lower_snake_case or UPPER_SNAKE_CASE (for constants).`, ident.Name), true, nil))
+			if isLowerSnakeCase(ident.Name) || isUpperSnakeCase(ident.Name) {
+				continue
 			}
+			if isUpperCamelCase(ident.Name) && strings.HasSuffix(ident.Name, "Info") {
+				continue
+			}
+			start, end := ident.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "name-conventions",
+					fmt.Sprintf(`Variable name "%s" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`, ident.Name), true, nil))
 		}
 	})
 
