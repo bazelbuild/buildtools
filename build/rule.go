@@ -29,6 +29,11 @@ type Rule struct {
 	ImplicitName string // The name which should be used if the name attribute is not set. See the comment on File.implicitRuleName.
 }
 
+// NewRule is a simple constructor for Rule.
+func NewRule(call *CallExpr) *Rule {
+	return &Rule{call, ""}
+}
+
 func (f *File) Rule(call *CallExpr) *Rule {
 	r := &Rule{call, ""}
 	if r.AttrString("name") == "" {
@@ -183,7 +188,7 @@ func (r *Rule) SetKind(kind string) {
 // If the rule has no explicit target name, Name returns the implicit name if there is one, else the empty string.
 func (r *Rule) Name() string {
 	explicitName := r.AttrString("name")
-	if explicitName == "" {
+	if explicitName == "" && r.Kind() != "package" {
 		return r.ImplicitName
 	}
 	return explicitName
