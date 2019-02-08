@@ -89,6 +89,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"load-on-top":         loadOnTopWarning,
 	"return-value":        missingReturnValueWarning,
 	"module-docstring":    moduleDocstringWarning,
+	"name-conventions":    nameConventionsWarning,
 	"native-build":        nativeInBuildFilesWarning,
 	"native-package":      nativePackageWarning,
 	"no-effect":           noEffectWarning,

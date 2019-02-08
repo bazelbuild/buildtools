@@ -1,8 +1,10 @@
 package warn
 
 import (
+	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
+	"strings"
 )
 
 var ambiguousNames = map[string]bool{
@@ -60,6 +62,49 @@ func confusingNameWarning(f *build.File, fix bool) []*Finding {
 					findings = ambiguousNameCheck(f, ident, findings)
 				}
 			}
+		}
+	})
+
+	return findings
+}
+
+func isUpperCamelCase(name string) bool {
+	if strings.HasPrefix(name, "_") {
+		// Private providers are allowed
+		name = name[1:]
+	}
+	return !strings.ContainsRune(name, '_') && name == strings.Title(name)
+}
+
+func isLowerSnakeCase(name string) bool {
+	return name == strings.ToLower(name)
+}
+
+func isUpperSnakeCase(name string) bool {
+	return name == strings.ToUpper(name)
+}
+
+func nameConventionsWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) {
+		// looking for provider declaration statements: `xxx = provider()`
+		// note that the code won't trigger on complex assignments, such as `x, y = foo, provider()`
+		binary, ok := stmt.(*build.BinaryExpr)
+		if !ok || binary.Op != "=" {
+			return
+		}
+		for _, ident := range bzlenv.CollectLValues(binary.X) {
+			if isLowerSnakeCase(ident.Name) || isUpperSnakeCase(ident.Name) {
+				continue
+			}
+			if isUpperCamelCase(ident.Name) && strings.HasSuffix(ident.Name, "Info") {
+				continue
+			}
+			start, end := ident.Span()
+			findings = append(findings,
+				makeFinding(f, start, end, "name-conventions",
+					fmt.Sprintf(`Variable name "%s" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`, ident.Name), true, nil))
 		}
 	})
 

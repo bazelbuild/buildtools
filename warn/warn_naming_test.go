@@ -48,7 +48,7 @@ def l():  # here
 [l for l in s]
 
 cc_library(
-  name = "name",
+  name = "name-conventions",
   tags = [I for I in tags if I],
 )
 
@@ -77,4 +77,62 @@ def f(x):
 			":5: Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').",
 			":5: Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').",
 		}, scopeEverywhere)
+}
+
+func TestVariableNames(t *testing.T) {
+	checkFindings(t, "name-conventions", `
+_ = 0
+foo = 1
+FOO = 2
+Foo = 3
+foo, Bar, BazInfo = 4, 5, 6
+foo, (BAR, _) = 7, (8, 9)
+fOO = 10
+FooInfo = 11
+_FooInfo = 12
+_BAR = 13
+_baz = 14
+_Foo_bar, foo_Baz = 15, 16
+`,
+		[]string{
+			`:4: Variable name "Foo" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:5: Variable name "Bar" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:7: Variable name "fOO" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:12: Variable name "_Foo_bar" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:12: Variable name "foo_Baz" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+		}, scopeEverywhere)
+
+	checkFindings(t, "name-conventions", `
+def f(x, _, Arg = None):
+  _ = 0
+  foo = 1
+  FOO = 2
+  Foo = 3
+  foo, Bar, BazInfo = 4, 5, 6
+  foo, (BAR, _) = 7, (8, 9)
+  fOO = 10
+  FooInfo = 11
+  _FooInfo = 12
+  _BAR = 13
+  _baz = 14
+  _Foo_bar, foo_Baz = 15, 16
+`,
+		[]string{
+			`:5: Variable name "Foo" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:6: Variable name "Bar" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:8: Variable name "fOO" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:13: Variable name "_Foo_bar" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+			`:13: Variable name "foo_Baz" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`,
+		}, scopeEverywhere)
+
+	checkFindings(t, "name-conventions", `
+foo(
+  Bar = 1,
+  ___ = 2,
+  BazInfo = 3,
+	baz = 4,
+  FOO = 5,
+)
+`,
+		[]string{}, scopeEverywhere)
 }
