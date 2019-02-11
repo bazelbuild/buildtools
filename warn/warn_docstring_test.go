@@ -101,7 +101,7 @@ def _f(x):
 		[]string{},
 		scopeEverywhere)
 
-checkFindings(t, "function-docstring", `
+	checkFindings(t, "function-docstring", `
 def _f(x):
    """Long private function
    with a docstring"""
@@ -112,12 +112,12 @@ def _f(x):
    x %= 5
    return x
 `,
-	[]string{
-		`:2: The docstring for the function "_f" should start with a one-line summary.`,
-		`:2: Argument "x" is not documented.`,
-		`:2: Return value of "_f" is not documented.`,
-	},
-	scopeEverywhere)
+		[]string{
+			`:2: The docstring for the function "_f" should start with a one-line summary.`,
+			`:2: Argument "x" is not documented.`,
+			`:2: Return value of "_f" is not documented.`,
+		},
+		scopeEverywhere)
 }
 
 func TestFunctionDocstringFormat(t *testing.T) {
