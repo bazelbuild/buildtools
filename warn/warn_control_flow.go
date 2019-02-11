@@ -396,7 +396,7 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			return true, locallyInitialized
 		case *build.ForStmt:
 			// Although loop variables are defined as local variables, buildifier doesn't know whether
-			// the loop will be empty or not
+			// the collection will be empty or not.
 
 			// Traverse but ignore the result. Even if something is defined inside a for-loop, the loop
 			// may be empty and the variable initialization may not happen.

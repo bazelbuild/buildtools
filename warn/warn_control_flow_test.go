@@ -657,4 +657,16 @@ def foo():
 		},
 		scopeEverywhere)
 
+	checkFindings(t, "uninitialized", `
+def foo():
+  for x in y:
+    a = x
+    print(a)
+
+  print(a)
+`,
+		[]string{
+			":6: Variable \"a\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }
