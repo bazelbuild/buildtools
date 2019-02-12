@@ -135,6 +135,7 @@ def _f(x, y):
    
    Args:
      x: something
+     z: something
    """
    x *= 2
    x /= 3
@@ -144,6 +145,7 @@ def _f(x, y):
 `,
 		[]string{
 			`:2: Argument "y" is not documented.`,
+			`:6: Argument "z" is documented but doesn't exist in the function signature.`,
 		},
 		scopeEverywhere)
 }
