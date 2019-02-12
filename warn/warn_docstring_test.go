@@ -69,9 +69,21 @@ def f(x):
    """Short function with a docstring"""
    return x
 `,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring", `
+def f(x, y):
+   """Short function with a docstring
+
+   Arguments:
+     x: smth
+   """
+   return x + y
+`,
 		[]string{
-			`:2: Argument "x" is not documented.`,
-			`:2: Return value of "f" is not documented.`,
+			`2: Argument "y" is not documented.`,
+			`4: Prefer 'Args:' to 'Arguments:' when documenting function arguments.`,
 		},
 		scopeEverywhere)
 
@@ -114,8 +126,26 @@ def _f(x):
 `,
 		[]string{
 			`:2: The docstring for the function "_f" should start with a one-line summary.`,
-			`:2: Argument "x" is not documented.`,
-			`:2: Return value of "_f" is not documented.`,
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring", `
+def _f(x, y):
+   """Long private function
+   
+   Args:
+     x: something
+     z: something
+   """
+   x *= 2
+   x /= 3
+   x -= 4
+   x %= 5
+   return x
+`,
+		[]string{
+			`:2: Argument "y" is not documented.`,
+			`:6: Argument "z" is documented but doesn't exist in the function signature.`,
 		},
 		scopeEverywhere)
 }
