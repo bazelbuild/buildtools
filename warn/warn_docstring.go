@@ -256,14 +256,17 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 			}
 			if len(notDocumentedArguments) > 0 {
 				s := "s"
+				are := "are"
 				if len(notDocumentedArguments) == 1 {
 					s = ""
+					are = "is"
 				}
 				findings = append(findings, makeFinding(f, start, end, "function-docstring",
 					fmt.Sprintf(
-						`Argument%s "%s" is not documented.`,
+						`Argument%s "%s" %s not documented.`,
 							s,
 							strings.Join(notDocumentedArguments, `", "`),
+							are,
 						), true, nil))
 			}
 

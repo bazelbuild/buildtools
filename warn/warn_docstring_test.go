@@ -259,7 +259,7 @@ def f(x, y, z = None, *args, **kwargs):
    pass
 `,
 		[]string{
-			`2: Arguments "x", "y", "z", "*args", "**kwargs" is not documented.`,
+			`2: Arguments "x", "y", "z", "*args", "**kwargs" are not documented.`,
 		},
 		scopeEverywhere)
 
