@@ -2,9 +2,10 @@ package warn
 
 import (
 	"fmt"
-	"github.com/bazelbuild/buildtools/build"
 	"regexp"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/build"
 )
 
 // FunctionLengthDocstringThreshold is a limit for a function size (in statements), above which
@@ -244,14 +245,26 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 		if isDocstringRequired || len(info.args) > 0 {
 
 			// Check whether all arguments are documented.
+			notDocumentedArguments := []string{}
 			paramNames := make(map[string]bool)
 			for _, param := range def.Params {
 				name := getParamName(param)
 				paramNames[name] = true
 				if _, ok := info.args[name]; !ok {
-					findings = append(findings, makeFinding(f, start, end, "function-docstring",
-						fmt.Sprintf(`Argument "%s" is not documented.`, name), true, nil))
+					notDocumentedArguments = append(notDocumentedArguments, name)
 				}
+			}
+			if len(notDocumentedArguments) > 0 {
+				s := "s"
+				if len(notDocumentedArguments) == 1 {
+					s = ""
+				}
+				findings = append(findings, makeFinding(f, start, end, "function-docstring",
+					fmt.Sprintf(
+						`Argument%s "%s" is not documented.`,
+							s,
+							strings.Join(notDocumentedArguments, `", "`),
+						), true, nil))
 			}
 
 			// Check whether all documented arguments actually exist in the function signature.
