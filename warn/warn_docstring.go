@@ -255,19 +255,16 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 				}
 			}
 			if len(notDocumentedArguments) > 0 {
-				s := "s"
-				are := "are"
 				if len(notDocumentedArguments) == 1 {
-					s = ""
-					are = "is"
-				}
-				findings = append(findings, makeFinding(f, start, end, "function-docstring",
-					fmt.Sprintf(
-						`Argument%s "%s" %s not documented.`,
-							s,
+					findings = append(findings, makeFinding(f, start, end, "function-docstring",
+						fmt.Sprintf(`Argument "%s" is not documented.`, notDocumentedArguments[0]), true, nil))
+				} else {
+					findings = append(findings, makeFinding(f, start, end, "function-docstring",
+						fmt.Sprintf(
+							`Arguments "%s" are not documented.`,
 							strings.Join(notDocumentedArguments, `", "`),
-							are,
 						), true, nil))
+				}
 			}
 
 			// Check whether all documented arguments actually exist in the function signature.
