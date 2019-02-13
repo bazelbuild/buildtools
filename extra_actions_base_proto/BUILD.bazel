@@ -7,14 +7,6 @@ go_proto_checkedin_test(
     src = "extra_actions_base.gen.pb.go",
 )
 
-genrule(
-    name = "copy_and_fix",
-    srcs = ["@io_bazel//src/main/protobuf:srcs"],
-    outs = ["extra_actions_base.proto"],
-    cmd = ("SRCS=($(locations @io_bazel//src/main/protobuf:srcs));" +
-           "cp $$(dirname $$SRCS)/extra_actions_base.proto $@"),
-)
-
 proto_library(
     name = "blaze_proto",
     srcs = ["extra_actions_base.proto"],
