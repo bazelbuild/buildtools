@@ -376,14 +376,33 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	// findUninitializedIdents traverses an expression (simple statement or a part of it), and calls
 	// `callback` on every *build.Ident that's not mentioned in the map of initialized variables
 	findUninitializedIdents := func(expr build.Expr, callback func(ident *build.Ident)) {
+		// Collect lValues, they shouldn't be taken into account
+		// For example, if the expression is `a = foo(b = c)`, only `c` can be an unused variable here.
+		lValues := make(map[*build.Ident]bool)
 		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] {
+			if bin, ok := expr.(*build.BinaryExpr); ok && bin.Op == "=" {
+				for _, ident := range bzlenv.CollectLValues(bin.X) {
+					lValues[ident] = true
+				}
+			}
+		})
+
+		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
+			// TODO: traverse comprehensions properly
+			for _, node := range stack {
+				if _, ok := node.(*build.Comprehension); ok {
+					return
+				}
+			}
+
+			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] && !lValues[ident] {
 				callback(ident)
 			}
 		})
 	}
 
 	for _, stmt := range stmts {
+		newlyDefinedVariables := make(map[string]bool)
 		switch stmt := stmt.(type) {
 		case *build.DefStmt:
 			// Don't traverse nested functions
@@ -443,27 +462,17 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			continue
 		case *build.BinaryExpr:
 			if stmt.Op == "=" {
-				// Assignment expression. Collect all definitions from the lhs (they shouldn't be taken into
-				// account while checking for undefined usages.
-				lValues := make(map[*build.Ident]bool)
+				// Assignment expression. Collect all definitions from the lhs
 				for _, ident := range bzlenv.CollectLValues(stmt.X) {
-					lValues[ident] = true
+					newlyDefinedVariables[ident.Name] = true
 				}
-				// Traverse the statement and report all undefined idents expect LValues
-				findUninitializedIdents(stmt, func(ident *build.Ident) {
-					if !lValues[ident] {
-						callback(ident)
-					}
-				})
-				// Update locallyInitialized and defined with newly defined variables
-				for ident := range lValues {
-					locallyInitialized[ident.Name] = true
-					initialized[ident.Name] = true
-				}
-				continue
 			}
 		}
 		findUninitializedIdents(stmt, callback)
+		for name := range newlyDefinedVariables {
+			locallyInitialized[name] = true
+			initialized[name] = true
+		}
 	}
 	return false, locallyInitialized
 }
