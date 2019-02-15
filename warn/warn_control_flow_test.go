@@ -669,4 +669,71 @@ def foo():
 			":6: Variable \"a\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        x = foo
+
+    f(x = y)
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        x = foo
+
+    f(x + y)
+`,
+		[]string{
+			":5: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        x = foo
+
+    x, y = 1, x
+`,
+		[]string{
+			":5: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        x = foo
+
+    x, y = 1, 2
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f(y):
+    return [x for x in y if x]
+
+    x = 1
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        f(x = foo)
+    else:
+        x = 3
+
+    print(x)
+`,
+		[]string{
+			":7: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }
