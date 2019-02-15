@@ -184,10 +184,15 @@ func (r *Rule) SetKind(kind string) {
 	r.Call.X = expr
 }
 
+// ExplicitName returns the rule's target name if it's explicitly provided as a string value, "" otherwise.
+func (r *Rule) ExplicitName() string {
+	return r.AttrString("name")
+}
+
 // Name returns the rule's target name.
 // If the rule has no explicit target name, Name returns the implicit name if there is one, else the empty string.
 func (r *Rule) Name() string {
-	explicitName := r.AttrString("name")
+	explicitName := r.ExplicitName()
 	if explicitName == "" && r.Kind() != "package" {
 		return r.ImplicitName
 	}
