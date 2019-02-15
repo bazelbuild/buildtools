@@ -722,4 +722,18 @@ def f(y):
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def f():
+    if foo:
+        f(x = foo)
+    else:
+        x = 3
+
+    print(x)
+`,
+		[]string{
+			":7: Variable \"x\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }
