@@ -20,11 +20,11 @@ const (
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
-		return "BUILD"
+		return "package/BUILD"
 	case build.TypeWorkspace:
-		return "WORKSPACE"
+		return "package/WORKSPACE"
 	default:
-		return "test_file.bzl"
+		return "package/test_file.bzl"
 	}
 }
 
