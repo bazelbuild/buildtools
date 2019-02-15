@@ -91,83 +91,68 @@ var argRegex = regexp.MustCompile(`^ *(\*?\*?\w+)( *\([\w\ ,]+\))?:`)
 func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 	start, _ := doc.Span()
 	indent := start.LineRune - 1
+	prefix := strings.Repeat(" ", indent)
 	lines := strings.Split(doc.Value, "\n")
-
-	// Dedent the lines
-	for i, line := range lines {
-		line = strings.TrimRight(line, " ")
-		if i != 0 {
-			for j, chr := range line {
-				if j >= indent || chr != ' ' {
-					line = line[j:]
-					break
-				}
-			}
-		}
-		lines[i] = line
-	}
-
-	// Split by empty lines
-	blocks := []docstringBlock{}
-	newBlock := true
-	for i, line := range lines {
-		if len(line) == 0 {
-			newBlock = true
-			continue
-		}
-		if newBlock {
-			newBlock = false
-			blocks = append(blocks, docstringBlock{
-				startLineNo: start.Line + i,
-				lines:       []string{},
-			})
-		}
-		blocks[len(blocks)-1].lines = append(blocks[len(blocks)-1].lines, line)
-	}
 
 	info := docstringInfo{}
 	info.args = make(map[string]build.Position)
 
-	if len(blocks) > 0 && len(blocks[0].lines) == 1 {
-		// Exactly one line in the first block
-		info.hasHeader = true
+	isArgumentsDescription := false // Whether the currently parsed block is an 'Args:' section
+	argIndentation := 1000000       // Indentation at which previous arg documentation started
+
+	for i := range lines {
+		lines[i] = strings.TrimRight(lines[i], " ")
 	}
 
-	// Iterate over the blocks, extract data
-	for _, block := range blocks {
-		switch block.lines[0] {
-		case "Args:", "Arguments:":
-			if block.lines[0] == "Arguments:" {
-				// 'Args:' is preferred over 'Arguments:'
-				info.argumentsPos = build.Position{
-					Line:     block.startLineNo,
-					LineRune: indent,
-				}
-			}
+	// The first non-empty line should be a single-line header
+	for i, line := range lines {
+		if line == "" {
+			continue
+		}
+		if i == len(lines)-1 || lines[i+1] == "" {
+			info.hasHeader = true
+		}
+		break
+	}
 
-			argIndentation := 1000000 // Indentation at which previous arg documentation started
-			for i, line := range block.lines[1:] {
-				// Iterate over line and parse arguments. If the current indentation level is the same as
-				// the indentation level of the previous argument (or lower), assume that the new argument
-				// is being described on this line, otherwise it's a continued description of the previous
-				// argument.
-				newIndentation := countLeadingSpaces(line)
-				if newIndentation <= argIndentation {
-					// Extract the arg name from the first line of its description,
-					// e.g. "  my_arg (optional, deprecated): ..."
-					result := argRegex.FindStringSubmatch(line)
-					if len(result) > 1 {
-						argIndentation = newIndentation
-						info.args[result[1]] = build.Position{
-							Line:     block.startLineNo + i + 1, // the first line is skipped in the loop
-							LineRune: indent + argIndentation,
-						}
+	// Search for Args: and Returns: sections
+	for i, line := range lines {
+		switch line {
+		case prefix + "Arguments:":
+			info.argumentsPos = build.Position{
+				Line:     start.Line + i,
+				LineRune: indent,
+			}
+			isArgumentsDescription = true
+			continue
+		case prefix + "Args:":
+			isArgumentsDescription = true
+			continue
+		case prefix + "Returns:":
+			info.returns = true
+			continue
+		}
+
+		if isArgumentsDescription {
+			newIndentation := countLeadingSpaces(line)
+
+			if line != "" && newIndentation <= indent {
+				// The indented block is over
+				isArgumentsDescription = false
+				continue
+			} else if newIndentation > argIndentation {
+				// Continuation of the previous argument description
+				continue
+			} else {
+				// Maybe a new argument is described here
+				result := argRegex.FindStringSubmatch(line)
+				if len(result) > 1 {
+					argIndentation = newIndentation
+					info.args[result[1]] = build.Position{
+						Line:     start.Line + i,
+						LineRune: indent + argIndentation,
 					}
 				}
-			}
-		case "Returns:":
-			if len(block.lines) > 1 {
-				info.returns = true
 			}
 		}
 	}
