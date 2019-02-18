@@ -89,7 +89,8 @@ func TestCtxActionsWarning(t *testing.T) {
 	checkFindingsAndFix(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo)
-  ctx.new_file(foo, bar)
+  ctx.new_file(foo, "foo %s " % bar)
+  ctx.new_file(foo, name = bar)
   ctx.new_file(foo, bar, baz)
   ctx.experimental_new_directory(foo, bar)
   ctx.file_action(foo, bar)
@@ -103,6 +104,7 @@ def impl(ctx):
 `, `
 def impl(ctx):
   ctx.actions.declare_file(foo)
+  ctx.actions.declare_file("foo %s " % bar, sibling = foo)
   ctx.actions.declare_file(bar, sibling = foo)
   ctx.new_file(foo, bar, baz)
   ctx.actions.declare_directory(foo, bar)
@@ -119,14 +121,15 @@ def impl(ctx):
 			`:2: "ctx.new_file" is deprecated.`,
 			`:3: "ctx.new_file" is deprecated.`,
 			`:4: "ctx.new_file" is deprecated.`,
-			`:5: "ctx.experimental_new_directory" is deprecated.`,
-			`:6: "ctx.file_action" is deprecated.`,
+			`:5: "ctx.new_file" is deprecated.`,
+			`:6: "ctx.experimental_new_directory" is deprecated.`,
 			`:7: "ctx.file_action" is deprecated.`,
-			`:8: "ctx.action" is deprecated.`,
+			`:8: "ctx.file_action" is deprecated.`,
 			`:9: "ctx.action" is deprecated.`,
-			`:10: "ctx.empty_action" is deprecated.`,
-			`:11: "ctx.template_action" is deprecated.`,
+			`:10: "ctx.action" is deprecated.`,
+			`:11: "ctx.empty_action" is deprecated.`,
 			`:12: "ctx.template_action" is deprecated.`,
+			`:13: "ctx.template_action" is deprecated.`,
 		},
 		scopeEverywhere)
 
