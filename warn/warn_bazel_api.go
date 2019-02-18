@@ -167,7 +167,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 
 // makePositional makes the function argument positional (removes the keyword if it exists)
 func makePositional(argument build.Expr) build.Expr {
-	if binary, ok := argument.(*build.BinaryExpr); ok {
+	if binary, ok := argument.(*build.BinaryExpr); ok && binary.Op == "=" {
 		return binary.Y
 	}
 	return argument

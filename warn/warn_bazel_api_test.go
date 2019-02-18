@@ -89,7 +89,7 @@ func TestCtxActionsWarning(t *testing.T) {
 	checkFindingsAndFix(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo)
-  ctx.new_file(foo, bar)
+  ctx.new_file(foo, "foo %s " % bar)
   ctx.new_file(foo, bar, baz)
   ctx.experimental_new_directory(foo, bar)
   ctx.file_action(foo, bar)
@@ -103,7 +103,7 @@ def impl(ctx):
 `, `
 def impl(ctx):
   ctx.actions.declare_file(foo)
-  ctx.actions.declare_file(bar, sibling = foo)
+  ctx.actions.declare_file("foo %s " % bar, sibling = foo)
   ctx.new_file(foo, bar, baz)
   ctx.actions.declare_directory(foo, bar)
   ctx.actions.write(foo, bar)
