@@ -296,4 +296,44 @@ def f():
 `,
 		[]string{`2: The docstring for the function "f" should start with a one-line summary.`},
 		scopeEverywhere)
+
+	checkFindings(t, "function-docstring", `
+def f():
+   """
+
+   This is a function.
+
+   This is a
+   multiline description"""
+   pass
+   pass
+   pass
+   pass
+   pass
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring", `
+def f(x):
+   """
+   This is a function.
+
+   Args:
+
+     The function signature is extremely complicated
+
+     x: something
+   Returns:
+     nothing
+   """
+   pass
+   pass
+   pass
+   pass
+   pass
+   return None
+`,
+		[]string{},
+		scopeEverywhere)
 }
