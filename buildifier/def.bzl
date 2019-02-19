@@ -11,10 +11,10 @@ def _buildifier_impl(ctx):
 
     if ctx.attr.lint_mode:
         args.append("-lint=%s" % ctx.attr.lint_mode)
-    if ctx.attr.lint_args:
+    if ctx.attr.lint_warnings:
         if not ctx.attr.lint_mode:
-            fail("Cannot pass 'lint_args' without a 'lint_mode'")
-        args.extend(ctx.attr.lint_args)
+            fail("Cannot pass 'lint_warnings' without a 'lint_mode'")
+        args.append("--warnings={}".format(",".join(ctx.attr.lint_warnings)))
     if ctx.attr.multi_diff:
         args.append("-multi_diff")
     if ctx.attr.diff_command:
@@ -62,9 +62,9 @@ _buildifier = rule(
             doc = "Linting mode",
             values = ["", "fix", "warn"],
         ),
-        "lint_args": attr.string_list(
+        "lint_warnings": attr.string_list(
             allow_empty = True,
-            doc = "A list of command line arguments to be passed when running buildifier lint",
+            doc = "A list of warnings to pass to the linter, prefixed with +/- depending on if you want to include or exclude",
         ),
         "exclude_patterns": attr.string_list(
             allow_empty = True,
