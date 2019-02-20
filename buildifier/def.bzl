@@ -64,7 +64,7 @@ _buildifier = rule(
         ),
         "lint_warnings": attr.string_list(
             allow_empty = True,
-            doc = "A list of warnings to pass to the linter, prefixed with +/- depending on if you want to include or exclude",
+            doc = "all prefixed with +/- if you want to include in or exclude from the default set of warnings, or none prefixed with +/- if you want to override the default set, or 'all' for all avaliable warnings",
         ),
         "exclude_patterns": attr.string_list(
             allow_empty = True,
