@@ -184,7 +184,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 			if fn == nil {
 				log.Fatalf("unexpected warning %q", warn)
 			}
-			if f.Type == build.TypeDefault {
+			if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 				continue
 			}
 			for _, stmt := range f.Stmt {

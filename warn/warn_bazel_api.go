@@ -88,6 +88,10 @@ func isFunctionCall(expr build.Expr, name string) (*build.CallExpr, bool) {
 func globalVariableUsageCheck(f *build.File, category, global, alternative string, fix bool) []*Finding {
 	findings := []*Finding{}
 
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
@@ -123,6 +127,11 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 // and adds a load statement if necessary.
 func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	toLoad := []string{}
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
@@ -194,6 +203,11 @@ func makeKeyword(argument build.Expr, name string) build.Expr {
 
 func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...)
 		call, ok := expr.(*build.CallExpr)
@@ -230,6 +244,11 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 
 func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., non_empty = ..., ...)
 		call, ok := expr.(*build.CallExpr)
@@ -263,6 +282,11 @@ func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 
 func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., single_file = ..., ...)
 		call, ok := expr.(*build.CallExpr)
@@ -308,6 +332,10 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 
 func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
 
 	addWarning := func(expr build.Expr, name string) {
 		start, end := expr.Span()
@@ -380,6 +408,10 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 func fileTypeWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
@@ -411,6 +443,11 @@ func repositoryNameWarning(f *build.File, fix bool) []*Finding {
 
 func outputGroupWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
 		// Find nodes that match the following pattern: ctx.attr.xxx.output_group
 		outputGroup, ok := (expr).(*build.DotExpr)
@@ -455,6 +492,11 @@ func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	types := detectTypes(f)
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -510,6 +552,11 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 
 func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.output(..., default = ...)
 		call, ok := expr.(*build.CallExpr)
@@ -538,6 +585,11 @@ func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 
 func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.license(...)
 		call, ok := expr.(*build.CallExpr)
@@ -563,6 +615,10 @@ func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 // ruleImplReturnWarning checks whether a rule implementation function returns an old-style struct
 func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
 
 	// iterate over rules and collect rule implementation function names
 	implNames := make(map[string]bool)

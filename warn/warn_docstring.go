@@ -29,7 +29,7 @@ func getDocstring(stmts []build.Expr) (build.Expr, bool) {
 }
 
 func moduleDocstringWarning(f *build.File, fix bool) []*Finding {
-	if f.Type != build.TypeDefault {
+	if f.Type != build.TypeDefault && f.Type != build.TypeBzl {
 		return []*Finding{}
 	}
 	if stmt, ok := getDocstring(f.Stmt); stmt != nil && !ok {
