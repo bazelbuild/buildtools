@@ -16,7 +16,7 @@ const (
 	scopeWorkspace  = build.TypeWorkspace
 	scopeDefault    = build.TypeDefault
 	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault
- 	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
+	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
 )
 
 func getFilename(fileType build.FileType) string {
