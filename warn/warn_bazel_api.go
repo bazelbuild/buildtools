@@ -610,3 +610,58 @@ func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 
 	return findings
 }
+
+var legacyNamedParameters = map[string]string {
+	"all": "elements",
+	"any": "elements",
+	"tuple": "x",
+	"list": "x",
+	"len": "x",
+	"str": "x",
+	"repr": "x",
+	"bool": "x",
+	"int": "x",
+	"dir": "x",
+	"type": "x",
+	"hasattr": "x",
+	"getattr": "x",
+	"select": "x",
+}
+
+
+// keywordParametersWarning checks for deprecated keyword parameters of builtins
+func keywordParametersWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok || len(call.List) == 0 {
+			return
+		}
+		ident, ok := call.X.(*build.Ident)
+		if !ok {
+			return
+		}
+		parameter, ok := legacyNamedParameters[ident.Name]
+		if !ok {
+			return
+		}
+		binary, ok := call.List[0].(*build.BinaryExpr)
+		if !ok || binary.Op != "=" {
+			return
+		}
+		key, ok := binary.X.(*build.Ident)
+		if !ok || key.Name != parameter {
+			return
+		}
+		if fix {
+			call.List[0] = makePositional(call.List[0])
+			return
+		}
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "keyword-parameters",
+				fmt.Sprintf(`Keyword parameter "%s" for "%s" should be positional.`, key.Name, ident.Name), true, nil))
+	})
+
+	return findings
+}

@@ -20,6 +20,7 @@ Warning categories supported by buildifier's linter:
   * [git-repository](#git-repository)
   * [http-archive](#http-archive)
   * [integer-division](#integer-division)
+  * [keyword-parameters](#keyword-parameters)
   * [load](#load)
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
@@ -398,6 +399,17 @@ If you want to keep the load, you can disable the warning by adding a comment
 
 You can disable this warning by adding `# buildozer: disable=load` on the line
 or at the beginning of a rule.
+
+--------------------------------------------------------------------------------
+
+## <a name="keyword-parameters"></a>Keyword parameter should be positional
+
+  * Category_name: `keyword-parameters`
+  * Automatic fix: yes
+
+Some parameters for builtin functions in Skyalrk are keyword for legacy reasons,
+their names are not meaningful (e.g. `x`), making them positional will improve
+the readability.
 
 --------------------------------------------------------------------------------
 

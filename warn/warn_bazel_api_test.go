@@ -457,3 +457,54 @@ rule()  # no parameters
 rule(foo = bar)  # no matching parameters
 `, []string{}, scopeEverywhere)
 }
+
+func TestKeywordParameters(t *testing.T) {
+	checkFindingsAndFix(t, "keyword-parameters", `
+foo(key = value)
+all(elements = [True, False])
+any(elements = [True, False])
+tuple(x = [1, 2, 3])
+list(x = [1, 2, 3])
+len(x = [1, 2, 3])
+str(x = foo)
+repr(x = foo)
+bool(x = 3)
+int(x = "3")
+dir(x = foo)
+type(x = foo)
+hasattr(x = foo, name = "bar")
+getattr(x = foo, name = "bar", default = "baz")
+select(x = {})
+`, `
+foo(key = value)
+all([True, False])
+any([True, False])
+tuple([1, 2, 3])
+list([1, 2, 3])
+len([1, 2, 3])
+str(foo)
+repr(foo)
+bool(3)
+int("3")
+dir(foo)
+type(foo)
+hasattr(foo, name = "bar")
+getattr(foo, name = "bar", default = "baz")
+select({})
+`, []string{
+		`:2: Keyword parameter "elements" for "all" should be positional.`,
+		`:3: Keyword parameter "elements" for "any" should be positional.`,
+		`:4: Keyword parameter "x" for "tuple" should be positional.`,
+		`:5: Keyword parameter "x" for "list" should be positional.`,
+		`:6: Keyword parameter "x" for "len" should be positional.`,
+		`:7: Keyword parameter "x" for "str" should be positional.`,
+		`:8: Keyword parameter "x" for "repr" should be positional.`,
+		`:9: Keyword parameter "x" for "bool" should be positional.`,
+		`:10: Keyword parameter "x" for "int" should be positional.`,
+		`:11: Keyword parameter "x" for "dir" should be positional.`,
+		`:12: Keyword parameter "x" for "type" should be positional.`,
+		`:13: Keyword parameter "x" for "hasattr" should be positional.`,
+		`:14: Keyword parameter "x" for "getattr" should be positional.`,
+		`:15: Keyword parameter "x" for "select" should be positional.`,
+	}, scopeEverywhere)
+}

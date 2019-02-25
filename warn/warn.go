@@ -85,6 +85,7 @@ var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"git-repository":      nativeGitRepositoryWarning,
 	"http-archive":        nativeHTTPArchiveWarning,
 	"integer-division":    integerDivisionWarning,
+	"keyword-parameters":  keywordParametersWarning,
 	"load":                unusedLoadWarning,
 	"load-on-top":         loadOnTopWarning,
 	"return-value":        missingReturnValueWarning,
