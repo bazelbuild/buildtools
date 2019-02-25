@@ -407,7 +407,7 @@ or at the beginning of a rule.
   * Category_name: `keyword-parameters`
   * Automatic fix: yes
 
-Some parameters for builtin functions in Skyalrk are keyword for legacy reasons,
+Some parameters for builtin functions in Starlark are keyword for legacy reasons,
 their names are not meaningful (e.g. `x`), making them positional will improve
 the readability.
 
