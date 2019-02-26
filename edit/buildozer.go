@@ -97,8 +97,10 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	str = strings.Replace(str, "\\n", "\n", -1)
 	// Multiline comments should go on a separate line.
 	fullLine := !opts.PreferEOLComments || strings.Contains(str, "\n")
-	str = strings.Replace("# "+str, "\n", "\n# ", -1)
-	comment := []build.Comment{{Token: str}}
+	comment := []build.Comment{}
+	for _, line := range strings.Split(str, "\n") {
+		comment = append(comment, build.Comment{Token: "# " + line})
+	}
 
 	// The comment might be attached to a rule, an attribute, or a value in a list,
 	// depending on how many arguments are passed.
