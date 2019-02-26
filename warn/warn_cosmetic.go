@@ -135,10 +135,16 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 			// Either both labels have explicit repository names or both don't, compare their packages
 			// and break ties using file names if necessary
 
-			module1Parts := strings.Split(strings.TrimLeft(load1Label, "@"), ":")
-			package1, filename1 := module1Parts[0], module1Parts[1]
-			module2Parts := strings.Split(strings.TrimLeft(load2Label, "@"), ":")
-			package2, filename2 := module2Parts[0], module2Parts[1]
+			module1Parts := strings.SplitN(strings.TrimLeft(load1Label, "@"), ":", 2)
+			package1, filename1 := "", module1Parts[0]
+			if len(module1Parts) == 2 {
+				package1, filename1 = module1Parts[0], module1Parts[1]
+			}
+			module2Parts := strings.SplitN(strings.TrimLeft(load2Label, "@"), ":", 2)
+			package2, filename2 := "", module2Parts[0]
+			if len(module2Parts) == 2 {
+				package2, filename2 = module2Parts[0], module2Parts[1]
+			}
 
 			// in case both packages are the same, use file names to break ties
 			if package1 == package2 {
