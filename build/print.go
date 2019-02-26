@@ -307,12 +307,6 @@ const (
 
 // opPrec gives the precedence for operators found in a BinaryExpr.
 var opPrec = map[string]int{
-	"+=":     precAssign,
-	"-=":     precAssign,
-	"*=":     precAssign,
-	"/=":     precAssign,
-	"//=":    precAssign,
-	"%=":     precAssign,
 	"or":     precOr,
 	"and":    precAnd,
 	"in":     precCmp,
