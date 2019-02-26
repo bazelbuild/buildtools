@@ -68,12 +68,12 @@ const stdinPackageName = "-" // the special package name to represent stdin
 
 // CmdEnvironment stores the information the commands below have access to.
 type CmdEnvironment struct {
-	File   *build.File                  // the AST
-	Rule   *build.Rule                  // the rule to modify
+	File   *build.File                      // the AST
+	Rule   *build.Rule                      // the rule to modify
 	Vars   map[string]*build.AssignmentExpr // global variables set in the build file
-	Pkg    string                       // the full package name
-	Args   []string                     // the command-line arguments
-	output *apipb.Output_Record         // output proto, stores whatever a command wants to print
+	Pkg    string                           // the full package name
+	Args   []string                         // the command-line arguments
+	output *apipb.Output_Record             // output proto, stores whatever a command wants to print
 }
 
 // The cmdXXX functions implement the various commands.
