@@ -238,6 +238,15 @@ load("//foo:a.bzl", "a")
 load("//foo:a.bzl", "a")
 load("//foo:b.bzl", "b")`,
 		[]string{":2: Load statement is out of its lexicographical order."}, scopeBuild|scopeBzl)
+
+	checkFindingsAndFix(t, "out-of-order-load", `
+load("//foo.bzl", "foo")
+load("//bar.bzl", "bar")
+`, `
+load("//bar.bzl", "bar")
+load("//foo.bzl", "foo")
+`,
+		[]string{":2: Load statement is out of its lexicographical order."}, scopeBuild|scopeBzl)
 }
 
 func TestUnsortedDictItems(t *testing.T) {
