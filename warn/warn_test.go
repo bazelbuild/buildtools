@@ -105,6 +105,7 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 		build.TypeDefault,
 		build.TypeBuild,
 		build.TypeWorkspace,
+		build.TypeBzl,
 	}
 
 	for _, fileType := range fileTypes {
