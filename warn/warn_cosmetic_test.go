@@ -113,7 +113,9 @@ load(":f.bzl", "x")
 foo()
 
 x()`,
-		[]string{":2: Load statements should be at the top of the file."}, scopeBzl)
+		[]string{
+			":2: Load statements should be at the top of the file.",
+		}, scopeDefault|scopeBzl)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -149,7 +151,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, scopeBzl)
+		}, scopeDefault|scopeBzl)
 }
 
 func TestOutOfOrderLoad(t *testing.T) {
@@ -167,7 +169,7 @@ b += 2
 load(":b.bzl", "b")
 a + b`,
 		[]string{":5: Load statement is out of its lexicographical order."},
-		scopeBuild|scopeBzl)
+		scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 # b comment
@@ -185,7 +187,7 @@ load(":b.bzl", "b")
 load(":c.bzl", "c")
 a + b + c`,
 		[]string{":6: Load statement is out of its lexicographical order."},
-		scopeBuild|scopeBzl)
+		scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load(":a.bzl", "a")
@@ -205,7 +207,7 @@ load(":b.bzl", "b")
 			":2: Load statement is out of its lexicographical order.",
 			":3: Load statement is out of its lexicographical order.",
 			":6: Load statement is out of its lexicographical order.",
-		}, scopeBuild|scopeBzl)
+		}, scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load(":a.bzl", "a")
@@ -213,7 +215,7 @@ load(":a.bzl", "a")
 `, `
 load(":a.bzl", "a")
 load(":a.bzl", "a")`,
-		[]string{}, scopeBuild|scopeBzl)
+		[]string{}, scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load("//foo:xyz.bzl", "xyz")
@@ -221,7 +223,7 @@ load("//foo/bar:mno.bzl", "mno")
 `, `
 load("//foo:xyz.bzl", "xyz")
 load("//foo/bar:mno.bzl", "mno")`,
-		[]string{}, scopeBuild|scopeBzl)
+		[]string{}, scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load("//foo:xyz.bzl", "xyz")
@@ -229,7 +231,7 @@ load("//foo2:mno.bzl", "mno")
 `, `
 load("//foo:xyz.bzl", "xyz")
 load("//foo2:mno.bzl", "mno")`,
-		[]string{}, scopeBuild|scopeBzl)
+		[]string{}, scopeBuild|scopeBzl|scopeDefault)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load("//foo:b.bzl", "b")
@@ -237,16 +239,9 @@ load("//foo:a.bzl", "a")
 `, `
 load("//foo:a.bzl", "a")
 load("//foo:b.bzl", "b")`,
-		[]string{":2: Load statement is out of its lexicographical order."}, scopeBuild|scopeBzl)
-
-	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo.bzl", "foo")
-load("//bar.bzl", "bar")
-`, `
-load("//bar.bzl", "bar")
-load("//foo.bzl", "foo")
-`,
-		[]string{":2: Load statement is out of its lexicographical order."}, scopeBuild|scopeBzl)
+		[]string{
+			":2: Load statement is out of its lexicographical order.",
+		}, scopeBuild|scopeBzl|scopeDefault)
 }
 
 func TestUnsortedDictItems(t *testing.T) {

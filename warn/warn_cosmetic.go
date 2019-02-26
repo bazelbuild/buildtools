@@ -84,8 +84,8 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Type != build.TypeDefault {
-		// Only applicable to .bzl files
+	if f.Type != build.TypeDefault && f.Type != build.TypeBzl {
+		// Only applicable to default and .bzl files
 		return findings
 	}
 
@@ -125,6 +125,13 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 }
 
 func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	if f.Type == build.TypeWorkspace {
+		// Not applicable for WORKSPACE files
+		return findings
+	}
+
 	// compareLoadLabels compares two module names
 	compareLoadLabels := func(load1Label, load2Label string) bool {
 		// handle absolute labels with explicit repositories separately to
@@ -161,13 +168,6 @@ func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 		}
 		// Exactly one label has an explicit repository name, it should be the first one.
 		return isExplicitRepo1
-	}
-
-	findings := []*Finding{}
-
-	if f.Type == build.TypeWorkspace {
-		// Not applicable for WORKSPACE files
-		return findings
 	}
 
 	sortedLoads := []*build.LoadStmt{}

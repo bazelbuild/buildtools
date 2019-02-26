@@ -33,22 +33,26 @@ import (
 type FileType int
 
 const (
-	// TypeDefault represents .bzl or other Starlark files
+	// TypeDefault represents general Starlark files
 	TypeDefault FileType = 1 << iota
 	// TypeBuild represents BUILD files
 	TypeBuild
 	// TypeWorkspace represents WORKSPACE files
 	TypeWorkspace
+	// TypeBzl represents .bzl files
+	TypeBzl
 )
 
 func (t FileType) String() string {
 	switch t {
 	case TypeDefault:
-		return ".bzl"
+		return "default"
 	case TypeBuild:
 		return "BUILD"
 	case TypeWorkspace:
 		return "WORKSPACE"
+	case TypeBzl:
+		return ".bzl"
 	}
 	return "unknown"
 }
@@ -77,7 +81,19 @@ func ParseWorkspace(filename string, data []byte) (*File, error) {
 	return f, err
 }
 
-// ParseDefault parses a file, marks it as not a BUILD file (e.g. bzl file) and returns the corresponding parse tree.
+// ParseBzl parses a file, marks it as a .bzl file and returns the corresponding parse tree.
+//
+// The filename is used only for generating error messages.
+func ParseBzl(filename string, data []byte) (*File, error) {
+	in := newInput(filename, data)
+	f, err := in.parse()
+	if f != nil {
+		f.Type = TypeBzl
+	}
+	return f, err
+}
+
+// ParseDefault parses a file, marks it as a generic Starlark file and returns the corresponding parse tree.
 //
 // The filename is used only for generating error messages.
 func ParseDefault(filename string, data []byte) (*File, error) {
@@ -95,7 +111,10 @@ func getFileType(filename string) FileType {
 	}
 	basename := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(basename)
-	if ext == ".bzl" || ext == ".sky" {
+	switch ext {
+	case ".bzl":
+		return TypeBzl
+	case ".sky":
 		return TypeDefault
 	}
 	base := basename[:len(basename)-len(ext)]
@@ -118,6 +137,8 @@ func Parse(filename string, data []byte) (*File, error) {
 		return ParseBuild(filename, data)
 	case TypeWorkspace:
 		return ParseWorkspace(filename, data)
+	case TypeBzl:
+		return ParseBzl(filename, data)
 	}
 	return ParseDefault(filename, data)
 }

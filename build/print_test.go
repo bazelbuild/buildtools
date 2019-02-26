@@ -165,25 +165,32 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 	}
 
 	base := "testdata/" + filepath.Base(in)
-	parser := ParseDefault
+	parsers := map[string]func(string, []byte)(*File, error){
+		"bzl": ParseBzl,
+		"default": ParseDefault,
+	}
 	if isBuild {
-		parser = ParseBuild
+		parsers = map[string]func(string, []byte)(*File, error){
+			"build": ParseBuild,
+		}
 	}
 
-	file, err := parser(base, data)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	for name, parser := range parsers {
+		file, err := parser(base, data)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	Rewrite(file, nil)
+		Rewrite(file, nil)
 
-	ndata := Format(file)
+		ndata := Format(file)
 
-	if !bytes.Equal(ndata, golden) {
-		t.Errorf("formatted %s incorrectly: diff shows -%s, +ours", base, filepath.Base(out))
-		testutils.Tdiff(t, golden, ndata)
-		return
+		if !bytes.Equal(ndata, golden) {
+			t.Errorf("formatted %s with parser %s incorrectly: diff shows -%s, +ours", base, name, filepath.Base(out))
+			testutils.Tdiff(t, golden, ndata)
+			return
+		}
 	}
 }
 

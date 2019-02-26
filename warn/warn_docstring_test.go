@@ -5,12 +5,12 @@ import "testing"
 func TestModuleDocstring(t *testing.T) {
 	checkFindings(t, "module-docstring", ``,
 		[]string{},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `
 # empty file`,
 		[]string{},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `
 """This is the module"""
@@ -19,7 +19,7 @@ load("foo", "bar")
 
 bar()`,
 		[]string{},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `
 load("foo", "bar")
@@ -28,7 +28,7 @@ load("foo", "bar")
 
 bar()`,
 		[]string{":1: The file has no module docstring."},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `
 # comment
@@ -40,7 +40,7 @@ load("foo", "bar")
 
 bar()`,
 		[]string{},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `
 # comment
@@ -52,7 +52,7 @@ load("foo", "bar")
 
 bar()`,
 		[]string{":3: The file has no module docstring."},
-		scopeBzl)
+		scopeBzl|scopeDefault)
 }
 
 func TestFunctionDocstringExists(t *testing.T) {
