@@ -107,15 +107,13 @@ func declareGlobals(stmts []build.Expr, env *Environment) {
 			for _, ident := range node.To {
 				env.declare(ident.Name, Imported, ident)
 			}
-		case *build.BinaryExpr:
-			if node.Op == "=" {
-				kind := Local
-				if env.Function == nil {
-					kind = Global
-				}
-				for _, id := range CollectLValues(node.X) {
-					env.declare(id.Name, kind, node)
-				}
+		case *build.AssignmentExpr:
+			kind := Local
+			if env.Function == nil {
+				kind = Global
+			}
+			for _, id := range CollectLValues(node.X) {
+				env.declare(id.Name, kind, node)
 			}
 		case *build.DefStmt:
 			env.declare(node.Name, Function, node)
@@ -148,7 +146,7 @@ func declareParams(fct *build.DefStmt, env *Environment) {
 			if ident, ok := node.X.(*build.Ident); ok {
 				env.declare(ident.Name, Parameter, node)
 			}
-		case *build.BinaryExpr:
+		case *build.AssignmentExpr:
 			// x = value
 			if ident, ok := node.X.(*build.Ident); ok {
 				env.declare(ident.Name, Parameter, node)
@@ -160,15 +158,13 @@ func declareParams(fct *build.DefStmt, env *Environment) {
 func declareLocalVariables(stmts []build.Expr, env *Environment) {
 	for _, stmt := range stmts {
 		switch node := stmt.(type) {
-		case *build.BinaryExpr:
-			if node.Op == "=" {
-				kind := Local
-				if env.Function == nil {
-					kind = Global
-				}
-				for _, id := range CollectLValues(node.X) {
-					env.declare(id.Name, kind, node)
-				}
+		case *build.AssignmentExpr:
+			kind := Local
+			if env.Function == nil {
+				kind = Global
+			}
+			for _, id := range CollectLValues(node.X) {
+				env.declare(id.Name, kind, node)
 			}
 		case *build.IfStmt:
 			declareLocalVariables(node.True, env)

@@ -106,13 +106,12 @@ var parseTests = []struct {
 					},
 					ListStart: Position{1, 10, 9},
 					List: []Expr{
-						&BinaryExpr{
+						&AssignmentExpr{
 							X: &Ident{
 								NamePos: Position{1, 11, 10},
 								Name:    "name",
 							},
 							OpStart: Position{1, 16, 15},
-							Op:      "=",
 							Y: &StringExpr{
 								Start: Position{1, 18, 17},
 								Value: "x",
@@ -150,13 +149,12 @@ var parseTests = []struct {
 					},
 					ListStart: Position{1, 12, 11},
 					List: []Expr{
-						&BinaryExpr{
+						&AssignmentExpr{
 							X: &Ident{
 								NamePos: Position{1, 13, 12},
 								Name:    "name",
 							},
 							OpStart: Position{1, 18, 17},
-							Op:      "=",
 							Y: &StringExpr{
 								Start: Position{1, 20, 19},
 								Value: "x",

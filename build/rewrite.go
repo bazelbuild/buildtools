@@ -299,8 +299,8 @@ func fixLabels(f *File, info *RewriteInfo) {
 				if leaveAlone1(v.List[i]) {
 					continue
 				}
-				as, ok := v.List[i].(*BinaryExpr)
-				if !ok || as.Op != "=" {
+				as, ok := v.List[i].(*AssignmentExpr)
+				if !ok {
 					continue
 				}
 				key, ok := as.X.(*Ident)
@@ -412,7 +412,7 @@ func ruleNamePriority(rule, arg string) int {
 // If x is of the form key=value, argName returns the string key.
 // Otherwise argName returns "".
 func argName(x Expr) string {
-	if as, ok := x.(*BinaryExpr); ok && as.Op == "=" {
+	if as, ok := x.(*AssignmentExpr); ok {
 		if id, ok := as.X.(*Ident); ok {
 			return id.Name
 		}
@@ -460,8 +460,8 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				if leaveAlone1(arg) {
 					continue
 				}
-				as, ok := arg.(*BinaryExpr)
-				if !ok || as.Op != "=" || leaveAlone1(as) || doNotSort(as) {
+				as, ok := arg.(*AssignmentExpr)
+				if !ok || leaveAlone1(as) || doNotSort(as) {
 					continue
 				}
 				key, ok := as.X.(*Ident)
@@ -477,13 +477,13 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				}
 				sortStringList(as.Y, info, context)
 			}
-		case *BinaryExpr:
+		case *AssignmentExpr:
 			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
 			as := v
-			if as.Op == "=" && keepSorted(as) {
+			if keepSorted(as) {
 				sortStringList(as.Y, info, "?")
 			}
 		case *KeyValueExpr:
@@ -974,10 +974,8 @@ func argumentType(expr Expr) int {
 		case "*":
 			return 3
 		}
-	case *BinaryExpr:
-		if expr.Op == "=" {
-			return 2
-		}
+	case *AssignmentExpr:
+		return 2
 	}
 	return 1
 }

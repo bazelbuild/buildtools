@@ -149,6 +149,16 @@ func unary(pos Position, op string, x Expr) Expr {
 func binary(x Expr, pos Position, op string, y Expr) Expr {
 	_, xend := x.Span()
 	ystart, _ := y.Span()
+
+	if op == "=" {
+		return &AssignmentExpr{
+			X:         x,
+			OpStart:   pos,
+			LineBreak: xend.Line < ystart.Line,
+			Y:         y,
+		}
+	}
+
 	return &BinaryExpr{
 		X:         x,
 		OpStart:   pos,

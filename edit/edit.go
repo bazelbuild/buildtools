@@ -592,7 +592,7 @@ func attributeMustNotBeSorted(rule, attr string) bool {
 
 // getVariable returns the binary expression that assignes a variable to expr, if expr is
 // an identifier of a variable that vars contains a mapping for.
-func getVariable(expr build.Expr, vars *map[string]*build.BinaryExpr) (varAssignment *build.BinaryExpr) {
+func getVariable(expr build.Expr, vars *map[string]*build.AssignmentExpr) (varAssignment *build.AssignmentExpr) {
 	if vars == nil {
 		return nil
 	}
@@ -633,7 +633,7 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 }
 
 // AddValueToListAttribute adds the given item to the list attribute identified by name and pkg.
-func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.BinaryExpr) {
+func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.Expr, vars *map[string]*build.AssignmentExpr) {
 	old := r.Attr(name)
 	sorted := !attributeMustNotBeSorted(r.Kind(), name)
 	if varAssignment := getVariable(old, vars); varAssignment != nil {
@@ -645,7 +645,7 @@ func AddValueToListAttribute(r *build.Rule, name string, pkg string, item build.
 
 // MoveAllListAttributeValues moves all values from list attribute oldAttr to newAttr,
 // and deletes oldAttr.
-func MoveAllListAttributeValues(rule *build.Rule, oldAttr, newAttr, pkg string, vars *map[string]*build.BinaryExpr) error {
+func MoveAllListAttributeValues(rule *build.Rule, oldAttr, newAttr, pkg string, vars *map[string]*build.AssignmentExpr) error {
 	if rule.Attr(oldAttr) == nil {
 		return fmt.Errorf("no attribute %s found in %s", oldAttr, rule.Name())
 	}
@@ -722,8 +722,8 @@ func RenameAttribute(r *build.Rule, oldName, newName string) error {
 		return fmt.Errorf("attribute %s already exists in rule %s", newName, r.Name())
 	}
 	for _, kv := range r.Call.List {
-		as, ok := kv.(*build.BinaryExpr)
-		if !ok || as.Op != "=" {
+		as, ok := kv.(*build.AssignmentExpr)
+		if !ok {
 			continue
 		}
 		k, ok := as.X.(*build.Ident)
@@ -769,8 +769,8 @@ func UsedSymbols(stmt build.Expr) map[string]bool {
 		}
 		// Check if we are on the left-side of an assignment
 		for _, e := range stack {
-			if as, ok := e.(*build.BinaryExpr); ok {
-				if as.Op == "=" && as.X == expr {
+			if as, ok := e.(*build.AssignmentExpr); ok {
+				if as.X == expr {
 					return
 				}
 			}

@@ -70,7 +70,7 @@ const stdinPackageName = "-" // the special package name to represent stdin
 type CmdEnvironment struct {
 	File   *build.File                  // the AST
 	Rule   *build.Rule                  // the rule to modify
-	Vars   map[string]*build.BinaryExpr // global variables set in the build file
+	Vars   map[string]*build.AssignmentExpr // global variables set in the build file
 	Pkg    string                       // the full package name
 	Args   []string                     // the command-line arguments
 	output *apipb.Output_Record         // output proto, stores whatever a command wants to print
@@ -724,15 +724,12 @@ type rewriteResult struct {
 // That is, for each variable assignment of the form
 //   a = v
 // vars["a"] will contain the BinaryExpr whose Y value is the assignment "a = v".
-func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) {
-	vars = make(map[string]*build.BinaryExpr)
+func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignmentExpr) {
+	vars = make(map[string]*build.AssignmentExpr)
 	for _, expr := range exprs {
-		if binExpr, ok := expr.(*build.BinaryExpr); ok {
-			if binExpr.Op != "=" {
-				continue
-			}
-			if lhs, ok := binExpr.X.(*build.Ident); ok {
-				vars[lhs.Name] = binExpr
+		if as, ok := expr.(*build.AssignmentExpr); ok {
+			if lhs, ok := as.X.(*build.Ident); ok {
+				vars[lhs.Name] = as
 			}
 		}
 	}
@@ -793,7 +790,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
 
-	vars := map[string]*build.BinaryExpr{}
+	vars := map[string]*build.AssignmentExpr{}
 	if opts.EditVariables {
 		vars = getGlobalVariables(f.Stmt)
 	}

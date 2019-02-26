@@ -56,17 +56,17 @@ func negateExpression(expr build.Expr) build.Expr {
 
 // getParam search for a param with a given name in a given list of function arguments
 // and returns it with its index
-func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.BinaryExpr) {
+func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.AssignmentExpr) {
 	for i, attr := range attrs {
-		binary, ok := attr.(*build.BinaryExpr)
-		if !ok || binary.Op != "=" {
+		as, ok := attr.(*build.AssignmentExpr)
+		if !ok {
 			continue
 		}
-		name, ok := (binary.X).(*build.Ident)
+		name, ok := (as.X).(*build.Ident)
 		if !ok || name.Name != paramName {
 			continue
 		}
-		return i, name, binary
+		return i, name, as
 	}
 	return -1, nil, nil
 }
@@ -176,7 +176,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 
 // makePositional makes the function argument positional (removes the keyword if it exists)
 func makePositional(argument build.Expr) build.Expr {
-	if binary, ok := argument.(*build.BinaryExpr); ok && binary.Op == "=" {
+	if binary, ok := argument.(*build.AssignmentExpr); ok {
 		return binary.Y
 	}
 	return argument
