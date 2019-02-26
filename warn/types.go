@@ -106,26 +106,6 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			}
 		case *build.BinaryExpr:
 			switch node.Op {
-			case "+=", "-=", "*=", "/=", "//=", "%=", "|=":
-				// Assignments
-				t, ok := result[node.Y]
-				if !ok {
-					return
-				}
-				if node.Op == "%=" && t != String {
-					// If the right hand side is not a string, the left hand side can still be a string
-					return
-				}
-				ident, ok := (node.X).(*build.Ident)
-				if !ok {
-					return
-				}
-				binding := env.Get(ident.Name)
-				if binding == nil {
-					return
-				}
-				variables[binding.ID] = t
-
 			case ">", ">=", "<", "<=", "==", "!=", "in", "not in":
 				// Boolean
 				nodeType = Bool
@@ -147,6 +127,10 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		case *build.AssignmentExpr:
 			t, ok := result[node.Y]
 			if !ok {
+				return
+			}
+			if node.Op == "%=" && t != String {
+				// If the right hand side is not a string, the left hand side can still be a string
 				return
 			}
 			ident, ok := (node.X).(*build.Ident)

@@ -50,7 +50,7 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 		}
 		return load
 	case *syntax.AssignStmt:
-		return &build.BinaryExpr{
+		return &build.AssignmentExpr{
 			Op:       stmt.Op.String(),
 			X:        convExpr(stmt.LHS),
 			Y:        convExpr(stmt.RHS),

@@ -273,6 +273,7 @@ func (r *Rule) SetAttr(key string, val Expr) {
 	r.Call.List = append(r.Call.List,
 		&AssignmentExpr{
 			X:  &Ident{Name: key},
+			Op: "=",
 			Y:  val,
 		},
 	)

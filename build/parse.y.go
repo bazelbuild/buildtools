@@ -150,10 +150,12 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 	_, xend := x.Span()
 	ystart, _ := y.Span()
 
-	if op == "=" {
+	switch op {
+	case "=", "+=", "-=", "*=", "/=", "//=", "%=", "|=":
 		return &AssignmentExpr{
 			X:         x,
 			OpStart:   pos,
+			Op:        op,
 			LineBreak: xend.Line < ystart.Line,
 			Y:         y,
 		}

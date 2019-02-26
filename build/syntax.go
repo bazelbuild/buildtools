@@ -366,6 +366,7 @@ type AssignmentExpr struct {
 	Comments
 	X         Expr
 	OpStart   Position
+	Op        string
 	LineBreak bool // insert line break between Op and Y
 	Y         Expr
 }

@@ -517,7 +517,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		}
 
 		p.expr(v.X, precAssign)
-		p.printf(" =")
+		p.printf(" %s", v.Op)
 		if v.LineBreak {
 			p.breakline()
 		} else {
@@ -551,6 +551,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			} else {
 				arg = &AssignmentExpr{
 					X:  to,
+					Op: "=",
 					Y:  from.asString(),
 				}
 			}

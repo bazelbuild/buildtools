@@ -112,6 +112,7 @@ var parseTests = []struct {
 								Name:    "name",
 							},
 							OpStart: Position{1, 16, 15},
+							Op: "=",
 							Y: &StringExpr{
 								Start: Position{1, 18, 17},
 								Value: "x",
@@ -155,6 +156,7 @@ var parseTests = []struct {
 								Name:    "name",
 							},
 							OpStart: Position{1, 18, 17},
+							Op: "=",
 							Y: &StringExpr{
 								Start: Position{1, 20, 19},
 								Value: "x",

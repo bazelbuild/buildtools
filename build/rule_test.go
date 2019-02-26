@@ -26,6 +26,7 @@ var simpleCall *CallExpr = &CallExpr{
 			X: &Ident{
 				Name: "name",
 			},
+			Op: "=",
 			Y: &StringExpr{
 				Value: "x",
 			},
@@ -50,6 +51,7 @@ var structCall *CallExpr = &CallExpr{
 			X: &Ident{
 				Name: "name",
 			},
+			Op: "=",
 			Y: &StringExpr{
 				Value: "x",
 			},
@@ -79,6 +81,7 @@ func TestSetKind(t *testing.T) {
 					X: &Ident{
 						Name: "name",
 					},
+					Op: "=",
 					Y: &StringExpr{
 						Value: "x",
 					},
@@ -145,6 +148,7 @@ func TestRulesDoubleNested(t *testing.T) {
 				X: &Ident{
 					Name: "name",
 				},
+				Op: "=",
 				Y: &CallExpr{
 					X:    &Ident{Name: "varref"},
 					List: []Expr{&StringExpr{Value: "x"}},
