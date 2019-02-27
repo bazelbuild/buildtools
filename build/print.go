@@ -226,7 +226,7 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 	} else if isCommentBlock(s1) || isCommentBlock(s2) {
 		// Standalone comment blocks shouldn't be attached to other statements
 		return false
-	} else if p.fileType != TypeDefault && p.level == 0 {
+	} else if (p.fileType == TypeBuild || p.fileType == TypeWorkspace) && p.level == 0 {
 		// Top-level statements in a BUILD or WORKSPACE file
 		return false
 	} else if isFunctionDefinition(s1) || isFunctionDefinition(s2) {
@@ -698,10 +698,10 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		return true
 	}
 
-	// In the Default printing mode try to keep the original printing style.
+	// In the Default and .bzl printing modes try to keep the original printing style.
 	// Non-top-level statements and lists of arguments of a function definition
 	// should also keep the original style regardless of the mode.
-	if (p.level != 0 || p.fileType == TypeDefault || mode == modeDef) && mode != modeLoad {
+	if (p.level != 0 || p.fileType == TypeDefault || p.fileType == TypeBzl || mode == modeDef) && mode != modeLoad {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode.
 		// If an node's line number is 0, it means it doesn't appear in the original file,

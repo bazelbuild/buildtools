@@ -118,7 +118,7 @@ func (info *RewriteInfo) String() string {
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
 // or all files.
 const (
-	scopeDefault = TypeDefault
+	scopeDefault = TypeDefault | TypeBzl // .bzl and generic Starlark files
 	scopeBuild   = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
 	scopeBoth    = scopeDefault | scopeBuild
 )
@@ -469,7 +469,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || f.Type == TypeDefault {
+				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || f.Type == TypeDefault || f.Type == TypeBzl {
 					continue
 				}
 				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {

@@ -12,6 +12,12 @@ import (
 
 func constantGlobWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return findings
+	}
+
 	edit.EditFunction(f, "glob", func(call *build.CallExpr, stk []build.Expr) build.Expr {
 		if len(call.List) == 0 {
 			return nil
@@ -76,7 +82,7 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 func nativePackageWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Type != build.TypeDefault {
+	if f.Type != build.TypeBzl {
 		return findings
 	}
 
@@ -105,7 +111,7 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 
 func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	if f.Type == build.TypeDefault {
+	if f.Type == build.TypeBzl || f.Type == build.TypeDefault {
 		// Not applicable to .bzl files.
 		return findings
 	}
