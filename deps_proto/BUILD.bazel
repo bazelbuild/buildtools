@@ -3,16 +3,11 @@ load("//build:build_defs.bzl", "go_proto_checkedin_test")
 
 # gazelle:exclude deps.gen.pb.go
 
+# deps.proto is copied from Bazel 0.22.0
+# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
+
 go_proto_checkedin_test(
     src = "deps.gen.pb.go",
-)
-
-genrule(
-    name = "copy_and_fix",
-    srcs = ["@io_bazel//src/main/protobuf:srcs"],
-    outs = ["deps.proto"],
-    cmd = ("SRCS=($(locations @io_bazel//src/main/protobuf:srcs));" +
-           "cp $$(dirname $$SRCS)/deps.proto $@"),
 )
 
 proto_library(
