@@ -118,7 +118,7 @@ func (info *RewriteInfo) String() string {
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
 // or all files.
 const (
-	scopeDefault = TypeDefault | TypeBzl // .bzl and generic Starlark files
+	scopeDefault = TypeDefault | TypeBzl     // .bzl and generic Starlark files
 	scopeBuild   = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
 	scopeBoth    = scopeDefault | scopeBuild
 )

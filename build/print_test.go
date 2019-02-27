@@ -165,12 +165,12 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 	}
 
 	base := "testdata/" + filepath.Base(in)
-	parsers := map[string]func(string, []byte)(*File, error){
-		"bzl": ParseBzl,
+	parsers := map[string]func(string, []byte) (*File, error){
+		"bzl":     ParseBzl,
 		"default": ParseDefault,
 	}
 	if isBuild {
-		parsers = map[string]func(string, []byte)(*File, error){
+		parsers = map[string]func(string, []byte) (*File, error){
 			"build": ParseBuild,
 		}
 	}
