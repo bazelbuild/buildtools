@@ -70,7 +70,7 @@ const stdinPackageName = "-" // the special package name to represent stdin
 type CmdEnvironment struct {
 	File   *build.File                  // the AST
 	Rule   *build.Rule                  // the rule to modify
-	Vars   map[string]*build.BinaryExpr // global variables set in the build file
+	Vars   map[string]*build.AssignExpr // global variables set in the build file
 	Pkg    string                       // the full package name
 	Args   []string                     // the command-line arguments
 	output *apipb.Output_Record         // output proto, stores whatever a command wants to print
@@ -110,9 +110,9 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	case 2: // Attach to an attribute
 		if attr := env.Rule.AttrDefn(env.Args[0]); attr != nil {
 			if fullLine {
-				attr.X.Comment().Before = comment
+				attr.LHS.Comment().Before = comment
 			} else {
-				attr.Y.Comment().Suffix = comment
+				attr.RHS.Comment().Suffix = comment
 			}
 		}
 	case 3: // Attach to a specific value in a list
@@ -723,16 +723,13 @@ type rewriteResult struct {
 // getGlobalVariables returns the global variable assignments in the provided list of expressions.
 // That is, for each variable assignment of the form
 //   a = v
-// vars["a"] will contain the BinaryExpr whose Y value is the assignment "a = v".
-func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.BinaryExpr) {
-	vars = make(map[string]*build.BinaryExpr)
+// vars["a"] will contain the AssignExpr whose RHS value is the assignment "a = v".
+func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) {
+	vars = make(map[string]*build.AssignExpr)
 	for _, expr := range exprs {
-		if binExpr, ok := expr.(*build.BinaryExpr); ok {
-			if binExpr.Op != "=" {
-				continue
-			}
-			if lhs, ok := binExpr.X.(*build.Ident); ok {
-				vars[lhs.Name] = binExpr
+		if as, ok := expr.(*build.AssignExpr); ok {
+			if lhs, ok := as.LHS.(*build.Ident); ok {
+				vars[lhs.Name] = as
 			}
 		}
 	}
@@ -793,7 +790,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
 
-	vars := map[string]*build.BinaryExpr{}
+	vars := map[string]*build.AssignExpr{}
 	if opts.EditVariables {
 		vars = getGlobalVariables(f.Stmt)
 	}

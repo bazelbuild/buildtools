@@ -103,6 +103,9 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 	case *BinaryExpr:
 		f(&v.X)
 		f(&v.Y)
+	case *AssignExpr:
+		f(&v.LHS)
+		f(&v.RHS)
 	case *LambdaExpr:
 		for i := range v.Params {
 			f(&v.Params[i])

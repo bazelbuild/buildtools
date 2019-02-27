@@ -163,9 +163,9 @@ func getParamName(param build.Expr) string {
 	switch param := param.(type) {
 	case *build.Ident:
 		return param.Name
-	case *build.BinaryExpr:
+	case *build.AssignExpr:
 		// keyword parameter
-		if ident, ok := param.X.(*build.Ident); ok {
+		if ident, ok := param.LHS.(*build.Ident); ok {
 			return ident.Name
 		}
 	case *build.UnaryExpr:

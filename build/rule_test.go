@@ -22,12 +22,12 @@ var simpleCall *CallExpr = &CallExpr{
 		Name: "java_library",
 	},
 	List: []Expr{
-		&BinaryExpr{
-			X: &Ident{
+		&AssignExpr{
+			LHS: &Ident{
 				Name: "name",
 			},
 			Op: "=",
-			Y: &StringExpr{
+			RHS: &StringExpr{
 				Value: "x",
 			},
 		},
@@ -47,12 +47,12 @@ var structCall *CallExpr = &CallExpr{
 		Name: "baz",
 	},
 	List: []Expr{
-		&BinaryExpr{
-			X: &Ident{
+		&AssignExpr{
+			LHS: &Ident{
 				Name: "name",
 			},
 			Op: "=",
-			Y: &StringExpr{
+			RHS: &StringExpr{
 				Value: "x",
 			},
 		},
@@ -77,12 +77,12 @@ func TestSetKind(t *testing.T) {
 				Name: "java_library",
 			},
 			List: []Expr{
-				&BinaryExpr{
-					X: &Ident{
+				&AssignExpr{
+					LHS: &Ident{
 						Name: "name",
 					},
 					Op: "=",
-					Y: &StringExpr{
+					RHS: &StringExpr{
 						Value: "x",
 					},
 				},
@@ -144,12 +144,12 @@ func TestRulesDoubleNested(t *testing.T) {
 			Name: "java_library",
 		},
 		List: []Expr{
-			&BinaryExpr{
-				X: &Ident{
+			&AssignExpr{
+				LHS: &Ident{
 					Name: "name",
 				},
 				Op: "=",
-				Y: &CallExpr{
+				RHS: &CallExpr{
 					X:    &Ident{Name: "varref"},
 					List: []Expr{&StringExpr{Value: "x"}},
 				},

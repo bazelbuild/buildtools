@@ -149,7 +149,7 @@ func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Fin
 		return nil
 	}
 	for _, arg := range call.List {
-		if op, ok := arg.(*build.BinaryExpr); ok && op.Op == "=" {
+		if _, ok := arg.(*build.AssignExpr); ok {
 			continue
 		}
 		start, end := arg.Span()

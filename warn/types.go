@@ -106,26 +106,6 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			}
 		case *build.BinaryExpr:
 			switch node.Op {
-			case "=", "+=", "-=", "*=", "/=", "//=", "%=", "|=":
-				// Assignments
-				t, ok := result[node.Y]
-				if !ok {
-					return
-				}
-				if node.Op == "%=" && t != String {
-					// If the right hand side is not a string, the left hand side can still be a string
-					return
-				}
-				ident, ok := (node.X).(*build.Ident)
-				if !ok {
-					return
-				}
-				binding := env.Get(ident.Name)
-				if binding == nil {
-					return
-				}
-				variables[binding.ID] = t
-
 			case ">", ">=", "<", "<=", "==", "!=", "in", "not in":
 				// Boolean
 				nodeType = Bool
@@ -144,6 +124,24 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 					}
 				}
 			}
+		case *build.AssignExpr:
+			t, ok := result[node.RHS]
+			if !ok {
+				return
+			}
+			if node.Op == "%=" && t != String {
+				// If the right hand side is not a string, the left hand side can still be a string
+				return
+			}
+			ident, ok := (node.LHS).(*build.Ident)
+			if !ok {
+				return
+			}
+			binding := env.Get(ident.Name)
+			if binding == nil {
+				return
+			}
+			variables[binding.ID] = t
 		}
 	}
 	var expr build.Expr = f
@@ -164,8 +162,8 @@ func walkOnce(node build.Expr, env *bzlenv.Environment, fct func(e *build.Expr, 
 	case *build.CallExpr:
 		fct(&expr.X, env)
 		for _, param := range expr.List {
-			if binary, ok := param.(*build.BinaryExpr); ok && binary.Op == "=" {
-				fct(&binary.Y, env)
+			if as, ok := param.(*build.AssignExpr); ok {
+				fct(&as.RHS, env)
 			} else {
 				fct(&param, env)
 			}

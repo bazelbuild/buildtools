@@ -299,18 +299,18 @@ func fixLabels(f *File, info *RewriteInfo) {
 				if leaveAlone1(v.List[i]) {
 					continue
 				}
-				as, ok := v.List[i].(*BinaryExpr)
-				if !ok || as.Op != "=" {
+				as, ok := v.List[i].(*AssignExpr)
+				if !ok {
 					continue
 				}
-				key, ok := as.X.(*Ident)
+				key, ok := as.LHS.(*Ident)
 				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelBlacklist[callName(v)+"."+key.Name] {
 					continue
 				}
-				if leaveAlone1(as.Y) {
+				if leaveAlone1(as.RHS) {
 					continue
 				}
-				if list, ok := as.Y.(*ListExpr); ok {
+				if list, ok := as.RHS.(*ListExpr); ok {
 					for i := range list.List {
 						if leaveAlone1(list.List[i]) {
 							continue
@@ -319,7 +319,7 @@ func fixLabels(f *File, info *RewriteInfo) {
 						shortenLabel(list.List[i])
 					}
 				}
-				if set, ok := as.Y.(*SetExpr); ok {
+				if set, ok := as.RHS.(*SetExpr); ok {
 					for i := range set.List {
 						if leaveAlone1(set.List[i]) {
 							continue
@@ -328,8 +328,8 @@ func fixLabels(f *File, info *RewriteInfo) {
 						shortenLabel(set.List[i])
 					}
 				} else {
-					joinLabel(&as.Y)
-					shortenLabel(as.Y)
+					joinLabel(&as.RHS)
+					shortenLabel(as.RHS)
 				}
 			}
 		}
@@ -412,8 +412,8 @@ func ruleNamePriority(rule, arg string) int {
 // If x is of the form key=value, argName returns the string key.
 // Otherwise argName returns "".
 func argName(x Expr) string {
-	if as, ok := x.(*BinaryExpr); ok && as.Op == "=" {
-		if id, ok := as.X.(*Ident); ok {
+	if as, ok := x.(*AssignExpr); ok {
+		if id, ok := as.LHS.(*Ident); ok {
 			return id.Name
 		}
 	}
@@ -460,11 +460,11 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				if leaveAlone1(arg) {
 					continue
 				}
-				as, ok := arg.(*BinaryExpr)
-				if !ok || as.Op != "=" || leaveAlone1(as) || doNotSort(as) {
+				as, ok := arg.(*AssignExpr)
+				if !ok || leaveAlone1(as) || doNotSort(as) {
 					continue
 				}
-				key, ok := as.X.(*Ident)
+				key, ok := as.LHS.(*Ident)
 				if !ok {
 					continue
 				}
@@ -475,16 +475,16 @@ func sortStringLists(f *File, info *RewriteInfo) {
 				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
 					continue
 				}
-				sortStringList(as.Y, info, context)
+				sortStringList(as.RHS, info, context)
 			}
-		case *BinaryExpr:
+		case *AssignExpr:
 			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
 			as := v
-			if as.Op == "=" && keepSorted(as) {
-				sortStringList(as.Y, info, "?")
+			if keepSorted(as) {
+				sortStringList(as.RHS, info, "?")
 			}
 		case *KeyValueExpr:
 			if disabled("unsafesort") {
@@ -974,10 +974,8 @@ func argumentType(expr Expr) int {
 		case "*":
 			return 3
 		}
-	case *BinaryExpr:
-		if expr.Op == "=" {
-			return 2
-		}
+	case *AssignExpr:
+		return 2
 	}
 	return 1
 }

@@ -307,13 +307,6 @@ const (
 
 // opPrec gives the precedence for operators found in a BinaryExpr.
 var opPrec = map[string]int{
-	"=":      precAssign,
-	"+=":     precAssign,
-	"-=":     precAssign,
-	"*=":     precAssign,
-	"/=":     precAssign,
-	"//=":    precAssign,
-	"%=":     precAssign,
 	"or":     precOr,
 	"and":    precAnd,
 	"in":     precCmp,
@@ -498,9 +491,6 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		m := p.margin
 		if v.LineBreak {
 			p.margin = p.indent()
-			if v.Op == "=" {
-				p.margin += listIndentation
-			}
 		}
 
 		p.expr(v.X, prec)
@@ -511,6 +501,23 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf(" ")
 		}
 		p.expr(v.Y, prec+1)
+		p.margin = m
+
+	case *AssignExpr:
+		addParen(precAssign)
+		m := p.margin
+		if v.LineBreak {
+			p.margin = p.indent() + listIndentation
+		}
+
+		p.expr(v.LHS, precAssign)
+		p.printf(" %s", v.Op)
+		if v.LineBreak {
+			p.breakline()
+		} else {
+			p.printf(" ")
+		}
+		p.expr(v.RHS, precAssign+1)
 		p.margin = m
 
 	case *ParenExpr:
@@ -536,10 +543,10 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				arg = from.asString()
 				arg.Comment().Before = to.Comment().Before
 			} else {
-				arg = &BinaryExpr{
-					X:  to,
-					Op: "=",
-					Y:  from.asString(),
+				arg = &AssignExpr{
+					LHS: to,
+					Op:  "=",
+					RHS: from.asString(),
 				}
 			}
 			args = append(args, arg)

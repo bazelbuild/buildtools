@@ -288,7 +288,7 @@ func TestDictionaryDelete(t *testing.T) {
 			continue
 		}
 		rule := bld.RuleAt(1)
-		dict := rule.Call.List[0].(*build.BinaryExpr).Y.(*build.DictExpr)
+		dict := rule.Call.List[0].(*build.AssignExpr).RHS.(*build.DictExpr)
 		returnVal := DictionaryDelete(dict, "deletekey")
 		got := strings.TrimSpace(string(build.Format(bld)))
 		wantBld, err := build.Parse("BUILD", []byte(tst.expected))

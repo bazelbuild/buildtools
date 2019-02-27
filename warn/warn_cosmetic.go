@@ -59,11 +59,11 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 	for _, stmt := range f.Stmt {
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
-		_, isBinaryExpr := stmt.(*build.BinaryExpr) // e.g. variable declaration
+		_, isAssignExpr := stmt.(*build.AssignExpr) // e.g. variable declaration
 		_, isLoad := stmt.(*build.LoadStmt)
 		_, isPackageGroup := edit.ExprToRule(stmt, "package_group")
 		_, isLicense := edit.ExprToRule(stmt, "licenses")
-		if isString || isComment || isBinaryExpr || isLoad || isPackageGroup || isLicense {
+		if isString || isComment || isAssignExpr || isLoad || isPackageGroup || isLicense {
 			continue
 		}
 		if rule, ok := edit.ExprToRule(stmt, "package"); ok {

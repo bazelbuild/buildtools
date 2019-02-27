@@ -6,6 +6,9 @@ func nodeToString(e Expr) string {
 	if bin, ok := e.(*BinaryExpr); ok {
 		return bin.Op
 	}
+	if assign, ok := e.(*AssignExpr); ok {
+		return assign.Op
+	}
 	if lit, ok := e.(*LiteralExpr); ok {
 		return lit.Token
 	}
