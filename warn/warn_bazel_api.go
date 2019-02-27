@@ -184,18 +184,18 @@ func makePositional(argument build.Expr) build.Expr {
 
 // makeKeyword makes the function argument keyword (adds or edits the keyword name)
 func makeKeyword(argument build.Expr, name string) build.Expr {
-	binary, ok := argument.(*build.BinaryExpr)
+	assign, ok := argument.(*build.AssignmentExpr)
 	if !ok {
-		return &build.BinaryExpr{
+		return &build.AssignmentExpr{
 			X:  &build.Ident{Name: name},
 			Op: "=",
 			Y:  argument,
 		}
 	}
-	ident, ok := binary.X.(*build.Ident)
+	ident, ok := assign.X.(*build.Ident)
 	if !ok {
-		binary.X = &build.Ident{Name: name}
-		return binary
+		assign.X = &build.Ident{Name: name}
+		return assign
 	}
 	ident.Name = name
 	return argument

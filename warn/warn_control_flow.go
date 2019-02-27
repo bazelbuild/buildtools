@@ -7,7 +7,6 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
-	"strings"
 )
 
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on
@@ -161,10 +160,6 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
 			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignmentExpr:
 			continue
-		case *build.BinaryExpr:
-			if s.Op != "==" && s.Op != "!=" && strings.HasSuffix(s.Op, "=") {
-				continue
-			}
 		case *build.Comprehension:
 			if !isTopLevel || s.Curly {
 				// List comprehensions are allowed on top-level.
@@ -484,7 +479,7 @@ func getFunctionParams(def *build.DefStmt) []*build.Ident {
 			if ident, ok := node.X.(*build.Ident); ok {
 				params = append(params, ident)
 			}
-		case *build.BinaryExpr:
+		case *build.AssignmentExpr:
 			// x = value
 			if ident, ok := node.X.(*build.Ident); ok {
 				params = append(params, ident)

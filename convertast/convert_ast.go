@@ -171,6 +171,14 @@ func convExpr(e syntax.Expr) build.Expr {
 	case *syntax.BinaryExpr:
 		_, lhsEnd := e.X.Span()
 		rhsBegin, _ := e.Y.Span()
+		if e.Op.String() == "=" {
+			return &build.AssignmentExpr{
+				X:         convExpr(e.X),
+				Y:         convExpr(e.Y),
+				Op:        e.Op.String(),
+				LineBreak: lhsEnd.Line != rhsBegin.Line,
+				Comments:  convComments(e.Comments())}
+		}
 		return &build.BinaryExpr{
 			X:         convExpr(e.X),
 			Y:         convExpr(e.Y),

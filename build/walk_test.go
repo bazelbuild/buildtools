@@ -6,8 +6,8 @@ func nodeToString(e Expr) string {
 	if bin, ok := e.(*BinaryExpr); ok {
 		return bin.Op
 	}
-	if _, ok := e.(*AssignmentExpr); ok {
-		return "="
+	if assign, ok := e.(*AssignmentExpr); ok {
+		return assign.Op
 	}
 	if lit, ok := e.(*LiteralExpr); ok {
 		return lit.Token

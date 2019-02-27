@@ -723,7 +723,7 @@ type rewriteResult struct {
 // getGlobalVariables returns the global variable assignments in the provided list of expressions.
 // That is, for each variable assignment of the form
 //   a = v
-// vars["a"] will contain the BinaryExpr whose Y value is the assignment "a = v".
+// vars["a"] will contain the AssignmentExpr whose Y value is the assignment "a = v".
 func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignmentExpr) {
 	vars = make(map[string]*build.AssignmentExpr)
 	for _, expr := range exprs {
