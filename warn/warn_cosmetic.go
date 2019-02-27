@@ -59,7 +59,7 @@ func packageOnTopWarning(f *build.File, fix bool) []*Finding {
 	for _, stmt := range f.Stmt {
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
-		_, isAssignExpr := stmt.(*build.AssignmentExpr) // e.g. variable declaration
+		_, isAssignExpr := stmt.(*build.AssignExpr) // e.g. variable declaration
 		_, isLoad := stmt.(*build.LoadStmt)
 		_, isPackageGroup := edit.ExprToRule(stmt, "package_group")
 		_, isLicense := edit.ExprToRule(stmt, "licenses")

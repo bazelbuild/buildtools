@@ -503,21 +503,21 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.expr(v.Y, prec+1)
 		p.margin = m
 
-	case *AssignmentExpr:
+	case *AssignExpr:
 		addParen(precAssign)
 		m := p.margin
 		if v.LineBreak {
 			p.margin = p.indent() + listIndentation
 		}
 
-		p.expr(v.X, precAssign)
+		p.expr(v.LHS, precAssign)
 		p.printf(" %s", v.Op)
 		if v.LineBreak {
 			p.breakline()
 		} else {
 			p.printf(" ")
 		}
-		p.expr(v.Y, precAssign+1)
+		p.expr(v.RHS, precAssign+1)
 		p.margin = m
 
 	case *ParenExpr:
@@ -543,10 +543,10 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				arg = from.asString()
 				arg.Comment().Before = to.Comment().Before
 			} else {
-				arg = &AssignmentExpr{
-					X:  to,
-					Op: "=",
-					Y:  from.asString(),
+				arg = &AssignExpr{
+					LHS: to,
+					Op:  "=",
+					RHS: from.asString(),
 				}
 			}
 			args = append(args, arg)

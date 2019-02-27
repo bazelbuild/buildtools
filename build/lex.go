@@ -716,9 +716,9 @@ func (in *input) order(v Expr) {
 	case *BinaryExpr:
 		in.order(v.X)
 		in.order(v.Y)
-	case *AssignmentExpr:
-		in.order(v.X)
-		in.order(v.Y)
+	case *AssignExpr:
+		in.order(v.LHS)
+		in.order(v.RHS)
 	case *ConditionalExpr:
 		in.order(v.Then)
 		in.order(v.Test)

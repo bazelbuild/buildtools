@@ -124,8 +124,8 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 					}
 				}
 			}
-		case *build.AssignmentExpr:
-			t, ok := result[node.Y]
+		case *build.AssignExpr:
+			t, ok := result[node.RHS]
 			if !ok {
 				return
 			}
@@ -133,7 +133,7 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 				// If the right hand side is not a string, the left hand side can still be a string
 				return
 			}
-			ident, ok := (node.X).(*build.Ident)
+			ident, ok := (node.LHS).(*build.Ident)
 			if !ok {
 				return
 			}
@@ -162,8 +162,8 @@ func walkOnce(node build.Expr, env *bzlenv.Environment, fct func(e *build.Expr, 
 	case *build.CallExpr:
 		fct(&expr.X, env)
 		for _, param := range expr.List {
-			if as, ok := param.(*build.AssignmentExpr); ok {
-				fct(&as.Y, env)
+			if as, ok := param.(*build.AssignExpr); ok {
+				fct(&as.RHS, env)
 			} else {
 				fct(&param, env)
 			}

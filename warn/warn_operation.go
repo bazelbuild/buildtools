@@ -27,11 +27,11 @@ func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 			if types[expr.X] == Dict || types[expr.Y] == Dict {
 				addWarning(expr)
 			}
-		case *build.AssignmentExpr:
+		case *build.AssignExpr:
 			if expr.Op != "+=" {
 				return
 			}
-			if types[expr.X] == Dict || types[expr.Y] == Dict {
+			if types[expr.LHS] == Dict || types[expr.RHS] == Dict {
 				addWarning(expr)
 			}
 		}
@@ -107,7 +107,7 @@ func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 			}
 			addWarning(expr, expr.Op)
 
-		case *build.AssignmentExpr:
+		case *build.AssignExpr:
 			if expr.Op != "/=" {
 				return
 			}

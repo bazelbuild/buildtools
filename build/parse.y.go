@@ -152,12 +152,12 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 
 	switch op {
 	case "=", "+=", "-=", "*=", "/=", "//=", "%=", "|=":
-		return &AssignmentExpr{
-			X:         x,
-			OpStart:   pos,
+		return &AssignExpr{
+			LHS:       x,
+			OpPos:     pos,
 			Op:        op,
 			LineBreak: xend.Line < ystart.Line,
-			Y:         y,
+			RHS:       y,
 		}
 	}
 

@@ -158,7 +158,7 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		}
 		switch s := (stmt).(type) {
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
-			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignmentExpr:
+			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
 			continue
 		case *build.Comprehension:
 			if !isTopLevel || s.Curly {
@@ -217,12 +217,12 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 		}
 
 		// look for all assignments in the scope
-		as, ok := s.(*build.AssignmentExpr)
+		as, ok := s.(*build.AssignExpr)
 		if !ok {
 			continue
 		}
-		start, end := as.X.Span()
-		left, ok := as.X.(*build.Ident)
+		start, end := as.LHS.Span()
+		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
 		}
@@ -251,12 +251,12 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
-		as, ok := s.(*build.AssignmentExpr)
+		as, ok := s.(*build.AssignExpr)
 		if !ok {
 			continue
 		}
-		start, end := as.X.Span()
-		left, ok := as.X.(*build.Ident)
+		start, end := as.LHS.Span()
+		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
 		}
@@ -344,8 +344,8 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 		case *build.IfStmt:
 			variables = append(variables, collectLocalVariables(stmt.True)...)
 			variables = append(variables, collectLocalVariables(stmt.False)...)
-		case *build.AssignmentExpr:
-			variables = append(variables, bzlenv.CollectLValues(stmt.X)...)
+		case *build.AssignExpr:
+			variables = append(variables, bzlenv.CollectLValues(stmt.LHS)...)
 		}
 	}
 	return variables
@@ -373,8 +373,8 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		// For example, if the expression is `a = foo(b = c)`, only `c` can be an unused variable here.
 		lValues := make(map[*build.Ident]bool)
 		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			if as, ok := expr.(*build.AssignmentExpr); ok {
-				for _, ident := range bzlenv.CollectLValues(as.X) {
+			if as, ok := expr.(*build.AssignExpr); ok {
+				for _, ident := range bzlenv.CollectLValues(as.LHS) {
 					lValues[ident] = true
 				}
 			}
@@ -453,9 +453,9 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 				}
 			}
 			continue
-		case *build.AssignmentExpr:
+		case *build.AssignExpr:
 			// Assignment expression. Collect all definitions from the lhs
-			for _, ident := range bzlenv.CollectLValues(stmt.X) {
+			for _, ident := range bzlenv.CollectLValues(stmt.LHS) {
 				newlyDefinedVariables[ident.Name] = true
 			}
 		}
@@ -479,9 +479,9 @@ func getFunctionParams(def *build.DefStmt) []*build.Ident {
 			if ident, ok := node.X.(*build.Ident); ok {
 				params = append(params, ident)
 			}
-		case *build.AssignmentExpr:
+		case *build.AssignExpr:
 			// x = value
-			if ident, ok := node.X.(*build.Ident); ok {
+			if ident, ok := node.LHS.(*build.Ident); ok {
 				params = append(params, ident)
 			}
 		}

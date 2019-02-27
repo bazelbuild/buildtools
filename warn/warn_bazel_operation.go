@@ -25,9 +25,9 @@ func depsetUnionWarning(f *build.File, fix bool) []*Finding {
 			case "+", "|":
 				addWarning(expr)
 			}
-		case *build.AssignmentExpr:
+		case *build.AssignExpr:
 			// `depset1 += depset2` or `depset1 |= depset2`
-			if types[expr.X] != Depset && types[expr.Y] != Depset {
+			if types[expr.LHS] != Depset && types[expr.RHS] != Depset {
 				return
 			}
 			switch expr.Op {

@@ -361,19 +361,19 @@ func (x *BinaryExpr) Span() (start, end Position) {
 	return start, end
 }
 
-// An AssignmentExpr represents a binary expression with `=`: X = Y.
-type AssignmentExpr struct {
+// An AssignExpr represents a binary expression with `=`: LHS = RHS.
+type AssignExpr struct {
 	Comments
-	X         Expr
-	OpStart   Position
+	LHS       Expr
+	OpPos     Position
 	Op        string
-	LineBreak bool // insert line break between Op and Y
-	Y         Expr
+	LineBreak bool // insert line break between Op and RHS
+	RHS       Expr
 }
 
-func (x *AssignmentExpr) Span() (start, end Position) {
-	start, _ = x.X.Span()
-	_, end = x.Y.Span()
+func (x *AssignExpr) Span() (start, end Position) {
+	start, _ = x.LHS.Span()
+	_, end = x.RHS.Span()
 	return start, end
 }
 
