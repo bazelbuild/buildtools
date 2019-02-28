@@ -442,6 +442,21 @@ func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
 	return nil
 }
 
+// ListFindIdent looks for an identifier with the name given in `item` in the
+// list expression `e` (which may be a concatenation of lists). It returns the
+// first matching element if it is found. nil otherwise.
+func ListFindIdent(e build.Expr, item string) *build.Ident {
+	for _, li := range AllLists(e) {
+		for _, elem := range li.List {
+			ident, ok := elem.(*build.Ident)
+			if ok && ident.Name == item {
+				return ident
+			}
+		}
+	}
+	return nil
+}
+
 // hasComments returns whether the StringExpr literal has a comment attached to it.
 func hasComments(literal *build.StringExpr) bool {
 	return len(literal.Before) > 0 || len(literal.Suffix) > 0
@@ -615,7 +630,12 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 
 	str, ok := item.(*build.StringExpr)
 	if ok && ListFind(oldList, str.Value, pkg) != nil {
-		// The value is already in the list.
+		// The string value is already in the list.
+		return oldList
+	}
+	ident, ok := item.(*build.Ident)
+	if ok && ListFindIdent(oldList, ident.Name) != nil {
+		// The identifier value is already in the list.
 		return oldList
 	}
 	li := FirstList(oldList)

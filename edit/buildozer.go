@@ -78,13 +78,20 @@ type CmdEnvironment struct {
 
 // The cmdXXX functions implement the various commands.
 
-func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+func cmdAddRaw(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	for _, val := range env.Args[1:] {
-		if IsIntList(attr) {
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
-			continue
-		}
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
+	}
+	return env.File, nil
+}
+
+func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	if IsIntList(attr) {
+		return cmdAddRaw(opts, env)
+	}
+	for _, val := range env.Args[1:] {
 		strVal := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
 		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
@@ -577,6 +584,7 @@ type CommandInfo struct {
 // of arguments.
 var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
+	"add_raw":           {cmdAddRaw, true, 2, -1, "<attr> <value(s)>"},
 	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
