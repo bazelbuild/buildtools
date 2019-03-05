@@ -629,13 +629,18 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 			// If the else-block contains just one statement which is an IfStmt, flatten it as a part
 			// of if-elif chain.
-			// Don't do it if the "else" statement has a suffix comment.
-			if len(block.ElsePos.Comment().Suffix) == 0 && len(block.False) == 1 {
-				next, ok := block.False[0].(*IfStmt)
-				if ok {
-					block = next
-					continue
-				}
+			// Don't do it if the "else" statement has a suffix comment or if the next "if" statement
+			// has a before-comment.
+			if len(block.False) != 1 {
+				break
+			}
+			next, ok := block.False[0].(*IfStmt)
+			if !ok {
+				break
+			}
+			if len(block.ElsePos.Comment().Suffix) == 0 && len(next.Comment().Before) == 0 {
+				block = next
+				continue
 			}
 			break
 		}
