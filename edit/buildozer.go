@@ -670,6 +670,34 @@ func SplitOnSpaces(input string) []string {
 	return result
 }
 
+// HealGlobIfPresent takes the output from SplitOnSpaces, which naively splits
+// Bazel's glob function, and rejoins tokens together to reconnect the glob function parts
+func HealGlobIfPresent(tokens []string) []string {
+	matchGlobStart := func(x string) bool { return strings.HasPrefix(x, "glob("); }
+	matchGlobEnd := func(x string) bool { return strings.HasSuffix(x, ")"); }
+
+	newTokens := tokens[:0]
+	healedGlobStr := new(bytes.Buffer)
+	healingGlob := false
+	for _, t := range tokens {
+		if matchGlobStart(t) || healingGlob {
+			healingGlob = true
+			healedGlobStr.WriteString(t)
+			healedGlobStr.WriteRune(' ')
+		}
+		if matchGlobEnd(t) {
+			newTokens = append(newTokens, healedGlobStr.String())
+			healingGlob = false
+			continue
+		}
+
+		if !healingGlob {
+			newTokens = append(newTokens, t)
+		}
+	}
+	return newTokens
+}
+
 // parseCommands parses commands and targets they should be applied on from
 // a list of arguments.
 // Each argument can be either:
@@ -679,7 +707,7 @@ func SplitOnSpaces(input string) []string {
 //   should be applied on
 func parseCommands(args []string) (commands []command, targets []string) {
 	for _, arg := range args {
-		commandTokens := SplitOnSpaces(arg)
+		commandTokens := HealGlobIfPresent(SplitOnSpaces(arg))
 		cmd, found := AllCommands[commandTokens[0]]
 		if found {
 			checkCommandUsage(commandTokens[0], cmd, len(commandTokens)-1)
