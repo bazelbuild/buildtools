@@ -18,6 +18,7 @@ import (
 	buildpb "github.com/bazelbuild/buildtools/build_proto"
 	"github.com/bazelbuild/buildtools/lang"
 	"github.com/bazelbuild/buildtools/tables"
+	"strings"
 )
 
 var typeOf = lang.TypeOf
@@ -59,6 +60,11 @@ func IsString(attr string) bool {
 // IsStringDict returns true for all attributes whose type is a string dictionary.
 func IsStringDict(attr string) bool {
 	return typeOf[attr] == buildpb.Attribute_STRING_DICT
+}
+
+// IsGlob returns true for all args lists whose type is a file glob
+func IsGlob(args []string) bool {
+	return len(args) == 1 && strings.HasPrefix(args[0], "glob(")
 }
 
 // ContainsLabels returns true for all attributes whose type is a label or a label list.
