@@ -426,8 +426,8 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 		return &build.ListExpr{List: list}
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
 		var list []build.Expr
-		for _, i := range args {
-			list = append(list, &build.StringExpr{Value: ShortenLabel(i, env.Pkg)})
+		for _, arg := range args {
+			list = append(list, &build.StringExpr{Value: ShortenLabel(arg, env.Pkg)})
 		}
 		return &build.ListExpr{List: list}
 	case IsString(attr):
