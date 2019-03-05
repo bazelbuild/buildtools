@@ -2,24 +2,38 @@
 
 package warn
 
-import "github.com/bazelbuild/buildtools/build"
+import (
+	"fmt"
+	"github.com/bazelbuild/buildtools/build"
+)
 
 func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	var addWarning = func(expr build.Expr) {
+		start, end := expr.Span()
+		findings = append(findings,
+			makeFinding(f, start, end, "dict-concatenation",
+				"Dictionary concatenation is deprecated.", true, nil))
+	}
+
 	types := detectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		binary, ok := expr.(*build.BinaryExpr)
-		if !ok {
-			return
-		}
-		if binary.Op != "+" && binary.Op != "+=" {
-			return
-		}
-		if types[binary.X] == Dict || types[binary.Y] == Dict {
-			start, end := binary.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "dict-concatenation",
-					"Dictionary concatenation is deprecated.", true, nil))
+		switch expr := expr.(type) {
+		case *build.BinaryExpr:
+			if expr.Op != "+" {
+				return
+			}
+			if types[expr.X] == Dict || types[expr.Y] == Dict {
+				addWarning(expr)
+			}
+		case *build.AssignExpr:
+			if expr.Op != "+=" {
+				return
+			}
+			if types[expr.LHS] == Dict || types[expr.RHS] == Dict {
+				addWarning(expr)
+			}
 		}
 	})
 	return findings
@@ -73,22 +87,36 @@ func stringIterationWarning(f *build.File, fix bool) []*Finding {
 
 func integerDivisionWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		binary, ok := expr.(*build.BinaryExpr)
-		if !ok {
-			return
-		}
-		if binary.Op != "/" && binary.Op != "/=" {
-			return
-		}
-		if fix {
-			binary.Op = "/" + binary.Op
-			return
-		}
-		start, end := binary.Span()
+
+	var addWarning = func(expr build.Expr, op string) {
+		start, end := expr.Span()
 		findings = append(findings,
 			makeFinding(f, start, end, "integer-division",
-				"The \""+binary.Op+"\" operator for integer division is deprecated in favor of \"/"+binary.Op+"\".", true, nil))
+				fmt.Sprintf(`The "%s" operator for integer division is deprecated in favor of "/%s".`, op, op), true, nil))
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		switch expr := expr.(type) {
+		case *build.BinaryExpr:
+			if expr.Op != "/" {
+				return
+			}
+			if fix {
+				expr.Op = "//"
+				return
+			}
+			addWarning(expr, expr.Op)
+
+		case *build.AssignExpr:
+			if expr.Op != "/=" {
+				return
+			}
+			if fix {
+				expr.Op = "//="
+				return
+			}
+			addWarning(expr, expr.Op)
+		}
 	})
 	return findings
 }

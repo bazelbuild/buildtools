@@ -26,7 +26,7 @@ func TestIsBuildFilename(t *testing.T) {
 		"build":           TypeBuild,
 		"bUIld":           TypeBuild,
 		"BUILD.bazel":     TypeBuild,
-		"build.bzl":       TypeDefault,
+		"build.bzl":       TypeBzl,
 		"build.sky":       TypeDefault,
 		"WORKSPACE":       TypeWorkspace,
 		"external.BUILD":  TypeBuild,
@@ -34,9 +34,9 @@ func TestIsBuildFilename(t *testing.T) {
 		"aBUILD":          TypeDefault,
 		"thing.sky":       TypeDefault,
 		"my.WORKSPACE":    TypeWorkspace,
-		"thing.bzl":       TypeDefault,
+		"thing.bzl":       TypeBzl,
 		"workspace.bazel": TypeWorkspace,
-		"workspace.bzl":   TypeDefault,
+		"workspace.bzl":   TypeBzl,
 		"foo.bar":         TypeDefault,
 	}
 	for name, fileType := range cases {

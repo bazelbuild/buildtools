@@ -21,7 +21,7 @@ rule(
 
 attr.label_list(mandatory = True, cfg = "host")`,
 		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestAttrNonEmptyWarning(t *testing.T) {
@@ -58,7 +58,7 @@ rule(
 			":7: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 			":8: non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestAttrSingleFileWarning(t *testing.T) {
@@ -82,14 +82,15 @@ rule(
 			":4: single_file is deprecated in favor of allow_single_file.",
 			":5: single_file is deprecated in favor of allow_single_file.",
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestCtxActionsWarning(t *testing.T) {
 	checkFindingsAndFix(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo)
-  ctx.new_file(foo, bar)
+  ctx.new_file(foo, "foo %s " % bar)
+  ctx.new_file(foo, name = bar)
   ctx.new_file(foo, bar, baz)
   ctx.experimental_new_directory(foo, bar)
   ctx.file_action(foo, bar)
@@ -103,6 +104,7 @@ def impl(ctx):
 `, `
 def impl(ctx):
   ctx.actions.declare_file(foo)
+  ctx.actions.declare_file("foo %s " % bar, sibling = foo)
   ctx.actions.declare_file(bar, sibling = foo)
   ctx.new_file(foo, bar, baz)
   ctx.actions.declare_directory(foo, bar)
@@ -119,23 +121,24 @@ def impl(ctx):
 			`:2: "ctx.new_file" is deprecated.`,
 			`:3: "ctx.new_file" is deprecated.`,
 			`:4: "ctx.new_file" is deprecated.`,
-			`:5: "ctx.experimental_new_directory" is deprecated.`,
-			`:6: "ctx.file_action" is deprecated.`,
+			`:5: "ctx.new_file" is deprecated.`,
+			`:6: "ctx.experimental_new_directory" is deprecated.`,
 			`:7: "ctx.file_action" is deprecated.`,
-			`:8: "ctx.action" is deprecated.`,
+			`:8: "ctx.file_action" is deprecated.`,
 			`:9: "ctx.action" is deprecated.`,
-			`:10: "ctx.empty_action" is deprecated.`,
-			`:11: "ctx.template_action" is deprecated.`,
+			`:10: "ctx.action" is deprecated.`,
+			`:11: "ctx.empty_action" is deprecated.`,
 			`:12: "ctx.template_action" is deprecated.`,
+			`:13: "ctx.template_action" is deprecated.`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 
 	checkFindings(t, "ctx-actions", `
 def impl(ctx):
   ctx.new_file(foo, bar, baz)
 `, []string{
 		`:2: "ctx.new_file" is deprecated.`,
-	}, scopeEverywhere)
+	}, scopeBzl)
 }
 
 func TestPackageNameWarning(t *testing.T) {
@@ -160,17 +163,17 @@ def g():
 			`:1: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
 			`:7: Global variable "PACKAGE_NAME" is deprecated in favor of "native.package_name()". Please rename it.`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 
 	checkFindings(t, "package-name", `
 PACKAGE_NAME = "foo"
 foo(a = PACKAGE_NAME)
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 
 	checkFindings(t, "package-name", `
 load(":foo.bzl", "PACKAGE_NAME")
 foo(a = PACKAGE_NAME)
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 }
 
 func TestRepositoryNameWarning(t *testing.T) {
@@ -194,17 +197,17 @@ def g():
 		[]string{
 			`:1: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
 			`:7: Global variable "REPOSITORY_NAME" is deprecated in favor of "native.repository_name()". Please rename it.`,
-		}, scopeEverywhere)
+		}, scopeBzl)
 
 	checkFindings(t, "repository-name", `
 REPOSITORY_NAME = "foo"
 foo(a = REPOSITORY_NAME)
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 
 	checkFindings(t, "repository-name", `
 load(":foo.bzl", "REPOSITORY_NAME")
 foo(a = REPOSITORY_NAME)
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 }
 
 func TestFileTypeNameWarning(t *testing.T) {
@@ -225,14 +228,14 @@ def macro2():
 		":2: The FileType function is deprecated.",
 		":4: The FileType function is deprecated.",
 		":7: The FileType function is deprecated.",
-	}, scopeEverywhere)
+	}, scopeBzl)
 
 	checkFindings(t, "filetype", `
 FileType = foo
 
 rule1(types=FileType([".cc", ".h"]))
 rule2(types=FileType(types=[".cc", ".h"]))
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 }
 
 func TestOutputGroupWarning(t *testing.T) {
@@ -246,7 +249,7 @@ def _impl(ctx):
 		[]string{
 			`:2: "ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestNativeGitRepositoryWarning(t *testing.T) {
@@ -266,7 +269,7 @@ def macro():
 		[]string{
 			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
@@ -287,7 +290,7 @@ def macro():
 			`:4: Function "git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 			`:5: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
@@ -309,7 +312,7 @@ def macro():
 		[]string{
 			`:7: Function "new_git_repository" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:git.bzl".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestNativeHttpArchiveWarning(t *testing.T) {
@@ -329,7 +332,7 @@ def macro():
 		[]string{
 			`:4: Function "http_archive" is not global anymore and needs to be loaded from "@bazel_tools//tools/build_defs/repo:http.bzl".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestContextArgsAPIWarning(t *testing.T) {
@@ -365,7 +368,7 @@ def impl(ctx):
 			`:9: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
 			`:10: "ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestAttrOutputDefault(t *testing.T) {
@@ -381,7 +384,7 @@ rule(
 		[]string{
 			`:3: The "default" parameter for attr.output() is deprecated.`,
 		},
-		scopeEverywhere)
+		scopeBzl)
 }
 
 func TestAttrLicense(t *testing.T) {
@@ -396,7 +399,7 @@ rule(
 `, []string{
 		`:3: "attr.license()" is deprecated and shouldn't be used.`,
 		`:4: "attr.license()" is deprecated and shouldn't be used.`,
-	}, scopeEverywhere)
+	}, scopeBzl)
 }
 
 func TestRuleImplReturn(t *testing.T) {
@@ -407,7 +410,7 @@ def _impl(ctx):
 rule(implementation=_impl)
 `, []string{
 		`:2: Avoid using the legacy provider syntax.`,
-	}, scopeEverywhere)
+	}, scopeBzl)
 
 	checkFindings(t, "rule-impl-return", `
 def _impl(ctx):
@@ -418,14 +421,14 @@ def _impl(ctx):
 x = rule(_impl, attrs = {})
 `, []string{
 		`:3: Avoid using the legacy provider syntax.`,
-	}, scopeEverywhere)
+	}, scopeBzl)
 
 	checkFindings(t, "rule-impl-return", `
 def _impl(ctx):
   pass  # no return statements
 
 x = rule(_impl, attrs = {})
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 
 	checkFindings(t, "rule-impl-return", `
 def _impl1():  # not used as a rule implementation function
@@ -452,5 +455,5 @@ rule(
 
 rule()  # no parameters
 rule(foo = bar)  # no matching parameters
-`, []string{}, scopeEverywhere)
+`, []string{}, scopeBzl)
 }

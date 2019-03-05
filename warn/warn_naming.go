@@ -90,11 +90,11 @@ func nameConventionsWarning(f *build.File, fix bool) []*Finding {
 	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) {
 		// looking for provider declaration statements: `xxx = provider()`
 		// note that the code won't trigger on complex assignments, such as `x, y = foo, provider()`
-		binary, ok := stmt.(*build.BinaryExpr)
-		if !ok || binary.Op != "=" {
+		binary, ok := stmt.(*build.AssignExpr)
+		if !ok {
 			return
 		}
-		for _, ident := range bzlenv.CollectLValues(binary.X) {
+		for _, ident := range bzlenv.CollectLValues(binary.LHS) {
 			if isLowerSnakeCase(ident.Name) || isUpperSnakeCase(ident.Name) {
 				continue
 			}

@@ -56,17 +56,17 @@ func negateExpression(expr build.Expr) build.Expr {
 
 // getParam search for a param with a given name in a given list of function arguments
 // and returns it with its index
-func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.BinaryExpr) {
+func getParam(attrs []build.Expr, paramName string) (int, *build.Ident, *build.AssignExpr) {
 	for i, attr := range attrs {
-		binary, ok := attr.(*build.BinaryExpr)
-		if !ok || binary.Op != "=" {
+		as, ok := attr.(*build.AssignExpr)
+		if !ok {
 			continue
 		}
-		name, ok := (binary.X).(*build.Ident)
+		name, ok := (as.LHS).(*build.Ident)
 		if !ok || name.Name != paramName {
 			continue
 		}
-		return i, name, binary
+		return i, name, as
 	}
 	return -1, nil, nil
 }
@@ -87,6 +87,10 @@ func isFunctionCall(expr build.Expr, name string) (*build.CallExpr, bool) {
 // It's ok to shadow the name with a local variable and use it.
 func globalVariableUsageCheck(f *build.File, category, global, alternative string, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
@@ -123,6 +127,11 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 // and adds a load statement if necessary.
 func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	toLoad := []string{}
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
@@ -167,26 +176,26 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 
 // makePositional makes the function argument positional (removes the keyword if it exists)
 func makePositional(argument build.Expr) build.Expr {
-	if binary, ok := argument.(*build.BinaryExpr); ok {
-		return binary.Y
+	if binary, ok := argument.(*build.AssignExpr); ok {
+		return binary.RHS
 	}
 	return argument
 }
 
 // makeKeyword makes the function argument keyword (adds or edits the keyword name)
 func makeKeyword(argument build.Expr, name string) build.Expr {
-	binary, ok := argument.(*build.BinaryExpr)
+	assign, ok := argument.(*build.AssignExpr)
 	if !ok {
-		return &build.BinaryExpr{
-			X:  &build.Ident{Name: name},
-			Op: "=",
-			Y:  argument,
+		return &build.AssignExpr{
+			LHS: &build.Ident{Name: name},
+			Op:  "=",
+			RHS: argument,
 		}
 	}
-	ident, ok := binary.X.(*build.Ident)
+	ident, ok := assign.LHS.(*build.Ident)
 	if !ok {
-		binary.X = &build.Ident{Name: name}
-		return binary
+		assign.LHS = &build.Ident{Name: name}
+		return assign
 	}
 	ident.Name = name
 	return argument
@@ -194,6 +203,11 @@ func makeKeyword(argument build.Expr, name string) build.Expr {
 
 func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...)
 		call, ok := expr.(*build.CallExpr)
@@ -212,7 +226,7 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		if param == nil {
 			return
 		}
-		value, ok := (param.Y).(*build.StringExpr)
+		value, ok := (param.RHS).(*build.StringExpr)
 		if !ok || value.Value != "data" {
 			return
 		}
@@ -230,6 +244,11 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 
 func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., non_empty = ..., ...)
 		call, ok := expr.(*build.CallExpr)
@@ -250,7 +269,7 @@ func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 		}
 		if fix {
 			name.Name = "allow_empty"
-			param.Y = negateExpression(param.Y)
+			param.RHS = negateExpression(param.RHS)
 		} else {
 			start, end := param.Span()
 			findings = append(findings,
@@ -263,6 +282,11 @@ func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 
 func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., single_file = ..., ...)
 		call, ok := expr.(*build.CallExpr)
@@ -288,7 +312,7 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 					"single_file is deprecated in favor of allow_single_file.", true, nil))
 			return
 		}
-		value := singleFileParam.Y
+		value := singleFileParam.RHS
 		if boolean, ok := value.(*build.Ident); ok && boolean.Name == "False" {
 			// if the value is `False`, just remove the whole parameter
 			call.List = append(call.List[:i], call.List[i+1:]...)
@@ -296,10 +320,10 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 			// search for `allow_files` parameter in the same attr definition and remove it
 			j, _, allowFilesParam := getParam(call.List, "allow_files")
 			if allowFilesParam != nil {
-				value = allowFilesParam.Y
+				value = allowFilesParam.RHS
 				call.List = append(call.List[:j], call.List[j+1:]...)
 			}
-			singleFileParam.Y = value
+			singleFileParam.RHS = value
 			name.Name = "allow_single_file"
 		}
 	})
@@ -308,6 +332,10 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 
 func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
 
 	addWarning := func(expr build.Expr, name string) {
 		start, end := expr.Span()
@@ -380,6 +408,10 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 func fileTypeWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
@@ -411,6 +443,11 @@ func repositoryNameWarning(f *build.File, fix bool) []*Finding {
 
 func outputGroupWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
 		// Find nodes that match the following pattern: ctx.attr.xxx.output_group
 		outputGroup, ok := (expr).(*build.DotExpr)
@@ -455,6 +492,11 @@ func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	types := detectTypes(f)
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -494,8 +536,8 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 				// `add_joined` doesn't have a `before_each` parameter, replace it with `format_each`:
 				// `before_each = foo` -> `format_each = foo + "%s"`
 				beforeEachKw.Name = "format_each"
-				beforeEach.Y = &build.BinaryExpr{
-					X:  beforeEach.Y,
+				beforeEach.RHS = &build.BinaryExpr{
+					X:  beforeEach.RHS,
 					Op: "+",
 					Y:  &build.StringExpr{Value: "%s"},
 				}
@@ -510,6 +552,11 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 
 func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.output(..., default = ...)
 		call, ok := expr.(*build.CallExpr)
@@ -538,6 +585,11 @@ func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 
 func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.license(...)
 		call, ok := expr.(*build.CallExpr)
@@ -564,6 +616,10 @@ func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
+	if f.Type != build.TypeBzl {
+		return findings
+	}
+
 	// iterate over rules and collect rule implementation function names
 	implNames := make(map[string]bool)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
@@ -576,7 +632,7 @@ func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 		var impl build.Expr
 		_, _, param := getParam(call.List, "implementation")
 		if param != nil {
-			impl = param.Y
+			impl = param.RHS
 		} else if len(call.List) > 0 {
 			impl = call.List[0]
 		}

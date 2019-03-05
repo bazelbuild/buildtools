@@ -320,12 +320,12 @@ func usePlusEqual(f *build.File) bool {
 			continue
 		}
 
-		var fix *build.BinaryExpr
+		var fix *build.AssignExpr
 		if dot.Name == "extend" {
-			fix = &build.BinaryExpr{X: obj, Op: "+=", Y: call.List[0]}
+			fix = &build.AssignExpr{LHS: obj, Op: "+=", RHS: call.List[0]}
 		} else if dot.Name == "append" {
 			list := &build.ListExpr{List: []build.Expr{call.List[0]}}
-			fix = &build.BinaryExpr{X: obj, Op: "+=", Y: list}
+			fix = &build.AssignExpr{LHS: obj, Op: "+=", RHS: list}
 		} else {
 			continue
 		}
@@ -409,9 +409,9 @@ func movePackageDeclarationToTheTop(f *build.File) bool {
 	inserted := false // true when the package declaration has been inserted
 	for _, stmt := range f.Stmt {
 		_, isComment := stmt.(*build.CommentBlock)
-		_, isBinaryExpr := stmt.(*build.BinaryExpr) // e.g. variable declaration
+		_, isAssignExpr := stmt.(*build.AssignExpr) // e.g. variable declaration
 		_, isLoad := stmt.(*build.LoadStmt)
-		if isComment || isBinaryExpr || isLoad {
+		if isComment || isAssignExpr || isLoad {
 			all = append(all, stmt)
 			continue
 		}

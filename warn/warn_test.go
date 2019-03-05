@@ -12,19 +12,23 @@ import (
 
 const (
 	scopeBuild      = build.TypeBuild
-	scopeBzl        = build.TypeDefault
+	scopeBzl        = build.TypeBzl
 	scopeWorkspace  = build.TypeWorkspace
-	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace
+	scopeDefault    = build.TypeDefault
+	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault
+	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
 )
 
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
-		return "BUILD"
+		return "package/BUILD"
 	case build.TypeWorkspace:
-		return "WORKSPACE"
+		return "package/WORKSPACE"
+	case build.TypeBzl:
+		return "package/test_file.bzl"
 	default:
-		return "test_file.bzl"
+		return "test_file.strlrk"
 	}
 }
 
@@ -101,6 +105,7 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 		build.TypeDefault,
 		build.TypeBuild,
 		build.TypeWorkspace,
+		build.TypeBzl,
 	}
 
 	for _, fileType := range fileTypes {

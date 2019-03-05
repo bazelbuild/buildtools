@@ -14,7 +14,7 @@ cc_library(srcs =
 )`,
 		[]string{":1: Glob pattern `foo.cc` has no wildcard",
 			":6: Glob pattern `test.cpp` has no wildcard"},
-		scopeEverywhere)
+		scopeBazel)
 }
 
 func TestNativeInBuildFiles(t *testing.T) {
@@ -49,8 +49,16 @@ cc_library(name = "y")
 py_library(name = "x")
 py_library(name = "z")
 php_library(name = "x")`,
-		[]string{":3: A rule with name `x' was already found on line 1",
-			":5: A rule with name `x' was already found on line 1"},
+		[]string{
+			`:3: A rule with name "x" was already found on line 1`,
+			`:5: A rule with name "x" was already found on line 1`,
+		}, scopeBuild|scopeWorkspace)
+
+	checkFindings(t, "duplicated-name", `
+exports_files(["foo.txt"])
+[macro(name = "bar_%s" % i) for i in ii]
+`,
+		[]string{},
 		scopeBuild|scopeWorkspace)
 }
 

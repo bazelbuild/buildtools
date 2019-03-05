@@ -7,7 +7,6 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
-	"strings"
 )
 
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on
@@ -159,12 +158,8 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		}
 		switch s := (stmt).(type) {
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
-			*build.CallExpr, *build.CommentBlock, *build.BranchStmt:
+			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
 			continue
-		case *build.BinaryExpr:
-			if s.Op != "==" && s.Op != "!=" && strings.HasSuffix(s.Op, "=") {
-				continue
-			}
 		case *build.Comprehension:
 			if !isTopLevel || s.Curly {
 				// List comprehensions are allowed on top-level.
@@ -203,7 +198,7 @@ func noEffectWarning(f *build.File, fix bool) []*Finding {
 // unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
 // *build.DefStmt) and reports unused and already defined variables.
 func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding) []*Finding {
-	if f.Type == build.TypeDefault {
+	if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
 		// Not applicable to .bzl files, unused symbols may be loaded and used in other files.
 		return findings
 	}
@@ -222,12 +217,12 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 		}
 
 		// look for all assignments in the scope
-		as, ok := s.(*build.BinaryExpr)
-		if !ok || as.Op != "=" {
+		as, ok := s.(*build.AssignExpr)
+		if !ok {
 			continue
 		}
-		start, end := as.X.Span()
-		left, ok := as.X.(*build.Ident)
+		start, end := as.LHS.Span()
+		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
 		}
@@ -256,12 +251,12 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
-		as, ok := s.(*build.BinaryExpr)
-		if !ok || as.Op != "=" {
+		as, ok := s.(*build.AssignExpr)
+		if !ok {
 			continue
 		}
-		start, end := as.X.Span()
-		left, ok := as.X.(*build.Ident)
+		start, end := as.LHS.Span()
+		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
 		}
@@ -349,10 +344,8 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 		case *build.IfStmt:
 			variables = append(variables, collectLocalVariables(stmt.True)...)
 			variables = append(variables, collectLocalVariables(stmt.False)...)
-		case *build.BinaryExpr:
-			if stmt.Op == "=" {
-				variables = append(variables, bzlenv.CollectLValues(stmt.X)...)
-			}
+		case *build.AssignExpr:
+			variables = append(variables, bzlenv.CollectLValues(stmt.LHS)...)
 		}
 	}
 	return variables
@@ -376,14 +369,33 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	// findUninitializedIdents traverses an expression (simple statement or a part of it), and calls
 	// `callback` on every *build.Ident that's not mentioned in the map of initialized variables
 	findUninitializedIdents := func(expr build.Expr, callback func(ident *build.Ident)) {
+		// Collect lValues, they shouldn't be taken into account
+		// For example, if the expression is `a = foo(b = c)`, only `c` can be an unused variable here.
+		lValues := make(map[*build.Ident]bool)
 		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] {
+			if as, ok := expr.(*build.AssignExpr); ok {
+				for _, ident := range bzlenv.CollectLValues(as.LHS) {
+					lValues[ident] = true
+				}
+			}
+		})
+
+		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
+			// TODO: traverse comprehensions properly
+			for _, node := range stack {
+				if _, ok := node.(*build.Comprehension); ok {
+					return
+				}
+			}
+
+			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] && !lValues[ident] {
 				callback(ident)
 			}
 		})
 	}
 
 	for _, stmt := range stmts {
+		newlyDefinedVariables := make(map[string]bool)
 		switch stmt := stmt.(type) {
 		case *build.DefStmt:
 			// Don't traverse nested functions
@@ -396,12 +408,21 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			return true, locallyInitialized
 		case *build.ForStmt:
 			// Although loop variables are defined as local variables, buildifier doesn't know whether
-			// the loop will be empty or not
+			// the collection will be empty or not.
 
 			// Traverse but ignore the result. Even if something is defined inside a for-loop, the loop
 			// may be empty and the variable initialization may not happen.
 			findUninitializedIdents(stmt.X, callback)
-			findUninitializedVariables(stmt.Body, initialized, callback)
+
+			// The loop can access the variables defined above, and also the for-loop variables.
+			initializedInLoop := make(map[string]bool)
+			for name := range initialized {
+				initializedInLoop[name] = true
+			}
+			for _, ident := range bzlenv.CollectLValues(stmt.Vars) {
+				initializedInLoop[ident.Name] = true
+			}
+			findUninitializedVariables(stmt.Body, initializedInLoop, callback)
 			continue
 		case *build.IfStmt:
 			findUninitializedIdents(stmt.Cond, callback)
@@ -432,29 +453,17 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 				}
 			}
 			continue
-		case *build.BinaryExpr:
-			if stmt.Op == "=" {
-				// Assignment expression. Collect all definitions from the lhs (they shouldn't be taken into
-				// account while checking for undefined usages.
-				lValues := make(map[*build.Ident]bool)
-				for _, ident := range bzlenv.CollectLValues(stmt.X) {
-					lValues[ident] = true
-				}
-				// Traverse the statement and report all undefined idents expect LValues
-				findUninitializedIdents(stmt, func(ident *build.Ident) {
-					if !lValues[ident] {
-						callback(ident)
-					}
-				})
-				// Update locallyInitialized and defined with newly defined variables
-				for ident := range lValues {
-					locallyInitialized[ident.Name] = true
-					initialized[ident.Name] = true
-				}
-				continue
+		case *build.AssignExpr:
+			// Assignment expression. Collect all definitions from the lhs
+			for _, ident := range bzlenv.CollectLValues(stmt.LHS) {
+				newlyDefinedVariables[ident.Name] = true
 			}
 		}
 		findUninitializedIdents(stmt, callback)
+		for name := range newlyDefinedVariables {
+			locallyInitialized[name] = true
+			initialized[name] = true
+		}
 	}
 	return false, locallyInitialized
 }
@@ -470,9 +479,9 @@ func getFunctionParams(def *build.DefStmt) []*build.Ident {
 			if ident, ok := node.X.(*build.Ident); ok {
 				params = append(params, ident)
 			}
-		case *build.BinaryExpr:
+		case *build.AssignExpr:
 			// x = value
-			if ident, ok := node.X.(*build.Ident); ok {
+			if ident, ok := node.LHS.(*build.Ident); ok {
 				params = append(params, ident)
 			}
 		}

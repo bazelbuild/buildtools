@@ -50,10 +50,10 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 		}
 		return load
 	case *syntax.AssignStmt:
-		return &build.BinaryExpr{
+		return &build.AssignExpr{
 			Op:       stmt.Op.String(),
-			X:        convExpr(stmt.LHS),
-			Y:        convExpr(stmt.RHS),
+			LHS:      convExpr(stmt.LHS),
+			RHS:      convExpr(stmt.RHS),
 			Comments: convComments(stmt.Comments()),
 		}
 	case *syntax.IfStmt:
@@ -171,6 +171,14 @@ func convExpr(e syntax.Expr) build.Expr {
 	case *syntax.BinaryExpr:
 		_, lhsEnd := e.X.Span()
 		rhsBegin, _ := e.Y.Span()
+		if e.Op.String() == "=" {
+			return &build.AssignExpr{
+				LHS:       convExpr(e.X),
+				RHS:       convExpr(e.Y),
+				Op:        e.Op.String(),
+				LineBreak: lhsEnd.Line != rhsBegin.Line,
+				Comments:  convComments(e.Comments())}
+		}
 		return &build.BinaryExpr{
 			X:         convExpr(e.X),
 			Y:         convExpr(e.Y),

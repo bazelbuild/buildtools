@@ -54,7 +54,7 @@ var (
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 	version       = flag.Bool("version", false, "Print the version of buildifier")
-	inputType     = flag.String("type", "auto", "Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), or auto (default, based on the filename)")
+	inputType     = flag.String("type", "auto", "Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), default (for generic Starlark files) or auto (default, based on the filename)")
 
 	// Debug flags passed through to rewrite.go
 	allowSort = stringList("allowsort", "additional sort contexts to treat as safe")
@@ -129,11 +129,11 @@ func main() {
 
 	// Check input type.
 	switch *inputType {
-	case "build", "bzl", "workspace", "auto":
+	case "build", "bzl", "workspace", "default", "auto":
 		// ok
 
 	default:
-		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, workspace, auto\n", *inputType)
+		fmt.Fprintf(os.Stderr, "buildifier: unrecognized input type %s; valid types are build, bzl, workspace, default, auto\n", *inputType)
 		os.Exit(2)
 	}
 
@@ -482,6 +482,8 @@ func getParser(inputType string) func(filename string, data []byte) (*build.File
 	switch inputType {
 	case "build":
 		return build.ParseBuild
+	case "bzl":
+		return build.ParseBzl
 	case "auto":
 		return build.Parse
 	case "workspace":
