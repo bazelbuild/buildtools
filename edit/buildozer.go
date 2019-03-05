@@ -675,8 +675,8 @@ func SplitOnSpaces(input string) []string {
 // HealGlobIfPresent takes the output from SplitOnSpaces, which naively splits
 // Bazel's glob function, and rejoins tokens together to reconnect the glob function parts
 func HealGlobIfPresent(tokens []string) []string {
-	matchGlobStart := func(x string) bool { return strings.HasPrefix(x, "glob("); }
-	matchGlobEnd := func(x string) bool { return strings.HasSuffix(x, ")"); }
+	matchGlobStart := func(x string) bool { return strings.HasPrefix(x, "glob(") }
+	matchGlobEnd := func(x string) bool { return strings.HasSuffix(x, ")") }
 
 	newTokens := tokens[:0]
 	healedGlobStr := new(bytes.Buffer)
