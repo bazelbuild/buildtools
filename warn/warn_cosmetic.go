@@ -162,6 +162,9 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 	return isExplicitRepo1
 }
 
+// outOfOrderLoadWarning only sorts consequent chunks of load statements. If applied together with
+// loadOnTopWarning, should be applied after it. This is currently guaranteed by sorting the
+// warning categories names before applying them ("load-on-top" < "out-of-order-load")
 func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
