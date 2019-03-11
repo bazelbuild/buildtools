@@ -31,3 +31,18 @@ else: # this is assigned to "else"
     pass
   else: # this is assigned to "else" too
     pass
+
+if foo:
+  pass
+else:
+  # comment
+  if bar:
+    pass
+
+if foo:
+  pass
+else:
+  # comment
+
+  if bar:
+    pass
