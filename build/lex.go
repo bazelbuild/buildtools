@@ -107,7 +107,7 @@ func ParseDefault(filename string, data []byte) (*File, error) {
 
 func getFileType(filename string) FileType {
 	if filename == "" { // stdin
-		return TypeBuild // For compatibility
+		return TypeDefault
 	}
 	basename := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(basename)

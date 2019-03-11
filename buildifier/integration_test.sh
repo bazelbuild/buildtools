@@ -39,7 +39,7 @@ EOF
 
 diff test/build test/BUILD.golden
 diff test/test.bzl test/test.bzl.golden
-diff stdout test/BUILD.golden  # should use the build formatting mode by default
+diff stdout test/test.bzl
 
 diff test/test.bzl.out test/test.bzl.golden
 
