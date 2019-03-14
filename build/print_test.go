@@ -53,12 +53,12 @@ func setFlags(file string) func() {
 
 func testIdempotence(t *testing.T, file string, isBuild bool) {
 	defer setFlags(file)()
-	testPrint(t, file, file, isBuild)
+	testPrint(t, file, file, isBuild, false)
 }
 
-func testFormat(t *testing.T, input, output string, isBuild bool) {
+func testFormat(t *testing.T, input, output string, isBuild, addSeq bool) {
 	defer setFlags(output)()
-	testPrint(t, input, output, isBuild)
+	testPrint(t, input, output, isBuild, addSeq)
 }
 
 // Test that reading and then writing the golden files
@@ -97,14 +97,15 @@ func TestPrintRewrite(t *testing.T) {
 			outBzl = prefix + ".bzl.golden"
 			outBuild = prefix + ".build.golden"
 		}
-
-		testFormat(t, in, outBzl, false)
-		testFormat(t, in, outBuild, true)
+		// Test file 063 tests that a sequence added to a parsed file is correctly fromatted
+		addSeq := strings.Contains(in, string(os.PathSeparator)+"063.")
+		testFormat(t, in, outBzl, false, addSeq)
+		testFormat(t, in, outBuild, true, addSeq)
 
 		stripslashesBuild := prefix + ".stripslashes.golden"
 		if exists(stripslashesBuild) {
 			// Test this file in BUILD mode only
-			testFormat(t, in, stripslashesBuild, true)
+			testFormat(t, in, stripslashesBuild, true, addSeq)
 		}
 	}
 }
@@ -135,7 +136,7 @@ func TestPrintBzlAsBuild(t *testing.T) {
 		if !exists(outBuild) {
 			continue
 		}
-		testFormat(t, outBzl, outBuild, true)
+		testFormat(t, outBzl, outBuild, true, false)
 	}
 }
 
@@ -151,7 +152,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out. If rewrite is true, the
 // reformatting includes buildifier's higher-level rewrites.
-func testPrint(t *testing.T, in, out string, isBuild bool) {
+func testPrint(t *testing.T, in, out string, isBuild, addSeq bool) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -180,6 +181,21 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 		if err != nil {
 			t.Error(err)
 			return
+		}
+
+		if addSeq {
+			newCallExpr := CallExpr{
+				X:	&Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&LiteralExpr{
+						Token: "b",
+					},
+				},
+			}
+			file.Stmt = append(file.Stmt, &newCallExpr)
 		}
 
 		Rewrite(file, nil)

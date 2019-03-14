@@ -717,10 +717,13 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode.
 		// If an node's line number is 0, it means it doesn't appear in the original file,
-		// its position shouldn't be taken into account.
+		// its position shouldn't be taken into account. Unless a sequence is completely new,
+		// then we fall back to the logic used for Build mode.
 		previousEnd := start
+		isNewSeq := start.Line == 0
 		for _, x := range *list {
 			start, end := x.Span()
+			isNewSeq = isNewSeq && start.Line == 0
 			if isDifferentLines(&start, previousEnd) {
 				return false
 			}
@@ -728,10 +731,15 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 				previousEnd = &end
 			}
 		}
-		if end != nil && isDifferentLines(previousEnd, &end.Pos) {
-			return false
+		if end != nil {
+			isNewSeq = isNewSeq && end.Pos.Line == 0
+			if isDifferentLines(previousEnd, &end.Pos) {
+				return false
+			}
 		}
-		return true
+		if !isNewSeq {
+			return true
+		}
 	}
 	// In Build mode, use the forceMultiline and forceCompact values
 	if forceMultiLine {
