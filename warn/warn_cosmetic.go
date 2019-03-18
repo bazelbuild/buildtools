@@ -124,80 +124,108 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+// compareLoadLabels compares two module names
+// If one label has explicit repository path (starts with @), it goes first
+// If the packages are different, labels are sorted by package name (empty package goes first)
+// If the packages are the same, labels are sorted by their name
+func compareLoadLabels(load1Label, load2Label string) bool {
+	// handle absolute labels with explicit repositories separately to
+	// make sure they precede absolute and relative labels without repos
+	isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
+	isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
 
-	if f.Type == build.TypeWorkspace {
-		// Not applicable for WORKSPACE files
-		return findings
-	}
-
-	// compareLoadLabels compares two module names
-	compareLoadLabels := func(load1Label, load2Label string) bool {
-		// handle absolute labels with explicit repositories separately to
-		// make sure they preceed absolute and relative labels without repos
-		isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
-		isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
-		if isExplicitRepo1 == isExplicitRepo2 {
-			// Either both labels have explicit repository names or both don't, compare their packages
-			// and break ties using file names if necessary
-
-			module1Parts := strings.SplitN(strings.TrimLeft(load1Label, "@"), ":", 2)
-			package1, filename1 := "", module1Parts[0]
-			if len(module1Parts) == 2 {
-				package1, filename1 = module1Parts[0], module1Parts[1]
-			}
-			module2Parts := strings.SplitN(strings.TrimLeft(load2Label, "@"), ":", 2)
-			package2, filename2 := "", module2Parts[0]
-			if len(module2Parts) == 2 {
-				package2, filename2 = module2Parts[0], module2Parts[1]
-			}
-
-			// in case both packages are the same, use file names to break ties
-			if package1 == package2 {
-				return filename1 < filename2
-			}
-
-			// in case one of the packages is empty, the empty one goes first
-			if len(package1) == 0 || len(package2) == 0 {
-				return len(package1) > 0
-			}
-
-			// both packages are non-empty and not equal, so compare them
-			return package1 < package2
-		}
+	if isExplicitRepo1 != isExplicitRepo2 {
 		// Exactly one label has an explicit repository name, it should be the first one.
 		return isExplicitRepo1
 	}
 
-	sortedLoads := []*build.LoadStmt{}
+	// Either both labels have explicit repository names or both don't, compare their packages
+	// and break ties using file names if necessary
+	module1Parts := strings.SplitN(load1Label, ":", 2)
+	package1, filename1 := "", module1Parts[0]
+	if len(module1Parts) == 2 {
+		package1, filename1 = module1Parts[0], module1Parts[1]
+	}
+	module2Parts := strings.SplitN(load2Label, ":", 2)
+	package2, filename2 := "", module2Parts[0]
+	if len(module2Parts) == 2 {
+		package2, filename2 = module2Parts[0], module2Parts[1]
+	}
+
+	// in case both packages are the same, use file names to break ties
+	if package1 == package2 {
+		return filename1 < filename2
+	}
+
+	// in case one of the packages is empty, the empty one goes first
+	if len(package1) == 0 || len(package2) == 0 {
+		return len(package1) > 0
+	}
+
+	// both packages are non-empty and not equal, so compare them
+	return package1 < package2
+}
+
+// outOfOrderLoadWarning only sorts consequent chunks of load statements. If applied together with
+// loadOnTopWarning, should be applied after it. This is currently guaranteed by sorting the
+// warning categories names before applying them ("load-on-top" < "out-of-order-load")
+func outOfOrderLoadWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	// Consequent chunks of load statements (i.e. without statements of other types between them)
+	loadsChunks := [][]*build.LoadStmt{}
+	lastLoadIndex := -2
+
 	for i := 0; i < len(f.Stmt); i++ {
 		load, ok := f.Stmt[i].(*build.LoadStmt)
 		if !ok {
 			continue
 		}
-		sortedLoads = append(sortedLoads, load)
+		if i-lastLoadIndex > 1 {
+			// There's a non-load statement between this load and the previous load
+			loadsChunks = append(loadsChunks, []*build.LoadStmt{})
+		}
+		loadsChunks[len(loadsChunks)-1] = append(loadsChunks[len(loadsChunks)-1], load)
+		lastLoadIndex = i
 	}
+
 	if fix {
-		sort.SliceStable(sortedLoads, func(i, j int) bool {
-			load1Label := sortedLoads[i].Module.Value
-			load2Label := sortedLoads[j].Module.Value
-			return compareLoadLabels(load1Label, load2Label)
-		})
-		sortedLoadIndex := 0
-		for globalLoadIndex := 0; globalLoadIndex < len(f.Stmt); globalLoadIndex++ {
-			if _, ok := f.Stmt[globalLoadIndex].(*build.LoadStmt); !ok {
+		// Sort the chunks
+		for i, chunk := range loadsChunks {
+			sort.SliceStable(chunk, func(i, j int) bool {
+				load1Label := (chunk)[i].Module.Value
+				load2Label := (chunk)[j].Module.Value
+				return compareLoadLabels(load1Label, load2Label)
+			})
+			loadsChunks[i] = chunk
+		}
+
+		// Flatten the chunks
+		sortedLoads := []*build.LoadStmt{}
+		for _, chunk := range loadsChunks {
+			for _, load := range chunk {
+				sortedLoads = append(sortedLoads, load)
+			}
+		}
+
+		loadIndex := 0
+		for stmtIndex := range f.Stmt {
+			if _, ok := f.Stmt[stmtIndex].(*build.LoadStmt); !ok {
 				continue
 			}
-			f.Stmt[globalLoadIndex] = sortedLoads[sortedLoadIndex]
-			sortedLoadIndex++
+			f.Stmt[stmtIndex] = sortedLoads[loadIndex]
+			loadIndex++
 		}
 		return findings
 	}
 
-	for i := 1; i < len(sortedLoads); i++ {
-		if compareLoadLabels(sortedLoads[i].Module.Value, sortedLoads[i-1].Module.Value) {
-			start, end := sortedLoads[i].Span()
+	for _, chunk := range loadsChunks {
+		for i, load := range chunk {
+			if i == 0 || !compareLoadLabels(chunk[i].Module.Value, chunk[i-1].Module.Value) {
+				// Correct position
+				continue
+			}
+			start, end := load.Span()
 			findings = append(findings, makeFinding(f, start, end, "out-of-order-load",
 				"Load statement is out of its lexicographical order.", true, nil))
 		}
@@ -211,7 +239,7 @@ func unsortedDictItemsWarning(f *build.File, fix bool) []*Finding {
 	compareItems := func(item1, item2 *build.KeyValueExpr) bool {
 		key1 := item1.Key.(*build.StringExpr).Value
 		key2 := item2.Key.(*build.StringExpr).Value
-		// regular keys should preceed private ones (start with "_")
+		// regular keys should precede private ones (start with "_")
 		if strings.HasPrefix(key1, "_") {
 			return strings.HasPrefix(key2, "_") && key1 < key2
 		}
