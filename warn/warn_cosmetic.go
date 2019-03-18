@@ -130,7 +130,7 @@ func loadOnTopWarning(f *build.File, fix bool) []*Finding {
 // If the packages are the same, labels are sorted by their name
 func compareLoadLabels(load1Label, load2Label string) bool {
 	// handle absolute labels with explicit repositories separately to
-	// make sure they preceed absolute and relative labels without repos
+	// make sure they precede absolute and relative labels without repos
 	isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
 	isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
 
