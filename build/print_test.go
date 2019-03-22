@@ -278,6 +278,26 @@ func TestPrintNewSequences(t *testing.T) {
 					},
 				},
 			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&CallExpr{
+						X: &Ident{Name: "bar"},
+						List: []Expr{
+							&LiteralExpr{
+								Token: "a",
+							},
+							&LiteralExpr{
+								Token: "b",
+							},
+						},
+					},
+				},
+				ForceMultiLine: true,
+			},
 			&DefStmt{
 				Name: "foo",
 				Function: Function{
