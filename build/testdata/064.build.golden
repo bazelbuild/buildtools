@@ -1,0 +1,20 @@
+foo(
+    a,
+    b,
+)
+
+foo(
+    a,
+    b,
+)
+
+foo(a)
+
+def foo():
+    foo(a, b)
+
+def foo():
+    foo(
+        a,
+        b,
+    )

@@ -717,8 +717,8 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode.
 		// If an node's line number is 0, it means it doesn't appear in the original file,
-		// its position shouldn't be taken into account. Unless a sequence is completely new,
-		// then we fall back to the logic used for Build mode.
+		// its position shouldn't be taken into account. Unless a sequence is new,
+		// then use multiline mode if ForceMultiLine mode was set.
 		previousEnd := start
 		isNewSeq := start.Line == 0
 		for _, x := range *list {
@@ -740,6 +740,8 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		if !isNewSeq {
 			return true
 		}
+		// Use the forceMultiline value for new sequences.
+		return !forceMultiLine
 	}
 	// In Build mode, use the forceMultiline and forceCompact values
 	if forceMultiLine {

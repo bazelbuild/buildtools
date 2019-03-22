@@ -53,12 +53,12 @@ func setFlags(file string) func() {
 
 func testIdempotence(t *testing.T, file string, isBuild bool) {
 	defer setFlags(file)()
-	testPrint(t, file, file, isBuild, false)
+	testPrint(t, file, file, isBuild)
 }
 
-func testFormat(t *testing.T, input, output string, isBuild, addSeq bool) {
+func testFormat(t *testing.T, input, output string, isBuild bool) {
 	defer setFlags(output)()
-	testPrint(t, input, output, isBuild, addSeq)
+	testPrint(t, input, output, isBuild)
 }
 
 // Test that reading and then writing the golden files
@@ -97,15 +97,14 @@ func TestPrintRewrite(t *testing.T) {
 			outBzl = prefix + ".bzl.golden"
 			outBuild = prefix + ".build.golden"
 		}
-		// Test file 063 tests that a sequence added to a parsed file is correctly fromatted
-		addSeq := strings.Contains(in, string(os.PathSeparator)+"063.")
-		testFormat(t, in, outBzl, false, addSeq)
-		testFormat(t, in, outBuild, true, addSeq)
+
+		testFormat(t, in, outBzl, false)
+		testFormat(t, in, outBuild, true)
 
 		stripslashesBuild := prefix + ".stripslashes.golden"
 		if exists(stripslashesBuild) {
 			// Test this file in BUILD mode only
-			testFormat(t, in, stripslashesBuild, true, addSeq)
+			testFormat(t, in, stripslashesBuild, true)
 		}
 	}
 }
@@ -136,7 +135,7 @@ func TestPrintBzlAsBuild(t *testing.T) {
 		if !exists(outBuild) {
 			continue
 		}
-		testFormat(t, outBzl, outBuild, true, false)
+		testFormat(t, outBzl, outBuild, true)
 	}
 }
 
@@ -152,7 +151,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out. If rewrite is true, the
 // reformatting includes buildifier's higher-level rewrites.
-func testPrint(t *testing.T, in, out string, isBuild, addSeq bool) {
+func testPrint(t *testing.T, in, out string, isBuild bool) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -181,21 +180,6 @@ func testPrint(t *testing.T, in, out string, isBuild, addSeq bool) {
 		if err != nil {
 			t.Error(err)
 			return
-		}
-
-		if addSeq {
-			newCallExpr := CallExpr{
-				X:	&Ident{Name: "foo"},
-				List: []Expr{
-					&LiteralExpr{
-						Token: "a",
-					},
-					&LiteralExpr{
-						Token: "b",
-					},
-				},
-			}
-			file.Stmt = append(file.Stmt, &newCallExpr)
 		}
 
 		Rewrite(file, nil)
@@ -239,6 +223,115 @@ func TestPrintParse(t *testing.T) {
 		eq := eqchecker{file: base}
 		if err := eq.check(f, f2); err != nil {
 			t.Errorf("not equal: %v", err)
+		}
+	}
+}
+
+// Test that sequences created in code and then written to file
+// are properly formatted.
+func TestPrintNewSequences(t *testing.T) {
+	outs, chdir := findTests(t, "064.*")
+	defer chdir()
+	for _, out := range outs {
+		golden, err := ioutil.ReadFile(out)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		var fileTypes []FileType
+		if strings.HasSuffix(out, "build.golden") {
+			fileTypes = []FileType{TypeBuild}
+		} else {
+			fileTypes = []FileType{TypeBzl, TypeDefault}
+		}
+
+		newSequences := []Expr{
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&LiteralExpr{
+						Token: "b",
+					},
+				},
+			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&LiteralExpr{
+						Token: "b",
+					},
+				},
+				ForceMultiLine: true,
+			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+				},
+			},
+			&DefStmt{
+				Name: "foo",
+				Function: Function{
+					Body: []Expr{
+						&CallExpr{
+							X: &Ident{Name: "foo"},
+							List: []Expr{
+								&LiteralExpr{
+									Token: "a",
+								},
+								&LiteralExpr{
+									Token: "b",
+								},
+							},
+						},
+					},
+				},
+			},
+			&DefStmt{
+				Name: "foo",
+				Function: Function{
+					Body: []Expr{
+						&CallExpr{
+							X: &Ident{Name: "foo"},
+							List: []Expr{
+								&LiteralExpr{
+									Token: "a",
+								},
+								&LiteralExpr{
+									Token: "b",
+								},
+							},
+							ForceMultiLine: true,
+						},
+					},
+				},
+			},
+		}
+
+		for _, fileType := range fileTypes {
+			file := &File{
+				Type: fileType,
+				Stmt: newSequences,
+			}
+
+			Rewrite(file, nil)
+
+			ndata := Format(file)
+
+			if !bytes.Equal(ndata, golden) {
+				t.Errorf("formatted file incorrectly: diff shows -%s, +ours", filepath.Base(out))
+				testutils.Tdiff(t, golden, ndata)
+				return
+			}
 		}
 	}
 }
