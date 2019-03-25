@@ -1,0 +1,28 @@
+foo(
+    a,
+    b,
+)
+
+foo(
+    a,
+    b,
+)
+
+foo(a)
+
+foo(
+    a,
+    bar(
+        a,
+        b,
+    ),
+)
+
+def foo():
+    foo(a, b)
+
+def foo():
+    foo(
+        a,
+        b,
+    )

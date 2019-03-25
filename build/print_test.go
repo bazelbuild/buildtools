@@ -227,6 +227,135 @@ func TestPrintParse(t *testing.T) {
 	}
 }
 
+// Test that sequences created in code and then written to file
+// are properly formatted.
+func TestPrintNewSequences(t *testing.T) {
+	outs, chdir := findTests(t, "064.*")
+	defer chdir()
+	for _, out := range outs {
+		golden, err := ioutil.ReadFile(out)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		var fileTypes []FileType
+		if strings.HasSuffix(out, "build.golden") {
+			fileTypes = []FileType{TypeBuild}
+		} else {
+			fileTypes = []FileType{TypeBzl, TypeDefault}
+		}
+
+		newSequences := []Expr{
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&LiteralExpr{
+						Token: "b",
+					},
+				},
+			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&LiteralExpr{
+						Token: "b",
+					},
+				},
+				ForceMultiLine: true,
+			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+				},
+			},
+			&CallExpr{
+				X: &Ident{Name: "foo"},
+				List: []Expr{
+					&LiteralExpr{
+						Token: "a",
+					},
+					&CallExpr{
+						X: &Ident{Name: "bar"},
+						List: []Expr{
+							&LiteralExpr{
+								Token: "a",
+							},
+							&LiteralExpr{
+								Token: "b",
+							},
+						},
+					},
+				},
+				ForceMultiLine: true,
+			},
+			&DefStmt{
+				Name: "foo",
+				Function: Function{
+					Body: []Expr{
+						&CallExpr{
+							X: &Ident{Name: "foo"},
+							List: []Expr{
+								&LiteralExpr{
+									Token: "a",
+								},
+								&LiteralExpr{
+									Token: "b",
+								},
+							},
+						},
+					},
+				},
+			},
+			&DefStmt{
+				Name: "foo",
+				Function: Function{
+					Body: []Expr{
+						&CallExpr{
+							X: &Ident{Name: "foo"},
+							List: []Expr{
+								&LiteralExpr{
+									Token: "a",
+								},
+								&LiteralExpr{
+									Token: "b",
+								},
+							},
+							ForceMultiLine: true,
+						},
+					},
+				},
+			},
+		}
+
+		for _, fileType := range fileTypes {
+			file := &File{
+				Type: fileType,
+				Stmt: newSequences,
+			}
+
+			Rewrite(file, nil)
+
+			ndata := Format(file)
+
+			if !bytes.Equal(ndata, golden) {
+				t.Errorf("formatted file incorrectly: diff shows -%s, +ours", filepath.Base(out))
+				testutils.Tdiff(t, golden, ndata)
+				return
+			}
+		}
+	}
+}
+
 // An eqchecker holds state for checking the equality of two parse trees.
 type eqchecker struct {
 	file string
