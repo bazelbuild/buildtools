@@ -172,6 +172,10 @@ func DisabledWarning(f *build.File, finding *Finding, warning string) bool {
 // FileWarnings returns a list of all warnings found in the file.
 func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool) []*Finding {
 	findings := []*Finding{}
+
+	// Sort the warnings to make sure they're applied in the same determined order
+	sort.Strings(enabledWarnings)
+
 	for _, warn := range enabledWarnings {
 		if fct, ok := FileWarningMap[warn]; ok {
 			for _, w := range fct(f, fix) {

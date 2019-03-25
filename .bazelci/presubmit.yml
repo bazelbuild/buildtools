@@ -15,4 +15,3 @@ platforms:
     test_targets:
     - "--"
     - "//:tests"
-    - "-//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest"
