@@ -982,11 +982,11 @@ func appendCommandsFromFile(opts *Options, commandsByFile map[string][]commandsF
 
 func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget) {
 	r := bufio.NewReader(reader)
-	at_eof := false
-	for !at_eof {
+	atEof := false
+	for !atEof {
 		line, err := r.ReadString('\n')
 		if err == io.EOF {
-			at_eof = true
+			atEof = true
 			err = nil
 		}
 		if err != nil {
