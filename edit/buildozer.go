@@ -977,17 +977,28 @@ func appendCommandsFromFile(opts *Options, commandsByFile map[string][]commandsF
 		reader = rc
 		defer rc.Close()
 	}
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
+	appendCommandsFromReader(opts, reader, commandsByFile)
+}
+
+func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget) {
+	r := bufio.NewReader(reader)
+	at_eof := false
+	for !at_eof {
+		line, err := r.ReadString('\n')
+		if err == io.EOF {
+			at_eof = true
+			err = nil
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error while reading commands file: %v", err)
+			return
+		}
+		line = strings.TrimSuffix(line, "\n")
 		if line == "" {
 			continue
 		}
 		args := strings.Split(line, "|")
 		appendCommands(opts, commandsByFile, args)
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error while reading commands file: %v", scanner.Err())
 	}
 }
 
