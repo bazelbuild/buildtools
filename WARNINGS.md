@@ -466,6 +466,7 @@ variable.
 
   * Category_name: `out-of-order-load`
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
 
 Load statements should be ordered by their first argument - extension file label.
 This makes it easier to developers to locate loads of interest and reduces chances
@@ -474,33 +475,6 @@ for conflicts when performing large-scale automated refactoring.
 When applying automated fixes, it's highly recommended to also use
 [`load-on-top`](#load-on-top) fixes, since otherwise the relative order
 of a symbol load and its usage can change resulting in runtime error.
-
---------------------------------------------------------------------------------
-
-## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys.
-
-  * Category_name: `unsorted-dict-items`
-  * Automatic fix: yes
-
-Dictionary items should be sorted lexicagraphically by their keys. This makes
-it easier to find the item of interest and reduces chances of conflicts when
-performing large-scale automated refactoring.
-
-The order is affected by `NamePriority` dictionary passed using `-tables` or
-`-add_tables` flags.
-
-If you want to preserve the original dictionary items order, you can disable
-the warning by adding a comment `# @unsorted-dict-items` to the dictionary
-expression or any of its enclosing expressins (binary, if etc). For example,
-
-    # @unsorted-dict-items
-    d = {
-      "b": "bvalue",
-      "a": "avalue",
-    }
-
-will not be reported as an issue because the assignment operation that uses
-the dictionary with unsorted items has a comment disabling this warning.
 
 --------------------------------------------------------------------------------
 
@@ -717,6 +691,34 @@ can potentially be empty.
 
 The statement is unreachable because it follows a `return`, `break`, `continue`,
 or `fail()` statement.
+
+--------------------------------------------------------------------------------
+
+## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys.
+
+  * Category_name: `unsorted-dict-items`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+
+Dictionary items should be sorted lexicagraphically by their keys. This makes
+it easier to find the item of interest and reduces chances of conflicts when
+performing large-scale automated refactoring.
+
+The order is affected by `NamePriority` dictionary passed using `-tables` or
+`-add_tables` flags.
+
+If you want to preserve the original dictionary items order, you can disable
+the warning by adding a comment `# @unsorted-dict-items` to the dictionary
+expression or any of its enclosing expressins (binary, if etc). For example,
+
+    # @unsorted-dict-items
+    d = {
+      "b": "bvalue",
+      "a": "avalue",
+    }
+
+will not be reported as an issue because the assignment operation that uses
+the dictionary with unsorted items has a comment disabling this warning.
 
 --------------------------------------------------------------------------------
 
