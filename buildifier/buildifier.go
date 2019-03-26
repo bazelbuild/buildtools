@@ -259,7 +259,12 @@ func main() {
 		}
 		processFile("", data, *inputType, *lint, warningsList, false)
 	} else {
-		processFiles(args, *inputType, *lint, warningsList)
+		files, err := expandDirectories(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
+			os.Exit(1)
+		}
+		processFiles(files, *inputType, *lint, warningsList)
 	}
 
 	if err := diff.Run(); err != nil {
@@ -291,12 +296,6 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 		file string
 		data []byte
 		err  error
-	}
-
-	files, err := expandDirectories(files)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-		os.Exit(1)
 	}
 
 	ch := make([]chan result, nworker)
