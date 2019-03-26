@@ -292,6 +292,13 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 		data []byte
 		err  error
 	}
+
+	files, err := expandDirectories(files)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
+		os.Exit(1)
+	}
+
 	ch := make([]chan result, nworker)
 	for i := 0; i < nworker; i++ {
 		ch[i] = make(chan result, 1)
