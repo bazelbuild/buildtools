@@ -44,9 +44,21 @@ correspondingly:
     buildifier --lint=warn path/to/file
     buildifier --lint=fix path/to/file
 
-By default the linter searches for all known issues, but you can limit the list of categories:
+By default the linter searches for all known issues except the following:
+
+  * [out-of-order-load](../WARNINGS.md#out-of-order-load)
+  * [unsorted-dict-items](../WARNINGS.md#unsorted-dict-items)
+
+You can specify the categories using the `--warnings` flag either by providing the categories
+explicitly:
 
     buildifier --lint=warn --warnings=positional-args,duplicated-name
+
+or by modifying the default warnings set:
+
+    buildifier --lint=warn --warnings=-positional-args,+unsorted-dict-items
+
+It's also possible to provide `--warnings=all` to use all supported warnings categories.
 
 See also the [full list](../WARNINGS.md) or the supported warnings.
 
