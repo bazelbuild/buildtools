@@ -9,7 +9,7 @@ buildifier=$1
 buildifier2=$2
 
 mkdir -p test_dir/subdir
-mkdir golden
+mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
 echo -e "$INPUT" > test_dir/build  # case doesn't matter
 echo -e "$INPUT" > test_dir/test.bzl
