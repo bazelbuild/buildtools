@@ -80,6 +80,7 @@ type RewriteInfo struct {
 	SortLoad         int      // number of load argument lists sorted
 	FormatDocstrings int      // number of reindented docstrings
 	ReorderArguments int      // number of reordered function call arguments
+	EditOctal        int      // number of edited octals
 	Log              []string // log entries - may change
 }
 
@@ -108,6 +109,9 @@ func (info *RewriteInfo) String() string {
 	}
 	if info.ReorderArguments > 0 {
 		s += " reorderarguments"
+	}
+	if info.EditOctal > 0 {
+		s += " editoctal"
 	}
 	if s != "" {
 		s = s[1:]
@@ -138,6 +142,7 @@ var rewrites = []struct {
 	{"loadsort", sortLoadArgs, scopeBoth},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
+	{"editoctal", editOctals, scopeBoth},
 }
 
 // DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
@@ -994,6 +999,21 @@ func reorderArguments(f *File, info *RewriteInfo) {
 		if !sort.SliceIsSorted(call.List, compare) {
 			sort.SliceStable(call.List, compare)
 			info.ReorderArguments++
+		}
+	})
+}
+
+// editOctals inserts 'o' into octal numbers to make it more obvious they are octal
+// 0123 -> 0o123
+func editOctals(f *File, info *RewriteInfo) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		l, ok := expr.(*LiteralExpr)
+		if !ok {
+			return
+		}
+		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] != 'o' {
+			l.Token = "0o" + l.Token[1:]
+			info.EditOctal++
 		}
 	})
 }

@@ -589,10 +589,15 @@ func (in *input) Lex(val *yySymType) int {
 	case "continue":
 		return _CONTINUE
 	}
-	for _, c := range val.tok {
-		if c > '9' || c < '0' {
-			return _IDENT
+	for i, c := range val.tok {
+		if c >= '0' && c <= '9' {
+			continue
 		}
+		if i == 1 && val.tok[0] == '0' && (c == 'x' || c == 'o') {
+			// maybe octal or hexadecimal number
+			continue
+		}
+		return _IDENT
 	}
 	return _NUMBER
 }
