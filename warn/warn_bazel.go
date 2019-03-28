@@ -4,6 +4,7 @@ package warn
 
 import (
 	"fmt"
+	"github.com/bazelbuild/buildtools/tables"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
@@ -125,6 +126,10 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 		if name == "" {
 			continue
 		}
+		if tables.AllowedDuplicatedNames[rule.Kind()] {
+			continue
+		}
+
 		start, end := rule.Call.Span()
 		if nameNode := rule.Attr("name"); nameNode != nil {
 			start, end = nameNode.Span()

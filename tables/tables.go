@@ -247,3 +247,7 @@ func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, s
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
 }
+
+// AllowedDuplicatedNames contains a list of rule kinds that by design have names (i.e. values of the
+// `name` attribute) that are equal to another rule's name. The list is empty here but can be overridden.
+var AllowedDuplicatedNames = map[string]bool{}
