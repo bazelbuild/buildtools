@@ -19,6 +19,13 @@ same way that clang-format is used for source files.
 
 You can also process multiple files at once:
 
+    $ buildifier path/to/file1 path/to/file2
+
+You can make buildifier automatically find all Starlark files (i.e. BUILD, WORKSPACE, .bzl, or .sky)
+in a directory recursively:
+
+    $ buildifier -r path/to/dir
+
 Buildifier automatically detects the file type (either BUILD or .bzl) by its filename. If you 
 
     $ buildifier $(find . -type f \( -iname BUILD -or -iname BUILD.bazel \))
