@@ -1011,7 +1011,7 @@ func editOctals(f *File, info *RewriteInfo) {
 		if !ok {
 			return
 		}
-		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] != 'o' {
+		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] != 'o' && l.Token[1] != 'x' {
 			l.Token = "0o" + l.Token[1:]
 			info.EditOctal++
 		}
