@@ -266,7 +266,7 @@ func main() {
 			files, err = ExpandDirectories(args)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-				os.Exit(1)
+				os.Exit(3)
 			}
 		}
 		processFiles(files, *inputType, *lint, warningsList)

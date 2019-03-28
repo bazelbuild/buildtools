@@ -23,9 +23,6 @@ cp test_dir/foo.bar golden/foo.bar
 "$buildifier" test.bzl
 "$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
 
-# directory without -r
-"$buildifier" test_dir > directory_error 2>&1 || true
-
 cat > golden/BUILD.golden <<EOF
 load(":foo.bzl", "foo")
 
@@ -45,9 +42,6 @@ load(":foo.bzl", "foo")
 
 foo(tags = ["b", "a"], srcs = ["d", "c"])
 EOF
-cat > golden/directory_error <<EOF
-buildifier: read test_dir: is a directory
-EOF
 
 diff test_dir/build golden/BUILD.golden
 diff test_dir/test.bzl golden/test.bzl.golden
@@ -56,7 +50,12 @@ diff test_dir/foo.bar golden/foo.bar
 diff test.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
 diff test_dir/test.bzl.out golden/test.bzl.golden
-diff directory_error golden/directory_error
+
+# Test run on a directory without -r
+"$buildifier" test_dir || ret=$?
+if [[ $ret -ne 3 ]]; then
+  die "Directory without -r: expected buildifier to exit with 3, actual: $ret"
+fi
 
 # Test the linter
 
