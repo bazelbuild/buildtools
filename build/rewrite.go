@@ -18,13 +18,12 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
+	"github.com/bazelbuild/buildtools/tables"
 	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-
-	"github.com/bazelbuild/buildtools/tables"
 )
 
 // For debugging: flag to disable certain rewrites.
@@ -1011,7 +1010,7 @@ func editOctals(f *File, info *RewriteInfo) {
 		if !ok {
 			return
 		}
-		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] != 'o' && l.Token[1] != 'x' {
+		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9'{
 			l.Token = "0o" + l.Token[1:]
 			info.EditOctal++
 		}
