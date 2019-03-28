@@ -15,11 +15,13 @@ INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatt
 echo -e "$INPUT" > test/build  # case doesn't matter
 echo -e "$INPUT" > test/test.bzl
 echo -e "$INPUT" > test/subdir/test.bzl
+echo -e "$INPUT" > test.bzl  # outside the test directory
 echo -e "not valid +" > test/foo.bar
 cp test/foo.bar golden/foo.bar
 
 "$buildifier" < test/build > stdout
-"$buildifier" test
+"$buildifier" -r test
+"$buildifier" test.bzl
 "$buildifier2" test/test.bzl > test/test.bzl.out
 
 cat > golden/BUILD.golden <<EOF
@@ -46,6 +48,7 @@ diff test/build golden/BUILD.golden
 diff test/test.bzl golden/test.bzl.golden
 diff test/subdir/test.bzl golden/test.bzl.golden
 diff test/foo.bar golden/foo.bar
+diff test.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
 
 diff test/test.bzl.out golden/test.bzl.golden

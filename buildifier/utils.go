@@ -23,7 +23,7 @@ func isStarlarkFile(filename string) bool {
 	return false
 }
 
-func expandDirectories(args []string) ([]string, error) {
+func ExpandDirectories(args []string) ([]string, error) {
 	files := []string{}
 	for _, arg := range args {
 		info, err := os.Stat(arg)
