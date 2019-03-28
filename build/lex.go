@@ -589,12 +589,10 @@ func (in *input) Lex(val *yySymType) int {
 	case "continue":
 		return _CONTINUE
 	}
-	for _, c := range val.tok {
-		if c > '9' || c < '0' {
-			return _IDENT
-		}
+	if len(val.tok) > 0 && val.tok[0] >= '0' && val.tok[0] <= '9' {
+		return _NUMBER
 	}
-	return _NUMBER
+	return _IDENT
 }
 
 // isIdent reports whether c is an identifier rune.
