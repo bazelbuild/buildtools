@@ -45,6 +45,7 @@ var (
 	help          = flag.Bool("help", false, "print usage information")
 	vflag         = flag.Bool("v", false, "print verbose information to standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
+	rflag         = flag.Bool("r", false, "find starlark files recursively")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
 	diffProgram   = flag.String("diff_command", "", "command to run when the formatting mode is diff (default uses the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables to create the diff command)")
 	multiDiff     = flag.Bool("multi_diff", false, "the command specified by the -diff_command flag can diff multiple files in the style of tkdiff (default false)")
@@ -69,7 +70,7 @@ func stringList(name, help string) func() []string {
 }
 
 func usage() {
-	fmt.Fprintf(flag.CommandLine.Output(), `usage: buildifier [-d] [-v] [-diff_command=command] [-help] [-multi_diff] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
+	fmt.Fprintf(flag.CommandLine.Output(), `usage: buildifier [-d] [-v] [-r] [-diff_command=command] [-help] [-multi_diff] [-mode=mode] [-lint=lint_mode] [-path=path] [files...]
 
 Buildifier applies standard formatting to the named Starlark files.  The mode
 flag selects the processing: check, diff, fix, or print_if_changed.  In check
@@ -259,7 +260,16 @@ func main() {
 		}
 		processFile("", data, *inputType, *lint, warningsList, false)
 	} else {
-		processFiles(args, *inputType, *lint, warningsList)
+		files := args
+		if (*rflag) {
+			var err error
+			files, err = ExpandDirectories(args)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
+				os.Exit(3)
+			}
+		}
+		processFiles(files, *inputType, *lint, warningsList)
 	}
 
 	if err := diff.Run(); err != nil {
@@ -292,6 +302,7 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 		data []byte
 		err  error
 	}
+
 	ch := make([]chan result, nworker)
 	for i := 0; i < nworker; i++ {
 		ch[i] = make(chan result, 1)
