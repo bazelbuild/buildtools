@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/buildifier_utils"
 	"github.com/bazelbuild/buildtools/differ"
 	"github.com/bazelbuild/buildtools/tables"
 	"github.com/bazelbuild/buildtools/warn"
@@ -261,9 +262,9 @@ func main() {
 		processFile("", data, *inputType, *lint, warningsList, false)
 	} else {
 		files := args
-		if (*rflag) {
+		if *rflag {
 			var err error
-			files, err = ExpandDirectories(args)
+			files, err = buildifier_utils.ExpandDirectories(args)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 				os.Exit(3)
@@ -360,7 +361,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 	}()
 
-	parser := getParser(inputType)
+	parser := buildifier_utils.GetParser(inputType)
 
 	f, err := parser(filename, data)
 	if err != nil {
@@ -486,21 +487,6 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			exitCode = 3
 			return
 		}
-	}
-}
-
-func getParser(inputType string) func(filename string, data []byte) (*build.File, error) {
-	switch inputType {
-	case "build":
-		return build.ParseBuild
-	case "bzl":
-		return build.ParseBzl
-	case "auto":
-		return build.Parse
-	case "workspace":
-		return build.ParseWorkspace
-	default:
-		return build.ParseDefault
 	}
 }
 

@@ -1,9 +1,11 @@
-package main
+package buildifier_utils
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/build"
 )
 
 func isStarlarkFile(filename string) bool {
@@ -47,4 +49,20 @@ func ExpandDirectories(args []string) ([]string, error) {
 		}
 	}
 	return files, nil
+}
+
+// GetParser returns a parser for a given file type
+func GetParser(inputType string) func(filename string, data []byte) (*build.File, error) {
+	switch inputType {
+	case "build":
+		return build.ParseBuild
+	case "bzl":
+		return build.ParseBzl
+	case "auto":
+		return build.Parse
+	case "workspace":
+		return build.ParseWorkspace
+	default:
+		return build.ParseDefault
+	}
 }
