@@ -114,7 +114,7 @@ def f():
 		[]string{`2: The docstring for the function "f" should start with a one-line summary.`},
 		scopeEverywhere)
 
-		checkFindings(t, "function-docstring-header", `
+	checkFindings(t, "function-docstring-header", `
 	def _f(x):
 	  """Long private function
 	  with a docstring"""
@@ -125,10 +125,10 @@ def f():
 	  x %= 5
 	  return x
 	`,
-			[]string{
-				`:2: The docstring for the function "_f" should start with a one-line summary.`,
-			},
-			scopeEverywhere)
+		[]string{
+			`:2: The docstring for the function "_f" should start with a one-line summary.`,
+		},
+		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
 	def f(x):
@@ -202,7 +202,7 @@ def f(x):
 		[]string{},
 		scopeEverywhere)
 
-		checkFindings(t, "function-docstring-args", `
+	checkFindings(t, "function-docstring-args", `
 def f(x, y):
   """Short function with a docstring
 

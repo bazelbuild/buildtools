@@ -308,7 +308,6 @@ func functionDocstringArgsWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-
 func functionDocstringReturnWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
 
