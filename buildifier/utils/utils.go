@@ -1,3 +1,5 @@
+// Package utils contains shared methods that can be used by different implementations of
+// buildifier binary
 package utils
 
 import (
