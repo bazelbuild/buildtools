@@ -34,7 +34,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//build:go_default_library",
-        "//buildifier_utils:go_default_library",
+        "//buildifier/utils:go_default_library",
         "//differ:go_default_library",
         "//tables:go_default_library",
         "//warn:go_default_library",
