@@ -110,6 +110,9 @@ func getFileType(filename string) FileType {
 		return TypeDefault
 	}
 	basename := strings.ToLower(filepath.Base(filename))
+	if strings.HasSuffix(basename, ".oss") {
+		basename = basename[:len(basename)-4]
+	}
 	ext := filepath.Ext(basename)
 	switch ext {
 	case ".bzl":
