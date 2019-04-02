@@ -29,12 +29,12 @@ go_library(
     name = "go_default_library",
     srcs = [
       "buildifier.go",
-      "utils.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/buildifier",
     visibility = ["//visibility:private"],
     deps = [
         "//build:go_default_library",
+        "//buildifier_utils:go_default_library",
         "//differ:go_default_library",
         "//tables:go_default_library",
         "//warn:go_default_library",
