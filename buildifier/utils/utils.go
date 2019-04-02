@@ -1,4 +1,4 @@
-package buildifier_utils
+package utils
 
 import (
 	"os"
