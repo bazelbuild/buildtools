@@ -21,11 +21,13 @@ func TestWarnSameOriginLoad(t *testing.T) {
 		"s2"
 	)
 	load(":t.bzl", "s3")`,
-		[]string{":7: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		[]string{`:7: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`},
 		scopeEverywhere,
 	)
 
 	checkFindingsAndFix(t, category, `
+	"""Module"""
+
 	load(
 		":f.bzl",
 		"s1"
@@ -38,14 +40,16 @@ func TestWarnSameOriginLoad(t *testing.T) {
 		":f.bzl",
 		"s3"
 	)`, `
+	"""Module"""
+
 	load(
 		":f.bzl",
 		"s1",
 		"s2",
 		"s3"
 	)`,
-		[]string{":6: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
-			":10: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		[]string{`:8: There is already a load from ":f.bzl" on line 3. Please merge all loads from the same origin into a single one.`,
+			`:12: There is already a load from ":f.bzl" on line 3. Please merge all loads from the same origin into a single one.`},
 		scopeEverywhere,
 	)
 
@@ -55,23 +59,25 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	`, `
 	load(":f.bzl", "s1", "s2", "s3")
   `,
-		[]string{":2: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		[]string{`:2: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`},
 		scopeEverywhere,
 	)
 
 	checkFindingsAndFix(t, category, `
+	load(":g.bzl", "s0")
 	load(":f.bzl", "s1")
 	load(":f.bzl",
     "s2",
     "s3")
 	`, `
+	load(":g.bzl", "s0")
 	load(
       ":f.bzl",
       "s1",
       "s2",
       "s3",
   )`,
-		[]string{":2: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one."},
+		[]string{`:3: There is already a load from ":f.bzl" on line 2. Please merge all loads from the same origin into a single one.`},
 		scopeEverywhere,
 	)
 
@@ -89,8 +95,8 @@ func TestWarnSameOriginLoad(t *testing.T) {
       "s4",
   )`,
 		[]string{
-			":2: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
-			":3: There is already a load from \":f.bzl\". Please merge all loads from the same origin into a single one.",
+			`:2: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`,
+			`:3: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`,
 		}, scopeEverywhere,
 	)
 }
