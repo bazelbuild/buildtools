@@ -275,7 +275,10 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	loaded := make(map[string]struct{ label, from string; line int })
+	loaded := make(map[string]struct {
+		label, from string
+		line        int
+	})
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -290,7 +293,10 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			// Check if the symbol was already loaded
 			origin, alreadyLoaded := loaded[to.Name]
 			start, _ := from.Span()
-			loaded[to.Name] = struct{ label, from string; line int }{load.Module.Token, from.Name, start.Line}
+			loaded[to.Name] = struct {
+				label, from string
+				line        int
+			}{load.Module.Token, from.Name, start.Line}
 
 			if alreadyLoaded {
 				if fix && origin.label == load.Module.Token && origin.from == from.Name {
@@ -323,7 +329,7 @@ If you want to re-export a symbol, use the following pattern:
 
     load(..., _%s = %q, ...)
     %s = _%s
-`,to.Name, from.Name, to.Name, to.Name)
+`, to.Name, from.Name, to.Name, to.Name)
 					}
 					findings = append(findings,
 						makeFinding(f, start, end, "load", message, true, nil))
