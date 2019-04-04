@@ -275,7 +275,10 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 
 func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 	findings := []*Finding{}
-	loaded := make(map[string]struct{ label, from string })
+	loaded := make(map[string]struct {
+		label, from string
+		line        int
+	})
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -283,24 +286,29 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 		if !ok {
 			continue
 		}
+
 		for i := 0; i < len(load.To); i++ {
 			from := load.From[i]
 			to := load.To[i]
 			// Check if the symbol was already loaded
 			origin, alreadyLoaded := loaded[to.Name]
-			loaded[to.Name] = struct{ label, from string }{load.Module.Token, from.Name}
+			start, _ := from.Span()
+			loaded[to.Name] = struct {
+				label, from string
+				line        int
+			}{load.Module.Token, from.Name, start.Line}
 
 			if alreadyLoaded {
 				if fix && origin.label == load.Module.Token && origin.from == from.Name {
-					// Only fix if it's loaded from the label and variable
+					// Only fix if it's loaded from the same label and variable
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
 				} else {
 					start, end := to.Span()
+					message := fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)
 					findings = append(findings,
-						makeFinding(f, start, end, "load",
-							"Symbol \""+to.Name+"\" has already been loaded. Please remove it.", true, nil))
+						makeFinding(f, start, end, "load", message, true, nil))
 				}
 				continue
 			}
@@ -313,10 +321,18 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 					i--
 				} else {
 					start, end := to.Span()
+					message := fmt.Sprintf(`Loaded symbol %q is unused. Please remove it.
+To disable the warning, add '@unused' in a comment.`, to.Name)
+					if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
+						message += fmt.Sprintf(`
+If you want to re-export a symbol, use the following pattern:
+
+    load(..., _%s = %q, ...)
+    %s = _%s
+`, to.Name, from.Name, to.Name, to.Name)
+					}
 					findings = append(findings,
-						makeFinding(f, start, end, "load",
-							"Loaded symbol \""+to.Name+"\" is unused. Please remove it.\n"+
-								"To disable the warning, add '@unused' in a comment.", true, nil))
+						makeFinding(f, start, end, "load", message, true, nil))
 
 				}
 			}
