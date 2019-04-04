@@ -109,12 +109,22 @@ test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
 fixed test_dir/to_fix_tmp.bzl
 EOF
 
+  # --lint=warn with --mode=check
+  $buildifier --mode=check --lint=warn $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
+  if [[ $ret -ne 4 ]]; then
+    die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
+  fi
+  diff test_dir/error golden/error_golden || die "$1: wrong console output for --mode=check --lint=warn"
+  diff test_dir/to_fix.bzl test_dir/to_fix.bzl || die "$1: --mode=check --lint=warn shouldn't modify files"
+
+  # --lint=warn
   $buildifier --lint=warn $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
   diff test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
 
+  # --lint=fix
   $buildifier --lint=fix $2 -v test_dir/to_fix_tmp.bzl 2> test_dir/fix_report || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: fix: Expected buildifier to exit with 4, actual: $ret"
