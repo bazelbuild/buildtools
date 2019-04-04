@@ -3,10 +3,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+      "flags.go",
       "utils.go",
     ],
     deps = [
         "//build:go_default_library",
+        "//warn:go_default_library",
     ],
     importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
     visibility = ["//visibility:public"],
