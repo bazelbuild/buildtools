@@ -7,6 +7,7 @@ import (
 	"github.com/bazelbuild/buildtools/warn"
 )
 
+// ValidateModes validates flags --type, --mode, --lint, and -d
 func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 	// Check input type.
 	switch *inputType {
@@ -14,12 +15,12 @@ func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 		// ok
 
 	default:
-		return fmt.Errorf("buildifier: unrecognized input type %s; valid types are build, bzl, workspace, default, auto\n", *inputType)
+		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, auto", *inputType)
 	}
 
 	if *dflag {
 		if *mode != "" {
-			return fmt.Errorf("buildifier: cannot specify both -d and -mode flags\n")
+			return fmt.Errorf("cannot specify both -d and -mode flags")
 		}
 		*mode = "diff"
 	}
@@ -33,7 +34,7 @@ func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 		// ok
 
 	default:
-		return fmt.Errorf("buildifier: unrecognized mode %s; valid modes are check, diff, fix\n", *mode)
+		return fmt.Errorf("unrecognized mode %s; valid modes are check, diff, fix", *mode)
 	}
 
 	// Check lint mode.
@@ -46,16 +47,17 @@ func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 
 	case "fix":
 		if *mode != "fix" {
-			return fmt.Errorf("buildifier: --lint=fix is only compatible with --mode=fix\n")
+			return fmt.Errorf("--lint=fix is only compatible with --mode=fix")
 		}
 
 	default:
-		return fmt.Errorf("buildifier: unrecognized lint mode %s; valid modes are warn and fix\n", *lint)
+		return fmt.Errorf("unrecognized lint mode %s; valid modes are warn and fix", *lint)
 	}
 
 	return nil
 }
 
+// ValidateWarnings validates the value of the --warnings flag
 func ValidateWarnings(warnings *string) ([]string, error) {
 
 	// Check lint warnings
@@ -81,7 +83,7 @@ func ValidateWarnings(warnings *string) ([]string, error) {
 			}
 		}
 		if len(warningsList) > 0 && (len(plus) > 0 || len(minus) > 0) {
-			return []string{}, fmt.Errorf("buildifier: warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories\n")
+			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories")
 		}
 		if len(warningsList) == 0 {
 			for _, warning := range warn.DefaultWarnings {
