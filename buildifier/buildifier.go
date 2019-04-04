@@ -134,7 +134,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	warningsList, err := utils.ValidateWarnings(warnings)
+	warningsList, err := utils.ValidateWarnings(warnings, &warn.AllWarnings, &warn.DefaultWarnings)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n" ,err)
 		os.Exit(2)

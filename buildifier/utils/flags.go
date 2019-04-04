@@ -3,8 +3,6 @@ package utils
 import (
 	"fmt"
 	"strings"
-
-	"github.com/bazelbuild/buildtools/warn"
 )
 
 // ValidateModes validates flags --type, --mode, --lint, and -d
@@ -58,15 +56,15 @@ func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 }
 
 // ValidateWarnings validates the value of the --warnings flag
-func ValidateWarnings(warnings *string) ([]string, error) {
+func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
 
 	// Check lint warnings
 	var warningsList []string
 	switch *warnings {
 	case "", "default":
-		warningsList = warn.DefaultWarnings
+		warningsList = *defaultWarnings
 	case "all":
-		warningsList = warn.AllWarnings
+		warningsList = *allWarnings
 	default:
 		// Either all or no warning categories should start with "+" or "-".
 		// If all of them start with "+" or "-", the semantics is
@@ -86,7 +84,7 @@ func ValidateWarnings(warnings *string) ([]string, error) {
 			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories")
 		}
 		if len(warningsList) == 0 {
-			for _, warning := range warn.DefaultWarnings {
+			for _, warning := range *defaultWarnings {
 				if !minus[warning] {
 					warningsList = append(warningsList, warning)
 				}
