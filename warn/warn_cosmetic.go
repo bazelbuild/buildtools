@@ -3,6 +3,7 @@
 package warn
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -46,9 +47,14 @@ func sameOriginLoadWarning(f *build.File, fix bool) []*Finding {
 			stmtIndex--
 		} else {
 			start, end := load.Module.Span()
+			previousStart, _ := previousLoad.Span()
+			message := fmt.Sprintf(
+				"There is already a load from %q on line %d. Please merge all loads from the same origin into a single one.",
+				load.Module.Value,
+				previousStart.Line,
+			)
 			findings = append(findings,
-				makeFinding(f, start, end, "same-origin-load",
-					"There is already a load from \""+load.Module.Value+"\". Please merge all loads from the same origin into a single one.", true, nil))
+				makeFinding(f, start, end, "same-origin-load", message, true, nil))
 		}
 	}
 	return findings
