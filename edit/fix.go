@@ -409,9 +409,10 @@ func movePackageDeclarationToTheTop(f *build.File) bool {
 	inserted := false // true when the package declaration has been inserted
 	for _, stmt := range f.Stmt {
 		_, isComment := stmt.(*build.CommentBlock)
+		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isAssignExpr := stmt.(*build.AssignExpr) // e.g. variable declaration
 		_, isLoad := stmt.(*build.LoadStmt)
-		if isComment || isAssignExpr || isLoad {
+		if isComment || isString || isAssignExpr || isLoad {
 			all = append(all, stmt)
 			continue
 		}
