@@ -8,8 +8,7 @@ go_library(
     ],
     deps = [
         "//build:go_default_library",
-        "//warn:go_default_library",
     ],
     importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
-    visibility = ["//visibility:public"],
+    visibility = ["//buildifier:__pkg__"],
 )
