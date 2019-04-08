@@ -348,8 +348,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if bytes.Equal(data, ndata) {
 			return
 		}
-		outfile, err := utils.WriteTemp(ndata, &toRemove)
+		outfile, err := utils.WriteTemp(ndata)
 		if err != nil {
+			toRemove = append(toRemove, outfile)
 			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 			exitCode = 3
 			return
@@ -358,8 +359,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if filename == "" {
 			// data was read from standard filename.
 			// Write it to a temporary file so diff can read it.
-			infile, err = utils.WriteTemp(data, &toRemove)
+			infile, err = utils.WriteTemp(data)
 			if err != nil {
+				toRemove = append(toRemove, infile)
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 				exitCode = 3
 				return

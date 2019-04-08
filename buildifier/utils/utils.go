@@ -74,16 +74,14 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 }
 
 // WriteTemp writes data to a temporary file and returns the name of the file.
-func WriteTemp(data []byte, toRemove *[]string) (file string, err error) {
+func WriteTemp(data []byte) (file string, err error) {
 	f, err := ioutil.TempFile("", "buildifier-tmp-")
 	if err != nil {
 		return "", fmt.Errorf("creating temporary file: %v", err)
 	}
-	name := f.Name()
-	*toRemove = append(*toRemove, name)
 	defer f.Close()
-	_, err = f.Write(data)
-	if err != nil {
+	name := f.Name()
+	if _, err = f.Write(data); err != nil {
 		return "", fmt.Errorf("writing temporary file: %v", err)
 	}
 	return name, nil

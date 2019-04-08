@@ -16,6 +16,16 @@ func ValidateInputType(inputType *string) error {
 	}
 }
 
+// isRecognizedMode checks whether the given mode is one of the valid modes.
+func isRecognizedMode(validModes []string, mode string) bool {
+	for _, m := range validModes {
+		if mode == m {
+			return true
+		}
+	}
+	return false
+}
+
 // ValidateModes validates flags --mode, --lint, and -d
 func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) error {
 	if *dflag {
@@ -29,14 +39,7 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 	validModes := []string{"check", "diff", "fix", "print_if_changed"}
 	validModes = append(validModes, additionalModes...)
 
-	recognizedMode := false
-	for _, m := range validModes {
-		if *mode == m {
-			recognizedMode = true
-			break
-		}
-	}
-	if !recognizedMode {
+	if !isRecognizedMode(validModes, *mode) {
 		return fmt.Errorf("unrecognized mode %s; valid modes are %s", *mode, strings.Join(validModes, ", "))
 	}
 
