@@ -41,7 +41,7 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 
 	if *mode == "" {
 		*mode = "fix"
-	} else 	if !isRecognizedMode(validModes, *mode) {
+	} else if !isRecognizedMode(validModes, *mode) {
 		return fmt.Errorf("unrecognized mode %s; valid modes are %s", *mode, strings.Join(validModes, ", "))
 	}
 
