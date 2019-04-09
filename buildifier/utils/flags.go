@@ -39,12 +39,17 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 	validModes := []string{"check", "diff", "fix", "print_if_changed"}
 	validModes = append(validModes, additionalModes...)
 
-	if !isRecognizedMode(validModes, *mode) {
+	if *mode == "" {
+		*mode = "fix"
+	} else if !isRecognizedMode(validModes, *mode) {
 		return fmt.Errorf("unrecognized mode %s; valid modes are %s", *mode, strings.Join(validModes, ", "))
 	}
 
 	// Check lint mode.
 	switch *lint {
+	case "":
+		*lint = "off"
+
 	case "off", "warn":
 		// ok
 
