@@ -81,7 +81,7 @@ func WriteTemp(data []byte) (file string, err error) {
 	}
 	defer f.Close()
 	name := f.Name()
-	if _, err = f.Write(data); err != nil {
+	if _, err := f.Write(data); err != nil {
 		return "", fmt.Errorf("writing temporary file: %v", err)
 	}
 	return name, nil
