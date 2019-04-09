@@ -5,17 +5,29 @@ import (
 	"strings"
 )
 
-// ValidateModes validates flags --type, --mode, --lint, and -d
-func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
-	// Check input type.
+// ValidateModes validates the value of --type
+func ValidateInputType(inputType *string) error {
 	switch *inputType {
 	case "build", "bzl", "workspace", "default", "auto":
-		// ok
+		return nil
 
 	default:
 		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, auto", *inputType)
 	}
+}
 
+// isRecognizedMode checks whether the given mode is one of the valid modes.
+func isRecognizedMode(validModes []string, mode string) bool {
+	for _, m := range validModes {
+		if mode == m {
+			return true
+		}
+	}
+	return false
+}
+
+// ValidateModes validates flags --mode, --lint, and -d
+func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) error {
 	if *dflag {
 		if *mode != "" {
 			return fmt.Errorf("cannot specify both -d and -mode flags")
@@ -24,22 +36,15 @@ func ValidateModes(inputType, mode, lint *string, dflag *bool) error {
 	}
 
 	// Check mode.
-	switch *mode {
-	case "":
-		*mode = "fix"
+	validModes := []string{"check", "diff", "fix", "print_if_changed"}
+	validModes = append(validModes, additionalModes...)
 
-	case "check", "diff", "fix", "print_if_changed":
-		// ok
-
-	default:
-		return fmt.Errorf("unrecognized mode %s; valid modes are check, diff, fix", *mode)
+	if !isRecognizedMode(validModes, *mode) {
+		return fmt.Errorf("unrecognized mode %s; valid modes are %s", *mode, strings.Join(validModes, ", "))
 	}
 
 	// Check lint mode.
 	switch *lint {
-	case "":
-		*lint = "off"
-
 	case "off", "warn":
 		// ok
 

@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -47,10 +45,10 @@ var (
 	vflag         = flag.Bool("v", false, "print verbose information to standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	rflag         = flag.Bool("r", false, "find starlark files recursively")
-	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
+	mode          = flag.String("mode", "fix", "formatting mode: check, diff, or fix (default fix)")
 	diffProgram   = flag.String("diff_command", "", "command to run when the formatting mode is diff (default uses the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables to create the diff command)")
 	multiDiff     = flag.Bool("multi_diff", false, "the command specified by the -diff_command flag can diff multiple files in the style of tkdiff (default false)")
-	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
+	lint          = flag.String("lint", "off", "lint mode: off, warn, or fix (default off)")
 	warnings      = flag.String("warnings", "", "comma-separated warnings used in the lint mode or \"all\"")
 	filePath      = flag.String("path", "", "assume BUILD file has this path relative to the workspace directory")
 	tablesPath    = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
@@ -129,7 +127,12 @@ func main() {
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
 
-	if err := utils.ValidateModes(inputType, mode, lint, dflag); err != nil {
+	if err := utils.ValidateInputType(inputType); err != nil {
+		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
+		os.Exit(2)
+	}
+
+	if err := utils.ValidateModes(mode, lint, dflag); err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
 	}
@@ -298,17 +301,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		return
 	}
 
-	pkg := getPackageName(filename)
-	switch lint {
-	case "warn":
-		warnings := warn.FileWarnings(f, pkg, warningsList, false)
-		warn.PrintWarnings(f, warnings, false)
-		hasWarnings := len(warnings) > 0
-		if hasWarnings {
-			exitCode = 4
-		}
-	case "fix":
-		warn.FixWarnings(f, pkg, warningsList, *vflag)
+	pkg := utils.GetPackageName(filename)
+	if utils.Lint(f, pkg, lint, &warningsList, *vflag) {
+		exitCode = 4
 	}
 
 	if *filePath != "" {
@@ -353,8 +348,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if bytes.Equal(data, ndata) {
 			return
 		}
-		outfile, err := writeTemp(ndata)
+		outfile, err := utils.WriteTemp(ndata)
 		if err != nil {
+			toRemove = append(toRemove, outfile)
 			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 			exitCode = 3
 			return
@@ -363,8 +359,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if filename == "" {
 			// data was read from standard filename.
 			// Write it to a temporary file so diff can read it.
-			infile, err = writeTemp(data)
+			infile, err = utils.WriteTemp(data)
 			if err != nil {
+				toRemove = append(toRemove, infile)
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 				exitCode = 3
 				return
@@ -411,35 +408,4 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			return
 		}
 	}
-}
-
-// writeTemp writes data to a temporary file and returns the name of the file.
-func writeTemp(data []byte) (file string, err error) {
-	f, err := ioutil.TempFile("", "buildifier-tmp-")
-	if err != nil {
-		return "", fmt.Errorf("creating temporary file: %v", err)
-	}
-	name := f.Name()
-	toRemove = append(toRemove, name)
-	defer f.Close()
-	_, err = f.Write(data)
-	if err != nil {
-		return "", fmt.Errorf("writing temporary file: %v", err)
-	}
-	return name, nil
-}
-
-// getPackageName returns the package name of a file by searching for a WORKSPACE file
-func getPackageName(filename string) string {
-	dirs := filepath.SplitList(path.Dir(filename))
-	parent := ""
-	index := len(dirs) - 1
-	for i, chunk := range dirs {
-		parent = path.Join(parent, chunk)
-		metadata := path.Join(parent, "METADATA")
-		if _, err := os.Stat(metadata); !os.IsNotExist(err) {
-			index = i
-		}
-	}
-	return strings.Join(dirs[index+1:], "/")
 }
