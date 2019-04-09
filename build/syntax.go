@@ -126,7 +126,7 @@ func (x *Ident) Span() (start, end Position) {
 	return x.NamePos, x.NamePos.add(x.Name)
 }
 
-// BranchStmt represents a `pass` statement.
+// BranchStmt represents a `pass`, `break`, or `continue` statement.
 type BranchStmt struct {
 	Comments
 	Token    string // pass, break, continue

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ValidateModes validates the value of --type
+// ValidateInputType validates the value of --type
 func ValidateInputType(inputType *string) error {
 	switch *inputType {
 	case "build", "bzl", "workspace", "default", "auto":
