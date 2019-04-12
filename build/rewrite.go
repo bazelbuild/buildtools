@@ -931,7 +931,7 @@ func formatDocstrings(f *File, info *RewriteInfo) {
 		if updatedToken != docstring.Token {
 			docstring.Token = updatedToken
 			// Update the value to keep it consistent with Token
-			docstring.Value, _, _ = unquote(updatedToken)
+			docstring.Value, _, _ = Unquote(updatedToken)
 			info.FormatDocstrings++
 		}
 	})
@@ -1010,7 +1010,7 @@ func editOctals(f *File, info *RewriteInfo) {
 		if !ok {
 			return
 		}
-		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9'{
+		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9' {
 			l.Token = "0o" + l.Token[1:]
 			info.EditOctal++
 		}

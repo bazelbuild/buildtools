@@ -428,15 +428,23 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 		return &build.ListExpr{List: list}
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
 		var list []build.Expr
-		for _, i := range args {
-			list = append(list, &build.StringExpr{Value: ShortenLabel(i, env.Pkg)})
+		for _, arg := range args {
+			list = append(list, getStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
 	case IsString(attr):
-		return &build.StringExpr{Value: ShortenLabel(args[0], env.Pkg)}
+		return getStringExpr(args[0], env.Pkg)
 	default:
 		return &build.Ident{Name: args[0]}
 	}
+}
+
+func getStringExpr(value, pkg string) build.Expr {
+	unquoted, triple, err := build.Unquote(value)
+	if err == nil {
+		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
+	}
+	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
 }
 
 func cmdCopy(opts *Options, env CmdEnvironment) (*build.File, error) {
