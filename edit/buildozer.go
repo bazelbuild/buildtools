@@ -85,7 +85,7 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
 			continue
 		}
-		strVal := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
+		strVal := getStringExpr(val, env.Pkg)
 		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
 	return env.File, nil
@@ -478,16 +478,12 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.Split(x, ":")
-		expr := build.StringExpr{
-			Value:       kv[1],
-			TripleQuote: false,
-			Token:       "",
-		}
+		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
 		if prev == nil {
 			// Only set the value if the value is currently unset.
-			DictionarySet(dict, kv[0], &expr)
+			DictionarySet(dict, kv[0], expr)
 		}
 	}
 	env.Rule.SetAttr(attr, dict)
@@ -507,13 +503,9 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.Split(x, ":")
-		expr := build.StringExpr{
-			Value:       kv[1],
-			TripleQuote: false,
-			Token:       "",
-		}
+		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
-		DictionarySet(dict, kv[0], &expr)
+		DictionarySet(dict, kv[0], expr)
 	}
 	env.Rule.SetAttr(attr, dict)
 	return env.File, nil
