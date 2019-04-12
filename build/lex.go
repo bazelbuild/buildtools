@@ -555,7 +555,7 @@ func (in *input) Lex(val *yySymType) int {
 			}
 		}
 		in.endToken(val)
-		s, triple, err := unquote(val.tok)
+		s, triple, err := Unquote(val.tok)
 		if err != nil {
 			in.Error(fmt.Sprint(err))
 		}

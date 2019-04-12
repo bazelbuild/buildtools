@@ -74,7 +74,7 @@ func TestQuote(t *testing.T) {
 
 func TestUnquote(t *testing.T) {
 	for _, tt := range quoteTests {
-		s, triple, err := unquote(tt.q)
+		s, triple, err := Unquote(tt.q)
 		wantTriple := strings.HasPrefix(tt.q, `"""`) || strings.HasPrefix(tt.q, `'''`)
 		if s != tt.s || triple != wantTriple || err != nil {
 			t.Errorf("unquote(%s) = %#q, %v, %v want %#q, %v, nil", tt.q, s, triple, err, tt.s, wantTriple)

@@ -85,7 +85,7 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
 			continue
 		}
-		strVal := &build.StringExpr{Value: ShortenLabel(val, env.Pkg)}
+		strVal := getStringExpr(val, env.Pkg)
 		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
 	return env.File, nil
@@ -428,15 +428,23 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 		return &build.ListExpr{List: list}
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
 		var list []build.Expr
-		for _, i := range args {
-			list = append(list, &build.StringExpr{Value: ShortenLabel(i, env.Pkg)})
+		for _, arg := range args {
+			list = append(list, getStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
 	case IsString(attr):
-		return &build.StringExpr{Value: ShortenLabel(args[0], env.Pkg)}
+		return getStringExpr(args[0], env.Pkg)
 	default:
 		return &build.Ident{Name: args[0]}
 	}
+}
+
+func getStringExpr(value, pkg string) build.Expr {
+	unquoted, triple, err := build.Unquote(value)
+	if err == nil {
+		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
+	}
+	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
 }
 
 func cmdCopy(opts *Options, env CmdEnvironment) (*build.File, error) {
@@ -470,16 +478,12 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.Split(x, ":")
-		expr := build.StringExpr{
-			Value:       kv[1],
-			TripleQuote: false,
-			Token:       "",
-		}
+		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
 		if prev == nil {
 			// Only set the value if the value is currently unset.
-			DictionarySet(dict, kv[0], &expr)
+			DictionarySet(dict, kv[0], expr)
 		}
 	}
 	env.Rule.SetAttr(attr, dict)
@@ -499,13 +503,9 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.Split(x, ":")
-		expr := build.StringExpr{
-			Value:       kv[1],
-			TripleQuote: false,
-			Token:       "",
-		}
+		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
-		DictionarySet(dict, kv[0], &expr)
+		DictionarySet(dict, kv[0], expr)
 	}
 	env.Rule.SetAttr(attr, dict)
 	return env.File, nil
