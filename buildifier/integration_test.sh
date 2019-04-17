@@ -137,3 +137,102 @@ test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_integer"$'\n'"$error_
 test_lint "all" "--warnings=all" "test_dir/fixed_golden_all.bzl" "$error_integer"$'\n'"$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
 test_lint "cfg" "--warnings=attr-cfg" "test_dir/fixed_golden_cfg.bzl" "$error_cfg" 0
 test_lint "custom" "--warnings=-integer-division,+unsorted-dict-items" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
+
+# Test --format=json
+
+mkdir test_dir/json
+cp test_dir/to_fix.bzl test_dir/json
+
+# just not formatted
+cat > test_dir/json/to_fix_2.bzl <<EOF
+a=b
+EOF
+
+# not formatted with rewrites
+cat > test_dir/json/to_fix_3.bzl <<EOF
+x = 0123
+EOF
+
+# formatted, no warnings
+cat > test_dir/json/to_fix_4.bzl <<EOF
+a = b
+EOF
+
+cat > golden/json_report_golden <<EOF
+{
+    "success": false,
+    "files": [
+        {
+            "filename": "test_dir/json/to_fix.bzl",
+            "formatted": true,
+            "warnings": [
+                {
+                    "start": {
+                        "line": 1,
+                        "column": 5
+                    },
+                    "end": {
+                        "line": 1,
+                        "column": 10
+                    },
+                    "category": "integer-division",
+                    "actionable": true,
+                    "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
+                },
+                {
+                    "start": {
+                        "line": 3,
+                        "column": 15
+                    },
+                    "end": {
+                        "line": 3,
+                        "column": 27
+                    },
+                    "category": "attr-cfg",
+                    "actionable": true,
+                    "message": "cfg = \"data\" for attr definitions has no effect and should be removed.",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg"
+                }
+            ]
+        },
+        {
+            "filename": "test_dir/json/to_fix_2.bzl",
+            "formatted": false,
+            "warnings": []
+        },
+        {
+            "filename": "test_dir/json/to_fix_3.bzl",
+            "formatted": false,
+            "warnings": [],
+            "rewrites": {
+                "editoctal": 1
+            }
+        },
+        {
+            "filename": "test_dir/json/to_fix_4.bzl",
+            "formatted": true,
+            "warnings": []
+        }
+    ]
+}
+EOF
+
+cat > golden/json_report_small_golden <<EOF
+{
+    "success": true,
+    "files": [
+        {
+            "filename": "test_dir/json/to_fix_4.bzl",
+            "formatted": true,
+            "warnings": []
+        }
+    ]
+}
+EOF
+
+$buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v -r test_dir/json > test_dir/json_report
+diff test_dir/json_report golden/json_report_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with many files"
+
+$buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v test_dir/json/to_fix_4.bzl > test_dir/json_report
+diff test_dir/json_report golden/json_report_small_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with a single file"

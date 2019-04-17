@@ -207,33 +207,6 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 	return findings
 }
 
-// PrintWarnings prints the list of warnings returned from calling FileWarnings.
-// Actionable warnings list their link in parens, inactionable warnings list
-// their link in square brackets.
-func PrintWarnings(f *build.File, warnings []*Finding, showReplacements bool) {
-	for _, w := range warnings {
-		formatString := "%s:%d: %s: %s (%s)"
-		if !w.Actionable {
-			formatString = "%s:%d: %s: %s [%s]"
-		}
-		fmt.Fprintf(os.Stderr, formatString,
-			w.File.DisplayPath(),
-			w.Start.Line,
-			w.Category,
-			w.Message,
-			w.URL)
-		if showReplacements && w.Replacement != nil {
-			r := w.Replacement
-			fmt.Fprintf(os.Stderr, " [%d..%d): %s\n",
-				r.Start.Byte,
-				r.End.Byte,
-				r.Content)
-		} else {
-			fmt.Fprintf(os.Stderr, "\n")
-		}
-	}
-}
-
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
 	warnings := FileWarnings(f, pkg, enabledWarnings, true)
