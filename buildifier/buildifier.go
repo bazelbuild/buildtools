@@ -356,14 +356,13 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	case "diff":
 		// diff mode: run diff on old and new.
 		if bytes.Equal(data, ndata) {
-			break
+			return fileDiagnostics, exitCode
 		}
 		outfile, err := utils.WriteTemp(ndata)
 		if err != nil {
 			toRemove = append(toRemove, outfile)
 			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-			exitCode = 3
-			break
+			return fileDiagnostics, 3
 		}
 		infile := filename
 		if filename == "" {
@@ -373,8 +372,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			if err != nil {
 				toRemove = append(toRemove, infile)
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-				exitCode = 3
-				break
+				return fileDiagnostics, 3
 			}
 		}
 		if displayFileNames {
@@ -382,7 +380,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			exitCode = 4
+			return fileDiagnostics, 4
 		}
 
 	case "pipe":
@@ -393,14 +391,13 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	case "fix":
 		// fix mode: update files in place as needed.
 		if bytes.Equal(data, ndata) {
-			break
+			return fileDiagnostics, exitCode
 		}
 
 		err := ioutil.WriteFile(filename, ndata, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
-			exitCode = 3
-			break
+			return fileDiagnostics, 3
 		}
 
 		if *vflag {
@@ -408,13 +405,12 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 	case "print_if_changed":
 		if bytes.Equal(data, ndata) {
-			break
+			return fileDiagnostics, exitCode
 		}
 
 		if _, err := os.Stdout.Write(ndata); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: error writing output: %v\n", err)
-			exitCode = 3
-			break
+			return fileDiagnostics, 3
 		}
 	}
 	return fileDiagnostics, exitCode
