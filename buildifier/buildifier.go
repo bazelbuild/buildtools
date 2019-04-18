@@ -176,7 +176,6 @@ func main() {
 	diff = differ
 
 	tf := &utils.TempFile{}
-	defer tf.Clean()
 
 	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
 		// Read from stdin, write to stdout.
@@ -201,6 +200,8 @@ func main() {
 		}
 		processFiles(files, *inputType, *lint, warningsList, tf)
 	}
+
+	tf.Clean()
 
 	if err := diff.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
