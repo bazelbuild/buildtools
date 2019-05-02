@@ -41,7 +41,12 @@ echo -e "$INPUT" > test_dir/test.bzl
 echo -e "$INPUT" > test_dir/subdir/test.bzl
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
+mkdir test_dir/workspace  # name of a starlark file, but a directory
+mkdir test_dir/.git  # contents should be ignored
+echo -e "a+b" > test_dir/.git/git.bzl
+
 cp test_dir/foo.bar golden/foo.bar
+cp test_dir/.git/git.bzl golden/git.bzl
 
 "$buildifier" < test_dir/build > stdout
 "$buildifier" -r test_dir
@@ -75,6 +80,7 @@ diff test_dir/foo.bar golden/foo.bar
 diff test.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
 diff test_dir/test.bzl.out golden/test.bzl.golden
+diff test_dir/.git/git.bzl golden/git.bzl
 
 # Test run on a directory without -r
 "$buildifier" test_dir || ret=$?

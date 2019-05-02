@@ -12,8 +12,12 @@ import (
 	"github.com/bazelbuild/buildtools/warn"
 )
 
-func isStarlarkFile(filename string) bool {
-	basename := strings.ToLower(filepath.Base(filename))
+func isStarlarkFile(info os.FileInfo) bool {
+	if info.IsDir() {
+		return false
+	}
+
+	basename := strings.ToLower(info.Name())
 	ext := filepath.Ext(basename)
 	switch ext {
 	case ".bzl", ".sky":
@@ -27,6 +31,10 @@ func isStarlarkFile(filename string) bool {
 		return true
 	}
 	return false
+}
+
+func skip(info os.FileInfo) bool {
+	return info.IsDir() && info.Name() == ".git"
 }
 
 // ExpandDirectories takes a list of file/directory names and returns a list with file names
@@ -43,7 +51,10 @@ func ExpandDirectories(args *[]string) ([]string, error) {
 			continue
 		}
 		err = filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
-			if isStarlarkFile(path) {
+			if skip(info) {
+				return filepath.SkipDir
+			}
+			if isStarlarkFile(info) {
 				files = append(files, path)
 			}
 			return err
