@@ -5,6 +5,7 @@ go_library(
     srcs = [
       "diagnostics.go",
       "flags.go",
+      "tempfile.go",
       "utils.go",
     ],
     deps = [

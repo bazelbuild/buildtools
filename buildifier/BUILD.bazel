@@ -15,6 +15,7 @@ sh_test(
     name = "buildifier_integration_test",
     size = "small",
     srcs = ["integration_test.sh"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
     args = [
         "$(location :buildifier)",
         "$(location //buildifier2)",
