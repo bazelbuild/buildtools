@@ -175,43 +175,47 @@ func main() {
 	}
 	diff = differ
 
-	tf := &utils.TempFile{}
+	exitCode = run(&args, &warningsList)
+	os.Exit(exitCode)
+}
 
-	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
+func run(args, warningsList *[]string) int {
+	tf := &utils.TempFile{}
+	defer tf.Clean()
+
+	if len(*args) == 0 || (len(*args) == 1 && (*args)[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: reading stdin: %v\n", err)
-			os.Exit(2)
+			return 2
 		}
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
 		processFile("", data, *inputType, *lint, warningsList, false, tf)
 	} else {
-		files := args
+		files := *args
 		if *rflag {
 			var err error
 			files, err = utils.ExpandDirectories(args)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-				os.Exit(3)
+				return 3
 			}
 		}
 		processFiles(files, *inputType, *lint, warningsList, tf)
 	}
 
-	tf.Clean()
-
 	if err := diff.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
-		exitCode = 2
+		return 2
 	}
 
-	os.Exit(exitCode)
+	return exitCode
 }
 
-func processFiles(files []string, inputType, lint string, warningsList []string, tf *utils.TempFile) {
+func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *utils.TempFile) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -276,7 +280,7 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string, warningsList []string, displayFileNames bool, tf *utils.TempFile) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -299,7 +303,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 
 	pkg := utils.GetPackageName(filename)
-	if utils.Lint(f, pkg, lint, &warningsList, *vflag) {
+	if utils.Lint(f, pkg, lint, warningsList, *vflag) {
 		exitCode = 4
 	}
 

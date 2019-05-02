@@ -31,9 +31,9 @@ func isStarlarkFile(filename string) bool {
 
 // ExpandDirectories takes a list of file/directory names and returns a list with file names
 // by traversing each directory recursively and searching for relevant Starlark files.
-func ExpandDirectories(args []string) ([]string, error) {
+func ExpandDirectories(args *[]string) ([]string, error) {
 	files := []string{}
-	for _, arg := range args {
+	for _, arg := range *args {
 		info, err := os.Stat(arg)
 		if err != nil {
 			return []string{}, err
