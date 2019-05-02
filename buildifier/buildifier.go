@@ -98,22 +98,20 @@ file names given, but the path can be given explicitly with the -path
 argument. This is especially useful when reformatting standard input,
 or in scripts that reformat a temporary copy of a file.
 
+Return codes used by buildifier:
+
+  0: success, everything went well
+  1: syntax errors in input
+  2: usage errors: invoked incorrectly
+  3: unexpected runtime errors: file I/O problems or internal bugs
+  4: check mode failed (reformat is needed)
+
 Full list of flags with their defaults:
 `)
 	flag.PrintDefaults()
 }
 
 func main() {
-	// exitCode is the code to use when exiting the program.
-	// The codes used by buildifier are:
-	//
-	// 0: success, everything went well
-	// 1: syntax errors in input
-	// 2: usage errors: invoked incorrectly
-	// 3: unexpected runtime errors: file I/O problems or internal bugs
-	// 4: check mode failed (reformat is needed)
-	var exitCode = 0
-
 	flag.Usage = usage
 	flag.Parse()
 	args := flag.Args()
@@ -187,7 +185,7 @@ func main() {
 	}
 	diff = differ
 
-	exitCode = run(&args, &warningsList)
+	exitCode := run(&args, &warningsList)
 	os.Exit(exitCode)
 }
 
@@ -352,7 +350,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if !bytes.Equal(data, ndata) {
 			fileDiagnostics.MarkNotFormatted()
 			fileDiagnostics.SetRewrites(info.Stats())
-			exitCode = 4
+			return fileDiagnostics, 4
 		}
 
 	case "diff":
