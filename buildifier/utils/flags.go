@@ -16,6 +16,23 @@ func ValidateInputType(inputType *string) error {
 	}
 }
 
+// ValidateFormat validates the value of --format
+func ValidateFormat(format, mode *string) error {
+	switch *format {
+	case "":
+		return nil
+
+	case "text", "json":
+		if *mode != "check" {
+			return fmt.Errorf("cannot specify --format without --type=check")
+		}
+
+	default:
+		return fmt.Errorf("unrecognized format %s; valid types are text, json", *format)
+	}
+	return nil
+}
+
 // isRecognizedMode checks whether the given mode is one of the valid modes.
 func isRecognizedMode(validModes []string, mode string) bool {
 	for _, m := range validModes {

@@ -86,15 +86,13 @@ func GetPackageName(filename string) string {
 	return strings.Join(dirs[index+1:], "/")
 }
 
-// Lint calls the linter and returns true if there are any unresolved warnings
-func Lint(f *build.File, pkg, lint string, warningsList *[]string, verbose bool) bool {
+// Lint calls the linter and returns a list of unresolved findings
+func Lint(f *build.File, pkg, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
 	switch lint {
 	case "warn":
-		warnings := warn.FileWarnings(f, pkg, *warningsList, false)
-		warn.PrintWarnings(f, warnings, false)
-		return len(warnings) > 0
+		return warn.FileWarnings(f, pkg, *warningsList, false)
 	case "fix":
 		warn.FixWarnings(f, pkg, *warningsList, verbose)
 	}
-	return false
+	return nil
 }

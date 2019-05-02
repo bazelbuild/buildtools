@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"sort"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
@@ -38,14 +37,12 @@ var buildVersion = "redacted"
 var buildScmRevision = "redacted"
 
 var (
-	// Undocumented; for debugging.
-	showlog = flag.Bool("showlog", false, "show log in check mode")
-
 	help          = flag.Bool("help", false, "print usage information")
 	vflag         = flag.Bool("v", false, "print verbose information to standard error")
 	dflag         = flag.Bool("d", false, "alias for -mode=diff")
 	rflag         = flag.Bool("r", false, "find starlark files recursively")
 	mode          = flag.String("mode", "", "formatting mode: check, diff, or fix (default fix)")
+	format        = flag.String("format", "", "diagnostics format: text or json (default text)")
 	diffProgram   = flag.String("diff_command", "", "command to run when the formatting mode is diff (default uses the BUILDIFIER_DIFF, BUILDIFIER_MULTIDIFF, and DISPLAY environment variables to create the diff command)")
 	multiDiff     = flag.Bool("multi_diff", false, "the command specified by the -diff_command flag can diff multiple files in the style of tkdiff (default false)")
 	lint          = flag.String("lint", "", "lint mode: off, warn, or fix (default off)")
@@ -101,6 +98,14 @@ file names given, but the path can be given explicitly with the -path
 argument. This is especially useful when reformatting standard input,
 or in scripts that reformat a temporary copy of a file.
 
+Return codes used by buildifier:
+
+  0: success, everything went well
+  1: syntax errors in input
+  2: usage errors: invoked incorrectly
+  3: unexpected runtime errors: file I/O problems or internal bugs
+  4: check mode failed (reformat is needed)
+
 Full list of flags with their defaults:
 `)
 	flag.PrintDefaults()
@@ -128,6 +133,11 @@ func main() {
 	build.AllowSort = allowSort()
 
 	if err := utils.ValidateInputType(inputType); err != nil {
+		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
+		os.Exit(2)
+	}
+
+	if err := utils.ValidateFormat(format, mode); err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
 	}
@@ -175,7 +185,7 @@ func main() {
 	}
 	diff = differ
 
-	exitCode = run(&args, &warningsList)
+	exitCode := run(&args, &warningsList)
 	os.Exit(exitCode)
 }
 
@@ -183,6 +193,8 @@ func run(args, warningsList *[]string) int {
 	tf := &utils.TempFile{}
 	defer tf.Clean()
 
+	exitCode := 0
+	var diagnostics *utils.Diagnostics
 	if len(*args) == 0 || (len(*args) == 1 && (*args)[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
@@ -193,7 +205,9 @@ func run(args, warningsList *[]string) int {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("", data, *inputType, *lint, warningsList, false, tf)
+		var fileDiagnostics *utils.FileDiagnostics
+		fileDiagnostics, exitCode = processFile("", data, *inputType, *lint, warningsList, false, tf)
+		diagnostics = utils.NewDiagnostics(fileDiagnostics)
 	} else {
 		files := *args
 		if *rflag {
@@ -204,7 +218,18 @@ func run(args, warningsList *[]string) int {
 				return 3
 			}
 		}
-		processFiles(files, *inputType, *lint, warningsList, tf)
+		diagnostics, exitCode = processFiles(files, *inputType, *lint, warningsList, tf)
+	}
+
+	diagnosticsOutput := diagnostics.Format(*format, *vflag)
+	if *format != "" {
+		// Explicitly provided --format means the diagnostics are printed to stdout
+		fmt.Printf(diagnosticsOutput)
+		// Exit code should be set to 0 so that other tools know they can safely parse the json
+		exitCode = 0
+	} else {
+		// --format is not provided, stdout is reserved for file contents
+		fmt.Fprint(os.Stderr, diagnosticsOutput)
 	}
 
 	if err := diff.Run(); err != nil {
@@ -215,7 +240,7 @@ func run(args, warningsList *[]string) int {
 	return exitCode
 }
 
-func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *utils.TempFile) {
+func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *utils.TempFile) (*utils.Diagnostics, int) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -246,6 +271,9 @@ func processFiles(files []string, inputType, lint string, warningsList *[]string
 		}(i)
 	}
 
+	exitCode := 0
+	fileDiagnostics := []*utils.FileDiagnostics{}
+
 	// Process files. The processing still runs in a single goroutine
 	// in sequence. Only the reading of the files has been parallelized.
 	// The goal is to optimize for runs where most files are already
@@ -261,26 +289,25 @@ func processFiles(files []string, inputType, lint string, warningsList *[]string
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data, inputType, lint, warningsList, len(files) > 1, tf)
+		fd, newExitCode := processFile(file, res.data, inputType, lint, warningsList, len(files) > 1, tf)
+		if fd != nil {
+			fileDiagnostics = append(fileDiagnostics, fd)
+		}
+		if newExitCode != 0 {
+			exitCode = newExitCode
+		}
 	}
+	return utils.NewDiagnostics(fileDiagnostics...), exitCode
 }
-
-// exitCode is the code to use when exiting the program.
-// The codes used by buildifier are:
-//
-// 0: success, everything went well
-// 1: syntax errors in input
-// 2: usage errors: invoked incorrectly
-// 3: unexpected runtime errors: file I/O problems or internal bugs
-// 4: check mode failed (reformat is needed)
-var exitCode = 0
 
 // diff is the differ to use when *mode == "diff".
 var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) (*utils.FileDiagnostics, int) {
+	var exitCode int
+
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -299,18 +326,19 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if exitCode < 1 {
 			exitCode = 1
 		}
-		return
+		return utils.InvalidFileDiagnostics(filename), exitCode
 	}
 
 	pkg := utils.GetPackageName(filename)
-	if utils.Lint(f, pkg, lint, warningsList, *vflag) {
+	warnings := utils.Lint(f, pkg, lint, warningsList, *vflag)
+	if len(warnings) > 0 {
 		exitCode = 4
 	}
+	fileDiagnostics := utils.NewFileDiagnostics(filename, warnings)
 
 	if *filePath != "" {
 		f.Path = *filePath
 	}
-	beforeRewrite := build.Format(f)
 	var info build.RewriteInfo
 	build.Rewrite(f, &info)
 
@@ -320,40 +348,20 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	case "check":
 		// check mode: print names of files that need formatting.
 		if !bytes.Equal(data, ndata) {
-			// Print:
-			//	name # list of what changed
-			reformat := ""
-			if !bytes.Equal(data, beforeRewrite) {
-				reformat = " reformat"
-			}
-			log := ""
-			if len(info.Log) > 0 && *showlog {
-				sort.Strings(info.Log)
-				var uniq []string
-				last := ""
-				for _, s := range info.Log {
-					if s != last {
-						last = s
-						uniq = append(uniq, s)
-					}
-				}
-				log = " " + strings.Join(uniq, " ")
-			}
-			fmt.Printf("%s #%s %s%s\n", filename, reformat, &info, log)
-			exitCode = 4
+			fileDiagnostics.Formatted = false
+			fileDiagnostics.SetRewrites(info.Stats())
+			return fileDiagnostics, 4
 		}
-		return
 
 	case "diff":
 		// diff mode: run diff on old and new.
 		if bytes.Equal(data, ndata) {
-			return
+			return fileDiagnostics, exitCode
 		}
 		outfile, err := tf.WriteTemp(ndata)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-			exitCode = 3
-			return
+			return fileDiagnostics, 3
 		}
 		infile := filename
 		if filename == "" {
@@ -362,8 +370,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			infile, err = tf.WriteTemp(data)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-				exitCode = 3
-				return
+				return fileDiagnostics, 3
 			}
 		}
 		if displayFileNames {
@@ -371,26 +378,24 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			exitCode = 4
+			return fileDiagnostics, 4
 		}
 
 	case "pipe":
 		// pipe mode - reading from stdin, writing to stdout.
 		// ("pipe" is not from the command line; it is set above in main.)
 		os.Stdout.Write(ndata)
-		return
 
 	case "fix":
 		// fix mode: update files in place as needed.
 		if bytes.Equal(data, ndata) {
-			return
+			return fileDiagnostics, exitCode
 		}
 
 		err := ioutil.WriteFile(filename, ndata, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
-			exitCode = 3
-			return
+			return fileDiagnostics, 3
 		}
 
 		if *vflag {
@@ -398,13 +403,13 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 	case "print_if_changed":
 		if bytes.Equal(data, ndata) {
-			return
+			return fileDiagnostics, exitCode
 		}
 
 		if _, err := os.Stdout.Write(ndata); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: error writing output: %v\n", err)
-			exitCode = 3
-			return
+			return fileDiagnostics, 3
 		}
 	}
+	return fileDiagnostics, exitCode
 }

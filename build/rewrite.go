@@ -83,39 +83,18 @@ type RewriteInfo struct {
 	Log              []string // log entries - may change
 }
 
-func (info *RewriteInfo) String() string {
-	s := ""
-	if info.EditLabel > 0 {
-		s += " label"
+func (info *RewriteInfo) Stats() map[string]int {
+	return map[string]int{
+		"label":            info.EditLabel,
+		"callname":         info.NameCall,
+		"callsort":         info.SortCall,
+		"listsort":         info.SortStringList,
+		"unsafesort":       info.UnsafeSort,
+		"sortload":         info.SortLoad,
+		"formatdocstrings": info.FormatDocstrings,
+		"reorderarguments": info.ReorderArguments,
+		"editoctal":        info.EditOctal,
 	}
-	if info.NameCall > 0 {
-		s += " callname"
-	}
-	if info.SortCall > 0 {
-		s += " callsort"
-	}
-	if info.SortStringList > 0 {
-		s += " listsort"
-	}
-	if info.UnsafeSort > 0 {
-		s += " unsafesort"
-	}
-	if info.SortLoad > 0 {
-		s += " sortload"
-	}
-	if info.FormatDocstrings > 0 {
-		s += " formatdocstrings"
-	}
-	if info.ReorderArguments > 0 {
-		s += " reorderarguments"
-	}
-	if info.EditOctal > 0 {
-		s += " editoctal"
-	}
-	if s != "" {
-		s = s[1:]
-	}
-	return s
 }
 
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),

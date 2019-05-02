@@ -112,3 +112,65 @@ Invoke with
 ```bash
 bazel run //:buildifier
 ```
+
+## File diagnostics in json
+
+Buildifier supports diagnostics output in machine-readable format (json), triggered by
+`--format=json` (only works in combination with `--type=check`). If used in combination with `-v`,
+the output json will be indented for better readability.
+
+The output format is the following:
+
+```json
+{
+    "success": false,  // true if all files are formatted and generate no warnings, false otherwise
+    "files": [  // list of all files processed by buildifier
+        {
+            "filename": "file_1.bzl",
+            "formatted": true,  // whether the file is correctly formatted
+            "valid": true,  // whether the file is a valid Starlark file. Can only be false if formatted = false
+            "warnings": [  // a list of warnings
+                {
+                    "start": {
+                        "line": 1,
+                        "column": 5
+                    },
+                    "end": {
+                        "line": 1,
+                        "column": 10
+                    },
+                    "category": "integer-division",
+                    "actionable": true,
+                    "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
+                }
+            ]
+        },
+        {
+            "filename": "file_2.bzl",
+            "formatted": false,
+            "valid": true,
+            "warnings": [],
+            "rewrites": {  // technical information, a list of rewrites buildifier applies during reformatting
+                "editoctal": 1
+            }
+        },
+        {
+            "filename": "file_3.bzl",
+            "formatted": true,
+            "valid": true,
+            "warnings": []
+        },
+        {
+            "filename": "file_4.not_bzl",
+            "formatted": false,
+            "valid": false,
+            "warnings": []
+        }
+    ]
+}
+```
+
+When the `--format` flag is provided, buildifier always returns `0` unless there are internal
+failures or wrong input parameters, this means the output can be parsed as JSON, and its `success`
+field should be used to determine whether the diagnostics result is positive.
