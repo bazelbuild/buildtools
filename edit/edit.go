@@ -464,6 +464,9 @@ func ContainsComments(expr build.Expr, str string) bool {
 // ListDelete deletes the item from a list expression in e and returns
 // the StringExpr deleted, or nil otherwise.
 func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
+	if unquoted, _, err := build.Unquote(item); err == nil {
+		item = unquoted
+	}
 	deleted = nil
 	item = ShortenLabel(item, pkg)
 	for _, li := range AllLists(e) {
@@ -700,6 +703,9 @@ func DictionaryGet(dict *build.DictExpr, key string) build.Expr {
 // DictionaryDelete looks for the key in the dictionary expression. If the key exists,
 // it removes the key-value pair and returns it. Otherwise it returns nil.
 func DictionaryDelete(dict *build.DictExpr, key string) (deleted build.Expr) {
+	if unquoted, _, err := build.Unquote(key); err == nil {
+		key = unquoted
+	}
 	deleted = nil
 	var all []build.Expr
 	for _, e := range dict.List {

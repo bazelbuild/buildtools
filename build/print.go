@@ -697,7 +697,7 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	// If there are line comments, use multiline
 	// so we can print the comments before the closing bracket.
 	for _, x := range *list {
-		if len(x.Comment().Before) > 0 {
+		if len(x.Comment().Before) > 0 || (len(x.Comment().Suffix) > 0 && mode != modeDef) {
 			return false
 		}
 	}
