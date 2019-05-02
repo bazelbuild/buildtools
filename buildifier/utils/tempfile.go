@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// TempFile creates temporary files and cleans them up in the end
+// TempFile keeps track of temporary files and cleans them up in the end
 type TempFile struct {
 	filenames []string
 }
