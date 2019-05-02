@@ -83,6 +83,7 @@ type RewriteInfo struct {
 	Log              []string // log entries - may change
 }
 
+// Stats returns a map with statistics about applied rewrites
 func (info *RewriteInfo) Stats() map[string]int {
 	return map[string]int{
 		"label":            info.EditLabel,
