@@ -128,6 +128,7 @@ The output format is the following:
         {
             "filename": "file_1.bzl",
             "formatted": true,  // whether the file is correctly formatted
+            "valid": true,  // whether the file is a valid Starlark file. Can only be false if formatted = false
             "warnings": [  // a list of warnings
                 {
                     "start": {
@@ -147,20 +148,23 @@ The output format is the following:
         },
         {
             "filename": "file_2.bzl",
-            "formatted": true,
-            "warnings": []
-        },
-        {
-            "filename": "file_3.bzl",
             "formatted": false,
+            "valid": true,
             "warnings": [],
             "rewrites": {  // technical information, a list of rewrites buildifier applies during reformatting
                 "editoctal": 1
             }
         },
         {
-            "filename": "file_4.bzl",
+            "filename": "file_3.bzl",
             "formatted": true,
+            "valid": true,
+            "warnings": []
+        },
+        {
+            "filename": "file_4.not_bzl",
+            "formatted": false,
+            "valid": false,
             "warnings": []
         }
     ]

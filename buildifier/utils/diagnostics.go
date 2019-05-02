@@ -15,6 +15,7 @@ type Diagnostics struct {
 	Files   []*FileDiagnostics `json:"files"`   // diagnostics per file
 }
 
+// Format formats a Diagnostics object either as plain text or as json
 func (d *Diagnostics) Format(format string, verbose bool) string {
 	switch format {
 	case "text", "":
@@ -60,17 +61,16 @@ func (d *Diagnostics) Format(format string, verbose bool) string {
 	return ""
 }
 
+// FileDiagnostics contains diagnostics information for a file
 type FileDiagnostics struct {
 	Filename  string         `json:"filename"`
 	Formatted bool           `json:"formatted"`
+	Valid     bool           `json:"valid"`
 	Warnings  []*warning     `json:"warnings"`
 	Rewrites  map[string]int `json:"rewrites,omitempty"`
 }
 
-func (fd *FileDiagnostics) MarkNotFormatted() {
-	fd.Formatted = false
-}
-
+// SetRewrites adds information about rewrites to the diagnostics
 func (fd *FileDiagnostics) SetRewrites(categories map[string]int) {
 	for category, count := range categories {
 		if count > 0 {
@@ -93,6 +93,7 @@ type position struct {
 	Column int `json:"column"`
 }
 
+// NewDiagnostics returns a new Diagnostics object
 func NewDiagnostics(fileDiagnostics ...*FileDiagnostics) *Diagnostics {
 	diagnostics := &Diagnostics{
 		Success: true,
@@ -107,10 +108,12 @@ func NewDiagnostics(fileDiagnostics ...*FileDiagnostics) *Diagnostics {
 	return diagnostics
 }
 
+// NewFileDiagnostics returns a new FileDiagnostics object
 func NewFileDiagnostics(filename string, warnings []*warn.Finding) *FileDiagnostics {
 	fileDiagnostics := FileDiagnostics{
 		Filename:  filename,
 		Formatted: true,
+		Valid:     true,
 		Warnings:  []*warning{},
 		Rewrites:  map[string]int{},
 	}
@@ -127,6 +130,17 @@ func NewFileDiagnostics(filename string, warnings []*warn.Finding) *FileDiagnost
 	}
 
 	return &fileDiagnostics
+}
+
+// InvalidFileDiagnostics returns a new FileDiagnostics object for an invalid file
+func InvalidFileDiagnostics(filename string) *FileDiagnostics {
+	return &FileDiagnostics{
+		Filename:  filename,
+		Formatted: false,
+		Valid:     false,
+		Warnings:  []*warning{},
+		Rewrites:  map[string]int{},
+	}
 }
 
 func makePosition(p build.Position) position {

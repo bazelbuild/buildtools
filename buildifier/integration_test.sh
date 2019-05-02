@@ -183,6 +183,11 @@ cat > test_dir/json/to_fix_4.bzl <<EOF
 a = b
 EOF
 
+# not a starlark file
+cat > test_dir/json/foo.bar <<EOF
+this is not a starlark file
+EOF
+
 cat > golden/json_report_golden <<EOF
 {
     "success": false,
@@ -190,6 +195,7 @@ cat > golden/json_report_golden <<EOF
         {
             "filename": "test_dir/json/to_fix.bzl",
             "formatted": true,
+            "valid": true,
             "warnings": [
                 {
                     "start": {
@@ -224,11 +230,13 @@ cat > golden/json_report_golden <<EOF
         {
             "filename": "test_dir/json/to_fix_2.bzl",
             "formatted": false,
+            "valid": true,
             "warnings": []
         },
         {
             "filename": "test_dir/json/to_fix_3.bzl",
             "formatted": false,
+            "valid": true,
             "warnings": [],
             "rewrites": {
                 "editoctal": 1
@@ -237,6 +245,7 @@ cat > golden/json_report_golden <<EOF
         {
             "filename": "test_dir/json/to_fix_4.bzl",
             "formatted": true,
+            "valid": true,
             "warnings": []
         }
     ]
@@ -250,6 +259,27 @@ cat > golden/json_report_small_golden <<EOF
         {
             "filename": "test_dir/json/to_fix_4.bzl",
             "formatted": true,
+            "valid": true,
+            "warnings": []
+        }
+    ]
+}
+EOF
+
+cat > golden/json_report_invalid_file_golden <<EOF
+{
+    "success": false,
+    "files": [
+        {
+            "filename": "test_dir/json/to_fix_4.bzl",
+            "formatted": true,
+            "valid": true,
+            "warnings": []
+        },
+        {
+            "filename": "test_dir/json/foo.bar",
+            "formatted": false,
+            "valid": false,
             "warnings": []
         }
     ]
@@ -261,3 +291,6 @@ diff test_dir/json_report golden/json_report_golden || die "$1: wrong console ou
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v test_dir/json/to_fix_4.bzl > test_dir/json_report
 diff test_dir/json_report golden/json_report_small_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with a single file"
+
+$buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v test_dir/json/to_fix_4.bzl test_dir/json/foo.bar > test_dir/json_report
+diff test_dir/json_report golden/json_report_invalid_file_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with an invalid file"

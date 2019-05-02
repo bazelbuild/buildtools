@@ -326,7 +326,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if exitCode < 1 {
 			exitCode = 1
 		}
-		return nil, exitCode
+		return utils.InvalidFileDiagnostics(filename), exitCode
 	}
 
 	pkg := utils.GetPackageName(filename)
@@ -348,7 +348,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	case "check":
 		// check mode: print names of files that need formatting.
 		if !bytes.Equal(data, ndata) {
-			fileDiagnostics.MarkNotFormatted()
+			fileDiagnostics.Formatted = false
 			fileDiagnostics.SetRewrites(info.Stats())
 			return fileDiagnostics, 4
 		}
