@@ -41,6 +41,7 @@ echo -e "$INPUT" > test_dir/test.bzl
 echo -e "$INPUT" > test_dir/subdir/test.bzl
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
+mkdir test_dir/workspace  # name of a starlark file, but a directory
 cp test_dir/foo.bar golden/foo.bar
 
 "$buildifier" < test_dir/build > stdout

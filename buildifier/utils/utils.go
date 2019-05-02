@@ -13,6 +13,11 @@ import (
 )
 
 func isStarlarkFile(filename string) bool {
+	info, err := os.Stat(filename)
+	if err != nil || info.IsDir() {
+		return false
+	}
+
 	basename := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(basename)
 	switch ext {
