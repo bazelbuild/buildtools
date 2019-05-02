@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// Tempfile creates temporary files and cleans them up in the end
+// TempFile creates temporary files and cleans them up in the end
 type TempFile struct {
 	filenames []string
 }
@@ -27,9 +27,12 @@ func (tf *TempFile) WriteTemp(data []byte) (file string, err error) {
 }
 
 // Clean removes all created temporary files
-func (tf *TempFile) Clean() {
+func (tf *TempFile) Clean() error {
 	for _, file := range tf.filenames {
-		os.Remove(file)
+		if err := os.Remove(file); err != nil {
+			return err
+		}
 	}
 	tf.filenames = []string{}
+	return nil
 }
