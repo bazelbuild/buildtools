@@ -3,8 +3,6 @@
 package utils
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -33,9 +31,9 @@ func isStarlarkFile(filename string) bool {
 
 // ExpandDirectories takes a list of file/directory names and returns a list with file names
 // by traversing each directory recursively and searching for relevant Starlark files.
-func ExpandDirectories(args []string) ([]string, error) {
+func ExpandDirectories(args *[]string) ([]string, error) {
 	files := []string{}
-	for _, arg := range args {
+	for _, arg := range *args {
 		info, err := os.Stat(arg)
 		if err != nil {
 			return []string{}, err
@@ -71,20 +69,6 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 	default:
 		return build.ParseDefault
 	}
-}
-
-// WriteTemp writes data to a temporary file and returns the name of the file.
-func WriteTemp(data []byte) (file string, err error) {
-	f, err := ioutil.TempFile("", "buildifier-tmp-")
-	if err != nil {
-		return "", fmt.Errorf("creating temporary file: %v", err)
-	}
-	defer f.Close()
-	name := f.Name()
-	if _, err := f.Write(data); err != nil {
-		return "", fmt.Errorf("writing temporary file: %v", err)
-	}
-	return name, nil
 }
 
 // GetPackageName returns the package name of a file by searching for a WORKSPACE file

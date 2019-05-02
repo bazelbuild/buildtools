@@ -175,43 +175,47 @@ func main() {
 	}
 	diff = differ
 
-	if len(args) == 0 || (len(args) == 1 && args[0] == "-") {
+	exitCode = run(&args, &warningsList)
+	os.Exit(exitCode)
+}
+
+func run(args, warningsList *[]string) int {
+	tf := &utils.TempFile{}
+	defer tf.Clean()
+
+	if len(*args) == 0 || (len(*args) == 1 && (*args)[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: reading stdin: %v\n", err)
-			os.Exit(2)
+			return 2
 		}
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		processFile("", data, *inputType, *lint, warningsList, false)
+		processFile("", data, *inputType, *lint, warningsList, false, tf)
 	} else {
-		files := args
+		files := *args
 		if *rflag {
 			var err error
 			files, err = utils.ExpandDirectories(args)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
-				os.Exit(3)
+				return 3
 			}
 		}
-		processFiles(files, *inputType, *lint, warningsList)
+		processFiles(files, *inputType, *lint, warningsList, tf)
 	}
 
 	if err := diff.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
-		exitCode = 2
+		return 2
 	}
 
-	for _, file := range toRemove {
-		os.Remove(file)
-	}
-
-	os.Exit(exitCode)
+	return exitCode
 }
 
-func processFiles(files []string, inputType, lint string, warningsList []string) {
+func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *utils.TempFile) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -257,7 +261,7 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 			exitCode = 3
 			continue
 		}
-		processFile(file, res.data, inputType, lint, warningsList, len(files) > 1)
+		processFile(file, res.data, inputType, lint, warningsList, len(files) > 1, tf)
 	}
 }
 
@@ -271,15 +275,12 @@ func processFiles(files []string, inputType, lint string, warningsList []string)
 // 4: check mode failed (reformat is needed)
 var exitCode = 0
 
-// toRemove is a list of files to remove before exiting.
-var toRemove []string
-
 // diff is the differ to use when *mode == "diff".
 var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string, warningsList []string, displayFileNames bool) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
@@ -302,7 +303,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 
 	pkg := utils.GetPackageName(filename)
-	if utils.Lint(f, pkg, lint, &warningsList, *vflag) {
+	if utils.Lint(f, pkg, lint, warningsList, *vflag) {
 		exitCode = 4
 	}
 
@@ -348,9 +349,8 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if bytes.Equal(data, ndata) {
 			return
 		}
-		outfile, err := utils.WriteTemp(ndata)
+		outfile, err := tf.WriteTemp(ndata)
 		if err != nil {
-			toRemove = append(toRemove, outfile)
 			fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 			exitCode = 3
 			return
@@ -359,9 +359,8 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if filename == "" {
 			// data was read from standard filename.
 			// Write it to a temporary file so diff can read it.
-			infile, err = utils.WriteTemp(data)
+			infile, err = tf.WriteTemp(data)
 			if err != nil {
-				toRemove = append(toRemove, infile)
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 				exitCode = 3
 				return
