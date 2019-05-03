@@ -177,9 +177,11 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
-	sort.Strings(enabledWarnings)
+	// Make a local copy first to avoid race conditions
+	warnings := append([]string{}, enabledWarnings...)
+	sort.Strings(warnings)
 
-	for _, warn := range enabledWarnings {
+	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
 			for _, w := range fct(f, fix) {
 				if !DisabledWarning(f, w, warn) {
