@@ -17,7 +17,13 @@ func (tf *TempFile) WriteTemp(data []byte) (file string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("creating temporary file: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		e := f.Close()
+		if e != nil {
+			err = e
+		}
+	}()
+
 	name := f.Name()
 	if _, err := f.Write(data); err != nil {
 		return "", fmt.Errorf("writing temporary file: %v", err)
