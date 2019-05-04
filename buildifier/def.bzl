@@ -6,7 +6,6 @@ def _buildifier_impl(ctx):
     args = [
         "-mode=%s" % ctx.attr.mode,
         "-v=%s" % str(ctx.attr.verbose).lower(),
-        "-showlog=%s" % str(ctx.attr.show_log).lower(),
     ]
 
     if ctx.attr.lint_mode:
@@ -49,9 +48,6 @@ _buildifier = rule(
     attrs = {
         "verbose": attr.bool(
             doc = "Print verbose information on standard error",
-        ),
-        "show_log": attr.bool(
-            doc = "Show log in check mode",
         ),
         "mode": attr.string(
             default = "fix",
