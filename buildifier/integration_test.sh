@@ -272,6 +272,20 @@ cat > golden/json_report_small_golden <<EOF
 }
 EOF
 
+cat > golden/json_report_stdin_golden <<EOF
+{
+    "success": true,
+    "files": [
+        {
+            "filename": "\u003cstdin\u003e",
+            "formatted": true,
+            "valid": true,
+            "warnings": []
+        }
+    ]
+}
+EOF
+
 cat > golden/json_report_invalid_file_golden <<EOF
 {
     "success": false,
@@ -299,6 +313,9 @@ diff json_report ../../golden/json_report_golden || die "$1: wrong console outpu
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix_4.bzl > json_report
 diff json_report ../../golden/json_report_small_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with a single file"
+
+$buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v < to_fix_4.bzl > json_report
+diff json_report ../../golden/json_report_stdin_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with stdin"
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix_4.bzl foo.bar > json_report
 diff json_report ../../golden/json_report_invalid_file_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with an invalid file"
