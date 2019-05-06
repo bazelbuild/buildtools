@@ -134,13 +134,17 @@ func NewFileDiagnostics(filename string, warnings []*warn.Finding) *FileDiagnost
 
 // InvalidFileDiagnostics returns a new FileDiagnostics object for an invalid file
 func InvalidFileDiagnostics(filename string) *FileDiagnostics {
-	return &FileDiagnostics{
+	fileDiagnostics := &FileDiagnostics{
 		Filename:  filename,
 		Formatted: false,
 		Valid:     false,
 		Warnings:  []*warning{},
 		Rewrites:  map[string]int{},
 	}
+	if filename == "" {
+		fileDiagnostics.Filename = "<stdin>"
+	}
+	return fileDiagnostics
 }
 
 func makePosition(p build.Position) position {

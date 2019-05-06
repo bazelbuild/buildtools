@@ -308,13 +308,6 @@ var diff *differ.Differ
 func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) (*utils.FileDiagnostics, int) {
 	var exitCode int
 
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Fprintf(os.Stderr, "buildifier: %s: internal error: %v\n", filename, err)
-			exitCode = 3
-		}
-	}()
-
 	parser := utils.GetParser(inputType)
 
 	f, err := parser(filename, data)
@@ -334,7 +327,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	if len(warnings) > 0 {
 		exitCode = 4
 	}
-	fileDiagnostics := utils.NewFileDiagnostics(filename, warnings)
+	fileDiagnostics := utils.NewFileDiagnostics(f.DisplayPath(), warnings)
 
 	if *filePath != "" {
 		f.Path = *filePath
@@ -374,7 +367,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 			}
 		}
 		if displayFileNames {
-			fmt.Fprintf(os.Stderr, "%v:\n", filename)
+			fmt.Fprintf(os.Stderr, "%v:\n", f.DisplayPath())
 		}
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -399,7 +392,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 
 		if *vflag {
-			fmt.Fprintf(os.Stderr, "fixed %s\n", filename)
+			fmt.Fprintf(os.Stderr, "fixed %s\n", f.DisplayPath())
 		}
 	case "print_if_changed":
 		if bytes.Equal(data, ndata) {
