@@ -82,7 +82,7 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	for _, val := range env.Args[1:] {
 		if IsIntList(attr) {
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.Ident{Name: val}, &env.Vars)
+			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
 			continue
 		}
 		strVal := getStringExpr(val, env.Pkg)
@@ -423,7 +423,7 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 	case IsIntList(attr):
 		var list []build.Expr
 		for _, i := range args {
-			list = append(list, &build.Ident{Name: i})
+			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
 	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
@@ -432,6 +432,9 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 			list = append(list, getStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
+	case len(args) == 0:
+		// Expected a non-list argument, nothing provided
+		return &build.Ident{Name: "None"}
 	case IsString(attr):
 		return getStringExpr(args[0], env.Pkg)
 	default:
@@ -589,8 +592,8 @@ var AllCommands = map[string]CommandInfo{
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
-	"set":               {cmdSet, true, 2, -1, "<attr> <value(s)>"},
-	"set_if_absent":     {cmdSetIfAbsent, true, 2, -1, "<attr> <value(s)>"},
+	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
+	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
@@ -657,6 +660,7 @@ func checkCommandUsage(name string, cmd CommandInfo, count int) {
 			name, cmd.MaxArg)
 	}
 	Usage()
+	os.Exit(1)
 }
 
 // Match text that only contains spaces if they're escaped with '\'.
