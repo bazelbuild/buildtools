@@ -10,7 +10,7 @@ def run(*cmd):
     output, err = process.communicate()
     if process.wait():
         exit(1)
-    return output.strip().decode('latin-1')
+    return output.strip().decode()
 
 
 def main():
