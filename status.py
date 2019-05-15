@@ -10,12 +10,12 @@ def run(*cmd):
     output, err = process.communicate()
     if process.wait():
         exit(1)
-    return output.strip()
+    return output.strip().decode()
 
 
 def main():
     tags = run("git", "describe", "--tags")
-    print("STABLE_buildVersion", tags.split(b"-")[0])
+    print("STABLE_buildVersion", tags.split("-")[0])
 
     revision = run("git", "rev-parse", "HEAD")
     print("STABLE_buildScmRevision", revision)
