@@ -7,7 +7,7 @@ Warning categories supported by buildifier's linter:
   * [attr-non-empty](#attr-non-empty)
   * [attr-output-default](#attr-output-default)
   * [attr-single-file](#attr-single-file)
-  * [build-kwargs](#build-kwargs)
+  * [build-args-kwargs](#build-args-kwargs)
   * [confusing-name](#confusing-name)
   * [constant-glob](#constant-glob)
   * [ctx-actions](#ctx-actions)
@@ -104,9 +104,9 @@ is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
 
-## <a name="build-kwargs"></a>`*args` and `**kwargs` are not allowed in BUILD files
+## <a name="build-args-kwargs"></a>`*args` and `**kwargs` are not allowed in BUILD files
 
-  * Category name: `build-kwargs`
+  * Category name: `build-args-kwargs`
   * Flag in Bazel: `--incompatible_no_kwargs_in_build_files`
   * Automatic fix: no
 
