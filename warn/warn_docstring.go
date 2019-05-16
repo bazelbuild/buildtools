@@ -12,7 +12,7 @@ import (
 // a public function is required to have a docstring.
 const FunctionLengthDocstringThreshold = 5
 
-// getDocstrings returns a docstring of the statemenets and true if it exists.
+// getDocstring returns a docstring of the statements and true if it exists.
 // Otherwise it returns the first non-comment statement and false.
 func getDocstring(stmts []build.Expr) (build.Expr, bool) {
 	for _, stmt := range stmts {
@@ -33,7 +33,12 @@ func moduleDocstringWarning(f *build.File, fix bool) []*Finding {
 		return []*Finding{}
 	}
 	if stmt, ok := getDocstring(f.Stmt); stmt != nil && !ok {
-		start, end := stmt.Span()
+		start, _ := stmt.Span()
+		end := build.Position{
+			Line: start.Line,
+			LineRune: start.LineRune + 1,
+			Byte: start.Byte + 1,
+		}
 		return []*Finding{
 			makeFinding(f, start, end, "module-docstring", "The file has no module docstring.", true, nil),
 		}
@@ -210,7 +215,7 @@ func functionDocstringWarning(f *build.File, fix bool) []*Finding {
 			continue
 		}
 
-		start, end := stmt.Span()
+		start, end := def.HeaderSpan()
 		message := fmt.Sprintf("The function %q has no docstring.", def.Name)
 		findings = append(findings, makeFinding(f, start, end, "function-docstring", message, true, nil))
 	}

@@ -324,6 +324,7 @@ block_stmt:
 				Body: $7,
 			},
 			Name: $<tok>2,
+			ColonPos: $6,
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}

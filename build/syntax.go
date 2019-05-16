@@ -97,7 +97,8 @@ func (f *File) DisplayPath() string {
 
 func (f *File) Span() (start, end Position) {
 	if len(f.Stmt) == 0 {
-		return
+		p := Position{Line: 1, LineRune: 1}
+		return p, p
 	}
 	start, _ = f.Stmt[0].Span()
 	_, end = f.Stmt[len(f.Stmt)-1].Span()
@@ -490,12 +491,18 @@ type DefStmt struct {
 	Comments
 	Function
 	Name           string
+	ColonPos       Position // position of the ":"
 	ForceCompact   bool // force compact (non-multiline) form when printing the arguments
 	ForceMultiLine bool // force multiline form when printing the arguments
 }
 
 func (x *DefStmt) Span() (start, end Position) {
 	return x.Function.Span()
+}
+
+// NameSpan returns the span of the function header `def f(...):`
+func (x *DefStmt) HeaderSpan() (start, end Position) {
+	return x.Function.StartPos, x.ColonPos
 }
 
 // A ReturnStmt represents a return statement: return f(x).
