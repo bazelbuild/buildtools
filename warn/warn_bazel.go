@@ -163,3 +163,37 @@ func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Fin
 	}
 	return nil
 }
+
+func argsKwargsInBuildFilesWarning(f *build.File, fix bool) []*Finding {
+	findings := []*Finding{}
+
+	if f.Type != build.TypeBuild {
+		return findings
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Search for function call nodes
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		for _, param := range call.List {
+			unary, ok := param.(*build.UnaryExpr)
+			if !ok {
+				continue
+			}
+			start, end := param.Span()
+			switch unary.Op {
+			case "*":
+				findings = append(findings,
+					makeFinding(f, start, end, "build-args-kwargs",
+						`*args are not allowed in BUILD files.`, true, nil))
+			case "**":
+				findings = append(findings,
+					makeFinding(f, start, end, "build-args-kwargs",
+						`**kwargs are not allowed in BUILD files.`, true, nil))
+			}
+		}
+	})
+	return findings
+}

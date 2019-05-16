@@ -7,6 +7,7 @@ Warning categories supported by buildifier's linter:
   * [attr-non-empty](#attr-non-empty)
   * [attr-output-default](#attr-output-default)
   * [attr-single-file](#attr-single-file)
+  * [build-kwargs](#build-kwargs)
   * [confusing-name](#confusing-name)
   * [constant-glob](#constant-glob)
   * [ctx-actions](#ctx-actions)
@@ -100,6 +101,17 @@ for these attributes instead.
 
 The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="build-kwargs"></a>*args and **kwargs are note allowed in BUILD files
+
+  * Category name: `build-kwargs`
+  * Flag in Bazel: `--incompatible_no_kwargs_in_build_files`
+  * Automatic fix: no
+
+Having `*args` or `**kwargs` makes BUILD files hard to read and manipulate. The list of
+arguments should be explicit.
 
 --------------------------------------------------------------------------------
 
