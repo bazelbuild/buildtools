@@ -83,3 +83,31 @@ register_toolchains(
 		[]string{},
 		scopeBuild|scopeWorkspace)
 }
+
+func TestKwargsInBuildFilesWarning(t *testing.T) {
+	checkFindings(t, "build-args-kwargs", `
+cc_library(
+  name = "foo",
+  *args,
+  **kwargs,
+)
+
+foo(*bar(**kgs))`,
+		[]string{
+			":3: *args are not allowed in BUILD files.",
+			":4: **kwargs are not allowed in BUILD files.",
+			":7: *args are not allowed in BUILD files.",
+			":7: **kwargs are not allowed in BUILD files.",
+		},
+		scopeBuild)
+
+	checkFindings(t, "build-args-kwargs", `
+cc_library(
+  name = "foo",
+  -args,
+)
+
+foo(not bar(-kgs))`,
+		[]string{},
+		scopeBuild)
+}
