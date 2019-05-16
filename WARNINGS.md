@@ -104,7 +104,7 @@ is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
 
-## <a name="build-kwargs"></a>*args and **kwargs are note allowed in BUILD files
+## <a name="build-kwargs"></a>*args and **kwargs are not allowed in BUILD files
 
   * Category name: `build-kwargs`
   * Flag in Bazel: `--incompatible_no_kwargs_in_build_files`
