@@ -490,12 +490,18 @@ type DefStmt struct {
 	Comments
 	Function
 	Name           string
+	ColonPos       Position // position of the ":"
 	ForceCompact   bool // force compact (non-multiline) form when printing the arguments
 	ForceMultiLine bool // force multiline form when printing the arguments
 }
 
 func (x *DefStmt) Span() (start, end Position) {
 	return x.Function.Span()
+}
+
+// NameSpan returns the span of the function header `def f(...):`
+func (x *DefStmt) HeaderSpan() (start, end Position) {
+	return x.Function.StartPos, x.ColonPos
 }
 
 // A ReturnStmt represents a return statement: return f(x).
