@@ -51,7 +51,7 @@ load("foo", "bar")
 """This is the module"""
 
 bar()`,
-		[]string{":1: The file has no module docstring."},
+		[]string{":3: The file has no module docstring."},
 		scopeBzl|scopeDefault)
 
 	checkFindings(t, "module-docstring", `

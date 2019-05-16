@@ -97,7 +97,8 @@ func (f *File) DisplayPath() string {
 
 func (f *File) Span() (start, end Position) {
 	if len(f.Stmt) == 0 {
-		return
+		p := Position{Line: 1, LineRune: 1}
+		return p, p
 	}
 	start, _ = f.Stmt[0].Span()
 	_, end = f.Stmt[len(f.Stmt)-1].Span()
