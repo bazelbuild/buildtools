@@ -4,6 +4,7 @@ package warn
 
 import (
 	"fmt"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
@@ -11,14 +12,26 @@ import (
 
 // Bazel API-specific warnings
 
-var functionsWithPositionalArguments = map[string]bool{
-	"distribs":            true,
-	"exports_files":       true,
-	"licenses":            true,
-	"print":               true,
-	"register_toolchains": true,
-	"vardef":              true,
-}
+var (
+	functionsWithPositionalArguments = map[string]bool{
+		"distribs":            true,
+		"exports_files":       true,
+		"licenses":            true,
+		"print":               true,
+		"register_toolchains": true,
+		"vardef":              true,
+	}
+	androidNativeRules = []string{
+		"aar_import",
+		"android_binary",
+		"android_device",
+		"android_instrumentation_test",
+		"android_library",
+		"android_local_test",
+		"android_ndk_respository",
+		"android_sdk_repository",
+	}
+)
 
 // negateExpression returns an expression which is a negation of the input.
 // If it's a boolean literal (true or false), just return the opposite literal.
@@ -132,7 +145,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 		return findings
 	}
 
-	toLoad := []string{}
+	toLoad := make(map[string]bool)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
@@ -154,7 +167,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 		for _, global := range globals {
 			if ident.Name == global {
 				if fix {
-					toLoad = append(toLoad, global)
+					toLoad[global] = true
 					return
 				}
 				start, end := call.Span()
@@ -168,7 +181,11 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 	walk(&expr, bzlenv.NewEnvironment())
 
 	if fix && len(toLoad) > 0 {
-		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, toLoad, toLoad)
+		loads := []string{}
+		for k := range toLoad {
+			loads = append(loads, k)
+		}
+		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
 	}
 
 	return findings
@@ -488,6 +505,10 @@ func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
 
 func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
+}
+
+func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
+	return notLoadedFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix)
 }
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
