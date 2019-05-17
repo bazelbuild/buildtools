@@ -35,9 +35,9 @@ func moduleDocstringWarning(f *build.File, fix bool) []*Finding {
 	if stmt, ok := getDocstring(f.Stmt); stmt != nil && !ok {
 		start, _ := stmt.Span()
 		end := build.Position{
-			Line: start.Line,
+			Line:     start.Line,
 			LineRune: start.LineRune + 1,
-			Byte: start.Byte + 1,
+			Byte:     start.Byte + 1,
 		}
 		return []*Finding{
 			makeFinding(f, start, end, "module-docstring", "The file has no module docstring.", true, nil),

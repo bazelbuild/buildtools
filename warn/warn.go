@@ -13,9 +13,9 @@ import (
 
 // LinterFinding is a low-level warning reported by single linter/fixer functions.
 type LinterFinding struct {
-	Start   build.Position
-	End     build.Position
-	Message string
+	Start       build.Position
+	End         build.Position
+	Message     string
 	Replacement []LinterReplacement
 }
 
@@ -67,9 +67,9 @@ func makeFinding(f *build.File, start, end build.Position, cat string, msg strin
 func makeLinterFinding(node build.Expr, message string, replacement ...LinterReplacement) *LinterFinding {
 	start, end := node.Span()
 	return &LinterFinding{
-		Start: start,
-		End: end,
-		Message: message,
+		Start:       start,
+		End:         end,
+		Message:     message,
 		Replacement: replacement,
 	}
 }
@@ -92,8 +92,8 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
-	"attr-cfg": attrConfigurationWarning,
-	"attr-license":              attrLicenseWarning,
+	"attr-cfg":     attrConfigurationWarning,
+	"attr-license": attrLicenseWarning,
 }
 
 // LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
