@@ -457,3 +457,31 @@ rule()  # no parameters
 rule(foo = bar)  # no matching parameters
 `, []string{}, scopeBzl)
 }
+
+func TestNativeAndroidWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-android", `
+"""My file"""
+
+def macro():
+    aar_import()
+    android_library()
+
+android_binary()
+`, `
+"""My file"""
+
+load("@rules_android//android:rules.bzl", "aar_import", "android_binary", "android_library")
+
+def macro():
+    aar_import()
+    android_library()
+
+android_binary()
+`,
+		[]string{
+			`:4: Function "aar_import" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
+			`:5: Function "android_library" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
+			`:7: Function "android_binary" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
+		},
+		scopeBzl|scopeBuild)
+}

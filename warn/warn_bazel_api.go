@@ -4,6 +4,7 @@ package warn
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
@@ -141,10 +142,6 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
 	findings := []*Finding{}
 
-	if f.Type != build.TypeBzl {
-		return findings
-	}
-
 	toLoad := make(map[string]bool)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
@@ -185,6 +182,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 		for k := range toLoad {
 			loads = append(loads, k)
 		}
+		sort.Slice(loads, func(i, j int) bool { return loads[i] < loads[j] })
 		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
 	}
 
@@ -500,14 +498,23 @@ func outputGroupWarning(f *build.File, fix bool) []*Finding {
 }
 
 func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl {
+		return []*Finding{}
+	}
 	return notLoadedFunctionUsageCheck(f, "git-repository", []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl", fix)
 }
 
 func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl {
+		return []*Finding{}
+	}
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
 }
 
 func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return []*Finding{}
+	}
 	return notLoadedFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix)
 }
 
