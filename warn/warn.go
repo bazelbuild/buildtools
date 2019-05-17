@@ -11,6 +11,20 @@ import (
 	"github.com/bazelbuild/buildtools/edit"
 )
 
+// LinterFinding is a low-level warning reported by single linter/fixer functions.
+type LinterFinding struct {
+	Start   build.Position
+	End     build.Position
+	Message string
+	Replacement []LinterReplacement
+}
+
+// LinterReplacement is a low-level object returned by single fixer functions.
+type LinterReplacement struct {
+	Old *build.Expr
+	New build.Expr
+}
+
 // A Finding is a warning reported by the analyzer. It may contain an optional suggested fix.
 type Finding struct {
 	File        *build.File
@@ -49,6 +63,17 @@ func makeFinding(f *build.File, start, end build.Position, cat string, msg strin
 	}
 }
 
+// makeLinterFinding creates a LinterFinding object
+func makeLinterFinding(node build.Expr, message string, replacement ...LinterReplacement) *LinterFinding {
+	start, end := node.Span()
+	return &LinterFinding{
+		Start: start,
+		End: end,
+		Message: message,
+		Replacement: replacement,
+	}
+}
+
 // MakeFix creates a Replacement object
 func MakeFix(f *build.File, desc string, start build.Position, end build.Position, newContent string) *Replacement {
 	return &Replacement{
@@ -66,9 +91,13 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 }
 
 // FileWarningMap lists the warnings that run on the whole file.
-var FileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
-	"attr-cfg":                  attrConfigurationWarning,
+var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
+	"attr-cfg": attrConfigurationWarning,
 	"attr-license":              attrLicenseWarning,
+}
+
+// LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
+var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
@@ -121,9 +150,8 @@ var nonDefaultWarnings = map[string]bool{
 
 // DisabledWarning checks if the warning was disabled by a comment.
 // The comment format is buildozer: disable=<warning>
-func DisabledWarning(f *build.File, finding *Finding, warning string) bool {
+func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 	format := "buildozer: disable=" + warning
-	findingLine := finding.Start.Line
 
 	for _, stmt := range f.Stmt {
 		stmtStart, _ := stmt.Span()
@@ -184,8 +212,20 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
+			for _, w := range fct(f) {
+				if !DisabledWarning(f, w.Start.Line, warn) {
+					if fix && len(w.Replacement) > 0 {
+						for _, r := range w.Replacement {
+							*r.Old = r.New
+						}
+					} else {
+						findings = append(findings, makeFinding(f, w.Start, w.End, warn, w.Message, true, nil))
+					}
+				}
+			}
+		} else if fct, ok := LegacyFileWarningMap[warn]; ok {
 			for _, w := range fct(f, fix) {
-				if !DisabledWarning(f, w, warn) {
+				if !DisabledWarning(f, w.Start.Line, warn) {
 					findings = append(findings, w)
 				}
 			}
@@ -199,7 +239,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 			}
 			for _, stmt := range f.Stmt {
 				if w := fn(f, pkg, stmt); w != nil {
-					if !DisabledWarning(f, w, warn) {
+					if !DisabledWarning(f, w.Start.Line, warn) {
 						findings = append(findings, w)
 					}
 				}
@@ -224,6 +264,9 @@ func collectAllWarnings() []string {
 	var result []string
 	// Collect list of all warnings.
 	for k := range FileWarningMap {
+		result = append(result, k)
+	}
+	for k := range LegacyFileWarningMap {
 		result = append(result, k)
 	}
 	for k := range RuleWarningMap {
