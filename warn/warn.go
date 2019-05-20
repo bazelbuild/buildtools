@@ -212,41 +212,53 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			for _, w := range fct(f) {
-				if !DisabledWarning(f, w.Start.Line, warn) {
-					if fix && len(w.Replacement) > 0 {
-						for _, r := range w.Replacement {
-							*r.Old = r.New
-						}
-					} else {
-						findings = append(findings, makeFinding(f, w.Start, w.End, warn, w.Message, true, nil))
-					}
-				}
-			}
+			findings = append(findings, runFileWarningsFunction(warn, f, fct, fix)...)
 		} else if fct, ok := LegacyFileWarningMap[warn]; ok {
 			for _, w := range fct(f, fix) {
 				if !DisabledWarning(f, w.Start.Line, warn) {
 					findings = append(findings, w)
 				}
 			}
+		} else if fct, ok := RuleWarningMap[warn]; ok {
+			findings = append(findings, runRuleWarningsFunction(warn, pkg, f, fct)...)
 		} else {
-			fn := RuleWarningMap[warn]
-			if fn == nil {
-				log.Fatalf("unexpected warning %q", warn)
-			}
-			if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
-				continue
-			}
-			for _, stmt := range f.Stmt {
-				if w := fn(f, pkg, stmt); w != nil {
-					if !DisabledWarning(f, w.Start.Line, warn) {
-						findings = append(findings, w)
-					}
-				}
-			}
+			log.Fatalf("unexpected warning %q", warn)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })
+	return findings
+}
+
+// runFileWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
+func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, fix bool) []*Finding {
+	findings := []*Finding{}
+	for _, w := range fct(f) {
+		if !DisabledWarning(f, w.Start.Line, category) {
+			if fix && len(w.Replacement) > 0 {
+				for _, r := range w.Replacement {
+					*r.Old = r.New
+				}
+			} else {
+				findings = append(findings, makeFinding(f, w.Start, w.End, category, w.Message, true, nil))
+			}
+		}
+	}
+	return findings
+}
+
+// runRuleWarningsFunction runs a linter/fixer function over each rule in file
+func runRuleWarningsFunction(category, pkg string, f *build.File, fct func(f *build.File, pkg string, expr build.Expr) *Finding) []*Finding {
+	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
+		return nil
+	}
+	findings := []*Finding{}
+	for _, stmt := range f.Stmt {
+		if w := fct(f, pkg, stmt); w != nil {
+			if !DisabledWarning(f, w.Start.Line, category) {
+				findings = append(findings, w)
+			}
+		}
+	}
 	return findings
 }
 
