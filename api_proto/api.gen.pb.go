@@ -3,9 +3,11 @@
 
 package api_proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Output_Record_Field_ERROR int32
 
@@ -29,6 +31,7 @@ var Output_Record_Field_ERROR_name = map[int32]string{
 	0: "UNKNOWN",
 	1: "MISSING",
 }
+
 var Output_Record_Field_ERROR_value = map[string]int32{
 	"UNKNOWN": 0,
 	"MISSING": 1,
@@ -37,8 +40,9 @@ var Output_Record_Field_ERROR_value = map[string]int32{
 func (x Output_Record_Field_ERROR) String() string {
 	return proto.EnumName(Output_Record_Field_ERROR_name, int32(x))
 }
+
 func (Output_Record_Field_ERROR) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_api_c2c6353ab717e598, []int{0, 0, 0, 0}
+	return fileDescriptor_35e560d0f079cc1d, []int{0, 0, 0, 0}
 }
 
 type Output struct {
@@ -52,16 +56,17 @@ func (m *Output) Reset()         { *m = Output{} }
 func (m *Output) String() string { return proto.CompactTextString(m) }
 func (*Output) ProtoMessage()    {}
 func (*Output) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_c2c6353ab717e598, []int{0}
+	return fileDescriptor_35e560d0f079cc1d, []int{0}
 }
+
 func (m *Output) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Output.Unmarshal(m, b)
 }
 func (m *Output) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Output.Marshal(b, m, deterministic)
 }
-func (dst *Output) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Output.Merge(dst, src)
+func (m *Output) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Output.Merge(m, src)
 }
 func (m *Output) XXX_Size() int {
 	return xxx_messageInfo_Output.Size(m)
@@ -90,16 +95,17 @@ func (m *Output_Record) Reset()         { *m = Output_Record{} }
 func (m *Output_Record) String() string { return proto.CompactTextString(m) }
 func (*Output_Record) ProtoMessage()    {}
 func (*Output_Record) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_c2c6353ab717e598, []int{0, 0}
+	return fileDescriptor_35e560d0f079cc1d, []int{0, 0}
 }
+
 func (m *Output_Record) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Output_Record.Unmarshal(m, b)
 }
 func (m *Output_Record) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Output_Record.Marshal(b, m, deterministic)
 }
-func (dst *Output_Record) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Output_Record.Merge(dst, src)
+func (m *Output_Record) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Output_Record.Merge(m, src)
 }
 func (m *Output_Record) XXX_Size() int {
 	return xxx_messageInfo_Output_Record.Size(m)
@@ -134,16 +140,17 @@ func (m *Output_Record_Field) Reset()         { *m = Output_Record_Field{} }
 func (m *Output_Record_Field) String() string { return proto.CompactTextString(m) }
 func (*Output_Record_Field) ProtoMessage()    {}
 func (*Output_Record_Field) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_c2c6353ab717e598, []int{0, 0, 0}
+	return fileDescriptor_35e560d0f079cc1d, []int{0, 0, 0}
 }
+
 func (m *Output_Record_Field) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Output_Record_Field.Unmarshal(m, b)
 }
 func (m *Output_Record_Field) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Output_Record_Field.Marshal(b, m, deterministic)
 }
-func (dst *Output_Record_Field) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Output_Record_Field.Merge(dst, src)
+func (m *Output_Record_Field) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Output_Record_Field.Merge(m, src)
 }
 func (m *Output_Record_Field) XXX_Size() int {
 	return xxx_messageInfo_Output_Record_Field.Size(m)
@@ -224,102 +231,14 @@ func (m *Output_Record_Field) GetQuoteWhenPrinting() bool {
 	return false
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Output_Record_Field) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Output_Record_Field_OneofMarshaler, _Output_Record_Field_OneofUnmarshaler, _Output_Record_Field_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Output_Record_Field) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Output_Record_Field_Text)(nil),
 		(*Output_Record_Field_Number)(nil),
 		(*Output_Record_Field_Error)(nil),
 		(*Output_Record_Field_List)(nil),
 	}
-}
-
-func _Output_Record_Field_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Output_Record_Field)
-	// value
-	switch x := m.Value.(type) {
-	case *Output_Record_Field_Text:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Text)
-	case *Output_Record_Field_Number:
-		b.EncodeVarint(2<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.Number))
-	case *Output_Record_Field_Error:
-		b.EncodeVarint(3<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.Error))
-	case *Output_Record_Field_List:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.List); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Output_Record_Field.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Output_Record_Field_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Output_Record_Field)
-	switch tag {
-	case 1: // value.text
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Value = &Output_Record_Field_Text{x}
-		return true, err
-	case 2: // value.number
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Value = &Output_Record_Field_Number{int32(x)}
-		return true, err
-	case 3: // value.error
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Value = &Output_Record_Field_Error{Output_Record_Field_ERROR(x)}
-		return true, err
-	case 5: // value.list
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RepeatedString)
-		err := b.DecodeMessage(msg)
-		m.Value = &Output_Record_Field_List{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Output_Record_Field_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Output_Record_Field)
-	// value
-	switch x := m.Value.(type) {
-	case *Output_Record_Field_Text:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Text)))
-		n += len(x.Text)
-	case *Output_Record_Field_Number:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.Number))
-	case *Output_Record_Field_Error:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.Error))
-	case *Output_Record_Field_List:
-		s := proto.Size(x.List)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type RepeatedString struct {
@@ -333,16 +252,17 @@ func (m *RepeatedString) Reset()         { *m = RepeatedString{} }
 func (m *RepeatedString) String() string { return proto.CompactTextString(m) }
 func (*RepeatedString) ProtoMessage()    {}
 func (*RepeatedString) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_c2c6353ab717e598, []int{1}
+	return fileDescriptor_35e560d0f079cc1d, []int{1}
 }
+
 func (m *RepeatedString) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RepeatedString.Unmarshal(m, b)
 }
 func (m *RepeatedString) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_RepeatedString.Marshal(b, m, deterministic)
 }
-func (dst *RepeatedString) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RepeatedString.Merge(dst, src)
+func (m *RepeatedString) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RepeatedString.Merge(m, src)
 }
 func (m *RepeatedString) XXX_Size() int {
 	return xxx_messageInfo_RepeatedString.Size(m)
@@ -361,16 +281,16 @@ func (m *RepeatedString) GetStrings() []string {
 }
 
 func init() {
+	proto.RegisterEnum("devtools.buildozer.Output_Record_Field_ERROR", Output_Record_Field_ERROR_name, Output_Record_Field_ERROR_value)
 	proto.RegisterType((*Output)(nil), "devtools.buildozer.Output")
 	proto.RegisterType((*Output_Record)(nil), "devtools.buildozer.Output.Record")
 	proto.RegisterType((*Output_Record_Field)(nil), "devtools.buildozer.Output.Record.Field")
 	proto.RegisterType((*RepeatedString)(nil), "devtools.buildozer.RepeatedString")
-	proto.RegisterEnum("devtools.buildozer.Output_Record_Field_ERROR", Output_Record_Field_ERROR_name, Output_Record_Field_ERROR_value)
 }
 
-func init() { proto.RegisterFile("api_proto/api.proto", fileDescriptor_api_c2c6353ab717e598) }
+func init() { proto.RegisterFile("api_proto/api.proto", fileDescriptor_35e560d0f079cc1d) }
 
-var fileDescriptor_api_c2c6353ab717e598 = []byte{
+var fileDescriptor_35e560d0f079cc1d = []byte{
 	// 346 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0xc1, 0x6a, 0xe3, 0x30,
 	0x10, 0x86, 0xad, 0x24, 0xb6, 0x37, 0x63, 0x08, 0x59, 0x65, 0x0f, 0x22, 0x27, 0xc7, 0x97, 0x35,
