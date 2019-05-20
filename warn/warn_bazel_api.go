@@ -137,11 +137,10 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 	return findings
 }
 
-// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported  function in the file
+// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
 // and adds a load statement if necessary.
 func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
 	findings := []*Finding{}
-
 	toLoad := make(map[string]bool)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
@@ -182,7 +181,54 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 		for k := range toLoad {
 			loads = append(loads, k)
 		}
-		sort.Slice(loads, func(i, j int) bool { return loads[i] < loads[j] })
+		sort.Strings(loads)
+		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
+	}
+
+	return findings
+}
+
+// notLoadedNativeFunctionUsageCheck checks whether there's a usage of a given not
+// import function in the file and adds a load statement if necessary.
+func notLoadedNativeFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
+	findings := []*Finding{}
+	toLoad := make(map[string]bool)
+
+	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+
+		dot, ok := expr.(*build.DotExpr)
+		if !ok {
+			return nil
+		}
+		ident, ok := dot.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return nil
+		}
+		for _, global := range globals {
+			if dot.Name == global {
+				if fix {
+					toLoad[global] = true
+					start, _ := dot.Span()
+					return &build.Ident{
+						Name:    dot.Name,
+						NamePos: start,
+					}
+				}
+				start, end := dot.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, category,
+						fmt.Sprintf(`Native function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
+			}
+		}
+		return nil
+	})
+
+	if fix && len(toLoad) > 0 {
+		loads := []string{}
+		for k := range toLoad {
+			loads = append(loads, k)
+		}
+		sort.Strings(loads)
 		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
 	}
 
@@ -515,7 +561,10 @@ func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return []*Finding{}
 	}
-	return notLoadedFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix)
+
+	return append(
+		notLoadedFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix),
+		notLoadedNativeFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix)...)
 }
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
