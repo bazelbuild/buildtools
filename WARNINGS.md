@@ -460,7 +460,7 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
 ## <a name="native-android"></a>All Android build rules should be loaded from Starlark
 
   * Category name: `native-android`
-  * Automatic fix: no
+  * Automatic fix: yes
 
 The Android build rules should be loaded from Starlark. The native rules [will be
 disabled](https://github.com/bazelbuild/bazel/issues/8391).
