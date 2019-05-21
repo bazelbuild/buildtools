@@ -1,6 +1,8 @@
 package warn
 
 import (
+	"fmt"
+	"github.com/bazelbuild/buildtools/tables"
 	"testing"
 )
 
@@ -483,11 +485,11 @@ def macro():
 android_binary()
 `,
 		[]string{
-			`:4: Function "aar_import" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
-			`:5: Function "android_library" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
-			`:6: Native function "android_library" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
-			`:7: Native function "android_local_test" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
-			`:9: Function "android_binary" is not global anymore and needs to be loaded from "@rules_android//android:rules.bzl".`,
+			fmt.Sprintf(`:4: Function "aar_import" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:5: Function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:6: Native function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:7: Native function "android_local_test" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:9: Function "android_binary" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
 		},
 		scopeBzl|scopeBuild)
 }
