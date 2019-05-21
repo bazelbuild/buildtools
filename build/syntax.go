@@ -500,7 +500,7 @@ func (x *DefStmt) Span() (start, end Position) {
 	return x.Function.Span()
 }
 
-// NameSpan returns the span of the function header `def f(...):`
+// HeaderSpan returns the span of the function header `def f(...):`
 func (x *DefStmt) HeaderSpan() (start, end Position) {
 	return x.Function.StartPos, x.ColonPos
 }
