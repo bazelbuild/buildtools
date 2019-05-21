@@ -208,6 +208,7 @@ var StripLabelLeadingSlashes = false
 
 var ShortenAbsoluteLabelsToRelative = false
 
+// AndroidNativeRules lists all Android rules that are being migrated from Native to Starlark.
 var AndroidNativeRules = []string{
 	"aar_import",
 	"android_binary",
@@ -219,6 +220,7 @@ var AndroidNativeRules = []string{
 	"android_sdk_repository",
 }
 
+// AndroidLoadPath is the load path for the Starlark Android Rules.
 var AndroidLoadPath = "@rules_android//android:rules.bzl"
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
