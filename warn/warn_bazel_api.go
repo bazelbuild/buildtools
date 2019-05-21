@@ -9,30 +9,19 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // Bazel API-specific warnings
 
-var (
-	functionsWithPositionalArguments = map[string]bool{
-		"distribs":            true,
-		"exports_files":       true,
-		"licenses":            true,
-		"print":               true,
-		"register_toolchains": true,
-		"vardef":              true,
-	}
-	androidNativeRules = []string{
-		"aar_import",
-		"android_binary",
-		"android_device",
-		"android_instrumentation_test",
-		"android_library",
-		"android_local_test",
-		"android_ndk_respository",
-		"android_sdk_repository",
-	}
-)
+var functionsWithPositionalArguments = map[string]bool{
+	"distribs":            true,
+	"exports_files":       true,
+	"licenses":            true,
+	"print":               true,
+	"register_toolchains": true,
+	"vardef":              true,
+}
 
 // negateExpression returns an expression which is a negation of the input.
 // If it's a boolean literal (true or false), just return the opposite literal.
@@ -563,8 +552,8 @@ func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
 	}
 
 	return append(
-		notLoadedFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix),
-		notLoadedNativeFunctionUsageCheck(f, "native-android", androidNativeRules, "@rules_android//android:rules.bzl", fix)...)
+		notLoadedFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix),
+		notLoadedNativeFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix)...)
 }
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
