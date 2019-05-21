@@ -4,9 +4,12 @@ package warn
 
 import (
 	"fmt"
+	"sort"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // Bazel API-specific warnings
@@ -123,16 +126,11 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 	return findings
 }
 
-// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported  function in the file
+// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
 // and adds a load statement if necessary.
 func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
 	findings := []*Finding{}
-
-	if f.Type != build.TypeBzl {
-		return findings
-	}
-
-	toLoad := []string{}
+	toLoad := make(map[string]bool)
 
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
@@ -154,7 +152,7 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 		for _, global := range globals {
 			if ident.Name == global {
 				if fix {
-					toLoad = append(toLoad, global)
+					toLoad[global] = true
 					return
 				}
 				start, end := call.Span()
@@ -168,7 +166,59 @@ func notLoadedFunctionUsageCheck(f *build.File, category string, globals []strin
 	walk(&expr, bzlenv.NewEnvironment())
 
 	if fix && len(toLoad) > 0 {
-		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, toLoad, toLoad)
+		loads := []string{}
+		for k := range toLoad {
+			loads = append(loads, k)
+		}
+		sort.Strings(loads)
+		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
+	}
+
+	return findings
+}
+
+// notLoadedNativeFunctionUsageCheck checks whether there's a usage of a given not
+// import function in the file and adds a load statement if necessary.
+func notLoadedNativeFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
+	findings := []*Finding{}
+	toLoad := make(map[string]bool)
+
+	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+
+		dot, ok := expr.(*build.DotExpr)
+		if !ok {
+			return nil
+		}
+		ident, ok := dot.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return nil
+		}
+		for _, global := range globals {
+			if dot.Name == global {
+				if fix {
+					toLoad[global] = true
+					start, _ := dot.Span()
+					return &build.Ident{
+						Name:    dot.Name,
+						NamePos: start,
+					}
+				}
+				start, end := dot.Span()
+				findings = append(findings,
+					makeFinding(f, start, end, category,
+						fmt.Sprintf(`Native function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
+			}
+		}
+		return nil
+	})
+
+	if fix && len(toLoad) > 0 {
+		loads := []string{}
+		for k := range toLoad {
+			loads = append(loads, k)
+		}
+		sort.Strings(loads)
+		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
 	}
 
 	return findings
@@ -483,11 +533,27 @@ func outputGroupWarning(f *build.File, fix bool) []*Finding {
 }
 
 func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl {
+		return []*Finding{}
+	}
 	return notLoadedFunctionUsageCheck(f, "git-repository", []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl", fix)
 }
 
 func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl {
+		return []*Finding{}
+	}
 	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
+}
+
+func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return []*Finding{}
+	}
+
+	return append(
+		notLoadedFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix),
+		notLoadedNativeFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix)...)
 }
 
 func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
