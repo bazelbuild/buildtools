@@ -251,16 +251,16 @@ func makeKeyword(argument build.Expr, name string) build.Expr {
 	return argument
 }
 
-func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func attrConfigurationWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...)
-		call, ok := expr.(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
@@ -280,14 +280,12 @@ func attrConfigurationWarning(f *build.File, fix bool) []*Finding {
 		if !ok || value.Value != "data" {
 			return
 		}
-		if fix {
-			call.List = append(call.List[:i], call.List[i+1:]...)
-			return
-		}
-		start, end := param.Span()
+		newCall := *call
+		newCall.List = append(newCall.List[:i], newCall.List[i+1:]...)
+
 		findings = append(findings,
-			makeFinding(f, start, end, "attr-cfg",
-				`cfg = "data" for attr definitions has no effect and should be removed.`, true, nil))
+			makeLinterFinding(param, `cfg = "data" for attr definitions has no effect and should be removed.`,
+				LinterReplacement{expr, &newCall}))
 	})
 	return findings
 }
@@ -649,13 +647,12 @@ func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func attrLicenseWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func attrLicenseWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
+	findings := []*LinterFinding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.license(...)
 		call, ok := expr.(*build.CallExpr)
@@ -670,10 +667,8 @@ func attrLicenseWarning(f *build.File, fix bool) []*Finding {
 		if !ok || base.Name != "attr" {
 			return
 		}
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "attr-license",
-				`"attr.license()" is deprecated and shouldn't be used.`, true, nil))
+			makeLinterFinding(expr, `"attr.license()" is deprecated and shouldn't be used.`))
 	})
 	return findings
 }
