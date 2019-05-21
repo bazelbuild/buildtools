@@ -28,6 +28,7 @@ Warning categories supported by buildifier's linter:
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
   * [name-conventions](#name-conventions)
+  * [native-android] (#native-android)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
@@ -453,6 +454,16 @@ which should be the first statement of the file (it may follow comment lines).
 
 By convention, all variables should be lower_snake_case, constant should be
 UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-android"></a>All Android build rules should be loaded from Starlark
+
+  * Category name: `native-android`
+  * Automatic fix: yes
+
+The Android build rules should be loaded from Starlark. The native rules [will be
+disabled](https://github.com/bazelbuild/bazel/issues/8391).
 
 --------------------------------------------------------------------------------
 

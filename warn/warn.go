@@ -123,6 +123,7 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"return-value":              missingReturnValueWarning,
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
+	"native-android":            nativeAndroidRulesWarning,
 	"native-build":              nativeInBuildFilesWarning,
 	"native-package":            nativePackageWarning,
 	"no-effect":                 noEffectWarning,
