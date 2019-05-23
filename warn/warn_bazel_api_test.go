@@ -471,10 +471,10 @@ def macro():
     native.android_local_test()
 
 android_binary()
-`, `
+`, fmt.Sprintf(`
 """My file"""
 
-load("@rules_android//android:rules.bzl", "aar_import", "android_binary", "android_library", "android_local_test")
+load(%q, "aar_import", "android_binary", "android_library", "android_local_test")
 
 def macro():
     aar_import()
@@ -483,7 +483,7 @@ def macro():
     android_local_test()
 
 android_binary()
-`,
+`, tables.AndroidLoadPath),
 		[]string{
 			fmt.Sprintf(`:4: Function "aar_import" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
 			fmt.Sprintf(`:5: Function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
