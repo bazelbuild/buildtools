@@ -30,12 +30,6 @@ cc_library(name = "lib")
 		`:1: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
 		`:3: The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
 	}, scopeBuild)
-
-	checkFindings(t, "native-build", `
-native.existing_rule("foo")
-
-native.existing_rules()
-`, []string{}, scopeBuild)
 }
 
 func TestNativePackage(t *testing.T) {
