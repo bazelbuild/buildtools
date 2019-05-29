@@ -62,12 +62,6 @@ func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 			return nil
 		}
 
-		// TODO(https://github.com/bazelbuild/bazel/issues/7496): remove as soon as `existing_rule`
-		// and `exsisting_rules` become available in BUILD files.
-		if dot.Name == "existing_rule" || dot.Name == "existing_rules" {
-			return nil
-		}
-
 		if fix {
 			start, _ := dot.Span()
 			return &build.Ident{
