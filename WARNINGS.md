@@ -28,7 +28,7 @@ Warning categories supported by buildifier's linter:
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
   * [name-conventions](#name-conventions)
-  * [native-android] (#native-android)
+  * [native-android](#native-android)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
