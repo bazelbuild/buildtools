@@ -207,7 +207,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 }
 
 // FileWarnings returns a list of all warnings found in the file.
-func FileWarnings(f *build.File, pkg string, enabledWarnings []string, mode LintMode) []*Finding {
+func FileWarnings(f *build.File, pkg string, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
@@ -215,9 +215,15 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, mode Lint
 	warnings := append([]string{}, enabledWarnings...)
 	sort.Strings(warnings)
 
+	// If suggestions are requested and formatted file is not provided, format it to compare modified versions with
+	if mode == ModeSuggest && formatted == nil {
+		contents := build.Format(f)
+		formatted = &contents
+	}
+
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runFileWarningsFunction(warn, f, fct, mode)...)
+			findings = append(findings, runFileWarningsFunction(warn, f, fct, formatted, mode)...)
 		} else if fct, ok := LegacyFileWarningMap[warn]; ok {
 			for _, w := range fct(f, mode == ModeFix) {
 				if !DisabledWarning(f, w.Start.Line, warn) {
@@ -235,12 +241,7 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, mode Lint
 }
 
 // runFileWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, mode LintMode) []*Finding {
-	var contents []byte
-	if mode == ModeSuggest {
-		contents = build.Format(f)
-	}
-
+func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
 	for _, w := range fct(f) {
 		if !DisabledWarning(f, w.Start.Line, category) {
@@ -258,7 +259,7 @@ func runFileWarningsFunction(category string, f *build.File, fct func(f *build.F
 					// Apply the fix, calculate the diff and roll back the fix
 					newContents := formatWithFix(f, &w.Replacement)
 
-					start, end, replacement := calculateDifference(&contents, &newContents)
+					start, end, replacement := calculateDifference(formatted, &newContents)
 					finding.Replacement = &Replacement{
 						Description: w.Message,
 						Start:       start,
@@ -340,7 +341,7 @@ func runRuleWarningsFunction(category, pkg string, f *build.File, fct func(f *bu
 
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
-	warnings := FileWarnings(f, pkg, enabledWarnings, ModeFix)
+	warnings := FileWarnings(f, pkg, enabledWarnings, nil, ModeFix)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),

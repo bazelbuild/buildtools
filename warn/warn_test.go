@@ -38,7 +38,7 @@ func getFindings(category, input string, fileType build.FileType) []*Finding {
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	return FileWarnings(buildFile, "the_package", []string{category}, ModeWarn)
+	return FileWarnings(buildFile, "the_package", []string{category}, nil, ModeWarn)
 }
 
 func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
@@ -222,7 +222,7 @@ attr.baz("baz", cfg = "data")
 		t.Errorf("Parse error: %v", err)
 	}
 
-	findings := FileWarnings(f, "pkg", []string{"attr-cfg"}, ModeSuggest)
+	findings := FileWarnings(f, "pkg", []string{"attr-cfg"}, nil, ModeSuggest)
 	want := []struct {
 		start       int
 		end         int
