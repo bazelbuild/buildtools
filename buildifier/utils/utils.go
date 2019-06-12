@@ -101,7 +101,7 @@ func GetPackageName(filename string) string {
 func Lint(f *build.File, pkg, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
 	switch lint {
 	case "warn":
-		return warn.FileWarnings(f, pkg, *warningsList, false)
+		return warn.FileWarnings(f, pkg, *warningsList, nil, warn.ModeWarn)
 	case "fix":
 		warn.FixWarnings(f, pkg, *warningsList, verbose)
 	}

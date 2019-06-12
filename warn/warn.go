@@ -11,6 +11,20 @@ import (
 	"github.com/bazelbuild/buildtools/edit"
 )
 
+// LintMode is an enum representing a linter mode. Can be either "warn", "fix", or "suggest"
+type LintMode int
+
+const (
+	// ModeWarn means only warnings should be returned for each finding.
+	ModeWarn LintMode = iota
+	// ModeFix means that all warnings that can be fixed automatically should be fixed and
+	// no warnings should be returned for them.
+	ModeFix
+	// ModeSuggest means that automatic fixes shouldn't be applied, but instead corresponding
+	// suggestions should be attached to all warnings that can be fixed automatically.
+	ModeSuggest
+)
+
 // LinterFinding is a low-level warning reported by single linter/fixer functions.
 type LinterFinding struct {
 	Start       build.Position
@@ -40,8 +54,8 @@ type Finding struct {
 // A Replacement is a suggested fix. Text between Start and End should be replaced with Content.
 type Replacement struct {
 	Description string
-	Start       build.Position
-	End         build.Position
+	Start       int
+	End         int
 	Content     string
 }
 
@@ -71,16 +85,6 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 		End:         end,
 		Message:     message,
 		Replacement: replacement,
-	}
-}
-
-// MakeFix creates a Replacement object
-func MakeFix(f *build.File, desc string, start build.Position, end build.Position, newContent string) *Replacement {
-	return &Replacement{
-		Description: desc,
-		Start:       start,
-		End:         end,
-		Content:     newContent,
 	}
 }
 
@@ -203,7 +207,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 }
 
 // FileWarnings returns a list of all warnings found in the file.
-func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool) []*Finding {
+func FileWarnings(f *build.File, pkg string, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
@@ -211,11 +215,17 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 	warnings := append([]string{}, enabledWarnings...)
 	sort.Strings(warnings)
 
+	// If suggestions are requested and formatted file is not provided, format it to compare modified versions with
+	if mode == ModeSuggest && formatted == nil {
+		contents := build.Format(f)
+		formatted = &contents
+	}
+
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runFileWarningsFunction(warn, f, fct, fix)...)
+			findings = append(findings, runFileWarningsFunction(warn, f, fct, formatted, mode)...)
 		} else if fct, ok := LegacyFileWarningMap[warn]; ok {
-			for _, w := range fct(f, fix) {
+			for _, w := range fct(f, mode == ModeFix) {
 				if !DisabledWarning(f, w.Start.Line, warn) {
 					findings = append(findings, w)
 				}
@@ -231,20 +241,86 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, fix bool)
 }
 
 // runFileWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, fix bool) []*Finding {
+func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
 	for _, w := range fct(f) {
 		if !DisabledWarning(f, w.Start.Line, category) {
-			if fix && len(w.Replacement) > 0 {
-				for _, r := range w.Replacement {
-					*r.Old = r.New
+			finding := makeFinding(f, w.Start, w.End, category, w.Message, true, nil)
+			if len(w.Replacement) > 0 {
+				// An automatic fix exists
+				switch mode {
+				case ModeFix:
+					// Apply the fix and discard the finding
+					for _, r := range w.Replacement {
+						*r.Old = r.New
+					}
+					finding = nil
+				case ModeSuggest:
+					// Apply the fix, calculate the diff and roll back the fix
+					newContents := formatWithFix(f, &w.Replacement)
+
+					start, end, replacement := calculateDifference(formatted, &newContents)
+					finding.Replacement = &Replacement{
+						Description: w.Message,
+						Start:       start,
+						End:         end,
+						Content:     replacement,
+					}
 				}
-			} else {
-				findings = append(findings, makeFinding(f, w.Start, w.End, category, w.Message, true, nil))
+			}
+			if finding != nil {
+				findings = append(findings, finding)
 			}
 		}
 	}
 	return findings
+}
+
+// formatWithFix applies a fix, formats a file, and rolls back the fix
+func formatWithFix(f *build.File, replacements *[]LinterReplacement) []byte {
+	for i := range *replacements {
+		r := (*replacements)[i]
+		old := *r.Old
+		*r.Old = r.New
+		defer func() { *r.Old = old }()
+	}
+
+	return build.Format(f)
+}
+
+// calculateDifference compares two file contents and returns a replacement in the form of
+// a 3-tuple (byte from, byte to (non inclusive), a string to replace with).
+func calculateDifference(old, new *[]byte) (start, end int, replacement string) {
+	commonPrefix := 0 // length of the common prefix
+	for i, b := range *old {
+		if i >= len(*new) || b != (*new)[i] {
+			break
+		}
+		commonPrefix++
+	}
+
+	commonSuffix := 0 // length of the common suffix
+	for i := range *old {
+		b := (*old)[len(*old)-1-i]
+		if i >= len(*new) || b != (*new)[len(*new)-1-i] {
+			break
+		}
+		commonSuffix++
+	}
+
+	// In some cases common suffix and prefix can overlap. E.g. consider the following case:
+	//   old = "abc"
+	//   new = "abdbc"
+	// In this case the common prefix is "ab" and the common suffix is "bc".
+	// If they overlap, just shorten the suffix so that they don't.
+	// The new suffix will be just "c".
+	if commonPrefix+commonSuffix > len(*old) {
+		commonSuffix = len(*old) - commonPrefix
+	}
+	if commonPrefix+commonSuffix > len(*new) {
+		commonSuffix = len(*new) - commonPrefix
+	}
+	return commonPrefix, len(*old) - commonSuffix, string((*new)[commonPrefix:(len(*new) - commonSuffix)])
 }
 
 // runRuleWarningsFunction runs a linter/fixer function over each rule in file
@@ -265,7 +341,7 @@ func runRuleWarningsFunction(category, pkg string, f *build.File, fct func(f *bu
 
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
-	warnings := FileWarnings(f, pkg, enabledWarnings, true)
+	warnings := FileWarnings(f, pkg, enabledWarnings, nil, ModeFix)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),
