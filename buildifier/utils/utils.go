@@ -12,25 +12,22 @@ import (
 	"github.com/bazelbuild/buildtools/warn"
 )
 
-func isStarlarkFile(info os.FileInfo) bool {
-	if info.IsDir() {
-		return false
-	}
-
-	basename := strings.ToLower(info.Name())
+func isStarlarkFile(name string) bool {
+	basename := strings.ToLower(name)
 	ext := filepath.Ext(basename)
 	switch ext {
 	case ".bzl", ".sky":
 		return true
 	}
 	base := basename[:len(basename)-len(ext)]
-	switch {
-	case ext == ".build" || base == "build":
-		return true
-	case ext == ".workspace" || base == "workspace":
-		return true
+
+	switch ext {
+	case ".bazel", ".oss":
+		// The extension can be ignored
+		basename = base
 	}
-	return false
+
+	return basename == "build" || basename == "workspace"
 }
 
 func skip(info os.FileInfo) bool {
@@ -54,7 +51,7 @@ func ExpandDirectories(args *[]string) ([]string, error) {
 			if skip(info) {
 				return filepath.SkipDir
 			}
-			if isStarlarkFile(info) {
+			if !info.IsDir() && isStarlarkFile(info.Name()) {
 				files = append(files, path)
 			}
 			return err
