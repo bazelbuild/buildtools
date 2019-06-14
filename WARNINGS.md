@@ -37,6 +37,7 @@ Warning categories supported by buildifier's linter:
   * [package-name](#package-name)
   * [package-on-top](#package-on-top)
   * [positional-args](#positional-args)
+  * [print](#print)
   * [redefined-variable](#redefined-variable)
   * [repository-name](#repository-name)
   * [return-value](#return-value)
@@ -597,6 +598,18 @@ arguments:
 
 You can disable this warning by adding `# buildozer: disable=positional-args` on
 the line or at the beginning of a rule.
+
+--------------------------------------------------------------------------------
+
+## <a name="print"></a>`print()` is a debug function and shouldn't be submitted
+
+  * Category name: `print`
+  * Automatic fix: no
+
+Using the `print()` function for warnings is discouraged: they are often spammy and
+non actionable, the people who see the warning are usually not the people who can
+fix the code to make the warning disappear, and the actual maintainers of the code
+may never see the warning.
 
 --------------------------------------------------------------------------------
 

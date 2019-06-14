@@ -105,3 +105,22 @@ foo(not bar(-kgs))`,
 		[]string{},
 		scopeBuild)
 }
+
+func TestPrintWarning(t *testing.T) {
+	checkFindings(t, "print", `
+foo()
+
+print("foo")
+
+def f(x):
+  print(x)
+
+  g(x) or print("not g")
+`,
+		[]string{
+			`:3: "print()" is a debug function and shouldn't be submitted.`,
+			`:6: "print()" is a debug function and shouldn't be submitted.`,
+			`:8: "print()" is a debug function and shouldn't be submitted.`,
+		},
+		scopeBazel)
+}

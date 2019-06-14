@@ -191,3 +191,25 @@ func argsKwargsInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 	})
 	return findings
 }
+
+func printWarning(f *build.File) []*LinterFinding {
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return nil
+	}
+
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		ident, ok := (call.X).(*build.Ident)
+		if !ok || ident.Name != "print" {
+			return
+		}
+		findings = append(findings,
+			makeLinterFinding(expr, `"print()" is a debug function and shouldn't be submitted.`))
+	})
+	return findings
+}
