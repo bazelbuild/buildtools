@@ -98,6 +98,7 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-cfg":     attrConfigurationWarning,
 	"attr-license": attrLicenseWarning,
+	"print":        printWarning,
 }
 
 // LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
