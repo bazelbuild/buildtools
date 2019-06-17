@@ -101,7 +101,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"duplicated-name":   duplicatedNameWarning,
 	"native-build":      nativeInBuildFilesWarning,
 	"native-package":    nativePackageWarning,
-	"positional-args":   positionalArgumentsWarning,
+	"positional-args":   RuleWarning(positionalArgumentsWarning),
 	"print":             printWarning,
 }
 
@@ -151,6 +151,25 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 var nonDefaultWarnings = map[string]bool{
 	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
+}
+
+// RuleWarning is a wrapper that converts a per-rule function to a per-file function. It also doesn't
+// run on .bzl of default files.
+func RuleWarning(ruleWarning func(call *build.CallExpr) []*LinterFinding) func(f *build.File) []*LinterFinding {
+	return func(f *build.File) []*LinterFinding {
+		if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
+			return nil
+		}
+		findings := []*LinterFinding{}
+		for _, stmt := range f.Stmt {
+			call, ok := stmt.(*build.CallExpr)
+			if !ok {
+				continue
+			}
+			findings = append(findings, ruleWarning(call)...)
+		}
+		return findings
+	}
 }
 
 // DisabledWarning checks if the warning was disabled by a comment.
