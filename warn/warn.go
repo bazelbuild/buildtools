@@ -162,11 +162,15 @@ func RuleWarning(ruleWarning func(call *build.CallExpr) []*LinterFinding) func(f
 		}
 		findings := []*LinterFinding{}
 		for _, stmt := range f.Stmt {
-			call, ok := stmt.(*build.CallExpr)
-			if !ok {
-				continue
+			switch stmt := stmt.(type) {
+			case *build.CallExpr:
+				findings = append(findings, ruleWarning(stmt)...)
+			case *build.Comprehension:
+				// Rules are often called within list comprehensions, e.g. [my_rule(foo) for foo in bar]
+				if call, ok := stmt.Body.(*build.CallExpr); ok {
+					findings = append(findings, ruleWarning(call)...)
+				}
 			}
-			findings = append(findings, ruleWarning(call)...)
 		}
 		return findings
 	}
