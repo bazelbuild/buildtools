@@ -90,15 +90,19 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
-var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
-	"positional-args": positionalArgumentsWarning,
-}
+var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{}
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
-	"attr-cfg":     attrConfigurationWarning,
-	"attr-license": attrLicenseWarning,
-	"print":        printWarning,
+	"attr-cfg":          attrConfigurationWarning,
+	"attr-license":      attrLicenseWarning,
+	"build-args-kwargs": argsKwargsInBuildFilesWarning,
+	"constant-glob":     constantGlobWarning,
+	"duplicated-name":   duplicatedNameWarning,
+	"native-build":      nativeInBuildFilesWarning,
+	"native-package":    nativePackageWarning,
+	"positional-args":   positionalArgumentsWarning,
+	"print":             printWarning,
 }
 
 // LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
@@ -106,15 +110,12 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
-	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
 	"confusing-name":            confusingNameWarning,
-	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
 	"ctx-args":                  contextArgsAPIWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
-	"duplicated-name":           duplicatedNameWarning,
 	"filetype":                  fileTypeWarning,
 	"function-docstring":        functionDocstringWarning,
 	"function-docstring-header": functionDocstringHeaderWarning,
@@ -129,8 +130,6 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
 	"native-android":            nativeAndroidRulesWarning,
-	"native-build":              nativeInBuildFilesWarning,
-	"native-package":            nativePackageWarning,
 	"no-effect":                 noEffectWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,
 	"output-group":              outputGroupWarning,

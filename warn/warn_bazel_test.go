@@ -12,8 +12,8 @@ cc_library(srcs =
     "test.cpp",
   ])
 )`,
-		[]string{":1: Glob pattern `foo.cc` has no wildcard",
-			":6: Glob pattern `test.cpp` has no wildcard"},
+		[]string{`:1: Glob pattern "foo.cc" has no wildcard`,
+			`:6: Glob pattern "test.cpp" has no wildcard`},
 		scopeBazel)
 }
 
