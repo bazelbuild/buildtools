@@ -12,8 +12,8 @@ cc_library(srcs =
     "test.cpp",
   ])
 )`,
-		[]string{":1: Glob pattern `foo.cc` has no wildcard",
-			":6: Glob pattern `test.cpp` has no wildcard"},
+		[]string{`:1: Glob pattern "foo.cc" has no wildcard`,
+			`:6: Glob pattern "test.cpp" has no wildcard`},
 		scopeBazel)
 }
 
@@ -65,8 +65,13 @@ exports_files(["foo.txt"])
 func TestPositionalArguments(t *testing.T) {
 	checkFindings(t, "positional-args", `
 my_macro(foo = "bar")
-my_macro("foo", "bar")`,
-		[]string{":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."},
+my_macro("foo", "bar")
+my_macro(foo = bar(x))
+[my_macro(foo) for foo in bar]`,
+		[]string{
+			":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
+			":4: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
+		},
 		scopeBuild|scopeWorkspace)
 
 	checkFindings(t, "positional-args", `

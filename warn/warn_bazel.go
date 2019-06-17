@@ -7,24 +7,27 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/edit"
 )
 
-func constantGlobWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func constantGlobWarning(f *build.File) []*LinterFinding {
 	if f.Type == build.TypeDefault {
 		// Only applicable to Bazel files
-		return findings
+		return nil
 	}
 
-	edit.EditFunction(f, "glob", func(call *build.CallExpr, stk []build.Expr) build.Expr {
-		if len(call.List) == 0 {
-			return nil
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok || len(call.List) == 0 {
+			return
+		}
+		ident, ok := (call.X).(*build.Ident)
+		if !ok || ident.Name != "glob" {
+			return
 		}
 		patterns, ok := call.List[0].(*build.ListExpr)
 		if !ok {
-			return nil
+			return
 		}
 		for _, expr := range patterns.List {
 			str, ok := expr.(*build.StringExpr)
@@ -32,60 +35,47 @@ func constantGlobWarning(f *build.File, fix bool) []*Finding {
 				continue
 			}
 			if !strings.Contains(str.Value, "*") {
-				start, end := str.Span()
-				findings = append(findings, makeFinding(f, start, end, "constant-glob",
-					"Glob pattern `"+str.Value+"` has no wildcard ('*'). "+
-						"Constant patterns can be error-prone, move the file outside the glob.", true, nil))
-				return nil // at most one warning per glob
+				message := fmt.Sprintf(
+					`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
+				findings = append(findings, makeLinterFinding(expr, message))
+				return // at most one warning per glob
 			}
 		}
-		return nil
 	})
 	return findings
 }
 
-func nativeInBuildFilesWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func nativeInBuildFilesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBuild {
-		return findings
+		return nil
 	}
 
-	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+	findings := []*LinterFinding{}
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Search for `native.xxx` nodes
-		dot, ok := expr.(*build.DotExpr)
+		dot, ok := (*expr).(*build.DotExpr)
 		if !ok {
-			return nil
+			return
 		}
 		ident, ok := dot.X.(*build.Ident)
 		if !ok || ident.Name != "native" {
-			return nil
+			return
 		}
 
-		if fix {
-			start, _ := dot.Span()
-			return &build.Ident{
-				Name:    dot.Name,
-				NamePos: start,
-			}
-		}
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "native-build",
-				`The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`, true, nil))
-
-		return nil
+			makeLinterFinding(ident,
+				`The "native" module shouldn't be used in BUILD files, its members are available as global symbols.`,
+				LinterReplacement{expr, &build.Ident{Name: dot.Name}}))
 	})
 	return findings
 }
 
-func nativePackageWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func nativePackageWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
+	findings := []*LinterFinding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Search for `native.package()` nodes
 		call, ok := expr.(*build.CallExpr)
@@ -101,22 +91,21 @@ func nativePackageWarning(f *build.File, fix bool) []*Finding {
 			return
 		}
 
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "native-package",
-				`"native.package()" shouldn't be used in .bzl files.`, true, nil))
+			makeLinterFinding(call, `"native.package()" shouldn't be used in .bzl files.`))
 	})
 	return findings
 }
 
-func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func duplicatedNameWarning(f *build.File) []*LinterFinding {
 	if f.Type == build.TypeBzl || f.Type == build.TypeDefault {
 		// Not applicable to .bzl files.
-		return findings
+		return nil
 	}
+
+	findings := []*LinterFinding{}
 	names := make(map[string]int) // map from name to line number
-	msg := `A rule with name "%s" was already found on line %d. ` +
+	msg := `A rule with name %q was already found on line %d. ` +
 		`Even if it's valid for Blaze, this may confuse other tools. ` +
 		`Please rename it and use different names.`
 
@@ -125,13 +114,14 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 		if name == "" {
 			continue
 		}
-		start, end := rule.Call.Span()
-		if nameNode := rule.Attr("name"); nameNode != nil {
-			start, end = nameNode.Span()
-		}
+		start, _ := rule.Call.Span()
 		if line, ok := names[name]; ok {
-			findings = append(findings,
-				makeFinding(f, start, end, "duplicated-name", fmt.Sprintf(msg, name, line), true, nil))
+			finding := makeLinterFinding(rule.Call, fmt.Sprintf(msg, name, line))
+			if nameNode := rule.Attr("name"); nameNode != nil {
+				finding.Start, finding.End = nameNode.Span()
+				start = finding.Start
+			}
+			findings = append(findings, finding)
 		} else {
 			names[name] = start.Line
 		}
@@ -139,12 +129,8 @@ func duplicatedNameWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Finding {
+func positionalArgumentsWarning(call *build.CallExpr) []*LinterFinding {
 	msg := "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."
-	call, ok := stmt.(*build.CallExpr)
-	if !ok {
-		return nil
-	}
 	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
 		return nil
 	}
@@ -152,19 +138,17 @@ func positionalArgumentsWarning(f *build.File, pkg string, stmt build.Expr) *Fin
 		if _, ok := arg.(*build.AssignExpr); ok {
 			continue
 		}
-		start, end := arg.Span()
-		return makeFinding(f, start, end, "positional-args", msg, true, nil)
+		return []*LinterFinding{makeLinterFinding(arg, msg)}
 	}
 	return nil
 }
 
-func argsKwargsInBuildFilesWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func argsKwargsInBuildFilesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBuild {
-		return findings
+		return nil
 	}
 
+	findings := []*LinterFinding{}
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Search for function call nodes
 		call, ok := expr.(*build.CallExpr)
@@ -176,16 +160,13 @@ func argsKwargsInBuildFilesWarning(f *build.File, fix bool) []*Finding {
 			if !ok {
 				continue
 			}
-			start, end := param.Span()
 			switch unary.Op {
 			case "*":
 				findings = append(findings,
-					makeFinding(f, start, end, "build-args-kwargs",
-						`*args are not allowed in BUILD files.`, true, nil))
+					makeLinterFinding(param, `*args are not allowed in BUILD files.`))
 			case "**":
 				findings = append(findings,
-					makeFinding(f, start, end, "build-args-kwargs",
-						`**kwargs are not allowed in BUILD files.`, true, nil))
+					makeLinterFinding(param, `**kwargs are not allowed in BUILD files.`))
 			}
 		}
 	})

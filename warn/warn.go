@@ -90,15 +90,19 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
-var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{
-	"positional-args": positionalArgumentsWarning,
-}
+var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{}
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
-	"attr-cfg":     attrConfigurationWarning,
-	"attr-license": attrLicenseWarning,
-	"print":        printWarning,
+	"attr-cfg":          attrConfigurationWarning,
+	"attr-license":      attrLicenseWarning,
+	"build-args-kwargs": argsKwargsInBuildFilesWarning,
+	"constant-glob":     constantGlobWarning,
+	"duplicated-name":   duplicatedNameWarning,
+	"native-build":      nativeInBuildFilesWarning,
+	"native-package":    nativePackageWarning,
+	"positional-args":   RuleWarning(positionalArgumentsWarning),
+	"print":             printWarning,
 }
 
 // LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
@@ -106,15 +110,12 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
-	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
 	"confusing-name":            confusingNameWarning,
-	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
 	"ctx-args":                  contextArgsAPIWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
-	"duplicated-name":           duplicatedNameWarning,
 	"filetype":                  fileTypeWarning,
 	"function-docstring":        functionDocstringWarning,
 	"function-docstring-header": functionDocstringHeaderWarning,
@@ -129,8 +130,6 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
 	"native-android":            nativeAndroidRulesWarning,
-	"native-build":              nativeInBuildFilesWarning,
-	"native-package":            nativePackageWarning,
 	"no-effect":                 noEffectWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,
 	"output-group":              outputGroupWarning,
@@ -152,6 +151,29 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 var nonDefaultWarnings = map[string]bool{
 	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
+}
+
+// RuleWarning is a wrapper that converts a per-rule function to a per-file function. It also doesn't
+// run on .bzl of default files.
+func RuleWarning(ruleWarning func(call *build.CallExpr) []*LinterFinding) func(f *build.File) []*LinterFinding {
+	return func(f *build.File) []*LinterFinding {
+		if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
+			return nil
+		}
+		findings := []*LinterFinding{}
+		for _, stmt := range f.Stmt {
+			switch stmt := stmt.(type) {
+			case *build.CallExpr:
+				findings = append(findings, ruleWarning(stmt)...)
+			case *build.Comprehension:
+				// Rules are often called within list comprehensions, e.g. [my_rule(foo) for foo in bar]
+				if call, ok := stmt.Body.(*build.CallExpr); ok {
+					findings = append(findings, ruleWarning(call)...)
+				}
+			}
+		}
+		return findings
+	}
 }
 
 // DisabledWarning checks if the warning was disabled by a comment.
