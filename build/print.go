@@ -176,7 +176,17 @@ func (p *printer) nestedStatements(stmts []Expr) {
 	p.level--
 }
 
-func (p *printer) statements(stmts []Expr) {
+func (p *printer) statements(rawStmts []Expr) {
+	// rawStmts may contain nils if a refactoring tool replaces an actual statement with nil.
+	// It means the statements don't exist anymore, just ignore them.
+
+	stmts := []Expr{}
+	for _, stmt := range rawStmts {
+		if stmt != nil {
+			stmts = append(stmts, stmt)
+		}
+	}
+
 	for i, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *CommentBlock:

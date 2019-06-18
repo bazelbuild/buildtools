@@ -49,8 +49,8 @@ func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt
 }
 
 // missingReturnValueWarning warns if a function returns both explicit and implicit values.
-func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func missingReturnValueWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 
 	for _, stmt := range f.Stmt {
 		function, ok := stmt.(*build.DefStmt)
@@ -69,17 +69,13 @@ func missingReturnValueWarning(f *build.File, fix bool) []*Finding {
 			continue
 		}
 		explicitReturn := findReturnsWithoutValue(function.Body, func(ret *build.ReturnStmt) {
-			start, end := ret.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "return-value",
-					`Some but not all execution paths of "`+function.Name+`" return a value.`, true, nil))
+				makeLinterFinding(ret, fmt.Sprintf("Some but not all execution paths of %q return a value.", function.Name)))
 		})
 		if !explicitReturn {
-			start, end := function.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "return-value",
-					`Some but not all execution paths of "`+function.Name+`" return a value.
-The function may terminate by an implicit return in the end.`, true, nil))
+				makeLinterFinding(function, fmt.Sprintf(`Some but not all execution paths of %q return a value.
+The function may terminate by an implicit return in the end.`, function.Name)))
 		}
 	}
 	return findings
@@ -123,8 +119,8 @@ func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bo
 	return unreachable
 }
 
-func unreachableStatementWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func unreachableStatementWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 
 	for _, stmt := range f.Stmt {
 		function, ok := stmt.(*build.DefStmt)
@@ -133,19 +129,16 @@ func unreachableStatementWarning(f *build.File, fix bool) []*Finding {
 		}
 
 		findUnreachableStatements(function.Body, func(expr build.Expr) {
-			start, end := expr.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "unreachable",
-					`The statement is unreachable.`, true, nil))
+				makeLinterFinding(expr, `The statement is unreachable.`))
 		})
 	}
 	return findings
 }
 
-func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFunc bool, findings []*Finding) []*Finding {
+func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFunc bool, findings []*LinterFinding) []*LinterFinding {
 	seenNonComment := false
 	for _, stmt := range body {
-		start, end := stmt.Span()
 		if _, ok := stmt.(*build.StringExpr); ok {
 			if !seenNonComment && (isTopLevel || isFunc) {
 				// It's a docstring.
@@ -164,20 +157,18 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 			if !isTopLevel || s.Curly {
 				// List comprehensions are allowed on top-level.
 				findings = append(findings,
-					makeFinding(f, start, end, "no-effect",
-						"Expression result is not used. Use a for-loop instead of a list comprehension.", true, nil))
+					makeLinterFinding(stmt, "Expression result is not used. Use a for-loop instead of a list comprehension."))
 			}
 			continue
 		}
 		findings = append(findings,
-			makeFinding(f, start, end, "no-effect",
-				"Expression result is not used.", true, nil))
+			makeLinterFinding(stmt, "Expression result is not used."))
 	}
 	return findings
 }
 
-func noEffectWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func noEffectWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 	findings = noEffectStatementsCheck(f, f.Stmt, true, false, findings)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// The AST should have a ExprStmt node.
@@ -197,7 +188,7 @@ func noEffectWarning(f *build.File, fix bool) []*Finding {
 
 // unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
 // *build.DefStmt) and reports unused and already defined variables.
-func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding) []*Finding {
+func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*LinterFinding) []*LinterFinding {
 	if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
 		// Not applicable to .bzl files, unused symbols may be loaded and used in other files.
 		return findings
@@ -221,7 +212,6 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 		if !ok {
 			continue
 		}
-		start, end := as.LHS.Span()
 		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
@@ -234,19 +224,18 @@ func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*Finding)
 			continue
 		}
 		findings = append(findings,
-			makeFinding(f, start, end, "unused-variable",
-				"Variable \""+left.Name+"\" is unused. Please remove it.\n"+
-					"To disable the warning, add '@unused' in a comment.", true, nil))
+			makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q is unused. Please remove it.
+To disable the warning, add '@unused' in a comment.`, left.Name)))
 	}
 	return findings
 }
 
-func unusedVariableWarning(f *build.File, fix bool) []*Finding {
-	return unusedVariableCheck(f, f.Stmt, []*Finding{})
+func unusedVariableWarning(f *build.File) []*LinterFinding {
+	return unusedVariableCheck(f, f.Stmt, []*LinterFinding{})
 }
 
-func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func redefinedVariableWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
 	for _, s := range f.Stmt {
@@ -255,17 +244,15 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 		if !ok {
 			continue
 		}
-		start, end := as.LHS.Span()
 		left, ok := as.LHS.(*build.Ident)
 		if !ok {
 			continue
 		}
 		if definedSymbols[left.Name] {
 			findings = append(findings,
-				makeFinding(f, start, end, "redefined-variable",
-					"Variable \""+left.Name+"\" has already been defined. "+
-						"Redefining a global value is discouraged and will be forbidden in the future.\n"+
-						"Consider using a new variable instead.", true, nil))
+				makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q has already been defined. 
+Redefining a global value is discouraged and will be forbidden in the future.
+Consider using a new variable instead.`, left.Name)))
 			continue
 		}
 		definedSymbols[left.Name] = true
@@ -273,8 +260,8 @@ func redefinedVariableWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func unusedLoadWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func unusedLoadWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 	loaded := make(map[string]struct {
 		label, from string
 		line        int
@@ -282,10 +269,18 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 
 	symbols := edit.UsedSymbols(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
-		load, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
+		originalLoad, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
 			continue
 		}
+
+		// Findings related to the current load statement
+		loadFindings := []*LinterFinding{}
+
+		// Copy the `load` object to provide a replacement if needed
+		load := *originalLoad
+		load.From = append([]*build.Ident{}, load.From...)
+		load.To = append([]*build.Ident{}, load.To...)
 
 		for i := 0; i < len(load.To); i++ {
 			from := load.From[i]
@@ -299,48 +294,63 @@ func unusedLoadWarning(f *build.File, fix bool) []*Finding {
 			}{load.Module.Token, from.Name, start.Line}
 
 			if alreadyLoaded {
-				if fix && origin.label == load.Module.Token && origin.from == from.Name {
+				// The same symbol has already been loaded earlier
+				if origin.label == load.Module.Token && origin.from == from.Name {
 					// Only fix if it's loaded from the same label and variable
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
-				} else {
-					start, end := to.Span()
-					message := fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)
-					findings = append(findings,
-						makeFinding(f, start, end, "load", message, true, nil))
 				}
+
+				loadFindings = append(loadFindings, makeLinterFinding(to,
+					fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)))
 				continue
 			}
 			_, ok := symbols[to.Name]
-			if !ok && !edit.ContainsComments(load, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
-				// To disable the warning, put a comment that contains '@unused'
-				if fix {
-					load.To = append(load.To[:i], load.To[i+1:]...)
-					load.From = append(load.From[:i], load.From[i+1:]...)
-					i--
-				} else {
-					start, end := to.Span()
-					message := fmt.Sprintf(`Loaded symbol %q is unused. Please remove it.
-To disable the warning, add '@unused' in a comment.`, to.Name)
-					if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
-						message += fmt.Sprintf(`
-If you want to re-export a symbol, use the following pattern:
+			if !ok && !edit.ContainsComments(originalLoad, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
+				// The loaded symbol is not used and is not protected by a special "@unused" comment
+				load.To = append(load.To[:i], load.To[i+1:]...)
+				load.From = append(load.From[:i], load.From[i+1:]...)
+				i--
 
+				loadFindings = append(loadFindings, makeLinterFinding(to,
+					fmt.Sprintf("Loaded symbol %q is unused. Please remove it. To disable the warning, add '@unused' in a comment.", to.Name)))
+				if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
+					loadFindings[len(loadFindings)-1].Message += fmt.Sprintf(`
+If you want to re-export a symbol, use the following pattern:
+			
     load(..., _%s = %q, ...)
     %s = _%s
 `, to.Name, from.Name, to.Name, to.Name)
-					}
-					findings = append(findings,
-						makeFinding(f, start, end, "load", message, true, nil))
-
 				}
 			}
 		}
-		// If there are no loaded symbols left remove the entire load statement
-		if fix && len(load.To) == 0 {
-			f.Stmt = append(f.Stmt[:stmtIndex], f.Stmt[stmtIndex+1:]...)
+
+		if len(loadFindings) == 0 {
+			// No problems with the current load statement
+			continue
 		}
+
+		var newStmt build.Expr = &load
+		if len(load.To) == 0 {
+			// If there are no loaded symbols left remove the entire load statement
+			newStmt = nil
+		}
+		replacement := LinterReplacement{&f.Stmt[stmtIndex], newStmt}
+
+		// Individual replacements can't be combined together: assume we need to remove both loaded
+		// symbols from
+		//
+		//     load(":foo.bzl", "a", "b")
+		//
+		// Individual replacements are just to remove each of the symbols, but if these replacements
+		// are applied together, the result will be incorrect and a syntax error in Bazel:
+		//
+		//     load(":foo.bzl")
+		//
+		// A workaround is to attach the full replacement to the first finding.
+		loadFindings[0].Replacement = []LinterReplacement{replacement}
+		findings = append(findings, loadFindings...)
 	}
 	return findings
 }
@@ -506,8 +516,8 @@ func getFunctionParams(def *build.DefStmt) []*build.Ident {
 }
 
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
-func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
-	findings := []*Finding{}
+func uninitializedVariableWarning(f *build.File) []*LinterFinding {
+	findings := []*LinterFinding{}
 	for _, stmt := range f.Stmt {
 		def, ok := stmt.(*build.DefStmt)
 		if !ok {
@@ -531,10 +541,8 @@ func uninitializedVariableWarning(f *build.File, _ bool) []*Finding {
 		findUninitializedVariables(def.Body, make(map[string]bool), func(ident *build.Ident) {
 			// Check that the found ident represents a local variable
 			if localVars[ident.Name] {
-				start, end := ident.Span()
 				findings = append(findings,
-					makeFinding(f, start, end, "uninitialized",
-						fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name), true, nil))
+					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name)))
 			}
 		})
 	}

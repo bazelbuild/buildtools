@@ -94,15 +94,22 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
-	"attr-cfg":          attrConfigurationWarning,
-	"attr-license":      attrLicenseWarning,
-	"build-args-kwargs": argsKwargsInBuildFilesWarning,
-	"constant-glob":     constantGlobWarning,
-	"duplicated-name":   duplicatedNameWarning,
-	"native-build":      nativeInBuildFilesWarning,
-	"native-package":    nativePackageWarning,
-	"positional-args":   RuleWarning(positionalArgumentsWarning),
-	"print":             printWarning,
+	"attr-cfg":           attrConfigurationWarning,
+	"attr-license":       attrLicenseWarning,
+	"build-args-kwargs":  argsKwargsInBuildFilesWarning,
+	"constant-glob":      constantGlobWarning,
+	"duplicated-name":    duplicatedNameWarning,
+	"load":               unusedLoadWarning,
+	"native-build":       nativeInBuildFilesWarning,
+	"native-package":     nativePackageWarning,
+	"no-effect":          noEffectWarning,
+	"positional-args":    RuleWarning(positionalArgumentsWarning),
+	"print":              printWarning,
+	"redefined-variable": redefinedVariableWarning,
+	"return-value":       missingReturnValueWarning,
+	"uninitialized":      uninitializedVariableWarning,
+	"unreachable":        unreachableStatementWarning,
+	"unused-variable":    unusedVariableWarning,
 }
 
 // LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
@@ -124,26 +131,19 @@ var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
 	"git-repository":            nativeGitRepositoryWarning,
 	"http-archive":              nativeHTTPArchiveWarning,
 	"integer-division":          integerDivisionWarning,
-	"load":                      unusedLoadWarning,
 	"load-on-top":               loadOnTopWarning,
-	"return-value":              missingReturnValueWarning,
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
 	"native-android":            nativeAndroidRulesWarning,
-	"no-effect":                 noEffectWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,
 	"output-group":              outputGroupWarning,
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
-	"redefined-variable":        redefinedVariableWarning,
 	"repository-name":           repositoryNameWarning,
 	"rule-impl-return":          ruleImplReturnWarning,
 	"same-origin-load":          sameOriginLoadWarning,
 	"string-iteration":          stringIterationWarning,
-	"uninitialized":             uninitializedVariableWarning,
-	"unreachable":               unreachableStatementWarning,
 	"unsorted-dict-items":       unsortedDictItemsWarning,
-	"unused-variable":           unusedVariableWarning,
 }
 
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
@@ -182,6 +182,9 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 	format := "buildozer: disable=" + warning
 
 	for _, stmt := range f.Stmt {
+		if stmt == nil {
+			continue
+		}
 		stmtStart, _ := stmt.Span()
 		if stmtStart.Line == findingLine {
 			// Is this specific line disabled?
