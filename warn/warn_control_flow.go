@@ -155,7 +155,7 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		}
 		switch s := (stmt).(type) {
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
-		*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
+			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
 			continue
 		case *build.Comprehension:
 			if !isTopLevel || s.Curly {
@@ -335,6 +335,7 @@ If you want to re-export a symbol, use the following pattern:
 			continue
 		}
 
+		build.SortLoadArgs(&load)
 		var newStmt build.Expr = &load
 		if len(load.To) == 0 {
 			// If there are no loaded symbols left remove the entire load statement

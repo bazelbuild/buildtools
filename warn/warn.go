@@ -94,57 +94,56 @@ var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr)
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
-	"attr-cfg":            attrConfigurationWarning,
-	"attr-license":        attrLicenseWarning,
-	"attr-non-empty":      attrNonEmptyWarning,
-	"attr-output-default": attrOutputDefaultWarning,
-	"attr-single-file":    attrSingleFileWarning,
-	"build-args-kwargs":   argsKwargsInBuildFilesWarning,
-	"constant-glob":       constantGlobWarning,
-	"ctx-actions":         ctxActionsWarning,
-	"ctx-args":            contextArgsAPIWarning,
-	"duplicated-name":     duplicatedNameWarning,
-	"filetype":            fileTypeWarning,
-	"git-repository":      nativeGitRepositoryWarning,
-	"http-archive":        nativeHTTPArchiveWarning,
-	"load":                unusedLoadWarning,
-	"native-android":      nativeAndroidRulesWarning,
-	"native-build":        nativeInBuildFilesWarning,
-	"native-package":      nativePackageWarning,
-	"no-effect":           noEffectWarning,
-	"output-group":        outputGroupWarning,
-	"package-name":        packageNameWarning,
-	"positional-args":     RuleWarning(positionalArgumentsWarning),
-	"print":               printWarning,
-	"redefined-variable":  redefinedVariableWarning,
-	"repository-name":     repositoryNameWarning,
-	"rule-impl-return":    ruleImplReturnWarning,
-	"return-value":        missingReturnValueWarning,
-	"uninitialized":       uninitializedVariableWarning,
-	"unreachable":         unreachableStatementWarning,
-	"unused-variable":     unusedVariableWarning,
-}
-
-// LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
-var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{
+	"attr-cfg":                  attrConfigurationWarning,
+	"attr-license":              attrLicenseWarning,
+	"attr-non-empty":            attrNonEmptyWarning,
+	"attr-output-default":       attrOutputDefaultWarning,
+	"attr-single-file":          attrSingleFileWarning,
+	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
 	"confusing-name":            confusingNameWarning,
+	"constant-glob":             constantGlobWarning,
+	"ctx-actions":               ctxActionsWarning,
+	"ctx-args":                  contextArgsAPIWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
+	"duplicated-name":           duplicatedNameWarning,
+	"filetype":                  fileTypeWarning,
 	"function-docstring":        functionDocstringWarning,
 	"function-docstring-header": functionDocstringHeaderWarning,
 	"function-docstring-args":   functionDocstringArgsWarning,
 	"function-docstring-return": functionDocstringReturnWarning,
+	"git-repository":            nativeGitRepositoryWarning,
+	"http-archive":              nativeHTTPArchiveWarning,
 	"integer-division":          integerDivisionWarning,
+	"load":                      unusedLoadWarning,
 	"load-on-top":               loadOnTopWarning,
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
+	"native-android":            nativeAndroidRulesWarning,
+	"native-build":              nativeInBuildFilesWarning,
+	"native-package":            nativePackageWarning,
+	"no-effect":                 noEffectWarning,
+	"output-group":              outputGroupWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,
+	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
+	"positional-args":           RuleWarning(positionalArgumentsWarning),
+	"print":                     printWarning,
+	"redefined-variable":        redefinedVariableWarning,
+	"repository-name":           repositoryNameWarning,
+	"rule-impl-return":          ruleImplReturnWarning,
+	"return-value":              missingReturnValueWarning,
 	"same-origin-load":          sameOriginLoadWarning,
 	"string-iteration":          stringIterationWarning,
+	"uninitialized":             uninitializedVariableWarning,
+	"unreachable":               unreachableStatementWarning,
 	"unsorted-dict-items":       unsortedDictItemsWarning,
+	"unused-variable":           unusedVariableWarning,
 }
+
+// LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
+var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{}
 
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
@@ -203,7 +202,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 				// Is the whole rule or this specific line as a comment
 				// to disable this warning?
 				if edit.ContainsComments(rule, format) ||
-						edit.ContainsComments(stmt, format) {
+					edit.ContainsComments(stmt, format) {
 					return true
 				}
 			}

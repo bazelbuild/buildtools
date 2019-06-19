@@ -14,7 +14,7 @@ var ambiguousNames = map[string]bool{
 }
 
 // ambiguousNameCheck checks for the names of idents and functions
-func ambiguousNameCheck(f *build.File, expr build.Expr, findings []*Finding) []*Finding {
+func ambiguousNameCheck(f *build.File, expr build.Expr, findings []*LinterFinding) []*LinterFinding {
 	var name string
 	switch expr := expr.(type) {
 	case *build.Ident:
@@ -26,17 +26,15 @@ func ambiguousNameCheck(f *build.File, expr build.Expr, findings []*Finding) []*
 	}
 
 	if ambiguousNames[name] {
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "confusing-name",
-				`Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').`, true, nil))
+			makeLinterFinding(expr, `Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').`))
 	}
 	return findings
 }
 
-func confusingNameWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func confusingNameWarning(f *build.File) []*LinterFinding {
 
+	var findings []*LinterFinding
 	// check for global variable names
 	for _, ident := range collectLocalVariables(f.Stmt) {
 		findings = ambiguousNameCheck(f, ident, findings)
@@ -84,8 +82,8 @@ func isUpperSnakeCase(name string) bool {
 	return name == strings.ToUpper(name)
 }
 
-func nameConventionsWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func nameConventionsWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 
 	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) {
 		// looking for provider declaration statements: `xxx = provider()`
@@ -101,10 +99,9 @@ func nameConventionsWarning(f *build.File, fix bool) []*Finding {
 			if isUpperCamelCase(ident.Name) && strings.HasSuffix(ident.Name, "Info") {
 				continue
 			}
-			start, end := ident.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "name-conventions",
-					fmt.Sprintf(`Variable name "%s" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`, ident.Name), true, nil))
+				makeLinterFinding(ident,
+					fmt.Sprintf(`Variable name "%s" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`, ident.Name)))
 		}
 	})
 

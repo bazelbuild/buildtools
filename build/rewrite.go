@@ -118,7 +118,7 @@ var rewrites = []struct {
 	{"label", fixLabels, scopeBuild},
 	{"listsort", sortStringLists, scopeBoth},
 	{"multiplus", fixMultilinePlus, scopeBuild},
-	{"loadsort", sortLoadArgs, scopeBoth},
+	{"loadsort", sortAllLoadArgs, scopeBoth},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
@@ -822,16 +822,13 @@ func fixMultilinePlus(f *File, info *RewriteInfo) {
 	})
 }
 
-func sortLoadArgs(f *File, info *RewriteInfo) {
+// sortAllLoadArgs sorts all load arguments in the file
+func sortAllLoadArgs(f *File, info *RewriteInfo) {
 	Walk(f, func(v Expr, stk []Expr) {
-		load, ok := v.(*LoadStmt)
-		if !ok {
-			return
-		}
-		args := loadArgs{From: load.From, To: load.To}
-		sort.Sort(args)
-		if args.modified {
-			info.SortLoad++
+		if load, ok := v.(*LoadStmt); ok {
+			if SortLoadArgs(load) {
+				info.SortLoad++
+			}
 		}
 	})
 }
@@ -888,6 +885,13 @@ func (args loadArgs) Less(i, j int) bool {
 		return equalI
 	}
 	return args.To[i].Name < args.To[j].Name
+}
+
+// SortLoadArgs sorts a load statement arguments (lexicographically, but positional first)
+func SortLoadArgs(load *LoadStmt) bool {
+	args := loadArgs{From: load.From, To: load.To}
+	sort.Sort(args)
+	return args.modified
 }
 
 // formatDocstrings fixes the indentation and trailing whitespace of docstrings

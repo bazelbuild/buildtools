@@ -368,7 +368,7 @@ foo(name = s1)`,
 		scopeEverywhere)
 
 	checkFindingsAndFix(t, "load", `
-load("foo", "a", "b", "c")
+load("foo", "b", "a", "c")
 load("foo", "a", "d", "e")
 
 z = a + b + d`, `
