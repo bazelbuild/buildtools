@@ -120,18 +120,18 @@ def impl(ctx):
 	ctx.foobar(foo, bar)
 `,
 		[]string{
-			`:2: "ctx.new_file" is deprecated.`,
-			`:3: "ctx.new_file" is deprecated.`,
-			`:4: "ctx.new_file" is deprecated.`,
-			`:5: "ctx.new_file" is deprecated.`,
-			`:6: "ctx.experimental_new_directory" is deprecated.`,
-			`:7: "ctx.file_action" is deprecated.`,
-			`:8: "ctx.file_action" is deprecated.`,
-			`:9: "ctx.action" is deprecated.`,
-			`:10: "ctx.action" is deprecated.`,
-			`:11: "ctx.empty_action" is deprecated.`,
-			`:12: "ctx.template_action" is deprecated.`,
-			`:13: "ctx.template_action" is deprecated.`,
+			`:2: "ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`,
+			`:3: "ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`,
+			`:4: "ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`,
+			`:5: "ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`,
+			`:6: "ctx.experimental_new_directory" is deprecated in favor of "ctx.actions.declare_directory".`,
+			`:7: "ctx.file_action" is deprecated in favor of "ctx.actions.write".`,
+			`:8: "ctx.file_action" is deprecated in favor of "ctx.actions.write".`,
+			`:9: "ctx.action" is deprecated in favor of "ctx.actions.run_shell".`,
+			`:10: "ctx.action" is deprecated in favor of "ctx.actions.run".`,
+			`:11: "ctx.empty_action" is deprecated in favor of "ctx.actions.do_nothing".`,
+			`:12: "ctx.template_action" is deprecated in favor of "ctx.actions.expand_template".`,
+			`:13: "ctx.template_action" is deprecated in favor of "ctx.actions.expand_template".`,
 		},
 		scopeBzl)
 
@@ -139,7 +139,7 @@ def impl(ctx):
 def impl(ctx):
   ctx.new_file(foo, bar, baz)
 `, []string{
-		`:2: "ctx.new_file" is deprecated.`,
+		`:2: "ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`,
 	}, scopeBzl)
 }
 
@@ -487,8 +487,8 @@ android_binary()
 		[]string{
 			fmt.Sprintf(`:4: Function "aar_import" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
 			fmt.Sprintf(`:5: Function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
-			fmt.Sprintf(`:6: Native function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
-			fmt.Sprintf(`:7: Native function "android_local_test" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:6: Function "android_library" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
+			fmt.Sprintf(`:7: Function "android_local_test" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
 			fmt.Sprintf(`:9: Function "android_binary" is not global anymore and needs to be loaded from "%s".`, tables.AndroidLoadPath),
 		},
 		scopeBzl|scopeBuild)

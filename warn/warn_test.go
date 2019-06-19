@@ -70,6 +70,7 @@ func compareFindings(t *testing.T, category, input string, expected []string, sc
 	}
 }
 
+// checkFix makes sure that fixed file contents match the expected output
 func checkFix(t *testing.T, category, input, expected string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no changes are expected
 	if scope&fileType == 0 {
@@ -95,6 +96,26 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 	}
 }
 
+// checkFix makes sure that the file contents don't change if a fix is not requested
+// (i.e. the warning functions have no side effects modifying the AST)
+func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
+	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+	formatted := build.Format(buildFile)
+
+	// No fixes expected
+	FileWarnings(buildFile, "the_package", []string{category}, nil, ModeWarn)
+	fixed := build.Format(buildFile)
+
+	if !bytes.Equal(formatted, fixed) {
+		t.Errorf("Modified a file (type %s) while getting warnings:\ninput:\n%s\ndiff (-before, +after)\n",
+			fileType, input)
+		testutils.Tdiff(t, formatted, fixed)
+	}
+}
+
 func checkFindings(t *testing.T, category, input string, expected []string, scope build.FileType) {
 	// The same as checkFindingsAndFix but ensure that fixes don't change the file (except for formatting)
 	checkFindingsAndFix(t, category, input, input, expected, scope)
@@ -112,6 +133,7 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 		compareFindings(t, category, input, expected, scope, fileType)
 		checkFix(t, category, input, output, scope, fileType)
 		checkFix(t, category, output, output, scope, fileType)
+		checkNoFix(t, category, input, fileType)
 	}
 }
 
