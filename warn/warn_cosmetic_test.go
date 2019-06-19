@@ -8,12 +8,12 @@ func TestWarnSameOriginLoad(t *testing.T) {
 	checkFindingsAndFix(t, category, `
 	load(
 		":f.bzl",
-		"s1"
+		"s2"
 	)
 	load(":t.bzl", "s3")
 	load(
 		":f.bzl",
-		"s2"
+		"s1"
 	)`, `
 	load(
 		":f.bzl",

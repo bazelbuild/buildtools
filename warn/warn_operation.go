@@ -3,18 +3,15 @@
 package warn
 
 import (
-	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 )
 
-func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 
 	var addWarning = func(expr build.Expr) {
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "dict-concatenation",
-				"Dictionary concatenation is deprecated.", true, nil))
+			makeLinterFinding(expr, "Dictionary concatenation is deprecated."))
 	}
 
 	types := detectTypes(f)
@@ -39,14 +36,12 @@ func dictionaryConcatenationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func stringIterationWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func stringIterationWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 
 	addWarning := func(expr build.Expr) {
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "string-iteration",
-				"String iteration is deprecated.", true, nil))
+			makeLinterFinding(expr, "String iteration is deprecated."))
 	}
 
 	types := detectTypes(f)
@@ -85,37 +80,30 @@ func stringIterationWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func integerDivisionWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func integerDivisionWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 
-	var addWarning = func(expr build.Expr, op string) {
-		start, end := expr.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "integer-division",
-				fmt.Sprintf(`The "%s" operator for integer division is deprecated in favor of "/%s".`, op, op), true, nil))
-	}
-
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		switch expr := expr.(type) {
+	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
+		switch expr := (*e).(type) {
 		case *build.BinaryExpr:
 			if expr.Op != "/" {
 				return
 			}
-			if fix {
-				expr.Op = "//"
-				return
-			}
-			addWarning(expr, expr.Op)
+			newBinary := *expr
+			newBinary.Op = "//"
+			findings = append(findings,
+				makeLinterFinding(expr, `The "/" operator for integer division is deprecated in favor of "//".`,
+					LinterReplacement{e, &newBinary}))
 
 		case *build.AssignExpr:
 			if expr.Op != "/=" {
 				return
 			}
-			if fix {
-				expr.Op = "//="
-				return
-			}
-			addWarning(expr, expr.Op)
+			newAssign := *expr
+			newAssign.Op = "//="
+			findings = append(findings,
+				makeLinterFinding(expr, `The "/=" operator for integer division is deprecated in favor of "//=".`,
+					LinterReplacement{e, &newAssign}))
 		}
 	})
 	return findings

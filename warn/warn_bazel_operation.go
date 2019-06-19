@@ -4,13 +4,11 @@ package warn
 
 import "github.com/bazelbuild/buildtools/build"
 
-func depsetUnionWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func depsetUnionWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 	addWarning := func(expr build.Expr) {
-		start, end := expr.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "depset-union",
-				"Depsets should be joined using the depset constructor.", true, nil))
+			makeLinterFinding(expr, `Depsets should be joined using the "depset()" constructor.`))
 	}
 
 	types := detectTypes(f)
@@ -55,99 +53,71 @@ func depsetUnionWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func depsetIterationWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
+func depsetIterationWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
 
-	addWarning := func(expr build.Expr) {
-		start, end := expr.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "depset-iteration",
-				"Depset iteration is deprecated.", true, nil))
-	}
-
-	// fixNode returns a call for .to_list() on the input node (assuming that it's a depset)
-	fixNode := func(expr build.Expr) build.Expr {
-		_, end := expr.Span()
-		return &build.CallExpr{
+	addFinding := func(expr *build.Expr) {
+		_, end := (*expr).Span()
+		newNode := &build.CallExpr{
 			X: &build.DotExpr{
-				X:    expr,
+				X:    *expr,
 				Name: "to_list",
 			},
 			End: build.End{Pos: end},
 		}
+		findings = append(findings,
+			makeLinterFinding(*expr, `Depset iteration is deprecated, use the "to_list()" method instead.`, LinterReplacement{expr, newNode}))
 	}
 
 	types := detectTypes(f)
-	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
-		switch expr := expr.(type) {
+	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
+		switch expr := (*e).(type) {
 		case *build.ForStmt:
 			if types[expr.X] != Depset {
-				return nil
+				return
 			}
-			if !fix {
-				addWarning(expr.X)
-				return nil
-			}
-			expr.X = fixNode(expr.X)
+			addFinding(&expr.X)
 		case *build.ForClause:
 			if types[expr.X] != Depset {
-				return nil
+				return
 			}
-			if !fix {
-				addWarning(expr.X)
-				return nil
-			}
-			expr.X = fixNode(expr.X)
+			addFinding(&expr.X)
 		case *build.BinaryExpr:
 			if expr.Op != "in" && expr.Op != "not in" {
-				return nil
+				return
 			}
 			if types[expr.Y] != Depset {
-				return nil
+				return
 			}
-			if !fix {
-				addWarning(expr.Y)
-				return nil
-			}
-			expr.Y = fixNode(expr.Y)
+			addFinding(&expr.Y)
 		case *build.CallExpr:
 			ident, ok := expr.X.(*build.Ident)
 			if !ok {
-				return nil
+				return
 			}
 			switch ident.Name {
 			case "all", "any", "depset", "len", "sorted", "max", "min", "list", "tuple":
 				if len(expr.List) != 1 {
-					return nil
+					return
 				}
 				if types[expr.List[0]] != Depset {
-					return nil
+					return
 				}
-				if !fix {
-					addWarning(expr.List[0])
-					return nil
+				addFinding(&expr.List[0])
+				if ident.Name == "list" {
+					// `list(d.to_list())` can be simplified to just `d.to_list()`
+					findings[len(findings)-1].Replacement[0].Old = e
 				}
-				newNode := fixNode(expr.List[0])
-				if ident.Name != "list" {
-					expr.List[0] = newNode
-					return nil
-				}
-				// `list(d.to_list())` can be simplified to just `d.to_list()`
-				return newNode
 			case "zip":
 				for i, arg := range expr.List {
 					if types[arg] != Depset {
 						continue
 					}
-					if !fix {
-						addWarning(arg)
-						return nil
-					}
-					expr.List[i] = fixNode(arg)
+					addFinding(&expr.List[i])
 				}
 			}
 		}
-		return nil
+		return
 	})
 	return findings
 }
