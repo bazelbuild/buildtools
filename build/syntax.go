@@ -492,8 +492,8 @@ type DefStmt struct {
 	Function
 	Name           string
 	ColonPos       Position // position of the ":"
-	ForceCompact   bool // force compact (non-multiline) form when printing the arguments
-	ForceMultiLine bool // force multiline form when printing the arguments
+	ForceCompact   bool     // force compact (non-multiline) form when printing the arguments
+	ForceMultiLine bool     // force multiline form when printing the arguments
 }
 
 func (x *DefStmt) Span() (start, end Position) {

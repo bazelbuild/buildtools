@@ -31,8 +31,9 @@ var functionsWithPositionalArguments = map[string]bool{
 func negateExpression(expr build.Expr) build.Expr {
 	paren, ok := expr.(*build.ParenExpr)
 	if ok {
-		paren.X = negateExpression(paren.X)
-		return paren
+		newParen := *paren
+		newParen.X = negateExpression(paren.X)
+		return &newParen
 	}
 
 	unary, ok := expr.(*build.UnaryExpr)
@@ -42,13 +43,13 @@ func negateExpression(expr build.Expr) build.Expr {
 
 	boolean, ok := expr.(*build.Ident)
 	if ok {
+		newBoolean := *boolean
 		if boolean.Name == "True" {
-			boolean.Name = "False"
-			return boolean
-		} else if boolean.Name == "False" {
-			boolean.Name = "True"
-			return boolean
+			newBoolean.Name = "False"
+		} else {
+			newBoolean.Name = "True"
 		}
+		return &newBoolean
 	}
 
 	return &build.UnaryExpr{
@@ -88,8 +89,8 @@ func isFunctionCall(expr build.Expr, name string) (*build.CallExpr, bool) {
 
 // globalVariableUsageCheck checks whether there's a usage of a given global variable in the file.
 // It's ok to shadow the name with a local variable and use it.
-func globalVariableUsageCheck(f *build.File, category, global, alternative string, fix bool) []*Finding {
-	findings := []*Finding{}
+func globalVariableUsageCheck(f *build.File, global, alternative string) []*LinterFinding {
+	var findings []*LinterFinding
 
 	if f.Type != build.TypeBzl {
 		return findings
@@ -109,116 +110,128 @@ func globalVariableUsageCheck(f *build.File, category, global, alternative strin
 		if binding := env.Get(ident.Name); binding != nil {
 			return
 		}
-		if fix {
-			// It may be not correct to just replace the ident's name with `alternative` as it may be something complex
-			// like `native.package_name()` which is not a valid ident, but it's fine for reformatting.
-			ident.Name = alternative
-			return
-		}
-		start, end := ident.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, category,
-				fmt.Sprintf(`Global variable "%s" is deprecated in favor of "%s". Please rename it.`, global, alternative), true, nil))
+
+		// Fix
+		newIdent := *ident
+		newIdent.Name = alternative
+
+		findings = append(findings, makeLinterFinding(ident,
+			fmt.Sprintf(`Global variable %q is deprecated in favor of %q. Please rename it.`, global, alternative),
+			LinterReplacement{e, &newIdent}))
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
 
 	return findings
+}
+
+// insertLoad returns a *LinterReplacement object representing a replacement required for inserting
+// an additional load statement. Returns nil if nothing needs to be changed.
+func insertLoad(f *build.File, module string, symbols []string) *LinterReplacement {
+	// Try to find an existing load statement
+	for i, stmt := range f.Stmt {
+		load, ok := stmt.(*build.LoadStmt)
+		if !ok || load.Module.Value != module {
+			continue
+		}
+
+		// Modify an existing load statement
+		newLoad := *load
+		if !edit.AppendToLoad(&newLoad, symbols, symbols) {
+			return nil
+		}
+		return &LinterReplacement{&(f.Stmt[i]), &newLoad}
+	}
+
+	// Need to insert a new load statement. Can't modify the tree here, so just insert a placeholder
+	// nil statement and return a replacement for it.
+	i := 0
+	for i = range f.Stmt {
+		stmt := f.Stmt[i]
+		_, isComment := stmt.(*build.CommentBlock)
+		_, isString := stmt.(*build.StringExpr)
+		isDocString := isString && i == 0
+		if !isComment && !isDocString {
+			// Insert a nil statement here
+			break
+		}
+	}
+	stmts := append([]build.Expr{}, f.Stmt[:i]...)
+	stmts = append(stmts, nil)
+	stmts = append(stmts, f.Stmt[i:]...)
+	f.Stmt = stmts
+
+	return &LinterReplacement{&(f.Stmt[i]), edit.NewLoad(module, symbols, symbols)}
 }
 
 // notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
 // and adds a load statement if necessary.
-func notLoadedFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
-	findings := []*Finding{}
+func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
 	toLoad := make(map[string]bool)
+	var findings []*LinterFinding
 
-	var walk func(e *build.Expr, env *bzlenv.Environment)
-	walk = func(e *build.Expr, env *bzlenv.Environment) {
-		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
+	var walk func(expr *build.Expr, env *bzlenv.Environment)
+	walk = func(expr *build.Expr, env *bzlenv.Environment) {
+		defer bzlenv.WalkOnceWithEnvironment(*expr, env, walk)
 
-		call, ok := (*e).(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
 
-		ident, ok := (call.X).(*build.Ident)
-		if !ok {
+		var name string
+		var replacements []LinterReplacement
+		switch node := call.X.(type) {
+		case *build.DotExpr:
+			// Maybe native.`global`?
+			ident, ok := node.X.(*build.Ident)
+			if !ok || ident.Name != "native" {
+				return
+			}
+
+			name = node.Name
+			// Replace `native.foo()` with `foo()`
+			newCall := *call
+			newCall.X = &build.Ident{Name: node.Name}
+			replacements = append(replacements, LinterReplacement{expr, &newCall})
+		case *build.Ident:
+			// Maybe `global`()?
+			if binding := env.Get(node.Name); binding != nil {
+				return
+			}
+			name = node.Name
+		default:
 			return
 		}
 
-		if binding := env.Get(ident.Name); binding != nil {
-			return
-		}
 		for _, global := range globals {
-			if ident.Name == global {
-				if fix {
-					toLoad[global] = true
-					return
-				}
-				start, end := call.Span()
+			if name == global {
+				toLoad[global] = true
 				findings = append(findings,
-					makeFinding(f, start, end, category,
-						fmt.Sprintf(`Function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
+					makeLinterFinding(call, fmt.Sprintf(`Function %q is not global anymore and needs to be loaded from %q.`, global, loadFrom), replacements...))
+				break
 			}
 		}
 	}
 	var expr build.Expr = f
 	walk(&expr, bzlenv.NewEnvironment())
 
-	if fix && len(toLoad) > 0 {
-		loads := []string{}
-		for k := range toLoad {
-			loads = append(loads, k)
-		}
-		sort.Strings(loads)
-		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
+	if len(toLoad) == 0 {
+		return nil
 	}
 
-	return findings
-}
+	loads := []string{}
+	for l := range toLoad {
+		loads = append(loads, l)
+	}
 
-// notLoadedNativeFunctionUsageCheck checks whether there's a usage of a given not
-// import function in the file and adds a load statement if necessary.
-func notLoadedNativeFunctionUsageCheck(f *build.File, category string, globals []string, loadFrom string, fix bool) []*Finding {
-	findings := []*Finding{}
-	toLoad := make(map[string]bool)
-
-	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
-
-		dot, ok := expr.(*build.DotExpr)
-		if !ok {
-			return nil
+	sort.Strings(loads)
+	replacement := insertLoad(f, loadFrom, loads)
+	if replacement != nil {
+		// Add the same replacement to all relevant findings.
+		for _, f := range findings {
+			f.Replacement = append(f.Replacement, *replacement)
 		}
-		ident, ok := dot.X.(*build.Ident)
-		if !ok || ident.Name != "native" {
-			return nil
-		}
-		for _, global := range globals {
-			if dot.Name == global {
-				if fix {
-					toLoad[global] = true
-					start, _ := dot.Span()
-					return &build.Ident{
-						Name:    dot.Name,
-						NamePos: start,
-					}
-				}
-				start, end := dot.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, category,
-						fmt.Sprintf(`Native function "%s" is not global anymore and needs to be loaded from "%s".`, global, loadFrom), true, nil))
-			}
-		}
-		return nil
-	})
-
-	if fix && len(toLoad) > 0 {
-		loads := []string{}
-		for k := range toLoad {
-			loads = append(loads, k)
-		}
-		sort.Strings(loads)
-		f.Stmt = edit.InsertLoad(f.Stmt, loadFrom, loads, loads)
 	}
 
 	return findings
@@ -243,21 +256,23 @@ func makeKeyword(argument build.Expr, name string) build.Expr {
 		}
 	}
 	ident, ok := assign.LHS.(*build.Ident)
-	if !ok {
-		assign.LHS = &build.Ident{Name: name}
-		return assign
+	if ok && ident.Name == name {
+		// Nothing to change
+		return argument
 	}
-	ident.Name = name
-	return argument
+
+	// Technically it's possible that the LHS is not an ident, but that is a syntax error anyway.
+	newAssign := *assign
+	newAssign.LHS = &build.Ident{Name: name}
+	return &newAssign
 }
 
 func attrConfigurationWarning(f *build.File) []*LinterFinding {
-	findings := []*LinterFinding{}
-
 	if f.Type != build.TypeBzl {
 		return nil
 	}
 
+	var findings []*LinterFinding
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...)
 		call, ok := (*expr).(*build.CallExpr)
@@ -290,16 +305,15 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func attrNonEmptyWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., non_empty = ..., ...)
-		call, ok := expr.(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
@@ -315,29 +329,30 @@ func attrNonEmptyWarning(f *build.File, fix bool) []*Finding {
 		if param == nil {
 			return
 		}
-		if fix {
-			name.Name = "allow_empty"
-			param.RHS = negateExpression(param.RHS)
-		} else {
-			start, end := param.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "attr-non-empty",
-					"non_empty attributes for attr definitions are deprecated in favor of allow_empty.", true, nil))
-		}
+
+		// Fix
+		newName := *name
+		newName.Name = "allow_empty"
+		negatedRHS := negateExpression(param.RHS)
+
+		findings = append(findings,
+			makeLinterFinding(param, "non_empty attributes for attr definitions are deprecated in favor of allow_empty.",
+				LinterReplacement{&param.LHS, &newName},
+				LinterReplacement{&param.RHS, negatedRHS},
+			))
 	})
 	return findings
 }
 
-func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func attrSingleFileWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.xxxx(..., single_file = ..., ...)
-		call, ok := expr.(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
@@ -349,52 +364,52 @@ func attrSingleFileWarning(f *build.File, fix bool) []*Finding {
 		if !ok || base.Name != "attr" {
 			return
 		}
-		i, name, singleFileParam := getParam(call.List, "single_file")
+		singleFileIndex, singleFileKw, singleFileParam := getParam(call.List, "single_file")
 		if singleFileParam == nil {
 			return
 		}
-		if !fix {
-			start, end := singleFileParam.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "attr-single-file",
-					"single_file is deprecated in favor of allow_single_file.", true, nil))
-			return
-		}
-		value := singleFileParam.RHS
-		if boolean, ok := value.(*build.Ident); ok && boolean.Name == "False" {
+
+		// Fix
+		newCall := *call
+		newCall.List = append([]build.Expr{}, call.List...)
+
+		newSingleFileKw := *singleFileKw
+		newSingleFileKw.Name = "allow_single_file"
+		singleFileValue := singleFileParam.RHS
+
+		if boolean, ok := singleFileValue.(*build.Ident); ok && boolean.Name == "False" {
 			// if the value is `False`, just remove the whole parameter
-			call.List = append(call.List[:i], call.List[i+1:]...)
+			newCall.List = append(newCall.List[:singleFileIndex], newCall.List[singleFileIndex+1:]...)
 		} else {
 			// search for `allow_files` parameter in the same attr definition and remove it
-			j, _, allowFilesParam := getParam(call.List, "allow_files")
+			allowFileIndex, _, allowFilesParam := getParam(call.List, "allow_files")
 			if allowFilesParam != nil {
-				value = allowFilesParam.RHS
-				call.List = append(call.List[:j], call.List[j+1:]...)
+				singleFileValue = allowFilesParam.RHS
+				newCall.List = append(newCall.List[:allowFileIndex], newCall.List[allowFileIndex+1:]...)
+				if singleFileIndex > allowFileIndex {
+					singleFileIndex--
+				}
 			}
-			singleFileParam.RHS = value
-			name.Name = "allow_single_file"
 		}
+		findings = append(findings,
+			makeLinterFinding(singleFileParam, "single_file is deprecated in favor of allow_single_file.",
+				LinterReplacement{expr, &newCall},
+				LinterReplacement{&singleFileParam.LHS, &newSingleFileKw},
+				LinterReplacement{&singleFileParam.RHS, singleFileValue},
+			))
 	})
 	return findings
 }
 
-func ctxActionsWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func ctxActionsWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
-	addWarning := func(expr build.Expr, name string) {
-		start, end := expr.Span()
-		findings = append(findings,
-			makeFinding(f, start, end, "ctx-actions",
-				fmt.Sprintf(`"ctx.%s" is deprecated.`, name), true, nil))
-	}
-
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: ctx.xxxx(...)
-		call, ok := expr.(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
@@ -406,60 +421,77 @@ func ctxActionsWarning(f *build.File, fix bool) []*Finding {
 		if !ok || base.Name != "ctx" {
 			return
 		}
-		if !fix {
-			switch dot.Name {
-			case "new_file", "experimental_new_directory", "file_action", "action", "empty_action", "template_action":
-				addWarning(dot, dot.Name)
-			}
+
+		switch dot.Name {
+		case "new_file", "experimental_new_directory", "file_action", "action", "empty_action", "template_action":
+			// fix
+		default:
 			return
 		}
+
+		// Fix
+		newCall := *call
+		newCall.List = append([]build.Expr{}, call.List...)
+		newDot := *dot
+		newCall.X = &newDot
+
 		switch dot.Name {
 		case "new_file":
 			if len(call.List) > 2 {
 				// Can't fix automatically because the new API doesn't support the 3 arguments signature
-				addWarning(dot, dot.Name)
+				findings = append(findings,
+					makeLinterFinding(dot, fmt.Sprintf(`"ctx.new_file" is deprecated in favor of "ctx.actions.declare_file".`)))
 				return
 			}
-			dot.Name = "actions.declare_file"
+			newDot.Name = "actions.declare_file"
 			if len(call.List) == 2 {
 				// swap arguments:
 				// ctx.new_file(sibling, name) -> ctx.actions.declare_file(name, sibling=sibling)
-				call.List[0], call.List[1] = makePositional(call.List[1]), makeKeyword(call.List[0], "sibling")
+				newCall.List[0], newCall.List[1] = makePositional(call.List[1]), makeKeyword(call.List[0], "sibling")
 			}
 		case "experimental_new_directory":
-			dot.Name = "actions.declare_directory"
+			newDot.Name = "actions.declare_directory"
 		case "file_action":
-			dot.Name = "actions.write"
-			_, ident, _ := getParam(call.List, "executable")
+			newDot.Name = "actions.write"
+			i, ident, param := getParam(newCall.List, "executable")
 			if ident != nil {
-				ident.Name = "is_executable"
+				newIdent := *ident
+				newIdent.Name = "is_executable"
+				newParam := *param
+				newParam.LHS = &newIdent
+				newCall.List[i] = &newParam
 			}
 		case "action":
-			dot.Name = "actions.run"
-			_, _, command := getParam(call.List, "command")
-			if command != nil {
-				dot.Name = "actions.run_shell"
+			newDot.Name = "actions.run"
+			if _, _, command := getParam(call.List, "command"); command != nil {
+				newDot.Name = "actions.run_shell"
 			}
 		case "empty_action":
-			dot.Name = "actions.do_nothing"
+			newDot.Name = "actions.do_nothing"
 		case "template_action":
-			dot.Name = "actions.expand_template"
-			if _, ident, _ := getParam(call.List, "executable"); ident != nil {
-				ident.Name = "is_executable"
+			newDot.Name = "actions.expand_template"
+			if i, ident, param := getParam(call.List, "executable"); ident != nil {
+				newIdent := *ident
+				newIdent.Name = "is_executable"
+				newParam := *param
+				newParam.LHS = &newIdent
+				newCall.List[i] = &newParam
 			}
 		}
-		return
+
+		findings = append(findings, makeLinterFinding(dot,
+			fmt.Sprintf(`"ctx.%s" is deprecated in favor of "ctx.%s".`, dot.Name, newDot.Name),
+			LinterReplacement{expr, &newCall}))
 	})
 	return findings
 }
 
-func fileTypeWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func fileTypeWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
+	var findings []*LinterFinding
 	var walk func(e *build.Expr, env *bzlenv.Environment)
 	walk = func(e *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*e, env, walk)
@@ -469,10 +501,8 @@ func fileTypeWarning(f *build.File, fix bool) []*Finding {
 			return
 		}
 		if binding := env.Get("FileType"); binding == nil {
-			start, end := call.Span()
 			findings = append(findings,
-				makeFinding(f, start, end, "filetype",
-					"The FileType function is deprecated.", true, nil))
+				makeLinterFinding(call, "The FileType function is deprecated."))
 		}
 	}
 	var expr build.Expr = f
@@ -481,91 +511,84 @@ func fileTypeWarning(f *build.File, fix bool) []*Finding {
 	return findings
 }
 
-func packageNameWarning(f *build.File, fix bool) []*Finding {
-	return globalVariableUsageCheck(f, "package-name", "PACKAGE_NAME", "native.package_name()", fix)
+func packageNameWarning(f *build.File) []*LinterFinding {
+	return globalVariableUsageCheck(f, "PACKAGE_NAME", "native.package_name()")
 }
 
-func repositoryNameWarning(f *build.File, fix bool) []*Finding {
-	return globalVariableUsageCheck(f, "repository-name", "REPOSITORY_NAME", "native.repository_name()", fix)
+func repositoryNameWarning(f *build.File) []*LinterFinding {
+	return globalVariableUsageCheck(f, "REPOSITORY_NAME", "native.repository_name()")
 }
 
-func outputGroupWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func outputGroupWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
-	build.Edit(f, func(expr build.Expr, stack []build.Expr) build.Expr {
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: ctx.attr.xxx.output_group
-		outputGroup, ok := (expr).(*build.DotExpr)
+		outputGroup, ok := (*expr).(*build.DotExpr)
 		if !ok || outputGroup.Name != "output_group" {
-			return nil
+			return
 		}
 		dep, ok := (outputGroup.X).(*build.DotExpr)
 		if !ok {
-			return nil
+			return
 		}
 		attr, ok := (dep.X).(*build.DotExpr)
 		if !ok || attr.Name != "attr" {
-			return nil
+			return
 		}
 		ctx, ok := (attr.X).(*build.Ident)
 		if !ok || ctx.Name != "ctx" {
-			return nil
+			return
 		}
-		if !fix {
-			start, end := outputGroup.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "output-group",
-					`"ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`, true, nil))
-			return nil
-		}
+
 		// Replace `xxx.output_group` with `xxx[OutputGroupInfo]`
-		return &build.IndexExpr{
-			X: dep,
-			Y: &build.Ident{Name: "OutputGroupInfo"},
-		}
+		findings = append(findings,
+			makeLinterFinding(outputGroup,
+				`"ctx.attr.dep.output_group" is deprecated in favor of "ctx.attr.dep[OutputGroupInfo]".`,
+				LinterReplacement{expr, &build.IndexExpr{
+					X: dep,
+					Y: &build.Ident{Name: "OutputGroupInfo"},
+				},
+				}))
 	})
 	return findings
 }
 
-func nativeGitRepositoryWarning(f *build.File, fix bool) []*Finding {
+func nativeGitRepositoryWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return []*Finding{}
+		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, "git-repository", []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl", fix)
+	return notLoadedFunctionUsageCheck(f, []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl")
 }
 
-func nativeHTTPArchiveWarning(f *build.File, fix bool) []*Finding {
+func nativeHTTPArchiveWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return []*Finding{}
+		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, "http-archive", []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl", fix)
+	return notLoadedFunctionUsageCheck(f, []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl")
 }
 
-func nativeAndroidRulesWarning(f *build.File, fix bool) []*Finding {
+func nativeAndroidRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
-		return []*Finding{}
+		return nil
 	}
-
-	return append(
-		notLoadedFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix),
-		notLoadedNativeFunctionUsageCheck(f, "native-android", tables.AndroidNativeRules, tables.AndroidLoadPath, fix)...)
+	return notLoadedFunctionUsageCheck(f, tables.AndroidNativeRules, tables.AndroidLoadPath)
 }
 
-func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func contextArgsAPIWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
+	var findings []*LinterFinding
 	types := detectTypes(f)
 
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Search for `<ctx.actions.args>.add()` nodes
-		call, ok := expr.(*build.CallExpr)
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
 		}
@@ -585,42 +608,52 @@ func contextArgsAPIWarning(f *build.File, fix bool) []*Finding {
 			// No deprecated API detected
 			return
 		}
-		if !fix {
-			start, end := call.Span()
-			findings = append(findings,
-				makeFinding(f, start, end, "ctx-args",
-					`"ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`, true, nil))
-			return
-		}
 
-		dot.Name = "add_all"
+		// Fix
+		var replacements []LinterReplacement
+
+		newDot := *dot
+		newDot.Name = "add_all"
+		replacements = append(replacements, LinterReplacement{&call.X, &newDot})
+
 		if joinWith != nil {
-			dot.Name = "add_joined"
+			newDot.Name = "add_joined"
 			if beforeEach != nil {
 				// `add_joined` doesn't have a `before_each` parameter, replace it with `format_each`:
 				// `before_each = foo` -> `format_each = foo + "%s"`
-				beforeEachKw.Name = "format_each"
-				beforeEach.RHS = &build.BinaryExpr{
+				newBeforeEachKw := *beforeEachKw
+				newBeforeEachKw.Name = "format_each"
+
+				replacements = append(replacements, LinterReplacement{&beforeEach.LHS, &newBeforeEachKw})
+				replacements = append(replacements, LinterReplacement{&beforeEach.RHS, &build.BinaryExpr{
 					X:  beforeEach.RHS,
 					Op: "+",
 					Y:  &build.StringExpr{Value: "%s"},
-				}
+				}})
 			}
 		}
 		if mapFnKw != nil {
-			mapFnKw.Name = "map_each"
+			// Replace `map_fn = ...` with `map_each = ...`
+			newMapFnKw := *mapFnKw
+			newMapFnKw.Name = "map_each"
+			replacements = append(replacements, LinterReplacement{&mapFn.LHS, &newMapFnKw})
 		}
+
+		findings = append(findings,
+			makeLinterFinding(call,
+				`"ctx.actions.args().add()" for multiple arguments is deprecated in favor of "add_all()" or "add_joined()".`,
+				replacements...))
+
 	})
 	return findings
 }
 
-func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func attrOutputDefaultWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
 
+	var findings []*LinterFinding
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.output(..., default = ...)
 		call, ok := expr.(*build.CallExpr)
@@ -639,10 +672,8 @@ func attrOutputDefaultWarning(f *build.File, fix bool) []*Finding {
 		if param == nil {
 			return
 		}
-		start, end := param.Span()
 		findings = append(findings,
-			makeFinding(f, start, end, "attr-output-default",
-				`The "default" parameter for attr.output() is deprecated.`, true, nil))
+			makeLinterFinding(param, `The "default" parameter for attr.output() is deprecated.`))
 	})
 	return findings
 }
@@ -652,7 +683,7 @@ func attrLicenseWarning(f *build.File) []*LinterFinding {
 		return nil
 	}
 
-	findings := []*LinterFinding{}
+	var findings []*LinterFinding
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// Find nodes that match the following pattern: attr.license(...)
 		call, ok := expr.(*build.CallExpr)
@@ -674,12 +705,12 @@ func attrLicenseWarning(f *build.File) []*LinterFinding {
 }
 
 // ruleImplReturnWarning checks whether a rule implementation function returns an old-style struct
-func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
-	findings := []*Finding{}
-
+func ruleImplReturnWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
-		return findings
+		return nil
 	}
+
+	var findings []*LinterFinding
 
 	// iterate over rules and collect rule implementation function names
 	implNames := make(map[string]bool)
@@ -717,10 +748,7 @@ func ruleImplReturnWarning(f *build.File, fix bool) []*Finding {
 			}
 			// check whether it returns a struct
 			if _, ok := isFunctionCall(ret.Result, "struct"); ok {
-				start, end := ret.Span()
-				findings = append(findings,
-					makeFinding(f, start, end, "rule-impl-return",
-						`Avoid using the legacy provider syntax.`, true, nil))
+				findings = append(findings, makeLinterFinding(ret, `Avoid using the legacy provider syntax.`))
 			}
 		})
 	}

@@ -786,7 +786,8 @@ func UsedSymbols(stmt build.Expr) map[string]bool {
 	return symbols
 }
 
-func newLoad(location string, from, to []string) *build.LoadStmt {
+// NewLoad creates a new LoadStmt node
+func NewLoad(location string, from, to []string) *build.LoadStmt {
 	load := &build.LoadStmt{
 		Module: &build.StringExpr{
 			Value: location,
@@ -800,13 +801,41 @@ func newLoad(location string, from, to []string) *build.LoadStmt {
 	return load
 }
 
+// AppendToLoad appends symbols to an existing load statement
+// Returns true if the statement was acually edited (if the required symbols haven't been
+// loaded yet)
+func AppendToLoad(load *build.LoadStmt, from, to []string) bool {
+	symbolsToLoad := make(map[string]string)
+	for i, s := range to {
+		symbolsToLoad[s] = from[i]
+	}
+	for _, ident := range load.To {
+		delete(symbolsToLoad, ident.Name) // Already loaded.
+	}
+
+	if len(symbolsToLoad) == 0 {
+		return false
+	}
+
+	// Append the remaining loads to the load statement.
+	sortedSymbols := []string{}
+	for s := range symbolsToLoad {
+		sortedSymbols = append(sortedSymbols, s)
+	}
+	sort.Strings(sortedSymbols)
+	for _, s := range sortedSymbols {
+		load.From = append(load.From, &build.Ident{Name: symbolsToLoad[s]})
+		load.To = append(load.To, &build.Ident{Name: s})
+	}
+	return true
+}
+
 // appendLoad tries to find an existing load location and append symbols to it.
 func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 	symbolsToLoad := make(map[string]string)
 	for i, s := range to {
 		symbolsToLoad[s] = from[i]
 	}
-	var lastLoad *build.LoadStmt
 	for _, s := range stmts {
 		load, ok := s.(*build.LoadStmt)
 		if !ok {
@@ -815,29 +844,10 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 		if load.Module.Value != location {
 			continue // Loads a different file.
 		}
-		for _, ident := range load.To {
-			delete(symbolsToLoad, ident.Name) // Already loaded.
-		}
-		// Remember the last insert location, but potentially remove more symbols
-		// that are already loaded in other subsequent calls.
-		lastLoad = load
+		AppendToLoad(load, from, to)
+		return true
 	}
-
-	if lastLoad == nil {
-		return false
-	}
-
-	// Append the remaining loads to the last load location.
-	sortedSymbols := []string{}
-	for s := range symbolsToLoad {
-		sortedSymbols = append(sortedSymbols, s)
-	}
-	sort.Strings(sortedSymbols)
-	for _, s := range sortedSymbols {
-		lastLoad.From = append(lastLoad.From, &build.Ident{Name: symbolsToLoad[s]})
-		lastLoad.To = append(lastLoad.To, &build.Ident{Name: s})
-	}
-	return true
+	return false
 }
 
 // InsertLoad inserts a load statement at the top of the list of statements.
@@ -854,7 +864,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		return stmts
 	}
 
-	load := newLoad(location, from, to)
+	load := NewLoad(location, from, to)
 
 	var all []build.Expr
 	added := false
