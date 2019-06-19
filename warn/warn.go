@@ -203,7 +203,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 				// Is the whole rule or this specific line as a comment
 				// to disable this warning?
 				if edit.ContainsComments(rule, format) ||
-					edit.ContainsComments(stmt, format) {
+						edit.ContainsComments(stmt, format) {
 					return true
 				}
 			}

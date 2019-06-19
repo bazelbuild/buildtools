@@ -139,6 +139,10 @@ func unreachableStatementWarning(f *build.File) []*LinterFinding {
 func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFunc bool, findings []*LinterFinding) []*LinterFinding {
 	seenNonComment := false
 	for _, stmt := range body {
+		if stmt == nil {
+			continue
+		}
+
 		if _, ok := stmt.(*build.StringExpr); ok {
 			if !seenNonComment && (isTopLevel || isFunc) {
 				// It's a docstring.
@@ -151,7 +155,7 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 		}
 		switch s := (stmt).(type) {
 		case *build.DefStmt, *build.ForStmt, *build.IfStmt, *build.LoadStmt, *build.ReturnStmt,
-			*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
+		*build.CallExpr, *build.CommentBlock, *build.BranchStmt, *build.AssignExpr:
 			continue
 		case *build.Comprehension:
 			if !isTopLevel || s.Curly {
@@ -314,11 +318,11 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 				i--
 
 				loadFindings = append(loadFindings, makeLinterFinding(to,
-					fmt.Sprintf("Loaded symbol %q is unused. Please remove it. To disable the warning, add '@unused' in a comment.", to.Name)))
+					fmt.Sprintf("Loaded symbol %q is unused. Please remove it.\nTo disable the warning, add '@unused' in a comment.", to.Name)))
 				if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
 					loadFindings[len(loadFindings)-1].Message += fmt.Sprintf(`
 If you want to re-export a symbol, use the following pattern:
-			
+
     load(..., _%s = %q, ...)
     %s = _%s
 `, to.Name, from.Name, to.Name, to.Name)

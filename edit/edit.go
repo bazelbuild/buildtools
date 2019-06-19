@@ -836,6 +836,7 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 	for i, s := range to {
 		symbolsToLoad[s] = from[i]
 	}
+	var lastLoad *build.LoadStmt
 	for _, s := range stmts {
 		load, ok := s.(*build.LoadStmt)
 		if !ok {
@@ -844,10 +845,26 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 		if load.Module.Value != location {
 			continue // Loads a different file.
 		}
-		AppendToLoad(load, from, to)
-		return true
+		for _, ident := range load.To {
+			delete(symbolsToLoad, ident.Name) // Already loaded.
+		}
+		// Remember the last insert location, but potentially remove more symbols
+		// that are already loaded in other subsequent calls.
+		lastLoad = load
 	}
-	return false
+	if lastLoad == nil {
+		return false
+	}
+
+	// Append the remaining loads to the last load location.
+	from = []string{}
+	to = []string{}
+	for t, f := range symbolsToLoad {
+		from = append(from, f)
+		to = append(to, t)
+	}
+	AppendToLoad(lastLoad, from, to)
+	return true
 }
 
 // InsertLoad inserts a load statement at the top of the list of statements.
