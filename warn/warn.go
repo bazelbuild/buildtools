@@ -30,6 +30,7 @@ type LinterFinding struct {
 	Start       build.Position
 	End         build.Position
 	Message     string
+	URL         string
 	Replacement []LinterReplacement
 }
 
@@ -64,13 +65,16 @@ func docURL(cat string) string {
 }
 
 // makeFinding creates a Finding object
-func makeFinding(f *build.File, start, end build.Position, cat string, msg string, actionable bool, fix *Replacement) *Finding {
+func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, fix *Replacement) *Finding {
+	if url == "" {
+		url = docURL(cat)
+	}
 	return &Finding{
 		File:        f,
 		Start:       start,
 		End:         end,
 		Category:    cat,
-		URL:         docURL(cat),
+		URL:         url,
 		Message:     msg,
 		Actionable:  actionable,
 		Replacement: fix,
@@ -90,7 +94,9 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
-var RuleWarningMap = map[string]func(f *build.File, pkg string, expr build.Expr) *Finding{}
+var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFinding{
+	"positional-args": positionalArgumentsWarning,
+}
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
@@ -128,7 +134,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"out-of-order-load":         outOfOrderLoadWarning,
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
-	"positional-args":           RuleWarning(positionalArgumentsWarning),
 	"print":                     printWarning,
 	"redefined-variable":        redefinedVariableWarning,
 	"repository-name":           repositoryNameWarning,
@@ -142,9 +147,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"unused-variable":           unusedVariableWarning,
 }
 
-// LegacyFileWarningMap lists the warnings that run on the whole file with legacy interface.
-var LegacyFileWarningMap = map[string]func(f *build.File, fix bool) []*Finding{}
-
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
@@ -152,27 +154,77 @@ var nonDefaultWarnings = map[string]bool{
 	"unsorted-dict-items": true, // dict items should be sorted
 }
 
-// RuleWarning is a wrapper that converts a per-rule function to a per-file function. It also doesn't
-// run on .bzl of default files.
-func RuleWarning(ruleWarning func(call *build.CallExpr) []*LinterFinding) func(f *build.File) []*LinterFinding {
-	return func(f *build.File) []*LinterFinding {
+// fileWarningWrapper is a wrapper that converts a file warning function to a generic function.
+// A generic function takes a `pkg string` argument which is not used for file warnings, so it's just removed.
+func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
+	return func(f *build.File, pkg string) []*LinterFinding {
+		return fct(f)
+	}
+}
+
+// ruleWarningWrapper is a wrapper that converts a per-rule function to a per-file function.
+// It also doesn't run on .bzl or default files, only on BUILD and WORKSPACE files.
+func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
+	return func(f *build.File, pkg string) []*LinterFinding {
 		if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 			return nil
 		}
-		findings := []*LinterFinding{}
+		var findings []*LinterFinding
 		for _, stmt := range f.Stmt {
 			switch stmt := stmt.(type) {
 			case *build.CallExpr:
-				findings = append(findings, ruleWarning(stmt)...)
+				finding := ruleWarning(stmt, pkg)
+				if finding != nil {
+					findings = append(findings, finding)
+				}
 			case *build.Comprehension:
 				// Rules are often called within list comprehensions, e.g. [my_rule(foo) for foo in bar]
 				if call, ok := stmt.Body.(*build.CallExpr); ok {
-					findings = append(findings, ruleWarning(call)...)
+					finding := ruleWarning(call, pkg)
+					if finding != nil {
+						findings = append(findings, finding)
+					}
 				}
 			}
 		}
 		return findings
 	}
+}
+
+// runWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
+func runWarningsFunction(category string, f *build.File, pkg string, fct func(f *build.File, pkg string) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
+	findings := []*Finding{}
+	for _, w := range fct(f, pkg) {
+		if !DisabledWarning(f, w.Start.Line, category) {
+			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
+			if len(w.Replacement) > 0 {
+				// An automatic fix exists
+				switch mode {
+				case ModeFix:
+					// Apply the fix and discard the finding
+					for _, r := range w.Replacement {
+						*r.Old = r.New
+					}
+					finding = nil
+				case ModeSuggest:
+					// Apply the fix, calculate the diff and roll back the fix
+					newContents := formatWithFix(f, &w.Replacement)
+
+					start, end, replacement := calculateDifference(formatted, &newContents)
+					finding.Replacement = &Replacement{
+						Description: w.Message,
+						Start:       start,
+						End:         end,
+						Content:     replacement,
+					}
+				}
+			}
+			if finding != nil {
+				findings = append(findings, finding)
+			}
+		}
+	}
+	return findings
 }
 
 // DisabledWarning checks if the warning was disabled by a comment.
@@ -248,56 +300,14 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, formatted
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runFileWarningsFunction(warn, f, fct, formatted, mode)...)
-		} else if fct, ok := LegacyFileWarningMap[warn]; ok {
-			for _, w := range fct(f, mode == ModeFix) {
-				if !DisabledWarning(f, w.Start.Line, warn) {
-					findings = append(findings, w)
-				}
-			}
+			findings = append(findings, runWarningsFunction(warn, f, pkg, fileWarningWrapper(fct), formatted, mode)...)
 		} else if fct, ok := RuleWarningMap[warn]; ok {
-			findings = append(findings, runRuleWarningsFunction(warn, pkg, f, fct)...)
+			findings = append(findings, runWarningsFunction(warn, f, pkg, ruleWarningWrapper(fct), formatted, mode)...)
 		} else {
 			log.Fatalf("unexpected warning %q", warn)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })
-	return findings
-}
-
-// runFileWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runFileWarningsFunction(category string, f *build.File, fct func(f *build.File) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
-	findings := []*Finding{}
-	for _, w := range fct(f) {
-		if !DisabledWarning(f, w.Start.Line, category) {
-			finding := makeFinding(f, w.Start, w.End, category, w.Message, true, nil)
-			if len(w.Replacement) > 0 {
-				// An automatic fix exists
-				switch mode {
-				case ModeFix:
-					// Apply the fix and discard the finding
-					for _, r := range w.Replacement {
-						*r.Old = r.New
-					}
-					finding = nil
-				case ModeSuggest:
-					// Apply the fix, calculate the diff and roll back the fix
-					newContents := formatWithFix(f, &w.Replacement)
-
-					start, end, replacement := calculateDifference(formatted, &newContents)
-					finding.Replacement = &Replacement{
-						Description: w.Message,
-						Start:       start,
-						End:         end,
-						Content:     replacement,
-					}
-				}
-			}
-			if finding != nil {
-				findings = append(findings, finding)
-			}
-		}
-	}
 	return findings
 }
 
@@ -348,22 +358,6 @@ func calculateDifference(old, new *[]byte) (start, end int, replacement string) 
 	return commonPrefix, len(*old) - commonSuffix, string((*new)[commonPrefix:(len(*new) - commonSuffix)])
 }
 
-// runRuleWarningsFunction runs a linter/fixer function over each rule in file
-func runRuleWarningsFunction(category, pkg string, f *build.File, fct func(f *build.File, pkg string, expr build.Expr) *Finding) []*Finding {
-	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
-		return nil
-	}
-	findings := []*Finding{}
-	for _, stmt := range f.Stmt {
-		if w := fct(f, pkg, stmt); w != nil {
-			if !DisabledWarning(f, w.Start.Line, category) {
-				findings = append(findings, w)
-			}
-		}
-	}
-	return findings
-}
-
 // FixWarnings fixes all warnings that can be fixed automatically.
 func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
 	warnings := FileWarnings(f, pkg, enabledWarnings, nil, ModeFix)
@@ -378,9 +372,6 @@ func collectAllWarnings() []string {
 	var result []string
 	// Collect list of all warnings.
 	for k := range FileWarningMap {
-		result = append(result, k)
-	}
-	for k := range LegacyFileWarningMap {
 		result = append(result, k)
 	}
 	for k := range RuleWarningMap {
