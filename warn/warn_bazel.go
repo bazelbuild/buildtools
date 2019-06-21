@@ -129,8 +129,7 @@ func duplicatedNameWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func positionalArgumentsWarning(call *build.CallExpr) []*LinterFinding {
-	msg := "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax."
+func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding {
 	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
 		return nil
 	}
@@ -138,7 +137,7 @@ func positionalArgumentsWarning(call *build.CallExpr) []*LinterFinding {
 		if _, ok := arg.(*build.AssignExpr); ok {
 			continue
 		}
-		return []*LinterFinding{makeLinterFinding(arg, msg)}
+		return makeLinterFinding(arg, "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.")
 	}
 	return nil
 }
