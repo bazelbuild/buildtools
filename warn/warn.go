@@ -163,13 +163,13 @@ func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(f *build.
 }
 
 // ruleWarningWrapper is a wrapper that converts a per-rule function to a per-file function.
-// It also doesn't run on .bzl of default files.
+// It also doesn't run on .bzl or default files, only on BUILD and WORKSPACE files.
 func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
 	return func(f *build.File, pkg string) []*LinterFinding {
 		if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 			return nil
 		}
-		findings := []*LinterFinding{}
+		var findings []*LinterFinding
 		for _, stmt := range f.Stmt {
 			switch stmt := stmt.(type) {
 			case *build.CallExpr:
