@@ -65,13 +65,16 @@ func docURL(cat string) string {
 }
 
 // makeFinding creates a Finding object
-func makeFinding(f *build.File, start, end build.Position, cat string, msg string, actionable bool, fix *Replacement) *Finding {
+func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, fix *Replacement) *Finding {
+	if url == "" {
+		url = docURL(cat)
+	}
 	return &Finding{
 		File:        f,
 		Start:       start,
 		End:         end,
 		Category:    cat,
-		URL:         docURL(cat),
+		URL:         url,
 		Message:     msg,
 		Actionable:  actionable,
 		Replacement: fix,
@@ -193,7 +196,7 @@ func runWarningsFunction(category string, f *build.File, pkg string, fct func(f 
 	findings := []*Finding{}
 	for _, w := range fct(f, pkg) {
 		if !DisabledWarning(f, w.Start.Line, category) {
-			finding := makeFinding(f, w.Start, w.End, category, w.Message, true, nil)
+			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
 			if len(w.Replacement) > 0 {
 				// An automatic fix exists
 				switch mode {
