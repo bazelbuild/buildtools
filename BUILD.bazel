@@ -6,6 +6,12 @@ config_setting(
     values = {"cpu": "x64_windows"},
 )
 
+filegroup(
+    name = "warnings",
+    srcs = ["WARNINGS.md"],
+    visibility = ["//warn:__pkg__"]
+)
+
 test_suite(
     name = "tests",
     tests = [
@@ -18,6 +24,7 @@ test_suite(
         "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
         "//lang:tables.gen.go_checkshtest",
         "//tables:go_default_test",
+        "//warn:go_default_test",
         "//wspace:go_default_test",
     ],
 )
