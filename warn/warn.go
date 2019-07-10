@@ -227,60 +227,33 @@ func runWarningsFunction(category string, f *build.File, pkg string, fct func(f 
 	return findings
 }
 
+func hasDisablingComment(expr build.Expr, warning string) bool {
+	return edit.ContainsComments(expr, "buildifier: disable="+warning) ||
+		edit.ContainsComments(expr, "buildozer: disable="+warning)
+}
+
 // DisabledWarning checks if the warning was disabled by a comment.
 // The comment format is buildozer: disable=<warning>
 func DisabledWarning(f *build.File, findingLine int, warning string) bool {
-	format := "buildozer: disable=" + warning
+	disabled := false
 
-	for _, stmt := range f.Stmt {
-		if stmt == nil {
-			continue
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		if expr == nil {
+			return
 		}
-		stmtStart, _ := stmt.Span()
-		if stmtStart.Line == findingLine {
-			// Is this specific line disabled?
-			if edit.ContainsComments(stmt, format) {
-				return true
-			}
-		}
-		// Check comments within a rule
-		rule, ok := stmt.(*build.CallExpr)
-		if ok {
-			for _, stmt := range rule.List {
-				stmtStart, _ := stmt.Span()
-				if stmtStart.Line != findingLine {
-					continue
-				}
-				// Is the whole rule or this specific line as a comment
-				// to disable this warning?
-				if edit.ContainsComments(rule, format) ||
-					edit.ContainsComments(stmt, format) {
-					return true
-				}
-			}
-		}
-		// Check comments within a load statement
-		load, ok := stmt.(*build.LoadStmt)
-		if ok {
-			loadHasComment := edit.ContainsComments(load, format)
-			module := load.Module
-			if module.Start.Line == findingLine {
-				if edit.ContainsComments(module, format) || loadHasComment {
-					return true
-				}
-			}
-			for i, to := range load.To {
-				from := load.From[i]
-				if to.NamePos.Line == findingLine || from.NamePos.Line == findingLine {
-					if edit.ContainsComments(to, format) || edit.ContainsComments(from, format) || loadHasComment {
-						return true
-					}
-				}
-			}
-		}
-	}
 
-	return false
+		start, end := expr.Span()
+		if findingLine < start.Line || findingLine > end.Line {
+			return
+		}
+
+		if hasDisablingComment(expr, warning) {
+			disabled = true
+			return
+		}
+	})
+
+	return disabled
 }
 
 // FileWarnings returns a list of all warnings found in the file.
