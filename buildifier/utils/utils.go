@@ -13,21 +13,20 @@ import (
 )
 
 func isStarlarkFile(name string) bool {
-	basename := strings.ToLower(name)
-	ext := filepath.Ext(basename)
+	ext := filepath.Ext(name)
 	switch ext {
 	case ".bzl", ".sky":
 		return true
 	}
-	base := basename[:len(basename)-len(ext)]
+	base := name[:len(name)-len(ext)]
 
 	switch ext {
 	case ".bazel", ".oss":
 		// The extension can be ignored
-		basename = base
+		name = base
 	}
 
-	return basename == "build" || basename == "workspace"
+	return name == "BUILD" || name == "WORKSPACE"
 }
 
 func skip(info os.FileInfo) bool {

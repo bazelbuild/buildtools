@@ -36,9 +36,10 @@ buildifier2="$(rlocation "$buildifier2")"
 mkdir -p test_dir/subdir
 mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
-echo -e "$INPUT" > test_dir/build  # case doesn't matter
+echo -e "$INPUT" > test_dir/BUILD
 echo -e "$INPUT" > test_dir/test.bzl
 echo -e "$INPUT" > test_dir/subdir/test.bzl
+echo -e "$INPUT" > test_dir/subdir/build  # lowercase, should be ignored by -r
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
 mkdir test_dir/workspace  # name of a starlark file, but a directory
@@ -46,9 +47,10 @@ mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
 
 cp test_dir/foo.bar golden/foo.bar
+cp test_dir/subdir/build golden/build
 cp test_dir/.git/git.bzl golden/git.bzl
 
-"$buildifier" < test_dir/build > stdout
+"$buildifier" < test_dir/BUILD > stdout
 "$buildifier" -r test_dir
 "$buildifier" test.bzl
 "$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
@@ -73,9 +75,10 @@ load(":foo.bzl", "foo")
 foo(tags = ["b", "a"], srcs = ["d", "c"])
 EOF
 
-diff test_dir/build golden/BUILD.golden
+diff test_dir/BUILD golden/BUILD.golden
 diff test_dir/test.bzl golden/test.bzl.golden
 diff test_dir/subdir/test.bzl golden/test.bzl.golden
+diff test_dir/subdir/build golden/build
 diff test_dir/foo.bar golden/foo.bar
 diff test.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
