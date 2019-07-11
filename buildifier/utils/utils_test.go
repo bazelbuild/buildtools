@@ -18,8 +18,12 @@ func TestIsStarlarkFile(t *testing.T) {
 			ok:       true,
 		},
 		{
-			filename: "build.oss",
+			filename: "BUILD.oss",
 			ok:       true,
+		},
+		{
+			filename: "build.oss",
+			ok:       false,
 		},
 		{
 			filename: "WORKSPACE",
@@ -30,8 +34,12 @@ func TestIsStarlarkFile(t *testing.T) {
 			ok:       true,
 		},
 		{
-			filename: "workspace.oss",
+			filename: "WORKSPACE.oss",
 			ok:       true,
+		},
+		{
+			filename: "workspace.oss",
+			ok:       false,
 		},
 		{
 			filename: "build.gradle",
@@ -44,6 +52,10 @@ func TestIsStarlarkFile(t *testing.T) {
 		{
 			filename: "foo.bzl",
 			ok:       true,
+		},
+		{
+			filename: "foo.BZL",
+			ok:       false,
 		},
 		{
 			filename: "build.bzl",
