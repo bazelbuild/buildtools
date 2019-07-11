@@ -202,7 +202,7 @@ rule()`, "foo", `Use an implicit name for one unnamed rule with load`},
 		}
 
 		if got := file.implicitRuleName(); got != tst.want {
-			t.Errorf("TestImplicitName(%s): got %s, want %s. %s", tst.description, got, tst.want)
+			t.Errorf("TestImplicitName(%s): got %s, want %s.", tst.description, got, tst.want)
 		}
 	}
 }
