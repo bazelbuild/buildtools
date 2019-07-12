@@ -241,7 +241,7 @@ attr.baz("baz", cfg = "data")
 `
 	f, err := build.ParseBzl("file.bzl", []byte(contents))
 	if err != nil {
-		t.Errorf("Parse error: %v", err)
+		t.Fatalf("Parse error: %v", err)
 	}
 
 	findings := FileWarnings(f, "pkg", []string{"attr-cfg"}, nil, ModeSuggest)
@@ -275,6 +275,78 @@ attr.baz("baz", cfg = "data")
 		if r.Start != w.start || r.End != w.end || r.Content != w.replacement {
 			t.Errorf("Wrong replacement #%d, want %d, %d, %q, got %d, %d, %q",
 				i, w.start, w.end, w.replacement, r.Start, r.End, r.Content)
+		}
+	}
+}
+
+func TestDisabledWarning(t *testing.T) {
+	contents := `foo()
+
+# buildifier: disable=depset-iteration
+for x in depset([1, 2, 3]):
+    print(x)  # buildozer: disable=print
+
+for y in "foobar":  # buildozer: disable=string-iteration
+    # buildifier: disable=no-effect
+    y
+
+# buildifier: disable=duplicated-name-2
+cc_library(
+   name = "foo",  # buildifier: disable=duplicated-name-1
+)
+`
+
+	f, err := build.ParseBzl("file.bzl", []byte(contents))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	tests := []struct {
+		start    int
+		end      int
+		category string
+	}{
+		{
+			start:    4,
+			end:      5,
+			category: "depset-iteration",
+		},
+		{
+			start:    5,
+			end:      5,
+			category: "print",
+		},
+		{
+			start:    7,
+			end:      7,
+			category: "string-iteration",
+		},
+		{
+			start:    9,
+			end:      9,
+			category: "no-effect",
+		},
+		{
+			start:    13,
+			end:      13,
+			category: "duplicated-name-1",
+		},
+		{
+			start:    12,
+			end:      14,
+			category: "duplicated-name-2",
+		},
+	}
+
+	linesCount := strings.Count(contents, "\n")
+
+	for _, tc := range tests {
+		for line := 1; line <= linesCount; line++ {
+			disabled := DisabledWarning(f, line, tc.category)
+			shouldBeDisabled := line >= tc.start && line <= tc.end
+			if disabled != shouldBeDisabled {
+				t.Errorf("Wrong disabled status for the category %q, want %t, got %t", tc.category, shouldBeDisabled, disabled)
+			}
 		}
 	}
 }

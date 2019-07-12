@@ -79,6 +79,17 @@ func (c *Comments) Comment() *Comments {
 	return c
 }
 
+// stmtsEnd returns the end position of the last non-nil statement
+func stmtsEnd(stmts []Expr) Position {
+	for i := len(stmts) - 1; i >= 0; i-- {
+		if stmts[i] != nil {
+			_, end := stmts[i].Span()
+			return end
+		}
+	}
+	return Position{}
+}
+
 // A File represents an entire BUILD file.
 type File struct {
 	Path string // file path, relative to workspace directory
@@ -100,8 +111,8 @@ func (f *File) Span() (start, end Position) {
 		p := Position{Line: 1, LineRune: 1}
 		return p, p
 	}
-	start, _ = f.Stmt[0].Span()
-	_, end = f.Stmt[len(f.Stmt)-1].Span()
+	start = Position{}
+	end = stmtsEnd(f.Stmt)
 	return start, end
 }
 
@@ -531,7 +542,7 @@ type ForStmt struct {
 }
 
 func (x *ForStmt) Span() (start, end Position) {
-	_, end = x.Body[len(x.Body)-1].Span()
+	end = stmtsEnd(x.Body)
 	return x.For, end
 }
 
@@ -551,6 +562,6 @@ func (x *IfStmt) Span() (start, end Position) {
 	if body == nil {
 		body = x.True
 	}
-	_, end = body[len(body)-1].Span()
+	end = stmtsEnd(body)
 	return x.If, end
 }
