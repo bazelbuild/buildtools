@@ -26,12 +26,12 @@ func TestWarningsDocumentation(t *testing.T) {
 	for _, warning := range AllWarnings {
 		link := fmt.Sprintf("  * [%s](#%s)", warning, warning)
 		if !strings.Contains(contents, link) {
-			t.Errorf("No link found for the warning %q in WARNINGS.md, is it documented?", warning)
+			t.Errorf("No link (%q) found for the warning %q in WARNINGS.md, is it documented?", link, warning)
 		}
 
 		anchor := fmt.Sprintf(`<a name="%s"></a>`, warning)
 		if !strings.Contains(contents, anchor) {
-			t.Errorf("No anchor found for the warning %q in WARNINGS.md, is it documented?", warning)
+			t.Errorf("No anchor (%q) found for the warning %q in WARNINGS.md, is it documented?", anchor, warning)
 		}
 	}
 }
