@@ -770,6 +770,7 @@ test:
 	}
 |	_NOT test %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
 |	'-' test  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
+|	'+' test  %prec _UNARY { $$ = unary($1, $<tok>1, $2) }
 |	test '*' test      { $$ = binary($1, $2, $<tok>2, $3) }
 |	test '%' test      { $$ = binary($1, $2, $<tok>2, $3) }
 |	test '/' test      { $$ = binary($1, $2, $<tok>2, $3) }

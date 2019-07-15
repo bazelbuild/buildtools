@@ -1,3 +1,11 @@
+# Unary operators
+
+- foo
+
++ foo
+
+not  foo
+
 # Binary operators
 
 foo=bar+baz+qux
