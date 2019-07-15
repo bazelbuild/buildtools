@@ -83,6 +83,8 @@ Buildozer supports the following commands(`'command args'`):
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
     wildcard `*` matches all attributes. Lists containing none of the `value(s)` are
     not modified.
+  * `remove_comment <attr>? <value>?`: Removes the comment attached to the rule,
+    an attribute, or a specific value in a list.
   * `rename <old_attr> <new_attr>`: Rename the `old_attr` to `new_attr` which must
     not yet exist.
   * `replace <attr> <old_value> <new_value>`: Replaces `old_value` with `new_value`
