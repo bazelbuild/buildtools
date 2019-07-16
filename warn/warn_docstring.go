@@ -216,7 +216,9 @@ func functionDocstringWarning(f *build.File) []*LinterFinding {
 		}
 
 		message := fmt.Sprintf("The function %q has no docstring.", def.Name)
-		findings = append(findings, makeLinterFinding(def, message))
+		finding := makeLinterFinding(def, message)
+		finding.End = def.ColonPos
+		findings = append(findings, finding)
 	}
 	return findings
 }
