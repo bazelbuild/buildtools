@@ -353,18 +353,25 @@ func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	case 0: // Remove comment attached to rule
 		env.Rule.Call.Comments.Before = nil
 		env.Rule.Call.Comments.Suffix = nil
+		env.Rule.Call.Comments.After = nil
 	case 1: // Remove comment attached to attr
 		if attr := env.Rule.AttrDefn(env.Args[0]); attr != nil {
 			attr.Comments.Before = nil
 			attr.Comments.Suffix = nil
+			attr.Comments.After = nil
 			attr.LHS.Comment().Before = nil
+			attr.LHS.Comment().Suffix = nil
+			attr.LHS.Comment().After = nil
+			attr.RHS.Comment().Before = nil
 			attr.RHS.Comment().Suffix = nil
+			attr.RHS.Comment().After = nil
 		}
 	case 2: // Remove comment attached to value
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
 			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
 				expr.Comments.Before = nil
 				expr.Comments.Suffix = nil
+				expr.Comments.After = nil
 			}
 		}
 	default:
