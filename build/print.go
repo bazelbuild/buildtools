@@ -309,6 +309,10 @@ const (
 	precOr
 	precAnd
 	precCmp
+	precBitwiseOr
+	precBitwiseXor
+	precBitwiseAnd
+	precBitwiseShift
 	precAdd
 	precMultiply
 	precUnary
@@ -333,11 +337,11 @@ var opPrec = map[string]int{
 	"/":      precMultiply,
 	"//":     precMultiply,
 	"%":      precMultiply,
-	"|":      precMultiply,
-	"&":      precMultiply,
-	"^":      precMultiply,
-	"<<":     precMultiply,
-	">>":     precMultiply,
+	"|":      precBitwiseOr,
+	"&":      precBitwiseAnd,
+	"^":      precBitwiseXor,
+	"<<":     precBitwiseShift,
+	">>":     precBitwiseShift,
 }
 
 // expr prints the expression v to the print buffer.

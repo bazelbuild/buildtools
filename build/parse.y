@@ -172,9 +172,12 @@ package build
 %left  _OR
 %left  _AND
 %left  '<' '>' _EQ _NE _LE _GE _NOT _IN
+%left  '|'
+%left  '^'
+%left  '&'
+%left  _BIT_LSH _BIT_RSH
 %left  '+' '-'
 %left  '*' '/' '%' _INT_DIV
-%left  '|' '&' '^' _BIT_LSH _BIT_RSH
 %left  '.' '[' '('
 %right _UNARY
 %left  _STRING
