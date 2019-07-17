@@ -493,3 +493,37 @@ android_binary()
 		},
 		scopeBzl|scopeBuild)
 }
+
+func TestNativeJavaWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-java", `
+"""My file"""
+
+def macro():
+    java_import()
+    java_library()
+    native.java_library()
+    native.java_binary()
+
+java_test()
+`, fmt.Sprintf(`
+"""My file"""
+
+load(%q, "java_binary", "java_import", "java_library", "java_test")
+
+def macro():
+    java_import()
+    java_library()
+    java_library()
+    java_binary()
+
+java_test()
+`, tables.JavaLoadPath),
+		[]string{
+			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:9: Function "java_test" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+		},
+		scopeBzl|scopeBuild)
+}

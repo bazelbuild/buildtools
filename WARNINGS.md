@@ -30,6 +30,7 @@ Warning categories supported by buildifier's linter:
   * [name-conventions](#name-conventions)
   * [native-android](#native-android)
   * [native-build](#native-build)
+  * [native-java](#native-java)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
   * [out-of-order-load](#out-of-order-load)
@@ -475,6 +476,17 @@ disabled](https://github.com/bazelbuild/bazel/issues/8391).
 
 There's no need in using `native.` in BUILD files, its members are available as global symbols
 there.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java`
+  * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
+  * Automatic fix: yes
+
+The Java build rules should be loaded from Starlark. The native rules [will be
+disabled](https://github.com/bazelbuild/bazel/issues/8746).
 
 --------------------------------------------------------------------------------
 
