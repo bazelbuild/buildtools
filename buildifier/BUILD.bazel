@@ -15,7 +15,6 @@ sh_test(
     name = "buildifier_integration_test",
     size = "small",
     srcs = ["integration_test.sh"],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
     args = [
         "$(location :buildifier)",
         "$(location //buildifier2)",
@@ -24,12 +23,13 @@ sh_test(
         ":buildifier",
         "//buildifier2",
     ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 go_library(
     name = "go_default_library",
     srcs = [
-      "buildifier.go",
+        "buildifier.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/buildifier",
     visibility = ["//visibility:private"],

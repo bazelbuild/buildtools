@@ -40,10 +40,10 @@ go_test(
         "warn_operation_test.go",
         "warn_test.go",
     ],
-    embed = [":go_default_library"],
     data = [
         "//:warnings",
     ],
+    embed = [":go_default_library"],
     deps = [
         "//testutils",
     ],

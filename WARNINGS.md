@@ -29,6 +29,7 @@ Warning categories supported by buildifier's linter:
   * [module-docstring](#module-docstring)
   * [name-conventions](#name-conventions)
   * [native-android](#native-android)
+  * [native-java](#native-java)
   * [native-build](#native-build)
   * [native-package](#native-package)
   * [no-effect](#no-effect)
@@ -465,6 +466,16 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
 
 The Android build rules should be loaded from Starlark. The native rules [will be
 disabled](https://github.com/bazelbuild/bazel/issues/8391).
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java`
+  * Automatic fix: yes
+
+The Java build rules should be loaded from Starlark. The native rules [will be
+disabled](https://github.com/bazelbuild/bazel/issues/8746).
 
 --------------------------------------------------------------------------------
 
