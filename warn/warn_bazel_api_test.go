@@ -494,7 +494,7 @@ android_binary()
 		scopeBzl|scopeBuild)
 }
 
-func TestNativeAndroidWarning(t *testing.T) {
+func TestNativeJavaWarning(t *testing.T) {
 	checkFindingsAndFix(t, "native-java", `
 """My file"""
 
