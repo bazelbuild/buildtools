@@ -237,7 +237,7 @@ var JavaNativeRules = []string{
 	"java_toolchain",
 }
 
-// AndroidLoadPath is the load path for the Starlark Android Rules.
+// JavaLoadPath is the load path for the Starlark Java Rules.
 var JavaLoadPath = "@rules_java//java:defs.bzl"
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
