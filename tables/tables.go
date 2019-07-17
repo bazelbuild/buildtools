@@ -223,6 +223,23 @@ var AndroidNativeRules = []string{
 // AndroidLoadPath is the load path for the Starlark Android Rules.
 var AndroidLoadPath = "@rules_android//android:rules.bzl"
 
+// JavaNativeRules lists all Java rules that are being migrated from Native to Starlark.
+var JavaNativeRules = []string{
+	"java_binary",
+	"java_import",
+	"java_library",
+	"java_lite_proto_library",
+	"java_proto_library",
+	"java_test",
+	"java_package_configuration",
+	"java_plugin",
+	"java_runtime",
+	"java_toolchain",
+}
+
+// JavaLoadPath is the load path for the Starlark Java Rules.
+var JavaLoadPath = "@rules_java//java:defs.bzl"
+
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
 func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg

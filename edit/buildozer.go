@@ -348,6 +348,38 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return nil, nil
 }
 
+func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
+	switch len(env.Args) {
+	case 0: // Remove comment attached to rule
+		env.Rule.Call.Comments.Before = nil
+		env.Rule.Call.Comments.Suffix = nil
+		env.Rule.Call.Comments.After = nil
+	case 1: // Remove comment attached to attr
+		if attr := env.Rule.AttrDefn(env.Args[0]); attr != nil {
+			attr.Comments.Before = nil
+			attr.Comments.Suffix = nil
+			attr.Comments.After = nil
+			attr.LHS.Comment().Before = nil
+			attr.LHS.Comment().Suffix = nil
+			attr.LHS.Comment().After = nil
+			attr.RHS.Comment().Before = nil
+			attr.RHS.Comment().Suffix = nil
+			attr.RHS.Comment().After = nil
+		}
+	case 2: // Remove comment attached to value
+		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
+			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+				expr.Comments.Before = nil
+				expr.Comments.Suffix = nil
+				expr.Comments.After = nil
+			}
+		}
+	default:
+		panic("cmdRemoveComment")
+	}
+	return env.File, nil
+}
+
 func cmdRename(opts *Options, env CmdEnvironment) (*build.File, error) {
 	oldAttr := env.Args[0]
 	newAttr := env.Args[1]
@@ -589,6 +621,7 @@ var AllCommands = map[string]CommandInfo{
 	"new":               {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
 	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
 	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
+	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
