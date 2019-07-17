@@ -1,3 +1,17 @@
+# Unary operators
+
+-foo
+
++foo
+
+~foo
+
+-(+foo)
+
+-(+(~foo))
+
+not foo
+
 # Binary operators
 
 foo = bar + baz + qux
@@ -13,6 +27,16 @@ foo = bar // baz // qux
 foo = bar % baz % qux
 
 foo = bar | baz | qux
+
+foo = bar & baz & qux
+
+foo = bar ^ baz ^ qux
+
+foo = bar << baz << qux
+
+foo = bar >> baz >> qux
+
+foo = ~bar | ~baz ^ -qux << quux >> baa
 
 # If-else operator precedence
 -f(1) if not a else 2 + 3
@@ -43,3 +67,11 @@ foo //= bar
 foo %= bar
 
 foo |= bar
+
+foo &= bar
+
+foo ^= bar
+
+foo <<= bar
+
+foo >>= bar

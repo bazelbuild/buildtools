@@ -468,17 +468,35 @@ func (in *input) Lex(val *yySymType) int {
 		in.readRune()
 		return c
 
-	case '<', '>', '=', '!', '+', '-', '*', '/', '%', '|': // possibly followed by =
+	case '<', '>', '=', '!', '+', '-', '*', '/', '%', '|', '&', '~', '^': // possibly followed by =
 		in.readRune()
+
+		if c == '~' {
+			// unary bitwise not, shouldn't be followed by anything
+			return c
+		}
+
 		if c == '*' && in.peekRune() == '*' {
 			// double asterisk
 			in.readRune()
 			return _STAR_STAR
 		}
 
-		if c == '/' && in.peekRune() == '/' {
-			// integer division
-			in.readRune()
+		if c == in.peekRune() {
+			switch c {
+			case '/':
+				// integer division
+				in.readRune()
+				c = _INT_DIV
+			case '<':
+				// left shift
+				in.readRune()
+				c = _BIT_LSH
+			case '>':
+				// right shift
+				in.readRune()
+				c = _BIT_RSH
+			}
 		}
 
 		if in.peekRune() == '=' {

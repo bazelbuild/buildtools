@@ -309,6 +309,10 @@ const (
 	precOr
 	precAnd
 	precCmp
+	precBitwiseOr
+	precBitwiseXor
+	precBitwiseAnd
+	precBitwiseShift
 	precAdd
 	precMultiply
 	precUnary
@@ -333,7 +337,11 @@ var opPrec = map[string]int{
 	"/":      precMultiply,
 	"//":     precMultiply,
 	"%":      precMultiply,
-	"|":      precMultiply,
+	"|":      precBitwiseOr,
+	"&":      precBitwiseAnd,
+	"^":      precBitwiseXor,
+	"<<":     precBitwiseShift,
+	">>":     precBitwiseShift,
 }
 
 // expr prints the expression v to the print buffer.
@@ -466,7 +474,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		} else {
 			p.printf("%s", v.Op)
 		}
-		p.expr(v.X, precUnary)
+		// Use the next precedence level (precSuffix), so that nested unary expressions are parenthesized,
+		// for example: `not (-(+(~foo)))` instead of `not -+~foo`
+		p.expr(v.X, precSuffix)
 
 	case *LambdaExpr:
 		addParen(precColon)
