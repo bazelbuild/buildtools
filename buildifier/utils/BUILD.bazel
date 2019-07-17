@@ -3,17 +3,17 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "diagnostics.go",
-        "flags.go",
-        "tempfile.go",
-        "utils.go",
+      "diagnostics.go",
+      "flags.go",
+      "tempfile.go",
+      "utils.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
-    visibility = ["//buildifier:__pkg__"],
     deps = [
         "//build:go_default_library",
         "//warn:go_default_library",
     ],
+    importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
+    visibility = ["//buildifier:__pkg__"],
 )
 
 go_test(
