@@ -130,6 +130,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"native-build":              nativeInBuildFilesWarning,
 	"native-java":               nativeJavaRulesWarning,
 	"native-package":            nativePackageWarning,
+	"native-proto":              nativeProtoRulesWarning,
 	"no-effect":                 noEffectWarning,
 	"output-group":              outputGroupWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,

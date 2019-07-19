@@ -32,6 +32,7 @@ Warning categories supported by buildifier's linter:
   * [native-build](#native-build)
   * [native-java](#native-java)
   * [native-package](#native-package)
+  * [native-proto](#native-proto)
   * [no-effect](#no-effect)
   * [out-of-order-load](#out-of-order-load)
   * [output-group](#output-group)
@@ -326,9 +327,9 @@ A docstring is a string statement which should be the first statement of the fil
 following way:
 
     """One-line summary: must be followed and may be preceded by a blank line.
-    
+
     Optional additional description like this.
-    
+
     If it's a function docstring and the function has more than one argument, the docstring has
     to document these parameters as follows:
 
@@ -445,7 +446,7 @@ they can follow only comments and docstrings.
   * Automatic fix: no
 
 `.bzl` files should have docstrings on top of them. A docstring is a string statement
-which should be the first statement of the file (it may follow comment lines). 
+which should be the first statement of the file (it may follow comment lines).
 
 --------------------------------------------------------------------------------
 
@@ -497,6 +498,17 @@ disabled](https://github.com/bazelbuild/bazel/issues/8746).
 
 It's discouraged and will be disallowed to use `native.package()` in .bzl files. It can silently
 modify the semantics of a BUILD file and makes it hard to maintain.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto"></a>All Proto build rules and symbols should be loaded from Starlark
+
+  * Category name: `native-proto`
+  * Flag in Bazel: [`--incompatible_load_proto_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8922)
+  * Automatic fix: yes
+
+The Proto build rules and symbols should be loaded from Starlark. The native
+rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
 
 --------------------------------------------------------------------------------
 
