@@ -578,6 +578,13 @@ func nativeAndroidRulesWarning(f *build.File) []*LinterFinding {
 	return notLoadedFunctionUsageCheck(f, tables.AndroidNativeRules, tables.AndroidLoadPath)
 }
 
+func nativeCcRulesWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return notLoadedFunctionUsageCheck(f, tables.CcNativeRules, tables.CcLoadPath)
+}
+
 func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil

@@ -494,6 +494,58 @@ android_binary()
 		scopeBzl|scopeBuild)
 }
 
+func TestNativeCcWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-cc", `
+"""My file"""
+
+def macro():
+    cc_library()
+    native.cc_binary()
+    cc_test()
+    cc_proto_library()
+    native.fdo_prefetch_hints()
+    native.objc_library()
+    objc_import()
+    cc_toolchain()
+    native.cc_toolchain_suite()
+
+fdo_profile()
+cc_import()
+`, fmt.Sprintf(`
+"""My file"""
+
+load(%q, "cc_binary", "cc_import", "cc_library", "cc_proto_library", "cc_test", "cc_toolchain", "cc_toolchain_suite", "fdo_prefetch_hints", "fdo_profile", "objc_import", "objc_library")
+
+def macro():
+    cc_library()
+    cc_binary()
+    cc_test()
+    cc_proto_library()
+    fdo_prefetch_hints()
+    objc_library()
+    objc_import()
+    cc_toolchain()
+    cc_toolchain_suite()
+
+fdo_profile()
+cc_import()
+`, tables.CcLoadPath),
+		[]string{
+			fmt.Sprintf(`:4: Function "cc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:5: Function "cc_binary" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:6: Function "cc_test" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:7: Function "cc_proto_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:8: Function "fdo_prefetch_hints" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:9: Function "objc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:10: Function "objc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:11: Function "cc_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:12: Function "cc_toolchain_suite" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:14: Function "fdo_profile" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:15: Function "cc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+		},
+		scopeBzl|scopeBuild)
+}
+
 func TestNativeJavaWarning(t *testing.T) {
 	checkFindingsAndFix(t, "native-java", `
 """My file"""
