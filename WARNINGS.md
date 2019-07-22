@@ -30,6 +30,7 @@ Warning categories supported by buildifier's linter:
   * [name-conventions](#name-conventions)
   * [native-android](#native-android)
   * [native-build](#native-build)
+  * [native-cc](#native-cc)
   * [native-java](#native-java)
   * [native-package](#native-package)
   * [native-proto](#native-proto)
@@ -477,6 +478,17 @@ disabled](https://github.com/bazelbuild/bazel/issues/8391).
 
 There's no need in using `native.` in BUILD files, its members are available as global symbols
 there.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-cc"></a>All C++ build rules should be loaded from Starlark
+
+  * Category name: `native-cc`
+  * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
+  * Automatic fix: yes
+
+The C++ build rules should be loaded from Starlark. The native rules [will be
+disabled](https://github.com/bazelbuild/bazel/issues/8743).
 
 --------------------------------------------------------------------------------
 
