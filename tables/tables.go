@@ -223,6 +223,24 @@ var AndroidNativeRules = []string{
 // AndroidLoadPath is the load path for the Starlark Android Rules.
 var AndroidLoadPath = "@rules_android//android:rules.bzl"
 
+// CcNativeRules lists all C++ rules that are being migrated from Native to Starlark.
+var CcNativeRules = []string{
+	"cc_binary",
+	"cc_test",
+	"cc_library",
+	"cc_import",
+	"cc_proto_library",
+	"fdo_prefetch_hints",
+	"fdo_profile",
+	"cc_toolchain",
+	"cc_toolchain_suite",
+	"objc_library",
+	"objc_import",
+}
+
+// CcLoadPath is the load path for the Starlark C++ Rules.
+var CcLoadPath = "@rules_cc//cc:defs.bzl"
+
 // JavaNativeRules lists all Java rules that are being migrated from Native to Starlark.
 var JavaNativeRules = []string{
 	"java_binary",
