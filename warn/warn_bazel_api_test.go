@@ -579,3 +579,40 @@ java_test()
 		},
 		scopeBzl|scopeBuild)
 }
+
+func TestNativeProtoWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-proto", `
+"""My file"""
+
+def macro():
+    proto_library()
+    proto_lang_toolchain()
+    native.proto_lang_toolchain()
+    native.proto_library()
+
+    ProtoInfo
+    proto_common
+`, fmt.Sprintf(`
+"""My file"""
+
+load(%q, "ProtoInfo", "proto_common", "proto_lang_toolchain", "proto_library")
+
+def macro():
+    proto_library()
+    proto_lang_toolchain()
+    proto_lang_toolchain()
+    proto_library()
+
+    ProtoInfo
+    proto_common
+`, tables.ProtoLoadPath),
+		[]string{
+			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+		},
+		scopeBzl|scopeBuild)
+}

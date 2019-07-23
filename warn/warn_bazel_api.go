@@ -164,9 +164,79 @@ func insertLoad(f *build.File, module string, symbols []string) *LinterReplaceme
 	return &LinterReplacement{&(f.Stmt[i]), edit.NewLoad(module, symbols, symbols)}
 }
 
-// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
+func notLoadedFunctionUsageCheckInternal(expr *build.Expr, env *bzlenv.Environment, globals []string, loadFrom string) ([]string, []*LinterFinding) {
+	var loads []string
+	var findings []*LinterFinding
+
+	call, ok := (*expr).(*build.CallExpr)
+	if !ok {
+		return loads, findings
+	}
+
+	var name string
+	var replacements []LinterReplacement
+	switch node := call.X.(type) {
+	case *build.DotExpr:
+		// Maybe native.`global`?
+		ident, ok := node.X.(*build.Ident)
+		if !ok || ident.Name != "native" {
+			return loads, findings
+		}
+
+		name = node.Name
+		// Replace `native.foo()` with `foo()`
+		newCall := *call
+		newCall.X = &build.Ident{Name: node.Name}
+		replacements = append(replacements, LinterReplacement{expr, &newCall})
+	case *build.Ident:
+		// Maybe `global`()?
+		if binding := env.Get(node.Name); binding != nil {
+			return loads, findings
+		}
+		name = node.Name
+	default:
+		return loads, findings
+	}
+
+	for _, global := range globals {
+		if name == global {
+			loads = append(loads, name)
+			findings = append(findings,
+				makeLinterFinding(call, fmt.Sprintf(`Function %q is not global anymore and needs to be loaded from %q.`, global, loadFrom), replacements...))
+			break
+		}
+	}
+
+	return loads, findings
+}
+
+func notLoadedSymbolUsageCheckInternal(expr *build.Expr, env *bzlenv.Environment, globals []string, loadFrom string) ([]string, []*LinterFinding) {
+	var loads []string
+	var findings []*LinterFinding
+
+	ident, ok := (*expr).(*build.Ident)
+	if !ok {
+		return loads, findings
+	}
+	if binding := env.Get(ident.Name); binding != nil {
+		return loads, findings
+	}
+
+	for _, global := range globals {
+		if ident.Name == global {
+			loads = append(loads, ident.Name)
+			findings = append(findings,
+				makeLinterFinding(ident, fmt.Sprintf(`Symbol %q is not global anymore and needs to be loaded from %q.`, global, loadFrom)))
+			break
+		}
+	}
+
+	return loads, findings
+}
+
+// notLoadedUsageCheck checks whether there's a usage of a given not imported function or symbol in the file
 // and adds a load statement if necessary.
-func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
+func notLoadedUsageCheck(f *build.File, functions, symbols []string, loadFrom string) []*LinterFinding {
 	toLoad := make(map[string]bool)
 	var findings []*LinterFinding
 
@@ -174,43 +244,16 @@ func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom strin
 	walk = func(expr *build.Expr, env *bzlenv.Environment) {
 		defer bzlenv.WalkOnceWithEnvironment(*expr, env, walk)
 
-		call, ok := (*expr).(*build.CallExpr)
-		if !ok {
-			return
+		functionLoads, functionFindings := notLoadedFunctionUsageCheckInternal(expr, env, functions, loadFrom)
+		findings = append(findings, functionFindings...)
+		for _, load := range functionLoads {
+			toLoad[load] = true
 		}
 
-		var name string
-		var replacements []LinterReplacement
-		switch node := call.X.(type) {
-		case *build.DotExpr:
-			// Maybe native.`global`?
-			ident, ok := node.X.(*build.Ident)
-			if !ok || ident.Name != "native" {
-				return
-			}
-
-			name = node.Name
-			// Replace `native.foo()` with `foo()`
-			newCall := *call
-			newCall.X = &build.Ident{Name: node.Name}
-			replacements = append(replacements, LinterReplacement{expr, &newCall})
-		case *build.Ident:
-			// Maybe `global`()?
-			if binding := env.Get(node.Name); binding != nil {
-				return
-			}
-			name = node.Name
-		default:
-			return
-		}
-
-		for _, global := range globals {
-			if name == global {
-				toLoad[global] = true
-				findings = append(findings,
-					makeLinterFinding(call, fmt.Sprintf(`Function %q is not global anymore and needs to be loaded from %q.`, global, loadFrom), replacements...))
-				break
-			}
+		symbolLoads, symbolFindings := notLoadedSymbolUsageCheckInternal(expr, env, symbols, loadFrom)
+		findings = append(findings, symbolFindings...)
+		for _, load := range symbolLoads {
+			toLoad[load] = true
 		}
 	}
 	var expr build.Expr = f
@@ -235,6 +278,12 @@ func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom strin
 	}
 
 	return findings
+}
+
+// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
+// and adds a load statement if necessary.
+func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
+	return notLoadedUsageCheck(f, globals, []string{}, loadFrom)
 }
 
 // makePositional makes the function argument positional (removes the keyword if it exists)
@@ -590,6 +639,13 @@ func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
 		return nil
 	}
 	return notLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
+}
+
+func nativeProtoRulesWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return notLoadedUsageCheck(f, tables.ProtoNativeRules, tables.ProtoNativeSymbols, tables.ProtoLoadPath)
 }
 
 func contextArgsAPIWarning(f *build.File) []*LinterFinding {

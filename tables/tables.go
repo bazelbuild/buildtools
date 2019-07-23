@@ -258,6 +258,21 @@ var JavaNativeRules = []string{
 // JavaLoadPath is the load path for the Starlark Java Rules.
 var JavaLoadPath = "@rules_java//java:defs.bzl"
 
+// ProtoNativeRules lists all Proto rules that are being migrated from Native to Starlark.
+var ProtoNativeRules = []string{
+	"proto_lang_toolchain",
+	"proto_library",
+}
+
+// ProtoNativeSymbols lists all Proto symbols that are being migrated from Native to Starlark.
+var ProtoNativeSymbols = []string{
+	"ProtoInfo",
+	"proto_common",
+}
+
+// ProtoLoadPath is the load path for the Starlark Proto Rules.
+var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
+
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
 func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
