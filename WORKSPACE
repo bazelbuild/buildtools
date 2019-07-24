@@ -29,6 +29,6 @@ buildifier_dependencies()
 
 go_repository(
     name = "skylark_syntax",
-    commit = "a5f7082aabed29c0e429c722292c66ec8ecf9591",
-    importpath = "github.com/google/skylark",
+    commit = "fc7a7f44baedf13df916b2aad597bc944964dd27",
+    importpath = "go.starlark.net",
 )
