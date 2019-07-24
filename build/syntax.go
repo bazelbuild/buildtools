@@ -353,6 +353,9 @@ type UnaryExpr struct {
 }
 
 func (x *UnaryExpr) Span() (start, end Position) {
+	if x.X == nil {
+		return x.OpStart, x.OpStart
+	}
 	_, end = x.X.Span()
 	return x.OpStart, end
 }
