@@ -107,6 +107,21 @@ my_macro(name = "foo")
 package()`,
 		[]string{":2: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
 		scopeEverywhere)
+
+	checkFindings(t, "package-on-top", `
+# Some comments
+
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+package()
+
+foo(baz)
+`,
+		[]string{},
+		scopeEverywhere)
 }
 
 func TestLoadOnTop(t *testing.T) {
