@@ -1,5 +1,5 @@
 // This file contains functions to convert from one AST to the other.
-// Input: AST from github.com/google/skylark/syntax
+// Input: AST from go.starlark.net/syntax
 // Output: AST from github.com/bazelbuild/buildtools/build
 
 package convertast
@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/google/skylark/syntax"
+	"go.starlark.net/syntax"
 )
 
 func ConvFile(f *syntax.File) *build.File {
@@ -68,8 +68,8 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 			Name:     stmt.Name.Name,
 			Comments: convComments(stmt.Comments()),
 			Function: build.Function{
-				Params: convExprs(stmt.Function.Params),
-				Body:   convStmts(stmt.Function.Body),
+				Params: convExprs(stmt.Params),
+				Body:   convStmts(stmt.Body),
 			},
 		}
 	case *syntax.ForStmt:

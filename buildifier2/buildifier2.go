@@ -1,10 +1,10 @@
 // An alternative implementation of Buildifier, on top of the Skylark parser.
-// https://github.com/google/skylark/
+// https://go.starlark.net/
 
 // This is experimental.
 
 // If the experiment is successful, we might drop the AST defined in this
-// package and use the AST from github.com/google/skylark/. This will give
+// package and use the AST from go.starlark.net/syntax. This will give
 // us a much more precise AST and will allow us to share code with the
 // Skylark interpreter. The end goal is to build a number of tools able
 // to parse, analyze, format, refactor, evaluate Skylark code.
@@ -19,7 +19,7 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/convertast"
-	"github.com/google/skylark/syntax"
+	"go.starlark.net/syntax"
 )
 
 func main() {

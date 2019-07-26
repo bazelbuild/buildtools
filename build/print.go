@@ -476,7 +476,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		}
 		// Use the next precedence level (precSuffix), so that nested unary expressions are parenthesized,
 		// for example: `not (-(+(~foo)))` instead of `not -+~foo`
-		p.expr(v.X, precSuffix)
+		if v.X != nil {
+			p.expr(v.X, precSuffix)
+		}
 
 	case *LambdaExpr:
 		addParen(precColon)

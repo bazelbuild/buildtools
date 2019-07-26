@@ -8,6 +8,8 @@ def foo(* args):
   return bar(* args)
 def foo(** kwargs):
   return bar(** kwargs)
+def foo(a,*,b,** kwargs):
+  return bar(a,b,** kwargs)
 
 bar(a,b,c,* args,** kwargs)
 bar(* args,** kwargs)

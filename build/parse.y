@@ -718,6 +718,10 @@ parameter:
 	{
 		$$ = unary($1, $<tok>1, $2)
 	}
+|	'*'
+	{
+		$$ = unary($1, $<tok>1, nil)
+	}
 |	_STAR_STAR ident
 	{
 		$$ = unary($1, $<tok>1, $2)
