@@ -167,7 +167,9 @@ x = depset(1, transitive=[a, x, b])  # not inside a loop, ok
 
 for y in z:
   if y:
-    x = depset(2, transitive=[a, x, b])  # problem here
+    x = depset(2, transitive = [a, x, b])  # problem here
+    y = depset(3, transitive = [a, x, b])  # ok
+    x = depset(4, transitive = [a, b])     # ok
 `,
 		[]string{
 			`:6: Depset "x" is potentially overly nested.`,
