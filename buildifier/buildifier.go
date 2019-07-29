@@ -308,6 +308,10 @@ var diff *differ.Differ
 func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) (*utils.FileDiagnostics, int) {
 	var exitCode int
 
+	if *filePath != "" {
+		filename = *filePath
+	}
+
 	parser := utils.GetParser(inputType)
 
 	f, err := parser(filename, data)
@@ -329,9 +333,6 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 	fileDiagnostics := utils.NewFileDiagnostics(f.DisplayPath(), warnings)
 
-	if *filePath != "" {
-		f.Path = *filePath
-	}
 	var info build.RewriteInfo
 	build.Rewrite(f, &info)
 

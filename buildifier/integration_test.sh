@@ -137,6 +137,7 @@ test_lint () {
   ret=0
   cp test_dir/to_fix.bzl test_dir/to_fix_tmp.bzl
   echo "$4" > golden/error_golden
+  echo "${4//test_dir\/to_fix_tmp.bzl/foo.bzl}" > golden/error_golden_foo
 
   cat > golden/fix_report_golden <<EOF
 test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
@@ -157,6 +158,13 @@ EOF
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
   diff test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
+
+  # --lint=warn with --path
+  $buildifier --lint=warn --path=foo.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
+  if [[ $ret -ne 4 ]]; then
+    die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
+  fi
+  diff test_dir/error golden/error_golden_foo || die "$1: wrong console output for --lint=warn and --path"
 
   # --lint=fix
   $buildifier --lint=fix $2 -v test_dir/to_fix_tmp.bzl 2> test_dir/fix_report || ret=$?
