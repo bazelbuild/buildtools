@@ -37,6 +37,7 @@ Warning categories supported by buildifier's linter:
   * [no-effect](#no-effect)
   * [out-of-order-load](#out-of-order-load)
   * [output-group](#output-group)
+  * [overly-nested-depset](#overly-nested-depset)
   * [package-name](#package-name)
   * [package-on-top](#package-on-top)
   * [positional-args](#positional-args)
@@ -558,6 +559,29 @@ of a symbol load and its usage can change resulting in runtime error.
 
 The `output_group` field of a target is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-output-group-field-on-target)
 in favor of the [`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+
+--------------------------------------------------------------------------------
+
+## <a name="overly-nested-depset"></a>The depset is potentially overly nested
+
+  * Category name: `overly-nested-depset`
+  * Automatic fix: no
+
+If a depset is iteratively chained in a for loop, e.g. the following pattern is used:
+
+    for ...:
+        x = depset(..., transitive = [..., x, ...])
+
+this can result in an overly nested depset with a long chain of transitive elements. Such patterns
+can lead to performance problems, consider refactoring the code to create a flat list of transitive
+elements and call the depset constructor just once:
+
+    transitive = []
+
+    for ...:
+        transitive += ...
+    
+    x = depset(..., transitive = transitive)
 
 --------------------------------------------------------------------------------
 

@@ -135,6 +135,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"no-effect":                 noEffectWarning,
 	"output-group":              outputGroupWarning,
 	"out-of-order-load":         outOfOrderLoadWarning,
+	"overly-nested-depset":      overlyNestedDepsetWarning,
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
 	"print":                     printWarning,
