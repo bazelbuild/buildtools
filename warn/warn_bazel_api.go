@@ -202,7 +202,7 @@ func notLoadedFunctionUsageCheckInternal(expr *build.Expr, env *bzlenv.Environme
 		if name == global {
 			loads = append(loads, name)
 			findings = append(findings,
-				makeLinterFinding(call, fmt.Sprintf(`Function %q is not global anymore and needs to be loaded from %q.`, global, loadFrom), replacements...))
+				makeLinterFinding(call.X, fmt.Sprintf(`Function %q is not global anymore and needs to be loaded from %q.`, global, loadFrom), replacements...))
 			break
 		}
 	}
