@@ -2,7 +2,11 @@
 
 package warn
 
-import "github.com/bazelbuild/buildtools/build"
+import (
+	"fmt"
+
+	"github.com/bazelbuild/buildtools/build"
+)
 
 func depsetUnionWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
@@ -118,6 +122,57 @@ func depsetIterationWarning(f *build.File) []*LinterFinding {
 			}
 		}
 		return
+	})
+	return findings
+}
+
+func overlyNestedDepsetWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) {
+		// Are we inside a for-loop?
+		isForLoop := false
+		for _, e := range stack {
+			if _, ok := e.(*build.ForStmt); ok {
+				isForLoop = true
+				break
+			}
+		}
+		if !isForLoop {
+			return
+		}
+
+		// Search for assignment statements
+		assign, ok := expr.(*build.AssignExpr)
+		if !ok {
+			return
+		}
+		// Is the LHS an ident?
+		lhs, ok := assign.LHS.(*build.Ident)
+		if !ok {
+			return
+		}
+		// Is the RHS a depset constructor?
+		call, ok := assign.RHS.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		if ident, ok := call.X.(*build.Ident); !ok || ident.Name != "depset" {
+			return
+		}
+		_, _, param := getParam(call.List, "transitive")
+		if param == nil {
+			return
+		}
+		transitives, ok := param.RHS.(*build.ListExpr)
+		if !ok {
+			return
+		}
+		for _, transitive := range transitives.List {
+			if ident, ok := transitive.(*build.Ident); ok && ident.Name == lhs.Name {
+				findings = append(findings, makeLinterFinding(assign, fmt.Sprintf("Depset %q is potentially overly nested.", lhs.Name)))
+				return
+			}
+		}
 	})
 	return findings
 }

@@ -159,3 +159,18 @@ eee + fff | ggg
 		},
 		scopeEverywhere)
 }
+
+func TestOverlyNestedDepset(t *testing.T) {
+	checkFindings(t, "overly-nested-depset", `
+x = depset()
+x = depset(1, transitive=[a, x, b])  # not inside a loop, ok
+
+for y in z:
+  if y:
+    x = depset(2, transitive=[a, x, b])  # problem here
+`,
+		[]string{
+			`:6: Depset "x" is potentially overly nested.`,
+		},
+		scopeEverywhere)
+}
