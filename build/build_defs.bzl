@@ -33,7 +33,6 @@ def go_yacc(src, out, visibility = None):
                " $(location " + _GO_YACC_TOOL + ") " +
                " -o $(location " + out + ") $(SRCS) > /dev/null"),
         visibility = visibility,
-        local = 1,
     )
 
 def _extract_go_src(ctx):
