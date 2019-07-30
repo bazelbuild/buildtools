@@ -21,7 +21,7 @@ def _buildifier_impl(ctx):
 
     exclude_patterns_str = ""
     if ctx.attr.exclude_patterns:
-        exclude_patterns = ["\! -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
+        exclude_patterns = ["\\! -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
         exclude_patterns_str = " ".join(exclude_patterns)
 
     out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
