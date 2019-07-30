@@ -585,7 +585,7 @@ elements and call the depset constructor just once:
  
  Or in simple cases you can use list comprehensions instead:
  
-     x = depset(..., [y.deps for y in ...])
+     x = depset(..., transitive = [y.deps for y in ...])
 
 --------------------------------------------------------------------------------
 
