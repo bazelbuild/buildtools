@@ -580,11 +580,11 @@ elements and call the depset constructor just once:
 
     for ...:
         transitive += ...
-    
+
     x = depset(..., transitive = transitive)
- 
- Or in simple cases you can use list comprehensions instead:
- 
+
+Or in simple cases you can use list comprehensions instead:
+
      x = depset(..., transitive = [y.deps for y in ...])
 
 --------------------------------------------------------------------------------
