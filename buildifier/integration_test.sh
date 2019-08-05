@@ -41,6 +41,7 @@ echo -e "$INPUT" > test_dir/test.bzl
 echo -e "$INPUT" > test_dir/subdir/test.bzl
 echo -e "$INPUT" > test_dir/subdir/build  # lowercase, should be ignored by -r
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
+echo -e "$INPUT" > test2.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
 mkdir test_dir/workspace  # name of a starlark file, but a directory
 mkdir test_dir/.git  # contents should be ignored
@@ -53,6 +54,7 @@ cp test_dir/.git/git.bzl golden/git.bzl
 "$buildifier" < test_dir/BUILD > stdout
 "$buildifier" -r test_dir
 "$buildifier" test.bzl
+"$buildifier" --path=foo.bzl test2.bzl
 "$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
 
 cat > golden/BUILD.golden <<EOF
@@ -81,6 +83,7 @@ diff test_dir/subdir/test.bzl golden/test.bzl.golden
 diff test_dir/subdir/build golden/build
 diff test_dir/foo.bar golden/foo.bar
 diff test.bzl golden/test.bzl.golden
+diff test2.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
 diff test_dir/test.bzl.out golden/test.bzl.golden
 diff test_dir/.git/git.bzl golden/git.bzl

@@ -308,13 +308,14 @@ var diff *differ.Differ
 func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) (*utils.FileDiagnostics, int) {
 	var exitCode int
 
+	displayFilename := filename
 	if *filePath != "" {
-		filename = *filePath
+		displayFilename = *filePath
 	}
 
 	parser := utils.GetParser(inputType)
 
-	f, err := parser(filename, data)
+	f, err := parser(displayFilename, data)
 	if err != nil {
 		// Do not use buildifier: prefix on this error.
 		// Since it is a parse error, it begins with file:line:
@@ -323,10 +324,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if exitCode < 1 {
 			exitCode = 1
 		}
-		return utils.InvalidFileDiagnostics(filename), exitCode
+		return utils.InvalidFileDiagnostics(displayFilename), exitCode
 	}
 
-	pkg := utils.GetPackageName(filename)
+	pkg := utils.GetPackageName(displayFilename)
 	warnings := utils.Lint(f, pkg, lint, warningsList, *vflag)
 	if len(warnings) > 0 {
 		exitCode = 4
