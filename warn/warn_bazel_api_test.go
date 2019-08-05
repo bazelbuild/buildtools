@@ -580,6 +580,40 @@ java_test()
 		scopeBzl|scopeBuild)
 }
 
+func TestNativePyWarning(t *testing.T) {
+  checkFindingsAndFix(t, "native-py", `
+"""My file"""
+
+def macro():
+    py_library()
+    py_binary()
+    native.py_test()
+    native.py_runtime()
+
+py_test()
+`, fmt.Sprintf(`
+"""My file"""
+
+load(%q, "py_binary", "py_library", "py_runtime", "py_test")
+
+def macro():
+    py_library()
+    py_binary()
+    py_test()
+    py_runtime()
+
+py_test()
+`, tables.PyLoadPath),
+    []string{
+      fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+      fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+      fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+      fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+      fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+    },
+    scopeBzl|scopeBuild)
+}
+
 func TestNativeProtoWarning(t *testing.T) {
 	checkFindingsAndFix(t, "native-proto", `
 """My file"""
