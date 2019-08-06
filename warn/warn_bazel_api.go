@@ -832,3 +832,55 @@ func ruleImplReturnWarning(f *build.File) []*LinterFinding {
 
 	return findings
 }
+
+var legacyNamedParameters = map[string]string{
+	"all":     "elements",
+	"any":     "elements",
+	"tuple":   "x",
+	"list":    "x",
+	"len":     "x",
+	"str":     "x",
+	"repr":    "x",
+	"bool":    "x",
+	"int":     "x",
+	"dir":     "x",
+	"type":    "x",
+	"hasattr": "x",
+	"getattr": "x",
+	"select":  "x",
+}
+
+// keywordParametersWarning checks for deprecated keyword parameters of builtins
+func keywordParametersWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok || len(call.List) == 0 {
+			return
+		}
+		ident, ok := call.X.(*build.Ident)
+		if !ok {
+			return
+		}
+		parameter, ok := legacyNamedParameters[ident.Name]
+		if !ok {
+			return
+		}
+		assign, ok := call.List[0].(*build.AssignExpr)
+		if !ok || assign.Op != "=" {
+			return
+		}
+		key, ok := assign.LHS.(*build.Ident)
+		if !ok || key.Name != parameter {
+			return
+		}
+
+		findings = append(findings, makeLinterFinding(
+			call,
+			fmt.Sprintf(`Keyword parameter "%s" for "%s" should be positional.`, key.Name, ident.Name),
+			LinterReplacement{&call.List[0], makePositional(call.List[0])}))
+	})
+
+	return findings
+}

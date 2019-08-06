@@ -581,7 +581,7 @@ java_test()
 }
 
 func TestNativePyWarning(t *testing.T) {
-  checkFindingsAndFix(t, "native-py", `
+	checkFindingsAndFix(t, "native-py", `
 """My file"""
 
 def macro():
@@ -604,14 +604,14 @@ def macro():
 
 py_test()
 `, tables.PyLoadPath),
-    []string{
-      fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-      fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-      fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-      fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-      fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-    },
-    scopeBzl|scopeBuild)
+		[]string{
+			fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+		},
+		scopeBzl|scopeBuild)
 }
 
 func TestNativeProtoWarning(t *testing.T) {
@@ -649,4 +649,58 @@ def macro():
 			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
 		},
 		scopeBzl|scopeBuild)
+}
+
+func TestKeywordParameters(t *testing.T) {
+	checkFindingsAndFix(t, "keyword-parameters", `
+foo(key = value)
+all(elements = [True, False])
+any(elements = [True, False])
+tuple(x = [1, 2, 3])
+list(x = [1, 2, 3])
+len(x = [1, 2, 3])
+str(x = foo)
+repr(x = foo)
+bool(x = 3)
+int(x = "3")
+int(x = "13", base = 8)
+dir(x = foo)
+type(x = foo)
+hasattr(x = foo, name = "bar")
+getattr(x = foo, name = "bar", default = "baz")
+select(x = {})
+`, `
+foo(key = value)
+all([True, False])
+any([True, False])
+tuple([1, 2, 3])
+list([1, 2, 3])
+len([1, 2, 3])
+str(foo)
+repr(foo)
+bool(3)
+int("3")
+int("13", base = 8)
+dir(foo)
+type(foo)
+hasattr(foo, name = "bar")
+getattr(foo, name = "bar", default = "baz")
+select({})
+`, []string{
+		`:2: Keyword parameter "elements" for "all" should be positional.`,
+		`:3: Keyword parameter "elements" for "any" should be positional.`,
+		`:4: Keyword parameter "x" for "tuple" should be positional.`,
+		`:5: Keyword parameter "x" for "list" should be positional.`,
+		`:6: Keyword parameter "x" for "len" should be positional.`,
+		`:7: Keyword parameter "x" for "str" should be positional.`,
+		`:8: Keyword parameter "x" for "repr" should be positional.`,
+		`:9: Keyword parameter "x" for "bool" should be positional.`,
+		`:10: Keyword parameter "x" for "int" should be positional.`,
+		`:11: Keyword parameter "x" for "int" should be positional.`,
+		`:12: Keyword parameter "x" for "dir" should be positional.`,
+		`:13: Keyword parameter "x" for "type" should be positional.`,
+		`:14: Keyword parameter "x" for "hasattr" should be positional.`,
+		`:15: Keyword parameter "x" for "getattr" should be positional.`,
+		`:16: Keyword parameter "x" for "select" should be positional.`,
+	}, scopeEverywhere)
 }
