@@ -34,6 +34,7 @@ Warning categories supported by buildifier's linter:
   * [native-java](#native-java)
   * [native-package](#native-package)
   * [native-proto](#native-proto)
+  * [native-py](#native-py)
   * [no-effect](#no-effect)
   * [out-of-order-load](#out-of-order-load)
   * [output-group](#output-group)
@@ -522,6 +523,17 @@ modify the semantics of a BUILD file and makes it hard to maintain.
 
 The Proto build rules and symbols should be loaded from Starlark. The native
 rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
+
+--------------------------------------------------------------------------------
+
+## <a name="native-py"></a>All Python build rules should be loaded from Starlark
+
+  * Category name: `native-py`
+  * Flag in Bazel: [`--incompatible_load_python_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/9006)
+  * Automatic fix: yes
+
+The Python build rules should be loaded from Starlark. The native rules [will be
+disabled](https://github.com/bazelbuild/bazel/issues/9006).
 
 --------------------------------------------------------------------------------
 

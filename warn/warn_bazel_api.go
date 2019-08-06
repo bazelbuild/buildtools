@@ -641,6 +641,13 @@ func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
 	return notLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
 }
 
+func nativePyRulesWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return notLoadedFunctionUsageCheck(f, tables.PyNativeRules, tables.PyLoadPath)
+}
+
 func nativeProtoRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
