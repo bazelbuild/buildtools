@@ -669,6 +669,10 @@ type(x = foo)
 hasattr(x = foo, name = "bar")
 getattr(x = foo, name = "bar", default = "baz")
 select(x = {})
+glob(["*.cc"], ["test*"])
+native.glob(["*.cc"], ["test*"])
+glob(["*.cc"])
+native.glob(["*.cc"])
 `, `
 foo(key = value)
 all([True, False])
@@ -686,6 +690,10 @@ type(foo)
 hasattr(foo, name = "bar")
 getattr(foo, name = "bar", default = "baz")
 select({})
+glob(["*.cc"], exclude = ["test*"])
+native.glob(["*.cc"], exclude = ["test*"])
+glob(["*.cc"])
+native.glob(["*.cc"])
 `, []string{
 		`:2: Keyword parameter "elements" for "all" should be positional.`,
 		`:3: Keyword parameter "elements" for "any" should be positional.`,
@@ -702,5 +710,7 @@ select({})
 		`:14: Keyword parameter "x" for "hasattr" should be positional.`,
 		`:15: Keyword parameter "x" for "getattr" should be positional.`,
 		`:16: Keyword parameter "x" for "select" should be positional.`,
+		`:17: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
+		`:18: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
 	}, scopeEverywhere)
 }

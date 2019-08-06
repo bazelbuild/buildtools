@@ -850,10 +850,17 @@ var legacyNamedParameters = map[string]string{
 	"select":  "x",
 }
 
+var legacyPositionalParameters = map[string]map[int]string{
+	"glob": {
+		1: "exclude",
+	},
+}
+
 // keywordParametersWarning checks for deprecated keyword parameters of builtins
 func keywordParametersWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
+	// Check for legacy keyword parameters
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		call, ok := expr.(*build.CallExpr)
 		if !ok || len(call.List) == 0 {
@@ -878,8 +885,51 @@ func keywordParametersWarning(f *build.File) []*LinterFinding {
 
 		findings = append(findings, makeLinterFinding(
 			call,
-			fmt.Sprintf(`Keyword parameter "%s" for "%s" should be positional.`, key.Name, ident.Name),
+			fmt.Sprintf(`Keyword parameter %q for %q should be positional.`, key.Name, ident.Name),
 			LinterReplacement{&call.List[0], makePositional(call.List[0])}))
+	})
+
+	// Check for legacy positional parameters
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok || len(call.List) == 0 {
+			return
+		}
+
+		var name string
+		ident, ok := call.X.(*build.Ident)
+		if ok {
+			name = ident.Name
+		} else {
+			// Also check for `native.`
+			dot, ok := call.X.(*build.DotExpr)
+			if !ok {
+				return
+			}
+			ident, ok := dot.X.(*build.Ident)
+			if !ok || ident.Name != "native" {
+				return
+			}
+			name = dot.Name
+		}
+
+		parameterInfo, ok := legacyPositionalParameters[name]
+		if !ok {
+			return
+		}
+
+		for index, value := range parameterInfo {
+			if index >= len(call.List) {
+				continue
+			}
+			if _, ok := call.List[index].(*build.AssignExpr); ok {
+				continue
+			}
+			findings = append(findings, makeLinterFinding(
+				call,
+				fmt.Sprintf(`Parameter at the position %d for %q should be keyword (%s = ...).`, index+1, name, value),
+				LinterReplacement{&call.List[index], makeKeyword(call.List[index], value)}))
+		}
 	})
 
 	return findings
