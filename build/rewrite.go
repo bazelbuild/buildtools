@@ -80,6 +80,7 @@ type RewriteInfo struct {
 	FormatDocstrings int      // number of reindented docstrings
 	ReorderArguments int      // number of reordered function call arguments
 	EditOctal        int      // number of edited octals
+	UseRulesPkg      int      // number of uses of tools/build_defs/pkg converted
 	Log              []string // log entries - may change
 }
 
@@ -95,6 +96,7 @@ func (info *RewriteInfo) Stats() map[string]int {
 		"formatdocstrings": info.FormatDocstrings,
 		"reorderarguments": info.ReorderArguments,
 		"editoctal":        info.EditOctal,
+		"userulespkg":      info.UseRulesPkg,
 	}
 }
 
@@ -118,6 +120,7 @@ var rewrites = []struct {
 	{"label", fixLabels, scopeBuild},
 	{"listsort", sortStringLists, scopeBoth},
 	{"multiplus", fixMultilinePlus, scopeBuild},
+	{"userulespkg", useRulesPkg, scopeBoth},
 	{"loadsort", sortAllLoadArgs, scopeBoth},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
@@ -997,6 +1000,23 @@ func editOctals(f *File, info *RewriteInfo) {
 		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9' {
 			l.Token = "0o" + l.Token[1:]
 			info.EditOctal++
+		}
+	})
+}
+
+func useRulesPkg(f *File, info *RewriteInfo) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		str, ok := expr.(*StringExpr)
+		if !ok {
+			return
+		}
+		if str.Value == "@bazel_tools//tools/build_defs/pkg:pkg.bzl" {
+			str.Value = "@rules_pkg//:pkg.bzl"
+			info.UseRulesPkg++
+		}
+		if str.Value == "@bazel_tools//tools/build_defs/pkg:rpm.bzl" {
+			str.Value = "@rules_pkg//:rpm.bzl"
+			info.UseRulesPkg++
 		}
 	})
 }

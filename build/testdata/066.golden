@@ -1,0 +1,12 @@
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@rules_pkg//:rpm.bzl", "pkg_rpm")
+
+pkg_tar(
+    name = "test_tar",
+    srcs = [],
+)
+
+pkg_rpm(
+    name = "test_rpm",
+    srcs = [],
+)
