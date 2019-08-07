@@ -833,103 +833,139 @@ func ruleImplReturnWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-var legacyNamedParameters = map[string]string{
-	"all":     "elements",
-	"any":     "elements",
-	"tuple":   "x",
-	"list":    "x",
-	"len":     "x",
-	"str":     "x",
-	"repr":    "x",
-	"bool":    "x",
-	"int":     "x",
-	"dir":     "x",
-	"type":    "x",
-	"hasattr": "x",
-	"getattr": "x",
-	"select":  "x",
+type signature struct {
+	Positional []string // These parameters are typePositional-only
+	Keyword    []string // These parameters are typeKeyword-only
 }
 
-var legacyPositionalParameters = map[string]map[int]string{
-	"glob": {
-		1: "exclude",
-	},
+var signatures = map[string]signature{
+	"all":     {[]string{"elements"}, []string{}},
+	"any":     {[]string{"elements"}, []string{}},
+	"tuple":   {[]string{"x"}, []string{}},
+	"list":    {[]string{"x"}, []string{}},
+	"len":     {[]string{"x"}, []string{}},
+	"str":     {[]string{"x"}, []string{}},
+	"repr":    {[]string{"x"}, []string{}},
+	"bool":    {[]string{"x"}, []string{}},
+	"int":     {[]string{"x"}, []string{}},
+	"dir":     {[]string{"x"}, []string{}},
+	"type":    {[]string{"x"}, []string{}},
+	"hasattr": {[]string{"x"}, []string{}},
+	"getattr": {[]string{"x"}, []string{}},
+	"select":  {[]string{"x"}, []string{}},
+	"glob":    {[]string{"include"}, []string{"exclude"}},
 }
 
-// keywordParametersWarning checks for deprecated keyword parameters of builtins
-func keywordParametersWarning(f *build.File) []*LinterFinding {
+// functionName returns the name of the given function if it's a direct function call (e.g.
+// `foo(...)` or `native.foo(...)`, but not `foo.bar(...)` or `x[3](...)`
+func functionName(call *build.CallExpr) (string, bool) {
+	if ident, ok := call.X.(*build.Ident); ok {
+		return ident.Name, true
+	}
+	// Also check for `native.<name>`
+	dot, ok := call.X.(*build.DotExpr)
+	if !ok {
+		return "", false
+	}
+	if ident, ok := dot.X.(*build.Ident); !ok || ident.Name != "native" {
+		return "", false
+	}
+	return dot.Name, true
+}
+
+const (
+	typePositional int = iota
+	typeKeyword
+	typeArgs
+	typeKwargs
+)
+
+// paramType returns the type of the param. If it's a typeKeyword param, also returns its name
+func paramType(param build.Expr) (int, string) {
+	switch param := param.(type) {
+	case *build.AssignExpr:
+		if param.Op == "=" {
+			ident, ok := param.LHS.(*build.Ident)
+			if ok {
+				return typeKeyword, ident.Name
+			}
+			return typeKeyword, ""
+		}
+	case *build.UnaryExpr:
+		switch param.Op {
+		case "*":
+			return typeArgs, ""
+		case "**":
+			return typeKwargs, ""
+		}
+	}
+	return typePositional, ""
+}
+
+// keywordPositionalParametersWarning checks for deprecated typeKeyword parameters of builtins
+func keywordPositionalParametersWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
-	// Check for legacy keyword parameters
+	// Check for legacy typeKeyword parameters
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		call, ok := expr.(*build.CallExpr)
 		if !ok || len(call.List) == 0 {
 			return
 		}
-		ident, ok := call.X.(*build.Ident)
-		if !ok {
-			return
-		}
-		parameter, ok := legacyNamedParameters[ident.Name]
-		if !ok {
-			return
-		}
-		assign, ok := call.List[0].(*build.AssignExpr)
-		if !ok || assign.Op != "=" {
-			return
-		}
-		key, ok := assign.LHS.(*build.Ident)
-		if !ok || key.Name != parameter {
-			return
-		}
-
-		findings = append(findings, makeLinterFinding(
-			call,
-			fmt.Sprintf(`Keyword parameter %q for %q should be positional.`, key.Name, ident.Name),
-			LinterReplacement{&call.List[0], makePositional(call.List[0])}))
-	})
-
-	// Check for legacy positional parameters
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		call, ok := expr.(*build.CallExpr)
-		if !ok || len(call.List) == 0 {
-			return
-		}
-
-		var name string
-		ident, ok := call.X.(*build.Ident)
-		if ok {
-			name = ident.Name
-		} else {
-			// Also check for `native.`
-			dot, ok := call.X.(*build.DotExpr)
-			if !ok {
-				return
-			}
-			ident, ok := dot.X.(*build.Ident)
-			if !ok || ident.Name != "native" {
-				return
-			}
-			name = dot.Name
-		}
-
-		parameterInfo, ok := legacyPositionalParameters[name]
+		function, ok := functionName(call)
 		if !ok {
 			return
 		}
 
-		for index, value := range parameterInfo {
-			if index >= len(call.List) {
-				continue
-			}
-			if _, ok := call.List[index].(*build.AssignExpr); ok {
-				continue
-			}
-			findings = append(findings, makeLinterFinding(
-				call,
-				fmt.Sprintf(`Parameter at the position %d for %q should be keyword (%s = ...).`, index+1, name, value),
-				LinterReplacement{&call.List[index], makeKeyword(call.List[index], value)}))
+		// Findings and replacements for the current call expression
+		var callFindings []*LinterFinding
+		var callReplacements []LinterReplacement
+
+		signature, ok := signatures[function]
+		if !ok {
+			return
 		}
+
+		var paramTypes []int // types of the parameters (typeKeyword or not) after the replacements has been applied.
+		for i, parameter := range call.List {
+			pType, name := paramType(parameter)
+			paramTypes = append(paramTypes, pType)
+
+			if pType == typeKeyword && i < len(signature.Positional) && signature.Positional[i] == name {
+				// The parameter should be typePositional
+				callFindings = append(callFindings, makeLinterFinding(
+					parameter,
+					fmt.Sprintf(`Keyword parameter %q for %q should be positional.`, signature.Positional[i], function),
+				))
+				callReplacements = append(callReplacements, LinterReplacement{&call.List[i], makePositional(parameter)})
+				paramTypes[i] = typePositional
+			}
+
+			if pType == typePositional && i >= len(signature.Positional) && i < len(signature.Positional)+len(signature.Keyword) {
+				// The parameter should be typeKeyword
+				keyword := signature.Keyword[i-len(signature.Positional)]
+				callFindings = append(callFindings, makeLinterFinding(
+					parameter,
+					fmt.Sprintf(`Parameter at the position %d for %q should be keyword (%s = ...).`, i+1, function, keyword),
+				))
+				callReplacements = append(callReplacements, LinterReplacement{&call.List[i], makeKeyword(parameter, keyword)})
+				paramTypes[i] = typeKeyword
+			}
+		}
+
+		if len(callFindings) == 0 {
+			return
+		}
+
+		// Only apply the replacements if the signature is correct after they have been applied
+		// (i.e. the order of the parameters is typePositional, typeKeyword, typeArgs, typeKwargs)
+		// Otherwise the signature will be not correct, probably it was incorrect initially.
+
+		if sort.IntsAreSorted(paramTypes) {
+			callFindings[0].Replacement = callReplacements
+		}
+
+		findings = append(findings, callFindings...)
 	})
 
 	return findings

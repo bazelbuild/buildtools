@@ -652,7 +652,7 @@ def macro():
 }
 
 func TestKeywordParameters(t *testing.T) {
-	checkFindingsAndFix(t, "keyword-parameters", `
+	checkFindingsAndFix(t, "keyword-positional-params", `
 foo(key = value)
 all(elements = [True, False])
 any(elements = [True, False])
@@ -669,10 +669,6 @@ type(x = foo)
 hasattr(x = foo, name = "bar")
 getattr(x = foo, name = "bar", default = "baz")
 select(x = {})
-glob(["*.cc"], ["test*"])
-native.glob(["*.cc"], ["test*"])
-glob(["*.cc"])
-native.glob(["*.cc"])
 `, `
 foo(key = value)
 all([True, False])
@@ -690,10 +686,6 @@ type(foo)
 hasattr(foo, name = "bar")
 getattr(foo, name = "bar", default = "baz")
 select({})
-glob(["*.cc"], exclude = ["test*"])
-native.glob(["*.cc"], exclude = ["test*"])
-glob(["*.cc"])
-native.glob(["*.cc"])
 `, []string{
 		`:2: Keyword parameter "elements" for "all" should be positional.`,
 		`:3: Keyword parameter "elements" for "any" should be positional.`,
@@ -710,7 +702,47 @@ native.glob(["*.cc"])
 		`:14: Keyword parameter "x" for "hasattr" should be positional.`,
 		`:15: Keyword parameter "x" for "getattr" should be positional.`,
 		`:16: Keyword parameter "x" for "select" should be positional.`,
-		`:17: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
-		`:18: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
+	}, scopeEverywhere)
+
+	checkFindingsAndFix(t, "keyword-positional-params", `
+glob(["*.cc"], ["test*"])
+glob(["*.cc"])
+glob(include = [], exclude = [])
+glob([], exclude = [])
+glob([], [], 1)
+glob(*args, [])
+`, `
+glob(["*.cc"], exclude = ["test*"])
+glob(["*.cc"])
+glob([], exclude = [])
+glob([], exclude = [])
+glob([], [], 1)
+glob(*args, [])
+`, []string{
+		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
+		`:3: Keyword parameter "include" for "glob" should be positional.`,
+		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+	}, scopeEverywhere)
+
+	checkFindingsAndFix(t, "keyword-positional-params", `
+native.glob(["*.cc"], ["test*"])
+native.glob(["*.cc"])
+native.glob(include = [], exclude = [])
+native.glob([], exclude = [])
+native.glob([], [], 1)
+native.glob(*args, [])
+`, `
+native.glob(["*.cc"], exclude = ["test*"])
+native.glob(["*.cc"])
+native.glob([], exclude = [])
+native.glob([], exclude = [])
+native.glob([], [], 1)
+native.glob(*args, [])
+`, []string{
+		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
+		`:3: Keyword parameter "include" for "glob" should be positional.`,
+		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
 	}, scopeEverywhere)
 }
