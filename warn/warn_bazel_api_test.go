@@ -666,8 +666,6 @@ int(x = "3")
 int(x = "13", base = 8)
 dir(x = foo)
 type(x = foo)
-hasattr(x = foo, name = "bar")
-getattr(x = foo, name = "bar", default = "baz")
 select(x = {})
 `, `
 foo(key = value)
@@ -683,8 +681,6 @@ int("3")
 int("13", base = 8)
 dir(foo)
 type(foo)
-hasattr(foo, name = "bar")
-getattr(foo, name = "bar", default = "baz")
 select({})
 `, []string{
 		`:2: Keyword parameter "elements" for "all" should be positional.`,
@@ -699,9 +695,45 @@ select({})
 		`:11: Keyword parameter "x" for "int" should be positional.`,
 		`:12: Keyword parameter "x" for "dir" should be positional.`,
 		`:13: Keyword parameter "x" for "type" should be positional.`,
-		`:14: Keyword parameter "x" for "hasattr" should be positional.`,
-		`:15: Keyword parameter "x" for "getattr" should be positional.`,
-		`:16: Keyword parameter "x" for "select" should be positional.`,
+		`:14: Keyword parameter "x" for "select" should be positional.`,
+	}, scopeEverywhere)
+
+	checkFindingsAndFix(t, "keyword-positional-params", `
+hasattr(
+  x = foo,
+  name = "bar",
+)
+getattr(
+  x = foo,
+  name = "bar",
+)
+getattr(
+  x = foo,
+  name = "bar",
+  default = "baz",
+)
+`, `
+hasattr(
+  foo,
+  "bar",
+)
+getattr(
+  foo,
+  "bar",
+)
+getattr(
+  foo,
+  "bar",
+  "baz",
+)
+`, []string{
+		`:2: Keyword parameter "x" for "hasattr" should be positional.`,
+		`:3: Keyword parameter "name" for "hasattr" should be positional.`,
+		`:6: Keyword parameter "x" for "getattr" should be positional.`,
+		`:7: Keyword parameter "name" for "getattr" should be positional.`,
+		`:10: Keyword parameter "x" for "getattr" should be positional.`,
+		`:11: Keyword parameter "name" for "getattr" should be positional.`,
+		`:12: Keyword parameter "default" for "getattr" should be positional.`,
 	}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "keyword-positional-params", `

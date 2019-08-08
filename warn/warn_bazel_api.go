@@ -850,8 +850,8 @@ var signatures = map[string]signature{
 	"int":     {[]string{"x"}, []string{}},
 	"dir":     {[]string{"x"}, []string{}},
 	"type":    {[]string{"x"}, []string{}},
-	"hasattr": {[]string{"x"}, []string{}},
-	"getattr": {[]string{"x"}, []string{}},
+	"hasattr": {[]string{"x", "name"}, []string{}},
+	"getattr": {[]string{"x", "name", "default"}, []string{}},
 	"select":  {[]string{"x"}, []string{}},
 	"glob":    {[]string{"include"}, []string{"exclude", "exclude_directories"}},
 }
