@@ -853,7 +853,7 @@ var signatures = map[string]signature{
 	"hasattr": {[]string{"x"}, []string{}},
 	"getattr": {[]string{"x"}, []string{}},
 	"select":  {[]string{"x"}, []string{}},
-	"glob":    {[]string{"include"}, []string{"exclude"}},
+	"glob":    {[]string{"include"}, []string{"exclude", "exclude_directories"}},
 }
 
 // functionName returns the name of the given function if it's a direct function call (e.g.
@@ -907,8 +907,8 @@ func keywordPositionalParametersWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
 	// Check for legacy typeKeyword parameters
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		call, ok := expr.(*build.CallExpr)
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		call, ok := (*expr).(*build.CallExpr)
 		if !ok || len(call.List) == 0 {
 			return
 		}
@@ -960,9 +960,23 @@ func keywordPositionalParametersWarning(f *build.File) []*LinterFinding {
 		// Only apply the replacements if the signature is correct after they have been applied
 		// (i.e. the order of the parameters is typePositional, typeKeyword, typeArgs, typeKwargs)
 		// Otherwise the signature will be not correct, probably it was incorrect initially.
+		// All the replacements should be applied to the first finding for the current node.
 
 		if sort.IntsAreSorted(paramTypes) {
-			callFindings[0].Replacement = callReplacements
+			// It's possible that the parameter list had `ForceCompact` set to true because it only contained
+			// positional arguments, and now it has keyword arguments as well. Reset the flag to let the
+			// printer decide how the function call should be formatted.
+			for _, t := range paramTypes {
+				if t == typeKeyword {
+					// There's at least one keyword argument
+					newCall := *call
+					newCall.ForceCompact = false
+					callFindings[0].Replacement = append(callFindings[0].Replacement, LinterReplacement{expr, &newCall})
+					break
+				}
+			}
+			// Attach all the parameter replacements to the first finding
+			callFindings[0].Replacement = append(callFindings[0].Replacement, callReplacements...)
 		}
 
 		findings = append(findings, callFindings...)

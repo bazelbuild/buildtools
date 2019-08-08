@@ -710,19 +710,24 @@ glob(["*.cc"])
 glob(include = [], exclude = [])
 glob([], exclude = [])
 glob([], [], 1)
+glob([], [], 1, 2)
 glob(*args, [])
 `, `
 glob(["*.cc"], exclude = ["test*"])
 glob(["*.cc"])
 glob([], exclude = [])
 glob([], exclude = [])
-glob([], [], 1)
+glob([], exclude = [], exclude_directories = 1)
+glob([], [], 1, 2)
 glob(*args, [])
 `, []string{
 		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
 		`:3: Keyword parameter "include" for "glob" should be positional.`,
 		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:5: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
 		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:6: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
+		`:7: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
 	}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "keyword-positional-params", `
@@ -731,18 +736,23 @@ native.glob(["*.cc"])
 native.glob(include = [], exclude = [])
 native.glob([], exclude = [])
 native.glob([], [], 1)
+native.glob([], [], 1, 2)
 native.glob(*args, [])
 `, `
 native.glob(["*.cc"], exclude = ["test*"])
 native.glob(["*.cc"])
 native.glob([], exclude = [])
 native.glob([], exclude = [])
-native.glob([], [], 1)
+native.glob([], exclude = [], exclude_directories = 1)
+native.glob([], [], 1, 2)
 native.glob(*args, [])
 `, []string{
 		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
 		`:3: Keyword parameter "include" for "glob" should be positional.`,
 		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:5: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
 		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
+		`:6: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
+		`:7: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
 	}, scopeEverywhere)
 }
