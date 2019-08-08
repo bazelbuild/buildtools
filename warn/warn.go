@@ -122,6 +122,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"git-repository":            nativeGitRepositoryWarning,
 	"http-archive":              nativeHTTPArchiveWarning,
 	"integer-division":          integerDivisionWarning,
+	"keyword-positional-params": keywordPositionalParametersWarning,
 	"load":                      unusedLoadWarning,
 	"load-on-top":               loadOnTopWarning,
 	"module-docstring":          moduleDocstringWarning,

@@ -24,6 +24,7 @@ Warning categories supported by buildifier's linter:
   * [git-repository](#git-repository)
   * [http-archive](#http-archive)
   * [integer-division](#integer-division)
+  * [keyword-positional-params](#keyword-positional-params)
   * [load](#load)
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
@@ -399,6 +400,17 @@ d //= e
 `
 
 --------------------------------------------------------------------------------
+
+## <a name="keyword-positional-params"></a>Keyword parameter should be positional
+
+  * Category_name: `keyword-positional-params`
+  * Automatic fix: yes
+
+Some parameters for builtin functions in Starlark are keyword for legacy reasons;
+their names are not meaningful (e.g. `x`). Making them positional-only will improve
+the readability.
+
+ --------------------------------------------------------------------------------
 
 ## <a name="load"></a>Loaded symbol is unused
 
