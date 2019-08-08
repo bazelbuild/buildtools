@@ -79,3 +79,33 @@ for x in l:
 		},
 		scopeEverywhere)
 }
+
+func TestStringEscape(t *testing.T) {
+	checkFindingsAndFix(t, "string-escape", `
+'foo'
+'\\foo\\"bar"\\'
+"\foo"
+'"\foo"\\\bar'
+
+'''
+"asdf"
+\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9
+'''
+`, `
+"foo"
+'\\foo\\"bar"\\'
+"\\foo"
+'"\\foo"\\\\bar'
+
+'''
+"asdf"
+\\a\\b\\c\\d\\e\\f\\g\\h\\i\\j\\k\\l\\m\n\\o\\p\\q\r\\s\t\\u\\v\\w\x43\\y\\z\0\1\2\3\4\5\6\7\\8\\9
+'''
+`,
+		[]string{
+			":3: Invalid quote sequences at position 1.",
+			":4: Invalid quote sequences at positions 2, 9.",
+			":6: Invalid quote sequences at positions 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 37, 39, 41, 45, 49, 51, 53, 59, 61, 79, 81.",
+		},
+		scopeEverywhere)
+}
