@@ -146,6 +146,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"rule-impl-return":          ruleImplReturnWarning,
 	"return-value":              missingReturnValueWarning,
 	"same-origin-load":          sameOriginLoadWarning,
+	"string-escape":             stringEscapeWarning,
 	"string-iteration":          stringIterationWarning,
 	"uninitialized":             uninitializedVariableWarning,
 	"unreachable":               unreachableStatementWarning,

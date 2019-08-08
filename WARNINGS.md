@@ -49,6 +49,7 @@ Warning categories supported by buildifier's linter:
   * [return-value](#return-value)
   * [rule-impl-return](#rule-impl-return)
   * [same-origin-load](#same-origin-load)
+  * [string-escape](#string-escape)
   * [string-iteration](#string-iteration)
   * [uninitialized](#uninitialized)
   * [unreachable](#unreachable)
@@ -789,6 +790,17 @@ can be written more compactly as
 ```
 load(":f.bzl", "s1", "s2")
 ```
+
+--------------------------------------------------------------------------------
+
+## <a name="string-escape"></a>Invalid escape sequence
+
+  * Category name: `string-escape`
+  * Flag in Bazel: [`--incompatible_restrict_string_escapes`](https://github.com/bazelbuild/bazel/issues/8380)
+  * Automatic fix: yes
+
+Unrecognized escape sequences in string literals (e.g. `"\a \b"` is error-prone and shouldn't
+be used. If you need the backslash symbol, escape it explicitly: `"\\a \\b"`.
 
 --------------------------------------------------------------------------------
 

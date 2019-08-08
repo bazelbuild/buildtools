@@ -79,3 +79,61 @@ for x in l:
 		},
 		scopeEverywhere)
 }
+
+func TestStringEscape(t *testing.T) {
+	checkFindingsAndFix(t, "string-escape", `
+'foo'
+'\\foo\\"bar"\\'
+"\foo"
+'"\foo"\\\bar'
+
+'''
+"asdf"
+\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9
+'''
+`, `
+"foo"
+'\\foo\\"bar"\\'
+"\\foo"
+'"\\foo"\\\\bar'
+
+'''
+"asdf"
+\\a\\b\\c\\d\\e\\f\\g\\h\\i\\j\\k\\l\\m\n\\o\\p\\q\r\\s\t\\u\\v\\w\x43\\y\\z\0\1\2\3\4\5\6\7\\8\\9
+'''
+`,
+		[]string{
+			`:3: Invalid escape sequence \f at position 1.`,
+			`:4: Invalid escape sequences:
+    \f at position 2
+    \b at position 9
+`,
+			`:6: Invalid escape sequences:
+    \a at position 9
+    \b at position 11
+    \c at position 13
+    \d at position 15
+    \e at position 17
+    \f at position 19
+    \g at position 21
+    \h at position 23
+    \i at position 25
+    \j at position 27
+    \k at position 29
+    \l at position 31
+    \m at position 33
+    \o at position 37
+    \p at position 39
+    \q at position 41
+    \s at position 45
+    \u at position 49
+    \v at position 51
+    \w at position 53
+    \y at position 59
+    \z at position 61
+    \8 at position 79
+    \9 at position 81
+`,
+		},
+		scopeEverywhere)
+}
