@@ -793,7 +793,7 @@ load(":f.bzl", "s1", "s2")
 
 --------------------------------------------------------------------------------
 
-## <a name="string-escape"></a>String iteration is deprecated
+## <a name="string-escape"></a>Invalid escape sequence
 
   * Category name: `string-escape`
   * Flag in Bazel: [`--incompatible_restrict_string_escapes`](https://github.com/bazelbuild/bazel/issues/8380)

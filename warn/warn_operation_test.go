@@ -103,9 +103,37 @@ func TestStringEscape(t *testing.T) {
 '''
 `,
 		[]string{
-			":3: Invalid quote sequences at position 1.",
-			":4: Invalid quote sequences at positions 2, 9.",
-			":6: Invalid quote sequences at positions 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 37, 39, 41, 45, 49, 51, 53, 59, 61, 79, 81.",
+			`:3: Invalid escape sequence \f at position 1.`,
+			`:4: Invalid escape sequences:
+    \f at position 2
+    \b at position 9
+`,
+			`:6: Invalid escape sequences:
+    \a at position 9
+    \b at position 11
+    \c at position 13
+    \d at position 15
+    \e at position 17
+    \f at position 19
+    \g at position 21
+    \h at position 23
+    \i at position 25
+    \j at position 27
+    \k at position 29
+    \l at position 31
+    \m at position 33
+    \o at position 37
+    \p at position 39
+    \q at position 41
+    \s at position 45
+    \u at position 49
+    \v at position 51
+    \w at position 53
+    \y at position 59
+    \z at position 61
+    \8 at position 79
+    \9 at position 81
+`,
 		},
 		scopeEverywhere)
 }

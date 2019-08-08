@@ -130,10 +130,10 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 			value = str.Token[1 : len(str.Token)-1]
 		}
 
-		var problems []int // positions of the problems
+		var problems []int  // positions of the problems (unidentified escape sequences)
 
 		escaped := false
-		// This for-loop doesn't correclty check for a backlash at the end of the string literal, but
+		// This for-loop doesn't correctly check for a backlash at the end of the string literal, but
 		// such string can't be parsed anyway, neither by Bazel nor by Buildifier.
 		for i, ch := range value {
 			if !escaped {
@@ -145,7 +145,10 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 
 			switch ch {
 			case '\n', '\\', 'n', 'r', 't', 'x', '\'', '"', '0', '1', '2', '3', '4', '5', '6', '7':
-				// ok
+				// According to https://github.com/Quarz0/bazel/blob/207a6103393908aba64ddb96239fbdd56cdfec05/src/main/java/com/google/devtools/build/lib/syntax/Lexer.java
+				// \x is also included to the list, although it's not supported by Bazel, but it's supported
+				// by Buildifier. This is safe for the migration because it's never been supported in Bazel,
+				// even before --incompatible_restrict_string_escapes was flipped.
 			default:
 				problems = append(problems, i)
 			}
@@ -158,12 +161,22 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 
 		var msg string
 		if len(problems) == 1 {
-			msg = fmt.Sprintf("Invalid quote sequences at position %d.", problems[0])
-		} else {
 			msg = fmt.Sprintf(
-				"Invalid quote sequences at positions %s.",
-				strings.Trim(strings.Join(strings.Fields(fmt.Sprint(problems)), ", "), "[]"),
-			)
+				"Invalid escape sequence \\%s at position %d.",
+				string(value[problems[0]]),
+				problems[0],
+				)
+		} else {
+			var builder strings.Builder
+			builder.WriteString("Invalid escape sequences:\n")
+			for _, pos := range problems {
+				builder.WriteString(fmt.Sprintf(
+					"    \\%s at position %d\n",
+					string(value[pos]),
+					pos,
+					))
+			}
+			msg = builder.String()
 		}
 		finding := makeLinterFinding(str, msg)
 
