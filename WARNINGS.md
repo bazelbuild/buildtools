@@ -56,12 +56,29 @@ Warning categories supported by buildifier's linter:
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
 
+### How to disable warnings
+
+All warnings can be disabled by adding a special comment `# buildifier: disable=<category_name>` to
+the expression that causes the warning. Historically comments with `buildozer` instead of
+`buildifier` are also supported, they are equivalent.
+
+#### Examples
+
+    # buildifier: disable=no-effect
+    """
+    A multiline comment as a string literal.
+    Docstrings don't trigger the warning if they are first statements of a file or a function.
+    """
+    
+    if debug:
+        print("Debug information:", foo)  # buildifier: disable=print
+
 --------------------------------------------------------------------------------
 
 ## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
 
   * Category name: `attr-cfg`
-  * Flag in Bazel: [`--incompatible_disallow_data_transition`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disallow-cfg-data)
+  * Flag in Bazel: [`--incompatible_disallow_data_transition`](https://github.com/bazelbuild/bazel/issues/6153)
   * Automatic fix: yes
 
 The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
@@ -93,7 +110,7 @@ for attr definitions is deprecated, please use `allow_empty` with an opposite va
 ## <a name="attr-output-default"></a>The `default` parameter for `attr.output()`is deprecated
 
   * Category name: `attr-output-default`
-  * Flag in Bazel: [`--incompatible_no_output_attr_default`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-default-parameter-of-output-attributes)
+  * Flag in Bazel: [`--incompatible_no_output_attr_default`](https://github.com/bazelbuild/bazel/issues/7950)
   * Automatic fix: no
 
 The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
@@ -171,17 +188,12 @@ performance (glob can be relatively slow):
 + ["test.cpp"]
 ```
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=constant-glob` on
-the line or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
 ## <a name="ctx-actions"></a>`ctx.{action_name}` is deprecated
 
   * Category name: `ctx-actions`
-  * Flag in Bazel: [`--incompatible_new_actions_api`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#new-actions-api)
+  * Flag in Bazel: [`--incompatible_new_actions_api`](https://github.com/bazelbuild/bazel/issues/5825)
   * Automatic fix: yes
 
 The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
@@ -200,7 +212,7 @@ are deprecated, please use the new API:
 ## <a name="ctx-args"></a>`ctx.actions.args().add()` for multiple arguments is deprecated
 
   * Category name: `ctx-args`
-  * Flag in Bazel: [`--incompatible_disallow_old_style_args_add`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#new-args-api)
+  * Flag in Bazel: [`--incompatible_disallow_old_style_args_add`](https://github.com/bazelbuild/bazel/issues/5822)
   * Automatic fix: yes
 
 It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)
@@ -214,7 +226,7 @@ depending on the desired behavior.
 ## <a name="depset-iteration"></a>Depset iteration is deprecated
 
   * Category name: `depset-iteration`
-  * Flag in Bazel: [`--incompatible_depset_is_not_iterable`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#depset-is-no-longer-iterable)
+  * Flag in Bazel: [`--incompatible_depset_is_not_iterable`](https://github.com/bazelbuild/bazel/issues/5816)
   * Automatic fix: yes
 
 Depsets are complex structures, iterations over them and lookups require flattening them to
@@ -230,7 +242,7 @@ the `.to_list()` method on them in order to be able to iterate their items:
 ## <a name="depset-union"></a>Depsets should be joined using the depset constructor
 
   * Category name: `depset-union`
-  * Flag in Bazel: [`--incompatible_depset_union`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#depset-union)
+  * Flag in Bazel: [`--incompatible_depset_union`](https://github.com/bazelbuild/bazel/issues/5817)
   * Automatic fix: no
 
 The following ways to merge two depsets are deprecated:
@@ -249,7 +261,7 @@ instead:
 ## <a name="dict-concatenation"></a>Dictionary concatenation is deprecated
 
   * Category name: `dict-concatenation`
-  * Flag in Bazel: [`--incompatible_disallow_dict_plus`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#dictionary-concatenation)
+  * Flag in Bazel: [`--incompatible_disallow_dict_plus`](https://github.com/bazelbuild/bazel/issues/6461)
   * Automatic fix: no
 
 The `+` operator to concatenate dicts is deprecated. The operator used to create a new dict and
@@ -298,20 +310,15 @@ only one of the macros). It will also confuse tools that edit BUILD files.
 
 Just change the name attribute of one rule/macro.
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=duplicated-name` on
-the line or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
 ## <a name="filetype"></a>The `FileType` function is deprecated
 
   * Category name: `filetype`
-  * Flag in Bazel: [`--incompatible_disallow_filetype`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated)
+  * Flag in Bazel: [`--incompatible_disallow_filetype`](https://github.com/bazelbuild/bazel/issues/5831)
   * Automatic fix: no
 
-The function `FileType` is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#filetype-is-deprecated).
+The function `FileType` is deprecated.
 Instead of using it as an argument to the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
 just use a list of strings.
 
@@ -363,11 +370,11 @@ the function returns a value, it should be described.
 ## <a name="git-repository"></a>Function `git_repository` is not global anymore
 
   * Category name: `git-repository`
-  * Flag in Bazel: [`--incompatible_remove_native_git_repository`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-git-repository)
+  * Flag in Bazel: [`--incompatible_remove_native_git_repository`](https://github.com/bazelbuild/bazel/issues/6569)
   * Automatic fix: yes
 
-Native `git_repository` and `new_git_repository` functions are [being removed](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-git-repository).
-Please use the Starklark versions instead:
+Native `git_repository` and `new_git_repository` functions are removed.
+Please use the Starlark versions instead:
 
     load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 
@@ -376,11 +383,11 @@ Please use the Starklark versions instead:
 ## <a name="http-archive"></a>Function `http_archive` is not global anymore
 
   * Category name: `http-archive`
-  * Flag in Bazel: [`--incompatible_remove_native_http_archive`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-http-archive)
+  * Flag in Bazel: [`--incompatible_remove_native_http_archive`](https://github.com/bazelbuild/bazel/issues/6570)
   * Automatic fix: yes
 
-Native `http_archive` function are [being removed](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#remove-native-http-archive).
-Please use the Starklark versions instead:
+Native `http_archive` function are removed.
+Please use the Starlark versions instead:
 
     load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -389,7 +396,7 @@ Please use the Starklark versions instead:
 ## <a name="integer-division"></a>The `/` operator for integer division is deprecated
 
   * Category name: `integer-division`
-  * Flag in Bazel: [`--incompatible_disallow_slash_operator`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#integer-division-operator-is)
+  * Flag in Bazel: [`--incompatible_disallow_slash_operator`](https://github.com/bazelbuild/bazel/issues/5823)
   * Automatic fix: yes
 
 The `/` operator is deprecated in favor of `//`, please use the latter for
@@ -438,17 +445,12 @@ buildozer 'fix unusedLoads' path/to/BUILD
 If you want to keep the load, you can disable the warning by adding a comment
 `# @unused`.
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=load` on the line
-or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
-## <a name="load-on-top"></a>Load statements should be at the top of the file.
+## <a name="load-on-top"></a>Load statements should be at the top of the file
 
   * Category name: `load-on-top`
-  * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#load-must-appear-at-top-of-file)
+  * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
   * Automatic fix: yes
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
@@ -456,7 +458,7 @@ they can follow only comments and docstrings.
 
 --------------------------------------------------------------------------------
 
-## <a name="module-docstring"></a>The file has no module docstring.
+## <a name="module-docstring"></a>The file has no module docstring
 
   * Category name: `module-docstring`
   * Automatic fix: no
@@ -560,7 +562,7 @@ variable.
 
 --------------------------------------------------------------------------------
 
-## <a name="out-of-order-load"></a>Load statements should be ordered by their labels.
+## <a name="out-of-order-load"></a>Load statements should be ordered by their labels
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
@@ -579,11 +581,11 @@ of a symbol load and its usage can change resulting in runtime error.
 ## <a name="output-group"></a>`ctx.attr.dep.output_group` is deprecated
 
   * Category name: `output-group`
-  * Flag in Bazel: [`--incompatible_no_target_output_group`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-output-group-field-on-target)
+  * Flag in Bazel: [`--incompatible_no_target_output_group`](https://github.com/bazelbuild/bazel/issues/7949)
   * Automatic fix: yes
 
-The `output_group` field of a target is [deprecated](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#disable-output-group-field-on-target)
-in favor of the [`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+The `output_group` field of a target is deprecated in favor of the
+[`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
 
 --------------------------------------------------------------------------------
 
@@ -617,7 +619,7 @@ Or in simple cases you can use list comprehensions instead:
 ## <a name="package-name"></a>Global variable `PACKAGE_NAME` is deprecated
 
   * Category name: `package-name`
-  * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#package-name-is-a-function)
+  * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://github.com/bazelbuild/bazel/issues/5827)
   * Automatic fix: yes
 
 The global variable `PACKAGE_NAME` is deprecated, please use
@@ -652,11 +654,6 @@ The linter allows the following to be before `package()`:
 *   `package_group()`
 *   `licenses()`
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=package-on-top` on
-the line or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
 ## <a name="positional-args"></a>Keyword arguments should be used over positional arguments
@@ -682,11 +679,6 @@ arguments:
 *   `export_files()`
 *   `licenses()`
 *   `print()`
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=positional-args` on
-the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -720,17 +712,12 @@ Rename one of the variables.
 Note that the content of lists and dictionaries can still be modified. We will
 forbid reassignment, but not every side-effect.
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=unused-variable` on
-the line or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
 ## <a name="repository-name"></a>Global variable `REPOSITORY_NAME` is deprecated
 
   * Category name: `repository-name`
-  * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#package-name-is-a-function)
+  * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://github.com/bazelbuild/bazel/issues/5827)
   * Automatic fix: yes
 
 The global variable `REPOSITORY_NAME` is deprecated, please use
@@ -807,7 +794,7 @@ be used. If you need the backslash symbol, escape it explicitly: `"\\a \\b"`.
 ## <a name="string-iteration"></a>String iteration is deprecated
 
   * Category name: `string-iteration`
-  * Flag in Bazel: [`--incompatible_string_is_not_iterable`](https://docs.bazel.build/versions/master/skylark/backward-compatibility.html#string-is-no-longer-iterable)
+  * Flag in Bazel: [`--incompatible_string_is_not_iterable`](https://github.com/bazelbuild/bazel/issues/5830)
   * Automatic fix: no
 
 Iteration over strings often leads to confusion with iteration over a sequence of strings,
@@ -842,7 +829,7 @@ or `fail()` statement.
 
 --------------------------------------------------------------------------------
 
-## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys.
+## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys
 
   * Category name: `unsorted-dict-items`
   * Automatic fix: yes
@@ -889,8 +876,3 @@ comment `# @unused`.
 ```
 x = [1, 2] # @unused
 ```
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=unused-variable` on
-the line or at the beginning of a rule.
