@@ -178,11 +178,16 @@ func TestFunctionDocstringArgs(t *testing.T) {
 def f(x):
    """This is a function.
 
+   Documented here:
+   http://example.com
+
    Args:
-     x: something
+     x: something, as described at
+       http://example.com
 
    Returns:
-     something
+     something, as described at
+     https://example.com
    """
    pass
    pass

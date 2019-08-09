@@ -69,12 +69,6 @@ type docstringInfo struct {
 	argumentsPos build.Position            // line of the `Arguments:` block (not `Args:`), if it exists
 }
 
-// docstringBlock contains a block of a docstring (separated by empty lines)
-type docstringBlock struct {
-	startLineNo int      // line number of the first line of the block
-	lines       []string // lines
-}
-
 // countLeadingSpaces returns the number of leading spaces of a string.
 func countLeadingSpaces(s string) int {
 	spaces := 0
@@ -133,6 +127,7 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 			isArgumentsDescription = true
 			continue
 		case prefix + "Returns:":
+			isArgumentsDescription = false
 			info.returns = true
 			continue
 		}
