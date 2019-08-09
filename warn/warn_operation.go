@@ -117,7 +117,10 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		str, ok := (*expr).(*build.StringExpr)
-		if !ok {
+		if !ok || len(str.Token) == 0 {
+			// String literals with empty Token field may appear if they are manually created StringExpr nodes
+			// (token is only used as a hint to the printer, if it doesn't exist, the Value field is used to
+			// generate the string literal).
 			return
 		}
 
