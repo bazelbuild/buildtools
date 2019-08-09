@@ -445,7 +445,7 @@ or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
-## <a name="load-on-top"></a>Load statements should be at the top of the file.
+## <a name="load-on-top"></a>Load statements should be at the top of the file
 
   * Category name: `load-on-top`
   * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
@@ -456,7 +456,7 @@ they can follow only comments and docstrings.
 
 --------------------------------------------------------------------------------
 
-## <a name="module-docstring"></a>The file has no module docstring.
+## <a name="module-docstring"></a>The file has no module docstring
 
   * Category name: `module-docstring`
   * Automatic fix: no
@@ -560,7 +560,7 @@ variable.
 
 --------------------------------------------------------------------------------
 
-## <a name="out-of-order-load"></a>Load statements should be ordered by their labels.
+## <a name="out-of-order-load"></a>Load statements should be ordered by their labels
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
@@ -842,7 +842,7 @@ or `fail()` statement.
 
 --------------------------------------------------------------------------------
 
-## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys.
+## <a name="unsorted-dict-items"></a>Dictionary items should be ordered by their keys
 
   * Category name: `unsorted-dict-items`
   * Automatic fix: yes
