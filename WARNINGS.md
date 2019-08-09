@@ -56,6 +56,23 @@ Warning categories supported by buildifier's linter:
   * [unsorted-dict-items](#unsorted-dict-items)
   * [unused-variable](#unused-variable)
 
+### How to disable warnings
+
+All warnings can be disabled by adding a special comment `# buildifier: disable=<category_name>` to
+the expression that causes the warning. Historically comments with `buildozer` instead of
+`buildifier` are also supported, they are equivalent.
+
+#### Examples
+
+    # buildifier: disable=no-effect
+    """
+    A multiline comment as a string literal.
+    Docstrings don't trigger the warning if they are first statements of a file or a function.
+    """
+    
+    if debug:
+        print("Debug information:", foo)  # buildifier: disable=print
+
 --------------------------------------------------------------------------------
 
 ## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
@@ -170,11 +187,6 @@ performance (glob can be relatively slow):
 - glob(["test.cpp"])
 + ["test.cpp"]
 ```
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=constant-glob` on
-the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -297,11 +309,6 @@ only one of the macros). It will also confuse tools that edit BUILD files.
 ### How to fix it
 
 Just change the name attribute of one rule/macro.
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=duplicated-name` on
-the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -437,11 +444,6 @@ buildozer 'fix unusedLoads' path/to/BUILD
 
 If you want to keep the load, you can disable the warning by adding a comment
 `# @unused`.
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=load` on the line
-or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -652,11 +654,6 @@ The linter allows the following to be before `package()`:
 *   `package_group()`
 *   `licenses()`
 
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=package-on-top` on
-the line or at the beginning of a rule.
-
 --------------------------------------------------------------------------------
 
 ## <a name="positional-args"></a>Keyword arguments should be used over positional arguments
@@ -682,11 +679,6 @@ arguments:
 *   `export_files()`
 *   `licenses()`
 *   `print()`
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=positional-args` on
-the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -719,11 +711,6 @@ Rename one of the variables.
 
 Note that the content of lists and dictionaries can still be modified. We will
 forbid reassignment, but not every side-effect.
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=unused-variable` on
-the line or at the beginning of a rule.
 
 --------------------------------------------------------------------------------
 
@@ -889,8 +876,3 @@ comment `# @unused`.
 ```
 x = [1, 2] # @unused
 ```
-
-### How to disable this warning
-
-You can disable this warning by adding `# buildozer: disable=unused-variable` on
-the line or at the beginning of a rule.
