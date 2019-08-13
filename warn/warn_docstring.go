@@ -39,7 +39,8 @@ func moduleDocstringWarning(f *build.File) []*LinterFinding {
 			LineRune: start.LineRune + 1,
 			Byte:     start.Byte + 1,
 		}
-		finding := makeLinterFinding(stmt, "The file has no module docstring.")
+		finding := makeLinterFinding(stmt, `The file has no module docstring.
+A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines).`)
 		finding.End = end
 		return []*LinterFinding{finding}
 	}
@@ -210,7 +211,8 @@ func functionDocstringWarning(f *build.File) []*LinterFinding {
 			continue
 		}
 
-		message := fmt.Sprintf("The function %q has no docstring.", def.Name)
+		message := fmt.Sprintf(`The function %q has no docstring.
+A docstring is a string literal (not a comment) which should be the first statement of a function body (it may follow comment lines).`, def.Name)
 		finding := makeLinterFinding(def, message)
 		finding.End = def.ColonPos
 		findings = append(findings, finding)

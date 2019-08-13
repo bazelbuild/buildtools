@@ -334,9 +334,9 @@ just use a list of strings.
   * Automatic fix: no
 
 Public functions should have docstrings describing functions and their signatures.
-A docstring is a string statement which should be the first statement of the file
-(it may follow comment lines). Docstrings are expected to be formatted in the
-following way:
+A docstring is a string literal (not a comment) which should be the first statement
+of a function (it may follow comment lines). Function docstrings are expected to be
+formatted in the following way:
 
     """One-line summary: must be followed and may be preceded by a blank line.
 
@@ -463,8 +463,15 @@ they can follow only comments and docstrings.
   * Category name: `module-docstring`
   * Automatic fix: no
 
-`.bzl` files should have docstrings on top of them. A docstring is a string statement
-which should be the first statement of the file (it may follow comment lines).
+`.bzl` files should have docstrings on top of them. A docstring is a string literal
+(not a comment) which should be the first statement of the file (it may follow
+comment lines). For example:
+
+    """
+    This module contains build rules for my project.
+    """
+    
+    ...
 
 --------------------------------------------------------------------------------
 
