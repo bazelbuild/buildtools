@@ -133,7 +133,7 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 			value = str.Token[1 : len(str.Token)-1]
 		}
 
-		var problems []int  // positions of the problems (unidentified escape sequences)
+		var problems []int // positions of the problems (unidentified escape sequences)
 
 		escaped := false
 		// This for-loop doesn't correctly check for a backlash at the end of the string literal, but
@@ -168,7 +168,7 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 				"Invalid escape sequence \\%s at position %d.",
 				string(value[problems[0]]),
 				problems[0],
-				)
+			)
 		} else {
 			var builder strings.Builder
 			builder.WriteString("Invalid escape sequences:\n")
@@ -177,7 +177,7 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 					"    \\%s at position %d\n",
 					string(value[pos]),
 					pos,
-					))
+				))
 			}
 			msg = builder.String()
 		}
