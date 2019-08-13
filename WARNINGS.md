@@ -338,8 +338,7 @@ A docstring is a string literal (not a comment) which should be the first statem
 of a function (it may follow comment lines). Function docstrings are expected to be
 formatted in the following way:
 
-    """
-    One-line summary: must be followed and may be preceded by a blank line.
+    """One-line summary: must be followed and may be preceded by a blank line.
 
     Optional additional description like this.
 
