@@ -253,10 +253,14 @@ def bar():
 def bar():
     """A docstring"""
     foo
+    """ Not a docstring"""
     return foo
 `,
-		[]string{":7:", ":11:"},
-		scopeEverywhere)
+		[]string{
+			":7: Expression result is not used. Docstrings should be the first statemensts of a file or a function (they may follow comment lines).",
+			":11: Expression result is not used.",
+			":12: Expression result is not used. Docstrings should be the first statemensts of a file or a function (they may follow comment lines).",
+		}, scopeEverywhere)
 
 	checkFindings(t, "no-effect", `
 foo == bar

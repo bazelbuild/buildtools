@@ -136,14 +136,15 @@ func unreachableStatementWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFunc bool, findings []*LinterFinding) []*LinterFinding {
+func noEffectStatementsCheck(body []build.Expr, isTopLevel, isFunc bool, findings []*LinterFinding) []*LinterFinding {
 	seenNonComment := false
 	for _, stmt := range body {
 		if stmt == nil {
 			continue
 		}
 
-		if _, ok := stmt.(*build.StringExpr); ok {
+		_, isString := stmt.(*build.StringExpr)
+		if isString {
 			if !seenNonComment && (isTopLevel || isFunc) {
 				// It's a docstring.
 				seenNonComment = true
@@ -165,26 +166,30 @@ func noEffectStatementsCheck(f *build.File, body []build.Expr, isTopLevel, isFun
 			}
 			continue
 		}
-		findings = append(findings,
-			makeLinterFinding(stmt, "Expression result is not used."))
+
+		msg := "Expression result is not used."
+		if isString {
+			msg += " Docstrings should be the first statemensts of a file or a function (they may follow comment lines)."
+		}
+		findings = append(findings, makeLinterFinding(stmt, msg))
 	}
 	return findings
 }
 
 func noEffectWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
-	findings = noEffectStatementsCheck(f, f.Stmt, true, false, findings)
+	findings = noEffectStatementsCheck(f.Stmt, true, false, findings)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		// The AST should have a ExprStmt node.
 		// Since we don't have that, we match on the nodes that contain a block to get the list of statements.
 		switch expr := expr.(type) {
 		case *build.ForStmt:
-			findings = noEffectStatementsCheck(f, expr.Body, false, false, findings)
+			findings = noEffectStatementsCheck(expr.Body, false, false, findings)
 		case *build.DefStmt:
-			findings = noEffectStatementsCheck(f, expr.Function.Body, false, true, findings)
+			findings = noEffectStatementsCheck(expr.Function.Body, false, true, findings)
 		case *build.IfStmt:
-			findings = noEffectStatementsCheck(f, expr.True, false, false, findings)
-			findings = noEffectStatementsCheck(f, expr.False, false, false, findings)
+			findings = noEffectStatementsCheck(expr.True, false, false, findings)
+			findings = noEffectStatementsCheck(expr.False, false, false, findings)
 		}
 	})
 	return findings
