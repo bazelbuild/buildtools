@@ -393,6 +393,21 @@ func AllLists(e build.Expr) []*build.ListExpr {
 	return nil
 }
 
+// AllSelects returns all the selects concatenated in an expression.
+func AllSelects(e build.Expr) []*build.CallExpr {
+	switch e := e.(type) {
+	case *build.BinaryExpr:
+		if e.Op == "+" {
+			return append(AllSelects(e.X), AllSelects(e.Y)...)
+		}
+	case *build.CallExpr:
+		if x, ok := e.X.(*build.Ident); ok && x.Name == "select" {
+			return []*build.CallExpr{e}
+		}
+	}
+	return nil
+}
+
 // FirstList works in the same way as AllLists, except that it
 // returns only one list, or nil.
 func FirstList(e build.Expr) *build.ListExpr {
@@ -461,6 +476,22 @@ func ContainsComments(expr build.Expr, str string) bool {
 	return false
 }
 
+// RemoveFromList removes one element from a ListExpr and stores
+// the deleted StringExpr at the address pointed by the last parameter
+func RemoveFromList(li *build.ListExpr, item, pkg string, deleted **build.StringExpr) {
+	var all []build.Expr
+	for _, elem := range li.List {
+		if str, ok := elem.(*build.StringExpr); ok {
+			if LabelsEqual(str.Value, item, pkg) && (DeleteWithComments || !hasComments(str)) {
+				*deleted = str
+				continue
+			}
+		}
+		all = append(all, elem)
+	}
+	li.List = all
+}
+
 // ListDelete deletes the item from a list expression in e and returns
 // the StringExpr deleted, or nil otherwise.
 func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
@@ -470,18 +501,25 @@ func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
 	deleted = nil
 	item = ShortenLabel(item, pkg)
 	for _, li := range AllLists(e) {
-		var all []build.Expr
-		for _, elem := range li.List {
-			if str, ok := elem.(*build.StringExpr); ok {
-				if LabelsEqual(str.Value, item, pkg) && (DeleteWithComments || !hasComments(str)) {
-					deleted = str
-					continue
+		RemoveFromList(li, item, pkg, &deleted)
+	}
+
+	for _, sel := range AllSelects(e) {
+		if len(sel.List) == 0 {
+			continue
+		}
+
+		if dict, ok := sel.List[0].(*build.DictExpr); ok {
+			for _, keyVal := range dict.List {
+				if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
+					if val, ok := keyVal.Value.(*build.ListExpr); ok {
+						RemoveFromList(val, item, pkg, &deleted)
+					}
 				}
 			}
-			all = append(all, elem)
 		}
-		li.List = all
 	}
+
 	return deleted
 }
 
