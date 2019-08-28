@@ -476,6 +476,26 @@ func ContainsComments(expr build.Expr, str string) bool {
 	return false
 }
 
+// SelectDelete removes the item from all the lists which are values
+// in the dictionary of every select
+func SelectDelete(e build.Expr, item, pkg string, deleted **build.StringExpr) {
+	for _, sel := range AllSelects(e) {
+		if len(sel.List) == 0 {
+			continue
+		}
+
+		if dict, ok := sel.List[0].(*build.DictExpr); ok {
+			for _, keyVal := range dict.List {
+				if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
+					if val, ok := keyVal.Value.(*build.ListExpr); ok {
+						RemoveFromList(val, item, pkg, deleted)
+					}
+				}
+			}
+		}
+	}
+}
+
 // RemoveFromList removes one element from a ListExpr and stores
 // the deleted StringExpr at the address pointed by the last parameter
 func RemoveFromList(li *build.ListExpr, item, pkg string, deleted **build.StringExpr) {
@@ -483,7 +503,10 @@ func RemoveFromList(li *build.ListExpr, item, pkg string, deleted **build.String
 	for _, elem := range li.List {
 		if str, ok := elem.(*build.StringExpr); ok {
 			if LabelsEqual(str.Value, item, pkg) && (DeleteWithComments || !hasComments(str)) {
-				*deleted = str
+				if deleted != nil {
+					*deleted = str
+				}
+
 				continue
 			}
 		}
@@ -504,21 +527,7 @@ func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
 		RemoveFromList(li, item, pkg, &deleted)
 	}
 
-	for _, sel := range AllSelects(e) {
-		if len(sel.List) == 0 {
-			continue
-		}
-
-		if dict, ok := sel.List[0].(*build.DictExpr); ok {
-			for _, keyVal := range dict.List {
-				if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-					if val, ok := keyVal.Value.(*build.ListExpr); ok {
-						RemoveFromList(val, item, pkg, &deleted)
-					}
-				}
-			}
-		}
-	}
+	SelectDelete(e, item, pkg, &deleted)
 
 	return deleted
 }
@@ -659,6 +668,9 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 		// The value is already in the list.
 		return oldList
 	}
+
+	SelectDelete(oldList, str.Value, pkg, nil)
+
 	li := FirstList(oldList)
 	if li != nil {
 		if sorted {
