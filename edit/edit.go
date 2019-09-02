@@ -476,6 +476,56 @@ func ContainsComments(expr build.Expr, str string) bool {
 	return false
 }
 
+// RemoveEmptySelectsAndConcatLists iterates the tree in order to turn
+// empty selects into empty lists and adjacent lists are concatenated
+func RemoveEmptySelectsAndConcatLists(e build.Expr) build.Expr {
+	switch e := e.(type) {
+	case *build.BinaryExpr:
+		if e.Op == "+" {
+			e.X = RemoveEmptySelectsAndConcatLists(e.X)
+			e.Y = RemoveEmptySelectsAndConcatLists(e.Y)
+
+			x, xIsList := e.X.(*build.ListExpr)
+			y, yIsList := e.Y.(*build.ListExpr)
+
+			if xIsList && yIsList {
+				return &build.ListExpr{List: append(x.List, y.List...)}
+			}
+
+			if xIsList && len(x.List) == 0 {
+				return e.Y
+			}
+
+			if yIsList && len(y.List) == 0 {
+				return e.X
+			}
+		}
+	case *build.CallExpr:
+		if x, ok := e.X.(*build.Ident); ok && x.Name == "select" {
+			if len(e.List) == 0 {
+				return &build.ListExpr{List: []build.Expr{}}
+			}
+
+			if dict, ok := e.List[0].(*build.DictExpr); ok {
+				for _, keyVal := range dict.List {
+					if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
+						val, ok := keyVal.Value.(*build.ListExpr)
+						if !ok || len(val.List) > 0 {
+							return e
+						}
+					} else {
+						return e
+					}
+				}
+
+				return &build.ListExpr{List: []build.Expr{}}
+			}
+		}
+	}
+
+	return e
+}
+
 // ComputeIntersection returns the intersection of the two lists given as parameters;
 // if the containing elements are not build.StringExpr, the result will be nil.
 func ComputeIntersection(list1, list2 []build.Expr) []build.Expr {
@@ -551,7 +601,8 @@ func SelectListsIntersection(sel *build.CallExpr, pkg string) (intersection []bu
 }
 
 // ResolveAttr extracts common elements of the lists inside select dictionaries
-// and adds them at attribute level rather than select level
+// and adds them at attribute level rather than select level, as well as turns
+// empty selects into empty lists and concatenates adjacent lists
 func ResolveAttr(r *build.Rule, attr, pkg string) {
 	var toExtract []build.Expr
 
@@ -566,6 +617,8 @@ func ResolveAttr(r *build.Rule, attr, pkg string) {
 	for _, common := range toExtract {
 		e = AddValueToList(e, pkg, common, false) // this will also remove them from selects
 	}
+
+	r.SetAttr(attr, RemoveEmptySelectsAndConcatLists(e))
 }
 
 // SelectDelete removes the item from all the lists which are values
