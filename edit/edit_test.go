@@ -285,6 +285,123 @@ func TestSelectListsIntersection(t *testing.T) {
 	}
 }
 
+func TestRemoveEmptySelectsAndConcatLists(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`, `rule(
+			name = "rule",
+			attr = []
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({}) + select() + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`, `rule(
+			name = "rule",
+			attr = []
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + select(CONFIGS)
+		)`, `rule(
+			name = "rule",
+			attr = select(CONFIGS)
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + [":2"]
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + LIST + [":2"]
+		)`, `rule(
+			name = "rule",
+			attr = [":1"] + LIST + [":2"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + [":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + []
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + [":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + [] + select({
+				"config": LIST,
+				"DEFAULT": DEFAULT,
+			})
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + select({
+				"config": LIST,
+				"DEFAULT": DEFAULT,
+			})
+		)`},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		rule.SetAttr("attr", RemoveEmptySelectsAndConcatLists(rule.Attr("attr")))
+		got := strings.TrimSpace(string(build.Format(bld)))
+
+		wantBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		want := strings.TrimSpace(string(build.Format(wantBld)))
+		if got != want {
+			t.Errorf("RemoveEmptySelectsAndConcatLists(%s):\n got: %s,\n expected: %s", tst.input, got, want)
+		}
+	}
+}
+
 func TestListSubstitute(t *testing.T) {
 	tests := []struct {
 		desc, input, oldPattern, newTemplate, want string
