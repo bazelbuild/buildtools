@@ -476,6 +476,98 @@ func ContainsComments(expr build.Expr, str string) bool {
 	return false
 }
 
+// ComputeIntersection returns the intersection of the two lists given as parameters;
+// if the containing elements are not build.StringExpr, the result will be nil.
+func ComputeIntersection(list1, list2 []build.Expr) []build.Expr {
+	if list1 == nil || list2 == nil {
+		return nil
+	}
+
+	if len(list2) == 0 {
+		return []build.Expr{}
+	}
+
+	i := 0
+	for j, common := range list1 {
+		if common, ok := common.(*build.StringExpr); ok {
+			found := false
+			for _, elem := range list2 {
+				if str, ok := elem.(*build.StringExpr); ok {
+					if str.Value == common.Value {
+						found = true
+						break
+					}
+				} else {
+					return nil
+				}
+			}
+
+			if found {
+				list1[i] = list1[j]
+				i++
+			}
+		} else {
+			return nil
+		}
+	}
+	return list1[:i]
+}
+
+// SelectListsIntersection returns the intersection of the lists of strings inside
+// the dictionary argument of the select expression given as a parameter
+func SelectListsIntersection(sel *build.CallExpr, pkg string) (intersection []build.Expr) {
+	if len(sel.List) == 0 || len(sel.List) > 1 {
+		return nil
+	}
+
+	dict, ok := sel.List[0].(*build.DictExpr)
+	if !ok || len(dict.List) == 0 {
+		return nil
+	}
+
+	if keyVal, ok := dict.List[0].(*build.KeyValueExpr); ok {
+		if val, ok := keyVal.Value.(*build.ListExpr); ok {
+			intersection = make([]build.Expr, len(val.List))
+			copy(intersection, val.List)
+		}
+	}
+
+	for _, keyVal := range dict.List[1:] {
+		if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
+			if val, ok := keyVal.Value.(*build.ListExpr); ok {
+				intersection = ComputeIntersection(intersection, val.List)
+				if len(intersection) == 0 {
+					return intersection
+				}
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	}
+
+	return intersection
+}
+
+// ResolveAttr extracts common elements of the lists inside select dictionaries
+// and adds them at attribute level rather than select level
+func ResolveAttr(r *build.Rule, attr, pkg string) {
+	var toExtract []build.Expr
+
+	e := r.Attr(attr)
+	for _, sel := range AllSelects(e) {
+		intersection := SelectListsIntersection(sel, pkg)
+		if intersection != nil {
+			toExtract = append(toExtract, intersection...)
+		}
+	}
+
+	for _, common := range toExtract {
+		e = AddValueToList(e, pkg, common, false) // this will also remove them from selects
+	}
+}
+
 // SelectDelete removes the item from all the lists which are values
 // in the dictionary of every select
 func SelectDelete(e build.Expr, item, pkg string, deleted **build.StringExpr) {
