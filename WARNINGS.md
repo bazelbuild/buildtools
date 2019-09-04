@@ -256,6 +256,11 @@ instead:
 
     depset(transitive = [depset1, depset2])
 
+When fixing this issue, make sure you
+[understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+and try to
+[reduce the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+
 --------------------------------------------------------------------------------
 
 ## <a name="dict-concatenation"></a>Dictionary concatenation is deprecated
@@ -620,6 +625,11 @@ elements and call the depset constructor just once:
 Or in simple cases you can use list comprehensions instead:
 
      x = depset(..., transitive = [y.deps for y in ...])
+
+For more information, read Bazel documentation about 
+[depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+and
+[reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
