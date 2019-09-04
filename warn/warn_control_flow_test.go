@@ -257,9 +257,9 @@ def bar():
     return foo
 `,
 		[]string{
-			":7: Expression result is not used. Docstrings should be the first statemensts of a file or a function (they may follow comment lines).",
+			":7: Expression result is not used. Docstrings should be the first statements of a file or a function (they may follow comment lines).",
 			":11: Expression result is not used.",
-			":12: Expression result is not used. Docstrings should be the first statemensts of a file or a function (they may follow comment lines).",
+			":12: Expression result is not used. Docstrings should be the first statements of a file or a function (they may follow comment lines).",
 		}, scopeEverywhere)
 
 	checkFindings(t, "no-effect", `

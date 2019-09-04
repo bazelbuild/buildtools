@@ -169,7 +169,7 @@ func noEffectStatementsCheck(body []build.Expr, isTopLevel, isFunc bool, finding
 
 		msg := "Expression result is not used."
 		if isString {
-			msg += " Docstrings should be the first statemensts of a file or a function (they may follow comment lines)."
+			msg += " Docstrings should be the first statements of a file or a function (they may follow comment lines)."
 		}
 		findings = append(findings, makeLinterFinding(stmt, msg))
 	}
