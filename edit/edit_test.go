@@ -13,6 +13,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package edit
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -182,6 +183,334 @@ func TestAddValueToListAttribute(t *testing.T) {
 		want := strings.TrimSpace(string(build.Format(wantBld)))
 		if got != want {
 			t.Errorf("AddValueToListAttribute(%s): got %s, expected %s", tst.input, got, want)
+		}
+	}
+}
+
+func TestSelectListsIntersection(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []build.Expr
+	}{
+		{`rule(
+			name = "rule", 
+			attr = select()
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select({})
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select(CONFIGS)
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config": "string",
+				"DEFAULT": "default"
+			})
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config": LIST,
+				"DEFAULT": DEFAULT
+			})
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config": ":1 :2 :3".split(" "),
+				"DEFAULT": ":2 :3".split(" ")
+			})
+		)`, nil},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config1": [":1"],
+				"config2": [":2"],
+				"DEFAULT": []
+			})
+		)`, []build.Expr{}},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config1": [],
+				"config2": [":1"],
+				"DEFAULT": [":1"]
+			})
+		)`, []build.Expr{}},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [":1", ":2", ":3"],
+				"config2": [":2"],
+				"config3": [":2", ":3"],
+				"DEFAULT": [":1", ":2"]
+			})
+		)`, []build.Expr{&build.StringExpr{Value: ":2"}}},
+		{`rule(
+			name = "rule", 
+			attr = select({
+				"config1": [":4", ":3", ":1", ":5", ":2", ":6"],
+				"config2": [":5", ":2", ":6", ":1"],
+				"config3": [":1", ":2", ":3", ":4", ":5", ":6"],
+				"config4": [":2", ":1"],
+				"DEFAULT": [":3", ":4", ":1", ":2"]
+			})
+		)`, []build.Expr{&build.StringExpr{Value: ":1"}, &build.StringExpr{Value: ":2"}}},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+
+		got := SelectListsIntersection(rule.Attr("attr").(*build.CallExpr), "")
+		errStr := fmt.Sprintf("TestSelectListsIntersection(%s): got %s, expected %s", tst.input, got, tst.expected)
+
+		if len(got) != len(tst.expected) {
+			t.Error(errStr)
+		}
+
+		for i := range got {
+			if got[i].(*build.StringExpr).Value != tst.expected[i].(*build.StringExpr).Value {
+				t.Error(errStr)
+			}
+		}
+	}
+}
+
+func TestRemoveEmptySelectsAndConcatLists(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`, `rule(
+			name = "rule",
+			attr = []
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({}) + select() + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`, `rule(
+			name = "rule",
+			attr = []
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + select(CONFIGS)
+		)`, `rule(
+			name = "rule",
+			attr = select(CONFIGS)
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + [":2"]
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [],
+				"config2": [],
+				"DEFAULT": []
+			}) + LIST + [":2"]
+		)`, `rule(
+			name = "rule",
+			attr = [":1"] + LIST + [":2"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + [":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + []
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			})
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + [":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + [] + select({
+				"config": LIST,
+				"DEFAULT": DEFAULT,
+			})
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":3"] + select({
+				"config1": [":4"],
+				"config2": [],
+				"DEFAULT": []
+			}) + select({
+				"config": LIST,
+				"DEFAULT": DEFAULT,
+			})
+		)`},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		rule.SetAttr("attr", RemoveEmptySelectsAndConcatLists(rule.Attr("attr")))
+		got := strings.TrimSpace(string(build.Format(bld)))
+
+		wantBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		want := strings.TrimSpace(string(build.Format(wantBld)))
+		if got != want {
+			t.Errorf("RemoveEmptySelectsAndConcatLists(%s):\n got: %s,\n expected: %s", tst.input, got, want)
+		}
+	}
+}
+
+func TestResolveAttr(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [":1"],
+				"config2": [":1"],
+				"DEFAULT": [":1"]
+			})
+		)`, `rule(
+			name = "rule",
+			attr = [":1"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [":1"],
+				"config2": [":1"],
+				"DEFAULT": [":1"]
+			}) + select() + select({})
+		)`, `rule(
+			name = "rule",
+			attr = [":1"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [":1"],
+				"config2": [":1"],
+				"DEFAULT": [":1"]
+			}) + LIST
+		)`, `rule(
+			name = "rule",
+			attr = LIST + [":1"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = select({
+				"config1": [":1"],
+				"config2": [":1"],
+				"DEFAULT": [":1"]
+			}) + select({
+				"config": LIST,
+				"DEFAULT": DEFAULT
+			}) + select({
+				"config": ":2 :3".split(" "),
+				"DEFAULT": ":3".split(" ")
+			})
+		)`, `rule(
+			name = "rule",
+			attr = select({
+				"config": LIST,
+				"DEFAULT": DEFAULT
+			}) + select({
+				"config": ":2 :3".split(" "),
+				"DEFAULT": ":3".split(" ")
+			}) + [":1"]
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [":2"],
+				"config2": [":2"],
+				"DEFAULT": [":2"]
+			}) + [":3"] + select({
+				"config1": [":4", ":2"],
+				"DEFAULT": [":2"]
+			})
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":3"] + select({
+				"config1": [":4"],
+				"DEFAULT": []
+			})
+		)`},
+		{`rule(
+			name = "rule",
+			attr = [":1"] + select({
+				"config1": [":2"],
+				"config2": [":2"],
+				"DEFAULT": [":2"]
+			}) + [":3"] + select({
+				"config1": [":4", ":2"],
+				"DEFAULT": [":4", ":2"]
+			})
+		)`, `rule(
+			name = "rule",
+			attr = [":1", ":2", ":4", ":3"]
+		)`},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rule := bld.RuleAt(1)
+		ResolveAttr(rule, "attr", "")
+		got := strings.TrimSpace(string(build.Format(bld)))
+
+		wantBld, err := build.Parse("BUILD", []byte(tst.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		want := strings.TrimSpace(string(build.Format(wantBld)))
+		if got != want {
+			t.Errorf("ResolveAttr(%s):\n got: %s\n expected: %s", tst.input, got, want)
 		}
 	}
 }

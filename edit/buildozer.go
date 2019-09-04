@@ -88,6 +88,7 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 		strVal := getStringExpr(val, env.Pkg)
 		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
+	ResolveAttr(env.Rule, attr, env.Pkg)
 	return env.File, nil
 }
 
@@ -340,6 +341,7 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 				ListAttributeDelete(env.Rule, key, val, env.Pkg)
 				fixed = true
 			}
+			ResolveAttr(env.Rule, key, env.Pkg)
 		}
 		if fixed {
 			return env.File, nil
