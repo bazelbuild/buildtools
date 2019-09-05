@@ -282,7 +282,7 @@ func notLoadedUsageCheck(f *build.File, functions, symbols []string, loadFrom st
 
 // notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
 // and adds a load statement if necessary.
-func notLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
+func NotLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
 	return notLoadedUsageCheck(f, globals, []string{}, loadFrom)
 }
 
@@ -610,42 +610,42 @@ func nativeGitRepositoryWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl")
+	return NotLoadedFunctionUsageCheck(f, []string{"git_repository", "new_git_repository"}, "@bazel_tools//tools/build_defs/repo:git.bzl")
 }
 
 func nativeHTTPArchiveWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl")
+	return NotLoadedFunctionUsageCheck(f, []string{"http_archive"}, "@bazel_tools//tools/build_defs/repo:http.bzl")
 }
 
 func nativeAndroidRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, tables.AndroidNativeRules, tables.AndroidLoadPath)
+	return NotLoadedFunctionUsageCheck(f, tables.AndroidNativeRules, tables.AndroidLoadPath)
 }
 
 func nativeCcRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, tables.CcNativeRules, tables.CcLoadPath)
+	return NotLoadedFunctionUsageCheck(f, tables.CcNativeRules, tables.CcLoadPath)
 }
 
 func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
+	return NotLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
 }
 
 func nativePyRulesWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
 	}
-	return notLoadedFunctionUsageCheck(f, tables.PyNativeRules, tables.PyLoadPath)
+	return NotLoadedFunctionUsageCheck(f, tables.PyNativeRules, tables.PyLoadPath)
 }
 
 func nativeProtoRulesWarning(f *build.File) []*LinterFinding {
