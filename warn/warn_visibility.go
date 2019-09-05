@@ -21,7 +21,7 @@ func deprecatedBzlLoadWarning(f *build.File) []*LinterFinding {
 			continue
 		}
 
-		pkg := "//" + f.Pkg  // Canonical name of the package
+		pkg := "//" + f.Pkg // Canonical name of the package
 		chunks := internalDirectory.Split(load.Module.Value, 2)
 		if len(chunks) < 2 {
 			continue
