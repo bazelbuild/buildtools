@@ -607,6 +607,10 @@ func ResolveAttr(r *build.Rule, attr, pkg string) {
 	var toExtract []build.Expr
 
 	e := r.Attr(attr)
+	if e == nil {
+		return
+	}
+
 	for _, sel := range AllSelects(e) {
 		intersection := SelectListsIntersection(sel, pkg)
 		if intersection != nil {
