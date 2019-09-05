@@ -77,7 +77,7 @@ _buildifier = rule(
         ),
         "add_tables": attr.label(
             mandatory = False,
-            doc="path to JSON file with custom table definitions which will be merged with the built-in tables",
+            doc = "path to JSON file with custom table definitions which will be merged with the built-in tables",
             allow_single_file = True,
         ),
         "_buildifier": attr.label(
