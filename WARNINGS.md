@@ -8,6 +8,7 @@ Warning categories supported by buildifier's linter:
   * [attr-output-default](#attr-output-default)
   * [attr-single-file](#attr-single-file)
   * [build-args-kwargs](#build-args-kwargs)
+  * [bzl-visibility](#bzl-visibility)
   * [confusing-name](#confusing-name)
   * [constant-glob](#constant-glob)
   * [ctx-actions](#ctx-actions)
@@ -69,7 +70,7 @@ the expression that causes the warning. Historically comments with `buildozer` i
     A multiline comment as a string literal.
     Docstrings don't trigger the warning if they are first statements of a file or a function.
     """
-    
+
     if debug:
         print("Debug information:", foo)  # buildifier: disable=print
 
@@ -138,6 +139,20 @@ is deprecated, please use `allow_single_file` instead.
 
 Having `*args` or `**kwargs` makes BUILD files hard to read and manipulate. The list of
 arguments should be explicit.
+
+--------------------------------------------------------------------------------
+
+## <a name="bzl-visibility"></a>Module shouldn't be used directly
+
+  * Category name: `bzl-visibility`
+  * Automatic fix: no
+
+If a directory `foo` contains a subdirectory `internal` or `private`, only files located under `foo`
+can access it.
+
+For example, `dir/rules_mockascript/private/foo.bzl` can be loaded from
+`dir/rules_mockascript/private/bar.bzl` or `dir/rules_mockascript/sub/public.bzl`,
+but not from `dir/other_rule/file.bzl`.
 
 --------------------------------------------------------------------------------
 
@@ -475,7 +490,7 @@ comment lines). For example:
     """
     This module contains build rules for my project.
     """
-    
+
     ...
 
 --------------------------------------------------------------------------------

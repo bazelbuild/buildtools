@@ -9,7 +9,7 @@ config_setting(
 filegroup(
     name = "warnings",
     srcs = ["WARNINGS.md"],
-    visibility = ["//warn:__pkg__"]
+    visibility = ["//warn:__pkg__"],
 )
 
 test_suite(
