@@ -18,12 +18,11 @@ func isStarlarkFile(name string) bool {
 	case ".bzl", ".sky":
 		return true
 	}
-	base := name[:len(name)-len(ext)]
 
 	switch ext {
 	case ".bazel", ".oss":
-		// The extension can be ignored
-		name = base
+		// BUILD.bazel or BUILD.foo.bazel should be treated as Starlark files, same for WORSKSPACE
+		return strings.HasPrefix(name, "BUILD.") || strings.HasPrefix(name, "WORKSPACE.")
 	}
 
 	return name == "BUILD" || name == "WORKSPACE"
