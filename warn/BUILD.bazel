@@ -13,6 +13,7 @@ go_library(
         "warn_docstring.go",
         "warn_naming.go",
         "warn_operation.go",
+        "warn_visibility.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/warn",
     visibility = ["//visibility:public"],
@@ -39,11 +40,12 @@ go_test(
         "warn_naming_test.go",
         "warn_operation_test.go",
         "warn_test.go",
+        "warn_visibility_test.go",
     ],
-    embed = [":go_default_library"],
     data = [
         "//:warnings",
     ],
+    embed = [":go_default_library"],
     deps = [
         "//testutils",
     ],

@@ -22,13 +22,13 @@ const (
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
-		return "package/BUILD"
+		return "test/package/BUILD"
 	case build.TypeWorkspace:
-		return "package/WORKSPACE"
+		return "test/package/WORKSPACE"
 	case build.TypeBzl:
-		return "package/test_file.bzl"
+		return "test/package/test_file.bzl"
 	default:
-		return "test_file.strlrk"
+		return "test/package/test_file.strlrk"
 	}
 }
 
@@ -38,7 +38,8 @@ func getFindings(category, input string, fileType build.FileType) []*Finding {
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	return FileWarnings(buildFile, "the_package", []string{category}, nil, ModeWarn)
+	buildFile.Pkg = "test/package"
+	return FileWarnings(buildFile, []string{category}, nil, ModeWarn)
 }
 
 func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
@@ -86,7 +87,7 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	FixWarnings(buildFile, "the_package", []string{category}, false)
+	FixWarnings(buildFile, []string{category}, false)
 	have := build.Format(buildFile)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
@@ -106,7 +107,7 @@ func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
 	formatted := build.Format(buildFile)
 
 	// No fixes expected
-	FileWarnings(buildFile, "the_package", []string{category}, nil, ModeWarn)
+	FileWarnings(buildFile, []string{category}, nil, ModeWarn)
 	fixed := build.Format(buildFile)
 
 	if !bytes.Equal(formatted, fixed) {
@@ -244,7 +245,7 @@ attr.baz("baz", cfg = "data")
 		t.Fatalf("Parse error: %v", err)
 	}
 
-	findings := FileWarnings(f, "pkg", []string{"attr-cfg"}, nil, ModeSuggest)
+	findings := FileWarnings(f, []string{"attr-cfg"}, nil, ModeSuggest)
 	want := []struct {
 		start       int
 		end         int

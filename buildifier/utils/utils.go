@@ -81,12 +81,13 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 // GetPackageName returns the package name of a file by searching for a WORKSPACE file
 func GetPackageName(filename string) string {
 	dirs := filepath.SplitList(path.Dir(filename))
+	dirs = append([]string{""}, dirs...)
 	parent := ""
 	index := len(dirs) - 1
 	for i, chunk := range dirs {
 		parent = path.Join(parent, chunk)
-		metadata := path.Join(parent, "METADATA")
-		if _, err := os.Stat(metadata); !os.IsNotExist(err) {
+		workspace := path.Join(parent, "WORKSPACE")
+		if _, err := os.Stat(workspace); !os.IsNotExist(err) {
 			index = i
 		}
 	}
@@ -94,12 +95,12 @@ func GetPackageName(filename string) string {
 }
 
 // Lint calls the linter and returns a list of unresolved findings
-func Lint(f *build.File, pkg, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
+func Lint(f *build.File, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
 	switch lint {
 	case "warn":
-		return warn.FileWarnings(f, pkg, *warningsList, nil, warn.ModeWarn)
+		return warn.FileWarnings(f, *warningsList, nil, warn.ModeWarn)
 	case "fix":
-		warn.FixWarnings(f, pkg, *warningsList, verbose)
+		warn.FixWarnings(f, *warningsList, verbose)
 	}
 	return nil
 }

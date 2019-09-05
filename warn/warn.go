@@ -106,6 +106,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
+	"bzl-visibility":            deprecatedBzlLoadWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
@@ -199,9 +200,9 @@ func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *Lint
 }
 
 // runWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runWarningsFunction(category string, f *build.File, pkg string, fct func(f *build.File, pkg string) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
+func runWarningsFunction(category string, f *build.File, fct func(f *build.File, pkg string) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
-	for _, w := range fct(f, pkg) {
+	for _, w := range fct(f, f.Pkg) {
 		if !DisabledWarning(f, w.Start.Line, category) {
 			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
 			if len(w.Replacement) > 0 {
@@ -264,7 +265,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 }
 
 // FileWarnings returns a list of all warnings found in the file.
-func FileWarnings(f *build.File, pkg string, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
+func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
@@ -280,9 +281,9 @@ func FileWarnings(f *build.File, pkg string, enabledWarnings []string, formatted
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, pkg, fileWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, fileWarningWrapper(fct), formatted, mode)...)
 		} else if fct, ok := RuleWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, pkg, ruleWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode)...)
 		} else {
 			log.Fatalf("unexpected warning %q", warn)
 		}
@@ -339,8 +340,8 @@ func calculateDifference(old, new *[]byte) (start, end int, replacement string) 
 }
 
 // FixWarnings fixes all warnings that can be fixed automatically.
-func FixWarnings(f *build.File, pkg string, enabledWarnings []string, verbose bool) {
-	warnings := FileWarnings(f, pkg, enabledWarnings, nil, ModeFix)
+func FixWarnings(f *build.File, enabledWarnings []string, verbose bool) {
+	warnings := FileWarnings(f, enabledWarnings, nil, ModeFix)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),
