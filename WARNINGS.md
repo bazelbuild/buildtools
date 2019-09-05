@@ -147,10 +147,12 @@ arguments should be explicit.
   * Category name: `bzl-visibility`
   * Automatic fix: no
 
-Some .bzl files are considered "hidden" and supposed to be loaded only from within the same packages.
-For example, if a .bzl file is located inside a directory named `internal` or `private`, e.g.
-`foo/bar/internal/sub/file.bzl`, it should be used only within the boundaries of the parent directory
-for `internal` or `private` (`foo/bar` in the example above).
+If a directory `foo` contains a subdirectory `internal` or `private`, only files located under `foo`
+can access it.
+
+For example, `dir/rules_mockascript/private/foo.bzl` can be loaded from
+`dir/rules_mockascript/private/bar.bzl` or `dir/rules_mockascript/sub/public.bzl`,
+but not from `dir/other_rule/file.bzl`.
 
 --------------------------------------------------------------------------------
 
