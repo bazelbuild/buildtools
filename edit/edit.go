@@ -813,12 +813,13 @@ func AddValueToList(oldList build.Expr, pkg string, item build.Expr, sorted bool
 	}
 
 	str, ok := item.(*build.StringExpr)
-	if ok && ListFind(oldList, str.Value, pkg) != nil {
-		// The value is already in the list.
-		return oldList
+	if ok {
+		if ListFind(oldList, str.Value, pkg) != nil {
+			// The value is already in the list.
+			return oldList
+		}
+		SelectDelete(oldList, str.Value, pkg, nil)
 	}
-
-	SelectDelete(oldList, str.Value, pkg, nil)
 
 	li := FirstList(oldList)
 	if li != nil {
