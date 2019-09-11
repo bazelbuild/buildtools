@@ -118,7 +118,7 @@ A '?' indicates that the preceding argument is optional.
 
 The fix command without a fix specified applied to all eligible fixes.
 Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and
-`new_rule`.
+`new`.
 A transformation can be applied to all rules of a particular kind by using
 `%rule_kind` at the end of the label(see examples below).
 
