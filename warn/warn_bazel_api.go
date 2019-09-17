@@ -280,7 +280,7 @@ func notLoadedUsageCheck(f *build.File, functions, symbols []string, loadFrom st
 	return findings
 }
 
-// notLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
+// NotLoadedFunctionUsageCheck checks whether there's a usage of a given not imported function in the file
 // and adds a load statement if necessary.
 func NotLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
 	return notLoadedUsageCheck(f, globals, []string{}, loadFrom)
