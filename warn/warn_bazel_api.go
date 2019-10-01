@@ -853,7 +853,6 @@ var signatures = map[string]signature{
 	"hasattr": {[]string{"x", "name"}, []string{}},
 	"getattr": {[]string{"x", "name", "default"}, []string{}},
 	"select":  {[]string{"x"}, []string{}},
-	"glob":    {[]string{"include"}, []string{"exclude", "exclude_directories"}},
 }
 
 // functionName returns the name of the given function if it's a direct function call (e.g.
