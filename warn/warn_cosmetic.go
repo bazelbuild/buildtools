@@ -113,8 +113,8 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 }
 
 func loadOnTopWarning(f *build.File) []*LinterFinding {
-	if f.Type != build.TypeDefault && f.Type != build.TypeBzl {
-		// Only applicable to default and .bzl files
+	if f.Type == build.TypeWorkspace {
+		// Not applicable to WORKSPACE files
 		return nil
 	}
 

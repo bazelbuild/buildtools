@@ -136,7 +136,7 @@ foo()
 x()`,
 		[]string{
 			":2: Load statements should be at the top of the file.",
-		}, scopeDefault|scopeBzl)
+		}, scopeDefault|scopeBzl|scopeBuild)
 
 	checkFindingsAndFix(t, "load-on-top", `
 """Docstring"""
@@ -172,7 +172,7 @@ bar()`,
 		[]string{
 			":9: Load statements should be at the top of the file.",
 			":15: Load statements should be at the top of the file.",
-		}, scopeDefault|scopeBzl)
+		}, scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestOutOfOrderLoad(t *testing.T) {
