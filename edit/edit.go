@@ -18,7 +18,6 @@ package edit
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -59,7 +58,7 @@ func ParseLabel(target string) (string, string, string) {
 	if len(parts) == 1 {
 		if strings.HasPrefix(target, "//") || tables.StripLabelLeadingSlashes {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
-			return repo, parts[0], path.Base(parts[0])
+			return repo, parts[0], filepath.Base(parts[0])
 		}
 		// "relative/label" -> "", "relative/label"
 		return repo, "", parts[0]
@@ -136,7 +135,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 	}
 
 	if strings.HasPrefix(target, "//") {
-		buildFile = path.Join(rootDir, pkg, "BUILD")
+		buildFile = filepath.Join(rootDir, pkg, "BUILD")
 		if !isFile(buildFile) {
 			// try it with the .bazel extension
 			buildFile += ".bazel"
@@ -146,7 +145,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 	if isFile(pkg) {
 		// allow operation on other files like WORKSPACE
 		buildFile = pkg
-		pkg = path.Join(relativePath, filepath.Dir(pkg))
+		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
 		return
 	}
 	if pkg != "" {
@@ -163,7 +162,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 			buildFile += ".bazel"
 		}
 	}
-	pkg = path.Join(relativePath, pkg)
+	pkg = filepath.Join(relativePath, pkg)
 	return
 }
 
