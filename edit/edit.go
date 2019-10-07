@@ -18,6 +18,7 @@ package edit
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -58,7 +59,7 @@ func ParseLabel(target string) (string, string, string) {
 	if len(parts) == 1 {
 		if strings.HasPrefix(target, "//") || tables.StripLabelLeadingSlashes {
 			// "//absolute/pkg" -> "absolute/pkg", "pkg"
-			return repo, parts[0], filepath.Base(parts[0])
+			return repo, parts[0], path.Base(parts[0])
 		}
 		// "relative/label" -> "", "relative/label"
 		return repo, "", parts[0]
