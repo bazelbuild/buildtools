@@ -150,7 +150,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		return
 	}
 	if pkg != "" {
-		buildFile = filepath.Join(pkg, "/BUILD")
+		buildFile = filepath.Join(pkg, "BUILD")
 	} else {
 		buildFile = "BUILD"
 	}
