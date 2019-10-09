@@ -691,7 +691,6 @@ func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName strin
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	// todo(aljoscha): See if we should hardcode "WORKSPACE" here or should use wspace.workspaceFile
 	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
