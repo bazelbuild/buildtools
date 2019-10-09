@@ -136,21 +136,29 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 	}
 
 	if strings.HasPrefix(target, "//") {
-		buildFile = path.Join(rootDir, pkg, "BUILD")
+		buildFile = filepath.Join(rootDir, pkg, "BUILD")
+		if !isFile(buildFile) {
+			// try it with the .bazel extension
+			buildFile += ".bazel"
+		}
 		return
 	}
 	if isFile(pkg) {
 		// allow operation on other files like WORKSPACE
 		buildFile = pkg
-		pkg = path.Join(relativePath, filepath.Dir(pkg))
+		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
 		return
 	}
 	if pkg != "" {
-		buildFile = pkg + "/BUILD"
+		buildFile = filepath.Join(pkg, "/BUILD")
 	} else {
 		buildFile = "BUILD"
 	}
-	pkg = path.Join(relativePath, pkg)
+	if !isFile(buildFile) {
+		// try it with the .bazel extension
+		buildFile += ".bazel"
+	}
+	pkg = filepath.Join(relativePath, pkg)
 	return
 }
 
