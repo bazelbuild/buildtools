@@ -948,16 +948,16 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 
 // Given a target, whose package may contain a trailing "/...", returns all
 // extisting BUILD file paths which match the package.
-func targetExpressionToBuildFiles(opts *Options, target string) []string {
+func targetExpressionToBuildFiles(rootDir string, target string) []string {
 	if strings.Contains(target, "/...") {
-		absoluteRoot, _ := wspace.FindWorkspaceRoot(opts.RootDir)
+		absoluteRoot, _ := wspace.FindWorkspaceRoot(rootDir)
 		_, pkg, _ := ParseLabel(target)
 		// if we have /... somewhere in the target ParseLabel will leave that at the end
 		pkg = strings.TrimSuffix(pkg, "...")
 		return findBuildFiles(filepath.Join(absoluteRoot, pkg))
 	} else {
-		file, _, _ := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		if opts.RootDir == "" {
+		file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+		if rootDir == "" {
 			var err error
 			if file, err = filepath.Abs(file); err != nil {
 				fmt.Printf("Cannot make path absolute: %s\n", err.Error())
@@ -1011,7 +1011,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		if pkg == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
-			buildFiles = targetExpressionToBuildFiles(opts, target)
+			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
 		}
 
 		for _, file := range buildFiles {
