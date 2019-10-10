@@ -1001,8 +1001,10 @@ func findBuildFiles(rootDir string) []string {
 func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
 	commands, targets := parseCommands(args)
 	for _, target := range targets {
-		if strings.HasSuffix(target, "/BUILD") {
-			target = strings.TrimSuffix(target, "/BUILD") + ":__pkg__"
+		for _, buildFileName := range buildFileNames {
+			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
+				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
+			}
 		}
 		var buildFiles []string
 		_, pkg, _ := ParseLabel(target)
