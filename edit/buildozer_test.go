@@ -166,13 +166,13 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 		{tmp, "//a/c/...:foo", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
 	} {
 		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
-		expectedBuildFilesMap := make(map[string]string)
-		buildFilesMap := make(map[string]string)
+		expectedBuildFilesMap := make(map[string]bool)
+		buildFilesMap := make(map[string]bool)
 		for _, buildFile := range buildFiles {
-			buildFilesMap[buildFile] = buildFile
+			buildFilesMap[buildFile] = true
 		}
 		for _, buildFile := range tc.buildFiles {
-			expectedBuildFilesMap[buildFile] = buildFile
+			expectedBuildFilesMap[buildFile] = true
 		}
 		if !reflect.DeepEqual(expectedBuildFilesMap, buildFilesMap) {
 			t.Errorf("TargetExpressionToBuildFiles(%q, %q) = %q want %q", tc.rootDir, tc.target, buildFiles, tc.buildFiles)
