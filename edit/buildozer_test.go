@@ -17,10 +17,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
-
-	"reflect"
 
 	"github.com/bazelbuild/buildtools/build"
 )
