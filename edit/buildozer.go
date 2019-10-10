@@ -35,6 +35,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
+	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -948,21 +949,31 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 // Given a target, whose package may contain a trailing "/...", returns all
 // extisting BUILD file paths which match the package.
 func targetExpressionToBuildFiles(opts *Options, target string) []string {
-	file, _, _ := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-	if opts.RootDir == "" {
-		var err error
-		if file, err = filepath.Abs(file); err != nil {
-			fmt.Printf("Cannot make path absolute: %s\n", err.Error())
-			os.Exit(1)
+	if strings.Contains(target, "/...") {
+		absoluteRoot, _ := wspace.FindWorkspaceRoot(opts.RootDir)
+		_, pkg, _ := ParseLabel(target)
+		// if we have /... somewhere in the target ParseLabel will leave that at the end
+		pkg = strings.TrimSuffix(pkg, "...")
+		return findBuildFiles(filepath.Join(absoluteRoot, pkg))
+	} else {
+		file, _, _ := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
+		if opts.RootDir == "" {
+			var err error
+			if file, err = filepath.Abs(file); err != nil {
+				fmt.Printf("Cannot make path absolute: %s\n", err.Error())
+				os.Exit(1)
+			}
 		}
-	}
-
-	if !strings.HasSuffix(file, "/.../BUILD") {
 		return []string{file}
 	}
 
+}
+
+// Given a root directory, returns all "BUILD" files in that subtree recursively.
+func findBuildFiles(rootDir string) []string {
 	var buildFiles []string
-	searchDirs := []string{strings.TrimSuffix(file, "/.../BUILD")}
+	searchDirs := []string{rootDir}
+
 	for len(searchDirs) != 0 {
 		lastIndex := len(searchDirs) - 1
 		dir := searchDirs[lastIndex]
