@@ -14,6 +14,10 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package edit
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -113,4 +117,70 @@ func TestCmdRemoveComment(t *testing.T) {
 			t.Errorf("cmdRemoveComment(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
 		}
 	}
+}
+
+type targetExpressionToBuildFilesTestCase struct {
+	rootDir, target string
+	buildFiles      []string
+}
+
+func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "c"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []targetExpressionToBuildFilesTestCase{
+		{tmp, "//", []string{filepath.Join(tmp, buildFileName)}},
+		{tmp, "//:foo", []string{filepath.Join(tmp, buildFileName)}},
+		{tmp, "//a", []string{filepath.Join(tmp, "a", buildFileName)}},
+		{tmp, "//a:foo", []string{filepath.Join(tmp, "a", buildFileName)}},
+		{tmp, "//a/b", []string{filepath.Join(tmp, "a", "b", buildFileName)}},
+		{tmp, "//a/b:foo", []string{filepath.Join(tmp, "a", "b", buildFileName)}},
+		{tmp, "//...", []string{filepath.Join(tmp, buildFileName), filepath.Join(tmp, "a", buildFileName), filepath.Join(tmp, "a", "b", buildFileName), filepath.Join(tmp, "a", "c", buildFileName)}},
+		{tmp, "//a/...", []string{filepath.Join(tmp, "a", buildFileName), filepath.Join(tmp, "a", "b", buildFileName), filepath.Join(tmp, "a", "c", buildFileName)}},
+		{tmp, "//a/b/...", []string{filepath.Join(tmp, "a", "b", buildFileName)}},
+		{tmp, "//a/c/...", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
+		{tmp, "//a/c/...:foo", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
+	} {
+		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
+		expectedBuildFilesMap := make(map[string]bool)
+		buildFilesMap := make(map[string]bool)
+		for _, buildFile := range buildFiles {
+			buildFilesMap[buildFile] = true
+		}
+		for _, buildFile := range tc.buildFiles {
+			expectedBuildFilesMap[buildFile] = true
+		}
+		if !reflect.DeepEqual(expectedBuildFilesMap, buildFilesMap) {
+			t.Errorf("TargetExpressionToBuildFiles(%q, %q) = %q want %q", tc.rootDir, tc.target, buildFiles, tc.buildFiles)
+		}
+	}
+}
+
+func TestTargetExpressionToBuildFiles(t *testing.T) {
+	runTestTargetExpressionToBuildFiles(t, "BUILD")
+	runTestTargetExpressionToBuildFiles(t, "BUILD.bazel")
 }
