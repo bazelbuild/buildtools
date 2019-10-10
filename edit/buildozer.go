@@ -25,7 +25,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -986,9 +985,9 @@ func findBuildFiles(rootDir string) []string {
 
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
-				searchDirs = append(searchDirs, path.Join(dir, dirFile.Name()))
+				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
 			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
-				buildFiles = append(buildFiles, path.Join(dir, dirFile.Name()))
+				buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
 			}
 		}
 	}
