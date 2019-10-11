@@ -15,12 +15,13 @@ import (
 // Bazel API-specific warnings
 
 var functionsWithPositionalArguments = map[string]bool{
-	"distribs":            true,
-	"exports_files":       true,
-	"licenses":            true,
-	"print":               true,
-	"register_toolchains": true,
-	"vardef":              true,
+	"distribs":                     true,
+	"exports_files":                true,
+	"licenses":                     true,
+	"print":                        true,
+	"register_execution_platforms": true,
+	"register_toolchains":          true,
+	"vardef":                       true,
 }
 
 // negateExpression returns an expression which is a negation of the input.
