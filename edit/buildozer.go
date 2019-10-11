@@ -25,7 +25,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -35,6 +34,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
+	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -947,22 +947,32 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 
 // Given a target, whose package may contain a trailing "/...", returns all
 // extisting BUILD file paths which match the package.
-func targetExpressionToBuildFiles(opts *Options, target string) []string {
-	file, _, _ := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-	if opts.RootDir == "" {
-		var err error
-		if file, err = filepath.Abs(file); err != nil {
-			fmt.Printf("Cannot make path absolute: %s\n", err.Error())
-			os.Exit(1)
+func targetExpressionToBuildFiles(rootDir string, target string) []string {
+	if strings.Contains(target, "/...") {
+		absoluteRoot, _ := wspace.FindWorkspaceRoot(rootDir)
+		_, pkg, _ := ParseLabel(target)
+		// if we have /... somewhere in the target ParseLabel will leave that at the end
+		pkg = strings.TrimSuffix(pkg, "...")
+		return findBuildFiles(filepath.Join(absoluteRoot, pkg))
+	} else {
+		file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+		if rootDir == "" {
+			var err error
+			if file, err = filepath.Abs(file); err != nil {
+				fmt.Printf("Cannot make path absolute: %s\n", err.Error())
+				os.Exit(1)
+			}
 		}
-	}
-
-	if !strings.HasSuffix(file, "/.../BUILD") {
 		return []string{file}
 	}
 
+}
+
+// Given a root directory, returns all "BUILD" files in that subtree recursively.
+func findBuildFiles(rootDir string) []string {
 	var buildFiles []string
-	searchDirs := []string{strings.TrimSuffix(file, "/.../BUILD")}
+	searchDirs := []string{rootDir}
+
 	for len(searchDirs) != 0 {
 		lastIndex := len(searchDirs) - 1
 		dir := searchDirs[lastIndex]
@@ -975,9 +985,9 @@ func targetExpressionToBuildFiles(opts *Options, target string) []string {
 
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
-				searchDirs = append(searchDirs, path.Join(dir, dirFile.Name()))
+				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
 			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
-				buildFiles = append(buildFiles, path.Join(dir, dirFile.Name()))
+				buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
 			}
 		}
 	}
@@ -990,15 +1000,17 @@ func targetExpressionToBuildFiles(opts *Options, target string) []string {
 func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
 	commands, targets := parseCommands(args)
 	for _, target := range targets {
-		if strings.HasSuffix(target, "/BUILD") {
-			target = strings.TrimSuffix(target, "/BUILD") + ":__pkg__"
+		for _, buildFileName := range buildFileNames {
+			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
+				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
+			}
 		}
 		var buildFiles []string
 		_, pkg, _ := ParseLabel(target)
 		if pkg == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
-			buildFiles = targetExpressionToBuildFiles(opts, target)
+			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
 		}
 
 		for _, file := range buildFiles {

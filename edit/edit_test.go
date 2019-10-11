@@ -14,6 +14,9 @@ package edit
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -672,4 +675,50 @@ x = 2`,
 			t.Errorf("TestPackageDeclaration: got:\n%s\nexpected:\n%s", got, want)
 		}
 	}
+}
+
+type testCase struct {
+	inputRoot, inputTarget                       string
+	expectedBuildFile, expectedPkg, expectedRule string
+}
+
+func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName string) {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []testCase{
+		{tmp, "//", filepath.Join(tmp, buildFileName), "", "."},
+		{tmp, "//a", filepath.Join(tmp, "a", buildFileName), "a", "a"},
+		{tmp, "//a:a", filepath.Join(tmp, "a", buildFileName), "a", "a"},
+		{tmp, "//a/b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
+		{tmp, "//a/b:b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
+	} {
+		buildFile, pkg, rule := InterpretLabelForWorkspaceLocation(tc.inputRoot, tc.inputTarget)
+		if buildFile != tc.expectedBuildFile || pkg != tc.expectedPkg || rule != tc.expectedRule {
+			t.Errorf("InterpretLabelForWorkspaceLocation(%q, %q) = %q, %q, %q; want %q, %q, %q", tc.inputRoot, tc.inputTarget, buildFile, pkg, rule, tc.expectedBuildFile, tc.expectedPkg, tc.expectedRule)
+		}
+	}
+}
+
+func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
+	runTestInterpretLabelForWorkspaceLocation(t, "BUILD")
+	runTestInterpretLabelForWorkspaceLocation(t, "BUILD.bazel")
 }
