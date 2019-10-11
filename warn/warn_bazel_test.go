@@ -67,7 +67,7 @@ func TestPositionalArguments(t *testing.T) {
 my_macro(foo = "bar")
 my_macro("foo", "bar")
 my_macro(foo = bar(x))
-[my_macro(foo) for foo in bar]`,
+[my_macro(foo, bar) for foo in bar]`,
 		[]string{
 			":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
 			":4: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
@@ -78,6 +78,13 @@ my_macro(foo = bar(x))
 register_toolchains(
 	"//foo",
 	"//bar",
+)`,
+		[]string{},
+		scopeBuild|scopeWorkspace)
+
+	checkFindings(t, "positional-args", `
+my_macro(
+	"//foo",
 )`,
 		[]string{},
 		scopeBuild|scopeWorkspace)

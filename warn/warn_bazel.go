@@ -133,6 +133,9 @@ func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding
 	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
 		return nil
 	}
+	if len(call.List) <= 1 {
+		return nil
+	}
 	for _, arg := range call.List {
 		if _, ok := arg.(*build.AssignExpr); ok {
 			continue
