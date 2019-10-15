@@ -72,7 +72,7 @@ my_macro(foo = bar(x))
 			":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
 			":4: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
 		},
-		scopeBuild|scopeWorkspace)
+		scopeBuild)
 
 	checkFindings(t, "positional-args", `
 register_toolchains(
@@ -80,7 +80,7 @@ register_toolchains(
 	"//bar",
 )`,
 		[]string{},
-		scopeBuild|scopeWorkspace)
+		scopeBuild)
 }
 
 func TestKwargsInBuildFilesWarning(t *testing.T) {
