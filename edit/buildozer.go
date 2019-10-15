@@ -573,6 +573,33 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+// cmdDictListAdd adds an item to a list in a dict.
+func cmdDictListAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	key := env.Args[1]
+	args := env.Args[2:]
+
+	dict := &build.DictExpr{}
+	if currDict, ok := env.Rule.Attr(attr).(*build.DictExpr); ok {
+		dict = currDict
+	}
+
+	prev := DictionaryGet(dict, key)
+	if prev == nil {
+		prev = &build.ListExpr{}
+	}
+
+	for _, val := range args {
+		expr := getStringExpr(val, env.Pkg)
+		prev = AddValueToList(prev, env.Pkg, expr, true)
+	}
+
+	DictionarySet(dict, key, prev)
+	env.Rule.SetAttr(attr, dict)
+
+	return env.File, nil
+}
+
 func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string) (*build.File, error) {
 	fromRule := FindRuleByName(env.File, from)
 	if fromRule == nil {
@@ -634,6 +661,7 @@ var AllCommands = map[string]CommandInfo{
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
+	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
 }
 
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {

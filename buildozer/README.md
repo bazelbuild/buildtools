@@ -111,6 +111,8 @@ Buildozer supports the following commands(`'command args'`):
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
   * `dict_delete <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
+  * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
+    dict attribute `attr`.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.
