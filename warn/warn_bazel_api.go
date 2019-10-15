@@ -14,15 +14,6 @@ import (
 
 // Bazel API-specific warnings
 
-var functionsWithPositionalArguments = map[string]bool{
-	"distribs":            true,
-	"exports_files":       true,
-	"licenses":            true,
-	"print":               true,
-	"register_toolchains": true,
-	"vardef":              true,
-}
-
 // negateExpression returns an expression which is a negation of the input.
 // If it's a boolean literal (true or false), just return the opposite literal.
 // If it's a unary expression with a unary `not` operator, just remove it.

@@ -9,6 +9,15 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 )
 
+var functionsWithPositionalArguments = map[string]bool{
+	"distribs":            true,
+	"exports_files":       true,
+	"licenses":            true,
+	"print":               true,
+	"register_toolchains": true,
+	"vardef":              true,
+}
+
 func constantGlobWarning(f *build.File) []*LinterFinding {
 	if f.Type == build.TypeDefault {
 		// Only applicable to Bazel files
