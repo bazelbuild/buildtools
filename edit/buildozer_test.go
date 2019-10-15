@@ -184,3 +184,98 @@ func TestTargetExpressionToBuildFiles(t *testing.T) {
 	runTestTargetExpressionToBuildFiles(t, "BUILD")
 	runTestTargetExpressionToBuildFiles(t, "BUILD.bazel")
 }
+
+var dictListAddTests = []struct {
+	args      []string
+	buildFile string
+	expected  string
+}{
+	{[]string{
+		"attr", "key1", "value1",
+	},
+		`foo(
+		name = "foo",
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": ["value1"]},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": ["value1"]},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": [
+        "value1",
+        "value2",
+    ]},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": [
+        "value1",
+        "value2",
+    ]},
+)`,
+	},
+	{[]string{
+		"attr", "key2", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": ["value1"]},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+        "key1": ["value1"],
+        "key2": ["value2"],
+    },
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": ["value1"]},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": ["value1"]},
+)`,
+	},
+}
+
+func TestCmdDictListAdd(t *testing.T) {
+	for i, tt := range dictListAddTests {
+		bld, err := build.Parse("BUILD", []byte(tt.buildFile))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rl := bld.Rules("foo")[0]
+		env := CmdEnvironment{
+			File: bld,
+			Rule: rl,
+			Args: tt.args,
+		}
+		bld, _ = cmdDictListAdd(NewOpts(), env)
+		got := strings.TrimSpace(string(build.Format(bld)))
+		if got != tt.expected {
+			t.Errorf("cmdDictListAdd(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
+		}
+	}
+}
