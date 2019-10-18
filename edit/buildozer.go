@@ -982,18 +982,17 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 		// if we have /... somewhere in the target ParseLabel will leave that at the end
 		pkg = strings.TrimSuffix(pkg, "...")
 		return findBuildFiles(filepath.Join(absoluteRoot, pkg))
-	} else {
-		file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
-		if rootDir == "" {
-			var err error
-			if file, err = filepath.Abs(file); err != nil {
-				fmt.Printf("Cannot make path absolute: %s\n", err.Error())
-				os.Exit(1)
-			}
-		}
-		return []string{file}
 	}
 
+	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+	if rootDir == "" {
+		var err error
+		if file, err = filepath.Abs(file); err != nil {
+			fmt.Printf("Cannot make path absolute: %s\n", err.Error())
+			os.Exit(1)
+		}
+	}
+	return []string{file}
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
@@ -1061,11 +1060,11 @@ func appendCommandsFromFile(opts *Options, commandsByFile map[string][]commandsF
 
 func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget) {
 	r := bufio.NewReader(reader)
-	atEof := false
-	for !atEof {
+	atEOF := false
+	for !atEOF {
 		line, err := r.ReadString('\n')
 		if err == io.EOF {
-			atEof = true
+			atEOF = true
 			err = nil
 		}
 		if err != nil {
