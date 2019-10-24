@@ -166,9 +166,13 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 		{tmp, "//a/c/...:foo", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
 		{"", "...:foo", []string{filepath.Join(tmp, buildFileName), filepath.Join(tmp, "a", buildFileName), filepath.Join(tmp, "a", "b", buildFileName), filepath.Join(tmp, "a", "c", buildFileName)}},
 	} {
-		if err := os.Chdir(tmp); err != nil {
-			t.Fatal(err)
+		if tc.rootDir == "" {
+			// buildozer should be able to find the WORKSPACE file in the current wd
+			if err := os.Chdir(tmp); err != nil {
+				t.Fatal(err)
+			}
 		}
+
 		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
 		expectedBuildFilesMap := make(map[string]bool)
 		buildFilesMap := make(map[string]bool)
