@@ -137,7 +137,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	if strings.HasPrefix(target, "//") {
 		buildFile = filepath.Join(rootDir, pkg, "BUILD")
-		if !isFile(buildFile) {
+		if !isFile(buildFile) && isFile(buildFile+".bazel") {
 			// try it with the .bazel extension
 			buildFile += ".bazel"
 		}
@@ -154,7 +154,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 	} else {
 		buildFile = "BUILD"
 	}
-	if !isFile(buildFile) {
+	if !isFile(buildFile) && isFile(buildFile+".bazel") {
 		// try it with the .bazel extension
 		buildFile += ".bazel"
 	}

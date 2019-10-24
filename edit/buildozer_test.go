@@ -129,6 +129,13 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// On MacOS "/tmp" is a symlink to "/private/tmp". Resolve it to make the testing easier
+	tmp, err = filepath.EvalSymlinks(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	defer os.RemoveAll(tmp)
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
@@ -164,7 +171,15 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 		{tmp, "//a/b/...", []string{filepath.Join(tmp, "a", "b", buildFileName)}},
 		{tmp, "//a/c/...", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
 		{tmp, "//a/c/...:foo", []string{filepath.Join(tmp, "a", "c", buildFileName)}},
+		{"", "...:foo", []string{filepath.Join(tmp, buildFileName), filepath.Join(tmp, "a", buildFileName), filepath.Join(tmp, "a", "b", buildFileName), filepath.Join(tmp, "a", "c", buildFileName)}},
 	} {
+		if tc.rootDir == "" {
+			// buildozer should be able to find the WORKSPACE file in the current wd
+			if err := os.Chdir(tmp); err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
 		expectedBuildFilesMap := make(map[string]bool)
 		buildFilesMap := make(map[string]bool)

@@ -34,7 +34,6 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
-	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -974,16 +973,8 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 }
 
 // Given a target, whose package may contain a trailing "/...", returns all
-// extisting BUILD file paths which match the package.
+// existing BUILD file paths which match the package.
 func targetExpressionToBuildFiles(rootDir string, target string) []string {
-	if strings.Contains(target, "/...") {
-		absoluteRoot, _ := wspace.FindWorkspaceRoot(rootDir)
-		_, pkg, _ := ParseLabel(target)
-		// if we have /... somewhere in the target ParseLabel will leave that at the end
-		pkg = strings.TrimSuffix(pkg, "...")
-		return findBuildFiles(filepath.Join(absoluteRoot, pkg))
-	}
-
 	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
@@ -992,7 +983,13 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 			os.Exit(1)
 		}
 	}
-	return []string{file}
+
+	suffix := filepath.Join("", "...", "BUILD") // /.../BUILD
+	if !strings.HasSuffix(file, suffix) {
+		return []string{file}
+	}
+
+	return findBuildFiles(strings.TrimSuffix(file, suffix))
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
