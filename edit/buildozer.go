@@ -984,11 +984,12 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 		}
 	}
 
-	if !strings.HasSuffix(file, "/.../BUILD") {
+	suffix := filepath.Join("", "...", "BUILD") // /.../BUILD
+	if !strings.HasSuffix(file, suffix) {
 		return []string{file}
 	}
 
-	return findBuildFiles(strings.TrimSuffix(file, "/.../BUILD"))
+	return findBuildFiles(strings.TrimSuffix(file, suffix))
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.

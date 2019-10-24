@@ -129,6 +129,13 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// On MacOS "/tmp" is a symlink to "/private/tmp". Resolve it to make the testing easier
+	tmp, err = filepath.EvalSymlinks(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	defer os.RemoveAll(tmp)
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
