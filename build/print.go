@@ -225,7 +225,7 @@ func (p *printer) statements(rawStmts []Expr) {
 // We omit the blank line when both are subinclude statements
 // and the second one has no leading comments.
 func (p *printer) compactStmt(s1, s2 Expr) bool {
-	if len(s2.Comment().Before) > 0 {
+	if len(s2.Comment().Before) > 0 || len(s1.Comment().After) > 0 {
 		return false
 	} else if isLoad(s1) && isLoad(s2) {
 		// Load statements should be compact
