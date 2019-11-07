@@ -513,7 +513,7 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.Split(x, ":")
+		kv := strings.SplitN(x, ":", 2)
 		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
@@ -538,7 +538,7 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.Split(x, ":")
+		kv := strings.SplitN(x, ":", 2)
 		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)
