@@ -4,6 +4,9 @@ load(":bar.bzl","bar")
 load(
   ":foobar.bzl",foobar="foobar")
 
+load(":baz.bzl", "baz")
+# after-comment
+
 load( # 0
   "foobar.bzl", # 1
   "foo", # 2
