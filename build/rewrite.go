@@ -124,18 +124,6 @@ var rewrites = []struct {
 	{"editoctal", editOctals, scopeBoth},
 }
 
-// DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
-// This is a temporary function for backward compatibility, can be called if there's plenty of
-// already formatted BUILD files that shouldn't be changed by the transformation.
-func DisableLoadSortForBuildFiles() {
-	for i := range rewrites {
-		if rewrites[i].name == "loadsort" {
-			rewrites[i].scope = scopeDefault
-			break
-		}
-	}
-}
-
 // leaveAlone reports whether any of the nodes on the stack are marked
 // with a comment containing "buildifier: leave-alone".
 func leaveAlone(stk []Expr, final Expr) bool {
