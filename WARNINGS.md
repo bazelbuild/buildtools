@@ -446,7 +446,7 @@ the readability.
   * Category name: `list-append`
   * Automatic fix: yes
 
-Transforming `x += [expr]` to  `x.append(expr)` avoids a list allocation.
+Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 
 --------------------------------------------------------------------------------
 
