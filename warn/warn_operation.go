@@ -210,3 +210,33 @@ func stringEscapeWarning(f *build.File) []*LinterFinding {
 	})
 	return findings
 }
+
+func listAppendWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		as, ok := (*expr).(*build.AssignExpr)
+		if !ok || as.Op != "+=" {
+			return
+		}
+
+		list, ok := as.RHS.(*build.ListExpr)
+		if !ok || len(list.List) != 1 {
+			return
+		}
+
+		_, end := as.Span()
+		findings = append(findings, makeLinterFinding(as, `Prefer using ".append()" to adding a single element list.`,
+			LinterReplacement{expr, &build.CallExpr{
+				Comments: as.Comments,
+				X: &build.DotExpr{
+					X:    as.LHS,
+					Name: "append",
+				},
+				List: list.List,
+				End:  build.End{Pos: end},
+			}}))
+
+	})
+	return findings
+}

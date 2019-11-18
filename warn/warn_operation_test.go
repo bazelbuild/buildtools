@@ -151,3 +151,34 @@ r'''
 		[]string{},
 		scopeEverywhere)
 }
+
+func TestListAppend(t *testing.T) {
+	checkFindingsAndFix(t, "list-append", `
+x = []
+x += y
+x += [1]
+x += [2, 3]
+x += [4 for y in z]
+x += 5
+x += [foo(
+    bar,
+    baz,
+)]
+`, `
+x = []
+x += y
+x.append(1)
+x += [2, 3]
+x += [4 for y in z]
+x += 5
+x.append(foo(
+    bar,
+    baz,
+))
+`,
+		[]string{
+			`:3: Prefer using ".append()" to adding a single element list`,
+			`:7: Prefer using ".append()" to adding a single element list`,
+		},
+		scopeEverywhere)
+}

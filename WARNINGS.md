@@ -26,6 +26,7 @@ Warning categories supported by buildifier's linter:
   * [http-archive](#http-archive)
   * [integer-division](#integer-division)
   * [keyword-positional-params](#keyword-positional-params)
+  * [list-append](#list-append)
   * [load](#load)
   * [load-on-top](#load-on-top)
   * [module-docstring](#module-docstring)
@@ -438,7 +439,16 @@ Some parameters for builtin functions in Starlark are keyword for legacy reasons
 their names are not meaningful (e.g. `x`). Making them positional-only will improve
 the readability.
 
- --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+## <a name="list-append"></a>Prefer using ".append()" to adding a single element list
+
+  * Category name: `list-append`
+  * Automatic fix: yes
+
+Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
+
+--------------------------------------------------------------------------------
 
 ## <a name="load"></a>Loaded symbol is unused
 
