@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -599,6 +600,181 @@ func cmdDictListAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+// compareVisibilities checks whether the given `exports_files` node has the
+// same set of `visibility` parameters as the given list.
+func compareVisibilities(call *build.CallExpr, visibility []string) bool {
+	rule := build.NewRule(call)
+	visibilityAttr := rule.Attr("visibility")
+
+	if visibilityAttr == nil {
+		return len(visibility) == 0
+	}
+
+	list, ok := visibilityAttr.(*build.ListExpr)
+	if !ok {
+		return false
+	}
+	if len(visibility) != len(list.List) {
+		return false
+	}
+
+	visibilityMap := make(map[string]bool)
+	for _, v := range visibility {
+		visibilityMap[v] = true
+	}
+
+	for _, v := range list.List {
+		str, ok := v.(*build.StringExpr)
+		if !ok {
+			return false
+		}
+		if !visibilityMap[str.Value] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// getFilesList extracts the list of explicitly provided files from the arguments
+// of an `exports_files` node.
+func getFilesList(args *[]build.Expr) *build.ListExpr {
+	if len(*args) == 0 {
+		// Shouldn't happen but not critical
+		files := &build.ListExpr{}
+		*args = append(*args, files)
+		return files
+	}
+
+	if files, ok := (*args)[0].(*build.ListExpr); ok {
+		return files
+	}
+
+	arg := (*args)[0]
+	for {
+		bin, ok := arg.(*build.BinaryExpr)
+		if !ok || bin.Op != "+" {
+			break
+		}
+		if list, ok := bin.X.(*build.ListExpr); ok {
+			return list
+		} else if list, ok := bin.Y.(*build.ListExpr); ok {
+			return list
+		}
+		arg = bin.X
+	}
+
+	// Not recognized, just add an empty list to the arg and return it
+	files := &build.ListExpr{}
+	(*args)[0] = &build.BinaryExpr{
+		X:  files,
+		Op: "+",
+		Y:  (*args)[0],
+	}
+	return files
+}
+
+// cmdExportFile exports a file with the given set of visibility parameters.
+func cmdExportFile(opts *Options, env CmdEnvironment) (*build.File, error) {
+	file := env.Args[0]
+	visibility := env.Args[1:]
+
+	var exportsFiles *build.CallExpr
+
+	// Find any existing "exports_files" statement with the same visibility
+	for _, stmt := range env.File.Stmt {
+		call, ok := stmt.(*build.CallExpr)
+		if !ok {
+			continue
+		}
+		ident, ok := call.X.(*build.Ident)
+		if !ok || ident.Name != "exports_files" {
+			continue
+		}
+		if !compareVisibilities(call, visibility) {
+			continue
+		}
+		exportsFiles = call
+		break
+	}
+
+	if exportsFiles == nil {
+		// Create a new exports_files node
+		exportsFiles = &build.CallExpr{
+			X:    &build.Ident{Name: "exports_files"},
+			List: []build.Expr{&build.ListExpr{}},
+		}
+
+		// Populate the visibility list
+		if len(visibility) > 0 {
+			visibilityList := &build.ListExpr{}
+			for _, pkg := range visibility {
+				visibilityList.List = append(visibilityList.List, &build.StringExpr{Value: pkg})
+			}
+			exportsFiles.List = append(exportsFiles.List, &build.AssignExpr{
+				LHS: &build.Ident{Name: "visibility"},
+				Op:  "=",
+				RHS: visibilityList,
+			})
+		}
+
+		// Insert the node to the appropriate place in the file (after loads,
+		// package declarations, licenses, etc).
+		insertAt := 0
+		for i, stmt := range env.File.Stmt {
+			if _, isComment := stmt.(*build.CommentBlock); isComment {
+				continue
+			}
+
+			_, isString := stmt.(*build.StringExpr) // typically a docstring
+			_, isLoad := stmt.(*build.LoadStmt)
+			_, isPackage := ExprToRule(stmt, "package")
+			_, isPackageGroup := ExprToRule(stmt, "package_group")
+			_, isLicense := ExprToRule(stmt, "licenses")
+			_, isExportsFiles := ExprToRule(stmt, "exports_files")
+			if isString || isLoad || isPackage || isPackageGroup || isLicense || isExportsFiles || stmt == nil {
+				// insert the node at least after this statement (or later)
+				insertAt = i + 1
+				continue
+			}
+			break
+		}
+
+		stmts := append([]build.Expr{}, env.File.Stmt[:insertAt]...)
+		stmts = append(stmts, exportsFiles)
+		stmts = append(stmts, env.File.Stmt[insertAt:]...)
+		env.File.Stmt = stmts
+	}
+
+	files := getFilesList(&exportsFiles.List)
+
+	alreadyExists := false
+	for _, f := range files.List {
+		if str, ok := f.(*build.StringExpr); ok && str.Value == file {
+			alreadyExists = true
+		}
+	}
+
+	if !alreadyExists {
+		files.List = append(files.List, &build.StringExpr{Value: file})
+	}
+
+	// Sort the file list.
+	sort.SliceStable(files.List, func(i, j int) bool {
+		first, ok := files.List[i].(*build.StringExpr)
+		if !ok {
+			return false
+		}
+		second, ok := files.List[j].(*build.StringExpr)
+		if !ok {
+			return true
+		}
+		return first.Value < second.Value
+	})
+
+	return env.File, nil
+}
+
 func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string) (*build.File, error) {
 	fromRule := FindRuleByName(env.File, from)
 	if fromRule == nil {
@@ -661,6 +837,7 @@ var AllCommands = map[string]CommandInfo{
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"export_file":       {cmdExportFile, false, 1, -1, "<file> <visibility(s)>"},
 }
 
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
@@ -806,7 +983,7 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 // possible buildFileNames. For historical reasons, the
 // parts of the tool that generate paths that we may want to examine
 // continue to assume that build files are all named "BUILD".
-var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
+var buildFileNames = [...]string{"BUILD", "BUILD.bazel", "BUCK"}
 var buildFileNamesSet = map[string]bool{
 	"BUILD.bazel": true,
 	"BUILD":       true,

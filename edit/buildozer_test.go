@@ -294,3 +294,281 @@ func TestCmdDictListAdd(t *testing.T) {
 		}
 	}
 }
+
+var exportFileTests = []struct {
+	args      []string
+	buildFile string
+	expected  string
+}{
+	// Basic case
+	{[]string{
+		"file.cc",
+	},
+		`foo(
+    name = "foo",
+)`,
+		`exports_files(["file.cc"])
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Explicit visibility
+	{[]string{
+		"file.cc", "//foo:__pkg__",
+	},
+		`foo(
+    name = "foo",
+)`,
+		`exports_files(
+    ["file.cc"],
+    visibility = ["//foo:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Empty visibility list
+	{[]string{
+		"file.cc",
+	},
+		`exports_files(
+    ["files.h"],
+		visibility = [],
+)
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    [
+        "file.cc",
+        "files.h",
+    ],
+    visibility = [],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Correct insertion place
+	{[]string{
+		"file.cc",
+	},
+		`load("foo.bzl", "foo")
+
+# package
+
+package("my_package")
+
+# here come the rules
+
+foo(
+    name = "foo",
+)`,
+		`load("foo.bzl", "foo")
+
+# package
+
+package("my_package")
+
+exports_files(["file.cc"])
+
+# here come the rules
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Already existing explicit visibility
+	{[]string{
+		"file.cc", "//foo:__pkg__",
+	},
+		`exports_files(["file.h"], visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    [
+        "file.cc",
+        "file.h",
+    ],
+    visibility = ["//foo:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Already existing explicit visibility 2
+	{[]string{
+		"file.cc", "//foo:__pkg__", "//bar:__pkg__",
+	},
+		`exports_files(["file.h"], visibility = ["//bar:__pkg__", "//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    [
+        "file.cc",
+        "file.h",
+    ],
+    visibility = [
+        "//bar:__pkg__",
+        "//foo:__pkg__",
+    ],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// New explicit visibility
+	{[]string{
+		"file.cc", "//foo:__pkg__", "//bar:__pkg__",
+	},
+		`exports_files(["file.h"], visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    ["file.h"],
+    visibility = ["//foo:__pkg__"],
+)
+
+exports_files(
+    ["file.cc"],
+    visibility = [
+        "//foo:__pkg__",
+        "//bar:__pkg__",
+    ],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// New explicit visibility 2
+	{[]string{
+		"file.cc", "//bar:__pkg__",
+	},
+		`exports_files(["file.h"], visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    ["file.h"],
+    visibility = ["//foo:__pkg__"],
+)
+
+exports_files(
+    ["file.cc"],
+    visibility = ["//bar:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// No files
+	{[]string{
+		"file.cc",
+	},
+		`exports_files()
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(["file.cc"])
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Add to glob
+	{[]string{
+		"file.cc", "//foo:__pkg__",
+	},
+		`exports_files(glob(["*.cc"]), visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    ["file.cc"] + glob(["*.cc"]),
+    visibility = ["//foo:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Add to glob 2
+	{[]string{
+		"file.cc", "//foo:__pkg__",
+	},
+		`exports_files(["file.h"] + glob(["*.cc"]), visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    [
+        "file.cc",
+        "file.h",
+    ] + glob(["*.cc"]),
+    visibility = ["//foo:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+	// Add to glob 3
+	{[]string{
+		"file.cc", "//foo:__pkg__",
+	},
+		`exports_files(foo() + bar() + ["file.h"] + glob(["*.cc"]), visibility = ["//foo:__pkg__"])
+
+foo(
+    name = "foo",
+)`,
+		`exports_files(
+    foo() + bar() + [
+        "file.cc",
+        "file.h",
+    ] + glob(["*.cc"]),
+    visibility = ["//foo:__pkg__"],
+)
+
+foo(
+    name = "foo",
+)`,
+	},
+}
+
+func TestExportFile(t *testing.T) {
+	for i, tt := range exportFileTests {
+		bld, err := build.Parse("BUILD", []byte(tt.buildFile))
+		if err != nil {
+			t.Error(i, err)
+			continue
+		}
+		env := CmdEnvironment{
+			File: bld,
+			Rule: nil,
+			Args: tt.args,
+		}
+		bld, _ = cmdExportFile(NewOpts(), env)
+		got := strings.TrimSpace(string(build.Format(bld)))
+		if got != tt.expected {
+			t.Errorf("cmdExportFile(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
+		}
+	}
+}
