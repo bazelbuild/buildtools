@@ -30,11 +30,11 @@ strings = [
     """'''\"\"\"foo\"\"\"'''""",
 
     # raw strings
-    r'\foo',
+    r"\foo",
     r'"\foo',
     r"\foo",
     r"'\foo",
-    r'''\foo''',
+    r"""\foo""",
     r'''"""\foo''',
     r"""\foo""",
     r"""'''\foo""",
