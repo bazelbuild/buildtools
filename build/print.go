@@ -410,12 +410,25 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *StringExpr:
 		// If the Token is a correct quoting of Value and has double quotes, use it,
-		// also use it if it has single quotes and the value itself contains a double quote symbol.
+		// also use it if it has single quotes and the value itself contains a double quote symbol
+		// or if it's a raw string literal (starts with "r").
 		// This preserves the specific escaping choices that BUILD authors have made.
 		s, triple, err := Unquote(v.Token)
 		if s == v.Value && triple == v.TripleQuote && err == nil {
 			if strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"') {
 				p.printf("%s", v.Token)
+				break
+			}
+			if strings.HasPrefix(v.Token, `r`) {
+				// Raw string literal, no `'`s in the string.
+				// Replace single quotes with double quotes.
+				token := v.Token
+				if strings.HasSuffix(token, `'''`) {
+					token = `r"""` + token[4:len(token)-3] + `"""`
+				} else if strings.HasSuffix(token, `'`) {
+					token = `r"` + token[2:len(token)-1] + `"`
+				}
+				p.printf("%s", token)
 				break
 			}
 		}
