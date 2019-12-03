@@ -60,7 +60,7 @@ Warning categories supported by buildifier's linter:
 
 ### How to disable warnings
 
-All warnings can be disabled by adding a special comment `# buildifier: disable=<category_name>` to
+All warnings can be disabled / suppressed / ignored by adding a special comment `# buildifier: disable=<category_name>` to
 the expression that causes the warning. Historically comments with `buildozer` instead of
 `buildifier` are also supported, they are equivalent.
 
