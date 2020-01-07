@@ -24,7 +24,7 @@ func TestWarningsDocumentation(t *testing.T) {
 
 	contents := string(data)
 	for _, warning := range AllWarnings {
-		link := fmt.Sprintf("  * [%s](#%s)", warning, warning)
+		link := fmt.Sprintf("  * [`%s`](#%s)", warning, warning)
 		if !strings.Contains(contents, link) {
 			t.Errorf("No link (%q) found for the warning %q in WARNINGS.md, is it documented?", link, warning)
 		}

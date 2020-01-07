@@ -2,61 +2,61 @@
 
 Warning categories supported by buildifier's linter:
 
-  * [attr-cfg](#attr-cfg)
-  * [attr-license](#attr-license)
-  * [attr-non-empty](#attr-non-empty)
-  * [attr-output-default](#attr-output-default)
-  * [attr-single-file](#attr-single-file)
-  * [build-args-kwargs](#build-args-kwargs)
-  * [bzl-visibility](#bzl-visibility)
-  * [confusing-name](#confusing-name)
-  * [constant-glob](#constant-glob)
-  * [ctx-actions](#ctx-actions)
-  * [ctx-args](#ctx-args)
-  * [depset-iteration](#depset-iteration)
-  * [depset-union](#depset-union)
-  * [dict-concatenation](#dict-concatenation)
-  * [duplicated-name](#duplicated-name)
-  * [filetype](#filetype)
-  * [function-docstring](#function-docstring)
-  * [function-docstring-header](#function-docstring-header)
-  * [function-docstring-args](#function-docstring-args)
-  * [function-docstring-return](#function-docstring-return)
-  * [git-repository](#git-repository)
-  * [http-archive](#http-archive)
-  * [integer-division](#integer-division)
-  * [keyword-positional-params](#keyword-positional-params)
-  * [list-append](#list-append)
-  * [load](#load)
-  * [load-on-top](#load-on-top)
-  * [module-docstring](#module-docstring)
-  * [name-conventions](#name-conventions)
-  * [native-android](#native-android)
-  * [native-build](#native-build)
-  * [native-cc](#native-cc)
-  * [native-java](#native-java)
-  * [native-package](#native-package)
-  * [native-proto](#native-proto)
-  * [native-py](#native-py)
-  * [no-effect](#no-effect)
-  * [out-of-order-load](#out-of-order-load)
-  * [output-group](#output-group)
-  * [overly-nested-depset](#overly-nested-depset)
-  * [package-name](#package-name)
-  * [package-on-top](#package-on-top)
-  * [positional-args](#positional-args)
-  * [print](#print)
-  * [redefined-variable](#redefined-variable)
-  * [repository-name](#repository-name)
-  * [return-value](#return-value)
-  * [rule-impl-return](#rule-impl-return)
-  * [same-origin-load](#same-origin-load)
-  * [string-escape](#string-escape)
-  * [string-iteration](#string-iteration)
-  * [uninitialized](#uninitialized)
-  * [unreachable](#unreachable)
-  * [unsorted-dict-items](#unsorted-dict-items)
-  * [unused-variable](#unused-variable)
+  * [`attr-cfg`](#attr-cfg)
+  * [`attr-license`](#attr-license)
+  * [`attr-non-empty`](#attr-non-empty)
+  * [`attr-output-default`](#attr-output-default)
+  * [`attr-single-file`](#attr-single-file)
+  * [`build-args-kwargs`](#build-args-kwargs)
+  * [`bzl-visibility`](#bzl-visibility)
+  * [`confusing-name`](#confusing-name)
+  * [`constant-glob`](#constant-glob)
+  * [`ctx-actions`](#ctx-actions)
+  * [`ctx-args`](#ctx-args)
+  * [`depset-iteration`](#depset-iteration)
+  * [`depset-union`](#depset-union)
+  * [`dict-concatenation`](#dict-concatenation)
+  * [`duplicated-name`](#duplicated-name)
+  * [`filetype`](#filetype)
+  * [`function-docstring`](#function-docstring)
+  * [`function-docstring-header`](#function-docstring-header)
+  * [`function-docstring-args`](#function-docstring-args)
+  * [`function-docstring-return`](#function-docstring-return)
+  * [`git-repository`](#git-repository)
+  * [`http-archive`](#http-archive)
+  * [`integer-division`](#integer-division)
+  * [`keyword-positional-params`](#keyword-positional-params)
+  * [`list-append`](#list-append)
+  * [`load`](#load)
+  * [`load-on-top`](#load-on-top)
+  * [`module-docstring`](#module-docstring)
+  * [`name-conventions`](#name-conventions)
+  * [`native-android`](#native-android)
+  * [`native-build`](#native-build)
+  * [`native-cc`](#native-cc)
+  * [`native-java`](#native-java)
+  * [`native-package`](#native-package)
+  * [`native-proto`](#native-proto)
+  * [`native-py`](#native-py)
+  * [`no-effect`](#no-effect)
+  * [`out-of-order-load`](#out-of-order-load)
+  * [`output-group`](#output-group)
+  * [`overly-nested-depset`](#overly-nested-depset)
+  * [`package-name`](#package-name)
+  * [`package-on-top`](#package-on-top)
+  * [`positional-args`](#positional-args)
+  * [`print`](#print)
+  * [`redefined-variable`](#redefined-variable)
+  * [`repository-name`](#repository-name)
+  * [`return-value`](#return-value)
+  * [`rule-impl-return`](#rule-impl-return)
+  * [`same-origin-load`](#same-origin-load)
+  * [`string-escape`](#string-escape)
+  * [`string-iteration`](#string-iteration)
+  * [`uninitialized`](#uninitialized)
+  * [`unreachable`](#unreachable)
+  * [`unsorted-dict-items`](#unsorted-dict-items)
+  * [`unused-variable`](#unused-variable)
 
 ### How to disable warnings
 
@@ -66,14 +66,16 @@ the expression that causes the warning. Historically comments with `buildozer` i
 
 #### Examples
 
-    # buildifier: disable=no-effect
-    """
-    A multiline comment as a string literal.
-    Docstrings don't trigger the warning if they are first statements of a file or a function.
-    """
+```python
+# buildifier: disable=no-effect
+"""
+A multiline comment as a string literal.
+Docstrings don't trigger the warning if they are first statements of a file or a function.
+"""
 
-    if debug:
-        print("Debug information:", foo)  # buildifier: disable=print
+if debug:
+    print("Debug information:", foo)  # buildifier: disable=print
+```
 
 --------------------------------------------------------------------------------
 
@@ -178,7 +180,7 @@ often useless and sometimes harmful.
 
 To fix the warning, move the string out of the glob:
 
-```
+```diff
 - glob(["*.cc", "test.cpp"])
 + glob(["*.cc"]) + ["test.cpp"]
 ```
@@ -189,7 +191,7 @@ if file is missing.
 
 If `test.cpp` doesn’t exist, the fix becomes:
 
-```
+```diff
 - glob(["*.cc", "test.cpp"])
 + glob(["*.cc"])
 ```
@@ -199,7 +201,7 @@ which improves maintenance and readability.
 If no pattern has a wildcard, just remove the glob. It will also improve build
 performance (glob can be relatively slow):
 
-```
+```diff
 - glob(["test.cpp"])
 + ["test.cpp"]
 ```
@@ -249,9 +251,11 @@ Depsets are complex structures, iterations over them and lookups require flatten
 a list which may be a heavy operation. To make it more obvious it's now required to call
 the `.to_list()` method on them in order to be able to iterate their items:
 
-    deps = depset()
-    [x.path for x in deps]  # deprecated
-    [x.path for x in deps.to_list()]  # recommended
+```python
+deps = depset()
+[x.path for x in deps]  # deprecated
+[x.path for x in deps.to_list()]  # recommended
+```
 
 --------------------------------------------------------------------------------
 
@@ -263,14 +267,18 @@ the `.to_list()` method on them in order to be able to iterate their items:
 
 The following ways to merge two depsets are deprecated:
 
-    depset1 + depset2
-    depset1 | depset2
-    depset1.union(depset2)
+```python
+depset1 + depset2
+depset1 | depset2
+depset1.union(depset2)
+```
 
 Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
 instead:
 
-    depset(transitive = [depset1, depset2])
+```python
+depset(transitive = [depset1, depset2])
+```
 
 When fixing this issue, make sure you
 [understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
@@ -289,21 +297,27 @@ The `+` operator to concatenate dicts is deprecated. The operator used to create
 copy the data to it. There are several ways to avoid it, for example, instead of `d = d1 + d2 + d3`
 you can use one of the following:
 
-  * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
+* Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
 
+    ```python
     load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
     d = dicts.add(d1, d2, d3)
+    ```
 
-  * The same if you don't want to use Skylib:
+* The same if you don't want to use Skylib:
 
+    ```python
     d = dict(d1.items() + d2.items() + d3.items())
+    ```
 
-  * The same in several steps:
+* The same in several steps:
 
+    ```python
     d = dict(d1)  # If you don't want `d1` to be mutated
     d.update(d2)
     d.update(d3)
+    ```
 
 --------------------------------------------------------------------------------
 
@@ -318,7 +332,7 @@ Each label in Bazel has a unique name, and Bazel doesn’t allow two rules to ha
 the same name. With macros, this may be accepted by Bazel (if each macro
 generates different rules):
 
-```
+```python
 my_first_macro(name = "foo")
 my_other_macro(name = "foo")
 ```
@@ -359,27 +373,29 @@ A docstring is a string literal (not a comment) which should be the first statem
 of a function (it may follow comment lines). Function docstrings are expected to be
 formatted in the following way:
 
-    """One-line summary: must be followed and may be preceded by a blank line.
+```python
+"""One-line summary: must be followed and may be preceded by a blank line.
 
-    Optional additional description like this.
+Optional additional description like this.
 
-    If it's a function docstring and the function has more than one argument, the docstring has
-    to document these parameters as follows:
+If it's a function docstring and the function has more than one argument, the docstring has
+to document these parameters as follows:
 
-    Args:
-      parameter1: description of the first parameter. Each parameter line
-        should be indented by one, preferably two, spaces (as here).
-      parameter2: description of the second
-        parameter that spans two lines. Each additional line should have a
-        hanging indentation of at least one, preferably two, additional spaces (as here).
-      another_parameter (unused, mutable): a parameter may be followed
-        by additional attributes in parentheses
+Args:
+  parameter1: description of the first parameter. Each parameter line
+    should be indented by one, preferably two, spaces (as here).
+  parameter2: description of the second
+    parameter that spans two lines. Each additional line should have a
+    hanging indentation of at least one, preferably two, additional spaces (as here).
+  another_parameter (unused, mutable): a parameter may be followed
+    by additional attributes in parentheses
 
-    Returns:
-      Description of the return value.
-      Should be indented by at least one, preferably two spaces (as here)
-      Can span multiple lines.
-    """
+Returns:
+  Description of the return value.
+  Should be indented by at least one, preferably two spaces (as here)
+  Can span multiple lines.
+"""
+```
 
 Docstrings are required for all public functions with at least 5 statements. If a docstring exists
 it should start with a one-line summary line followed by an empty line. If a docsrting is required
@@ -397,7 +413,9 @@ the function returns a value, it should be described.
 Native `git_repository` and `new_git_repository` functions are removed.
 Please use the Starlark versions instead:
 
-    load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+```python
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+```
 
 --------------------------------------------------------------------------------
 
@@ -410,7 +428,9 @@ Please use the Starlark versions instead:
 Native `http_archive` function are removed.
 Please use the Starlark versions instead:
 
-    load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+```python
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+```
 
 --------------------------------------------------------------------------------
 
@@ -423,10 +443,10 @@ Please use the Starlark versions instead:
 The `/` operator is deprecated in favor of `//`, please use the latter for
 integer division:
 
-`
+```python
 a = b // c
 d //= e
-`
+```
 
 --------------------------------------------------------------------------------
 
@@ -468,8 +488,8 @@ Delete the line. When load is used to import multiple symbols, you can remove
 the unused symbols from the list. To fix your BUILD files automatically, try
 this command:
 
-```
-buildozer 'fix unusedLoads' path/to/BUILD
+```console
+$ buildozer 'fix unusedLoads' path/to/BUILD
 ```
 
 If you want to keep the load, you can disable the warning by adding a comment
@@ -497,11 +517,13 @@ they can follow only comments and docstrings.
 (not a comment) which should be the first statement of the file (it may follow
 comment lines). For example:
 
-    """
-    This module contains build rules for my project.
-    """
+```python
+"""
+This module contains build rules for my project.
+"""
 
-    ...
+...
+```
 
 --------------------------------------------------------------------------------
 
@@ -633,23 +655,29 @@ The `output_group` field of a target is deprecated in favor of the
 
 If a depset is iteratively chained in a for loop, e.g. the following pattern is used:
 
-    for ...:
-        x = depset(..., transitive = [..., x, ...])
+```python
+for ...:
+    x = depset(..., transitive = [..., x, ...])
+```
 
 this can result in an overly nested depset with a long chain of transitive elements. Such patterns
 can lead to performance problems, consider refactoring the code to create a flat list of transitive
 elements and call the depset constructor just once:
 
-    transitive = []
+```python
+transitive = []
 
-    for ...:
-        transitive += ...
+for ...:
+    transitive += ...
 
-    x = depset(..., transitive = transitive)
+x = depset(..., transitive = transitive)
+```
 
 Or in simple cases you can use list comprehensions instead:
 
-     x = depset(..., transitive = [y.deps for y in ...])
+```python
+x = depset(..., transitive = [y.deps for y in ...])
+```
 
 For more information, read Bazel documentation about 
 [depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
@@ -708,7 +736,7 @@ positional arguments. Positional arguments can cause subtle errors if the order
 is switched or if an argument is removed. Keyword args also greatly improve
 readability.
 
-```
+```diff
 - my_macro("foo", "bar")
 + my_macro(name = "foo", env = "bar")
 ```
@@ -809,14 +837,14 @@ symbols more the ones, all such loads can be merged into a single one.
 
 Merge all loads into a single one. For example,
 
-```
+```python
 load(":f.bzl", "s1")
 load(":f.bzl", "s2")
 ```
 
 can be written more compactly as
 
-```
+```python
 load(":f.bzl", "s1", "s2")
 ```
 
@@ -843,10 +871,12 @@ Iteration over strings often leads to confusion with iteration over a sequence o
 therefore strings won't be recognized as sequences of 1-element strings (like in Python).
 Use string indexing and `len` instead:
 
-    my_string = "hello world"
-    for i in range(len(my_string)):
-        char = my_string[i]
-        # do something with char
+```python
+my_string = "hello world"
+for i in range(len(my_string)):
+    char = my_string[i]
+    # do something with char
+```
 
 --------------------------------------------------------------------------------
 
@@ -888,11 +918,13 @@ If you want to preserve the original dictionary items order, you can disable
 the warning by adding a comment `# @unsorted-dict-items` to the dictionary
 expression or any of its enclosing expressins (binary, if etc). For example,
 
-    # @unsorted-dict-items
-    d = {
-      "b": "bvalue",
-      "a": "avalue",
-    }
+```python
+# @unsorted-dict-items
+d = {
+  "b": "bvalue",
+  "a": "avalue",
+}
+```
 
 will not be reported as an issue because the assignment operation that uses
 the dictionary with unsorted items has a comment disabling this warning.
@@ -906,7 +938,7 @@ the dictionary with unsorted items has a comment disabling this warning.
 
 This happens when a variable is set but not used in the file, e.g.
 
-```
+```python
 x = [1, 2]
 ```
 
@@ -915,6 +947,6 @@ The line can often be safely removed.
 If you want to keep the variable, you can disable the warning by adding a
 comment `# @unused`.
 
-```
+```python
 x = [1, 2] # @unused
 ```
