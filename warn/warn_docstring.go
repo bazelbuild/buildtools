@@ -290,12 +290,34 @@ func functionDocstringArgsWarning(f *build.File) []*LinterFinding {
 		// Check whether all existing arguments are commented
 		if len(notDocumentedArguments) > 0 {
 			message := fmt.Sprintf("Argument %q is not documented.", notDocumentedArguments[0])
+			plural := ""
 			if len(notDocumentedArguments) > 1 {
 				message = fmt.Sprintf(
 					`Arguments "%s" are not documented.`,
 					strings.Join(notDocumentedArguments, `", "`),
 				)
+				plural = "s"
 			}
+
+			if len(info.args) == 0 {
+				// No arguments are documented maybe the Args: block doesn't exist at all or
+				// formatted improperly. Add extra information to the warning message
+				message += fmt.Sprintf(`
+
+If the documentation for the argument%s exists but is not recognized by Buildifier
+make sure it follows the line "Args:" which has the same indentation as the opening """,
+and the argument description starts with "<argument_name>:" and indented with at least
+one (preferably two) space more than "Args:", for example:
+
+    def %s(%s):
+        """Function description.
+
+        Args:
+          %s: argument description, can be
+            multiline with additional indentation.
+        """`, plural, def.Name, notDocumentedArguments[0], notDocumentedArguments[0])
+			}
+
 			findings = append(findings, makeLinterFinding(doc, message))
 		}
 

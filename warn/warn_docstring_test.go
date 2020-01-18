@@ -275,7 +275,7 @@ def f(x, y):
 		}, scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
-def f(x, y, z = None, *args, **kwargs):
+def my_function(x, y, z = None, *args, **kwargs):
    """This is a function.
    """
    pass
@@ -285,7 +285,20 @@ def f(x, y, z = None, *args, **kwargs):
    pass
 `,
 		[]string{
-			`2: Arguments "x", "y", "z", "*args", "**kwargs" are not documented.`,
+			`2: Arguments "x", "y", "z", "*args", "**kwargs" are not documented.
+
+If the documentation for the arguments exists but is not recognized by Buildifier
+make sure it follows the line "Args:" which has the same indentation as the opening """,
+and the argument description starts with "<argument_name>:" and indented with at least
+one (preferably two) space more than "Args:", for example:
+
+    def my_function(x):
+        """Function description.
+
+        Args:
+          x: argument description, can be
+            multiline with additional indentation.
+        """`,
 		},
 		scopeEverywhere)
 
