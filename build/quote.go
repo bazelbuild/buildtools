@@ -240,17 +240,9 @@ func quote(unquoted string, triple bool) string {
 			continue
 		}
 		if c == '\\' {
+			// All backslashes should be escaped
 			buf.WriteByte('\\')
-			if i+1 < len(unquoted) && escapable[unquoted[i+1]] {
-				// Can pass \ through when followed by a byte that
-				// known not to be a valid escape sequence and also
-				// that does not trigger an escape sequence of its own.
-				// Use this, because various BUILD files do.
-				buf.WriteByte(unquoted[i+1])
-				i++
-			} else {
-				buf.WriteByte('\\')
-			}
+			buf.WriteByte('\\')
 			continue
 		}
 		if esc[c] != 0 {
