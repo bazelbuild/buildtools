@@ -372,12 +372,12 @@ d = {
 
 	checkFindingsAndFix(t, "unsorted-dict-items", `
 d = {
-	"deps": [],
 	"srcs": ["foo.go"],
+	"deps": [],
 }`, `
 d = {
-	"srcs": ["foo.go"],
 	"deps": [],
+	"srcs": ["foo.go"],
 }`,
 		[]string{"3: Dictionary items are out of their lexicographical order."},
 		scopeEverywhere)
@@ -409,15 +409,18 @@ foo_binary = rule(
 foo_binary = rule(
 	implementation = _foo_binary_impl,
 	attrs = {
-		"srcs": attr.label_list(allow_files = True),
 		"deps": attr.label_list(),
+		"srcs": attr.label_list(allow_files = True),
 		"_foocc": attr.label(
 			default = Label("//depsets:foocc"),
 		),
 	},
 	outputs = {"out": "%{name}.out"},
 )`,
-		[]string{"7: Dictionary items are out of their lexicographical order."},
+		[]string{
+			"7: Dictionary items are out of their lexicographical order.",
+			"8: Dictionary items are out of their lexicographical order.",
+		},
 		scopeEverywhere)
 
 	checkFindings(t, "unsorted-dict-items", `
