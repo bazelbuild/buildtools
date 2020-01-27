@@ -323,14 +323,23 @@ one (preferably two) space more than "Args:", for example:
 
 		// Check whether all documented arguments actually exist in the function signature.
 		for name, pos := range info.args {
-			if !paramNames[name] {
-				posEnd := pos
-				posEnd.LineRune += len(name)
-				finding := makeLinterFinding(doc, fmt.Sprintf("Argument %q is documented but doesn't exist in the function signature.", name))
-				finding.Start = pos
-				finding.End = posEnd
-				findings = append(findings, finding)
+			if paramNames[name] {
+				continue
 			}
+			msg := fmt.Sprintf("Argument %q is documented but doesn't exist in the function signature.", name)
+			// *args and **kwargs should be documented with asterisks
+			for _, asterisks := range []string{"*", "**"} {
+				if paramNames[asterisks+name] {
+					msg += fmt.Sprintf(` Do you mean "%s%s"?`, asterisks, name)
+					break
+				}
+			}
+			posEnd := pos
+			posEnd.LineRune += len(name)
+			finding := makeLinterFinding(doc, msg)
+			finding.Start = pos
+			finding.End = posEnd
+			findings = append(findings, finding)
 		}
 	}
 	return findings
