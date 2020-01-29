@@ -726,7 +726,7 @@ func checkCommandUsage(name string, cmd CommandInfo, count int) {
 }
 
 // Match text that only contains spaces if they're escaped with '\'.
-var spaceRegex = regexp.MustCompile(`(\\ |[^ ])+`)
+var spaceRegex = regexp.MustCompile(`(\\ |[^ \n])+`)
 
 // SplitOnSpaces behaves like strings.Fields, except that spaces can be escaped.
 // " some dummy\\ string" -> ["some", "dummy string"]
