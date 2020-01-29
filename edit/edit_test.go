@@ -118,6 +118,7 @@ var splitOnSpacesTests = []struct {
 	{"a", []string{"a"}},
 	{"  abc def ", []string{"abc", "def"}},
 	{`  abc\ def `, []string{"abc def"}},
+	{"  abc def\nghi", []string{"abc",  "def", "ghi"}},
 }
 
 func TestSplitOnSpaces(t *testing.T) {
