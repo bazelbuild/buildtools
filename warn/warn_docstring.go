@@ -83,7 +83,7 @@ func countLeadingSpaces(s string) int {
 	return spaces
 }
 
-var argRegex = regexp.MustCompile(`^ *(\*?\*?\w+)( *\([\w\ ,]+\))?:`)
+var argRegex = regexp.MustCompile(`^ *(\*?\*?\w*)( *\([\w\ ,]+\))?:`)
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
 // the parsed information about the function, its arguments and its return value.
@@ -169,9 +169,12 @@ func getParamName(param build.Expr) string {
 			return ident.Name
 		}
 	case *build.UnaryExpr:
-		// *args or **kwargs
+		// *args, **kwargs, or *
 		if ident, ok := param.X.(*build.Ident); ok {
 			return param.Op + ident.Name
+		} else if param.X == nil {
+			// An asterisk separating position and keyword-only arguments
+			return "*"
 		}
 	}
 	return ""
@@ -281,6 +284,10 @@ func functionDocstringArgsWarning(f *build.File) []*LinterFinding {
 		paramNames := make(map[string]bool)
 		for _, param := range def.Params {
 			name := getParamName(param)
+			if name == "*" {
+				// Not really a parameter but a separator
+				continue
+			}
 			paramNames[name] = true
 			if _, ok := info.args[name]; !ok {
 				notDocumentedArguments = append(notDocumentedArguments, name)
