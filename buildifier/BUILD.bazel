@@ -28,9 +28,7 @@ sh_test(
 
 go_library(
     name = "go_default_library",
-    srcs = [
-      "buildifier.go",
-    ],
+    srcs = ["buildifier.go"],
     importpath = "github.com/bazelbuild/buildtools/buildifier",
     visibility = ["//visibility:private"],
     deps = [

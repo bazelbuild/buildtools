@@ -32,8 +32,9 @@ gazelle_dependencies()
 
 go_repository(
     name = "skylark_syntax",
-    commit = "6677ee5c7211380ec7e6a1b50dc45287e40ca9e1",
     importpath = "go.starlark.net",
+    sum = "h1:Qoe+9POtDT51UBQ8XEnS9QKeHDQzEl2QRh3eok9R4aw=",
+    version = "v0.0.0-20200203144150-6677ee5c7211",
 )
 
 http_archive(
