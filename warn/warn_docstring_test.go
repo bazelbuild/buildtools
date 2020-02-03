@@ -323,6 +323,20 @@ def f(x, y, z = None, *args, **kwargs):
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
+def f(x, *, y, z = None):
+   """This is a function.
+
+   Args:
+    x: x
+    y: y
+    z: z
+   """
+   pass
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
 def f(x):
    """
    This is a function.
