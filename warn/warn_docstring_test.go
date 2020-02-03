@@ -337,6 +337,23 @@ def f(x, *, y, z = None):
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
+def f(x, *, y, z = None):
+   """This is a function.
+
+   Args:
+    x: x
+    *: a separator
+    y: y
+    z: z
+   """
+   pass
+`,
+		[]string{
+			`6: Argument "*" is documented but doesn't exist in the function signature.`,
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
 def f(x):
    """
    This is a function.
