@@ -344,12 +344,14 @@ def f(x, *, y, z = None):
     x: x
     *: a separator
     y: y
+    : argument without a name
     z: z
    """
    pass
 `,
 		[]string{
 			`6: Argument "*" is documented but doesn't exist in the function signature.`,
+			`8: Argument "" is documented but doesn't exist in the function signature.`,
 		},
 		scopeEverywhere)
 
