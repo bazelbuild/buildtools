@@ -118,7 +118,7 @@ var splitOnSpacesTests = []struct {
 	{"a", []string{"a"}},
 	{"  abc def ", []string{"abc", "def"}},
 	{`  abc\ def `, []string{"abc def"}},
-	{"  abc def\nghi", []string{"abc",  "def", "ghi"}},
+	{"  abc def\nghi", []string{"abc", "def", "ghi"}},
 }
 
 func TestSplitOnSpaces(t *testing.T) {
@@ -154,6 +154,46 @@ load("other loc", "symbol")`,
 		got := strings.TrimSpace(string(build.Format(bld)))
 		if got != tst.expected {
 			t.Errorf("maybeInsertLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
+		}
+	}
+}
+
+func TestReplaceLoad(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{
+			``,
+			`load("new_location", "symbol")`,
+		},
+		{
+			`load("location", "symbol")`,
+			`load("new_location", "symbol")`,
+		},
+		{
+			`load("location", "other", "symbol")`,
+			`load("new_location", "symbol")
+load("location", "other")`,
+		},
+		{
+			`load("location", symbol = "other")`,
+			`load("new_location", "symbol")`,
+		},
+		{
+			`load("other loc", "symbol")
+load("location", "symbol")`,
+			`load("new_location", "symbol")`,
+		},
+	}
+
+	for _, tst := range tests {
+		bld, err := build.Parse("BUILD", []byte(tst.input))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		bld.Stmt = ReplaceLoad(bld.Stmt, "new_location", []string{"symbol"}, []string{"symbol"})
+		got := strings.TrimSpace(string(build.Format(bld)))
+		if got != tst.expected {
+			t.Errorf("maybeReplaceLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
 		}
 	}
 }
@@ -197,40 +237,40 @@ func TestSelectListsIntersection(t *testing.T) {
 		expected []build.Expr
 	}{
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select()
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select(CONFIGS)
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": "string",
 				"DEFAULT": "default"
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": LIST,
 				"DEFAULT": DEFAULT
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": ":1 :2 :3".split(" "),
 				"DEFAULT": ":2 :3".split(" ")
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [":1"],
 				"config2": [":2"],
@@ -238,7 +278,7 @@ func TestSelectListsIntersection(t *testing.T) {
 			})
 		)`, []build.Expr{}},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [],
 				"config2": [":1"],
@@ -255,7 +295,7 @@ func TestSelectListsIntersection(t *testing.T) {
 			})
 		)`, []build.Expr{&build.StringExpr{Value: ":2"}}},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [":4", ":3", ":1", ":5", ":2", ":6"],
 				"config2": [":5", ":2", ":6", ":1"],

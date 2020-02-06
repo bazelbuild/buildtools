@@ -255,9 +255,11 @@ func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 	}
 }
 
-func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
-	from := env.Args[1:]
-	to := append([]string{}, from...)
+// splitLoadArgs splits arguments of form <[to=]from>
+// into a slice of froms and a slice of tos.
+func splitLoadArgs(args []string) ([]string, []string) {
+	from := args
+	to := append([]string{}, args...)
 	for i := range from {
 		if s := strings.SplitN(from[i], "=", 2); len(s) == 2 {
 			to[i] = s[0]
@@ -265,7 +267,18 @@ func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	}
 
+	return from, to
+}
+
+func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	from, to := splitLoadArgs(env.Args[1:])
 	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args[0], from, to)
+	return env.File, nil
+}
+
+func cmdReplaceLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	from, to := splitLoadArgs(env.Args[1:])
+	env.File.Stmt = ReplaceLoad(env.File.Stmt, env.Args[0], from, to)
 	return env.File, nil
 }
 
@@ -641,6 +654,7 @@ type CommandInfo struct {
 var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
 	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
+	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
 	"delete":            {cmdDelete, true, 0, 0, ""},
