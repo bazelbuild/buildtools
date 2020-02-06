@@ -1110,3 +1110,48 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 	}
 	return all
 }
+
+// ReplaceLoad removes load statements for passed to-symbols and replaces them with a new
+// load at the top of the list of statements. The new load statement is constructed using
+// a string location and two slices of from- and to-symbols. If stmts already contains a
+// load for the location in arguments, appends the symbols to load to it.
+// The function panics if the slices aren't of the same lentgh.
+func ReplaceLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
+	if len(from) != len(to) {
+		panic(fmt.Errorf("length mismatch: %v (from) and %v (to)", len(from), len(to)))
+	}
+
+	toSymbols := make(map[string]bool, len(to))
+	for _, name := range to {
+		toSymbols[name] = true
+	}
+
+	// 1. Remove loads that will be replaced.
+	var all []build.Expr
+	for _, stmt := range stmts {
+		load, ok := stmt.(*build.LoadStmt)
+		if !ok {
+			all = append(all, stmt)
+			continue
+		}
+
+		for i, to := range load.To {
+			if toSymbols[to.Name] {
+				if i < len(load.From)-1 {
+					load.From = append(load.From[:i], load.From[i+1:]...)
+					load.To = append(load.To[:i], load.To[i+1:]...)
+				} else {
+					load.From = load.From[:i]
+					load.To = load.To[:i]
+				}
+			}
+		}
+
+		if len(load.To) > 0 {
+			all = append(all, load)
+		}
+	}
+
+	// 2. Insert new loads.
+	return InsertLoad(all, location, from, to)
+}
