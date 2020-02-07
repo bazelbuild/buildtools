@@ -282,6 +282,27 @@ func cmdReplaceLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdSubstituteLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	oldRegexp, err := regexp.Compile(env.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	newTemplate := env.Args[1]
+
+	for _, stmt := range env.File.Stmt {
+		load, ok := stmt.(*build.LoadStmt)
+		if !ok {
+			continue
+		}
+
+		if newValue, ok := stringSubstitute(load.Module.Value, oldRegexp, newTemplate); ok {
+			load.Module.Value = newValue
+		}
+	}
+
+	return env.File, nil
+}
+
 func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 	format := env.Args
 	if len(format) == 0 {
@@ -655,6 +676,7 @@ var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
 	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
 	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
+	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
 	"delete":            {cmdDelete, true, 0, 0, ""},
