@@ -133,7 +133,10 @@ A transformation can be applied to all rules of a particular kind by using
 buildozer 'add deps //base' //pkg:rule //pkg:rule2
 
 # A load for a skylark file in //pkg
-buildozer 'new_load /tools/build_rules/build_test build_test' //pkg:__pkg__
+buildozer 'new_load //tools/build_rules:build_test.bzl build_test' //pkg:__pkg__
+
+# Replaces existing loads for build_test in //pkg
+buildozer 'replace_load @rules_build//build:defs.bzl build_test' //pkg:__pkg__
 
 # Change the default_visibility to public for the package //pkg
 buildozer 'set default_visibility //visibility:public' //pkg:__pkg__
