@@ -53,6 +53,7 @@ var escapable = [256]bool{
 	't':  true,
 	'x':  true,
 	'\'': true,
+	'\\': true,
 	'"':  true,
 }
 
