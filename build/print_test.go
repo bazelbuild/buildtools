@@ -109,6 +109,32 @@ func TestPrintRewrite(t *testing.T) {
 	}
 }
 
+// Test that attempting to format an incorrect file throws a syntax error
+func TestSyntaxError(t *testing.T) {
+	ins, chdir := findTests(t, ".error")
+	defer chdir()
+	parsers := map[string]func(string, []byte) (*File, error){
+		"bzl":     ParseBzl,
+		"default": ParseDefault,
+	}
+
+	for _, in := range ins {
+		data, err := ioutil.ReadFile(in)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		for name, parser := range parsers {
+			_, err := parser(in, data)
+			if err == nil {
+				t.Errorf("Expected a syntax error for %q (type %q)", in, name)
+				return
+			}
+		}
+	}
+}
+
 // Test that golden files for the build mode aren't modified if reformatted in bzl mode
 func TestPrintBuildAsBzl(t *testing.T) {
 	ins, chdir := findTests(t, ".in")
@@ -201,6 +227,11 @@ func TestPrintParse(t *testing.T) {
 	outs, chdir := findTests(t, "")
 	defer chdir()
 	for _, out := range outs {
+		if strings.HasSuffix(out, ".error") {
+			// Incorrect starlark file, skip
+			continue
+		}
+
 		data, err := ioutil.ReadFile(out)
 		if err != nil {
 			t.Error(err)
