@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/bazelbuild/buildtools/testutils"
@@ -57,6 +58,11 @@ func TestParseTestdata(t *testing.T) {
 		t.Fatal("Data set is empty:", testdata)
 	}
 	for _, out := range outs {
+		if strings.HasSuffix(out, ".error") {
+			// Incorrect starlark file, skip
+			continue
+		}
+
 		data, err := ioutil.ReadFile(out)
 		if err != nil {
 			t.Error(err)
