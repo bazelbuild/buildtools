@@ -4,10 +4,36 @@ go_binary(
     name = "buildifier",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
-    x_defs = {
-        "main.buildVersion": "{STABLE_buildVersion}",
-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
-    },
+)
+
+go_binary(
+    name = "buildifier-darwin",
+    out = "buildifier-darwin_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildifier-linux",
+    out = "buildifier-linux_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildifier-windows",
+    out = "buildifier-windows_amd64.exe",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
 )
 
 # Test that the buildifier binary works
@@ -15,7 +41,6 @@ sh_test(
     name = "buildifier_integration_test",
     size = "small",
     srcs = ["integration_test.sh"],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
     args = [
         "$(location :buildifier)",
         "$(location //buildifier2)",
@@ -24,6 +49,7 @@ sh_test(
         ":buildifier",
         "//buildifier2",
     ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 go_library(
@@ -31,6 +57,10 @@ go_library(
     srcs = ["buildifier.go"],
     importpath = "github.com/bazelbuild/buildtools/buildifier",
     visibility = ["//visibility:private"],
+    x_defs = {
+        "main.buildVersion": "{STABLE_buildVersion}",
+        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+    },
     deps = [
         "//build:go_default_library",
         "//buildifier/utils:go_default_library",
