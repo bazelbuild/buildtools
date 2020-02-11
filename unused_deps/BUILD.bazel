@@ -8,6 +8,10 @@ go_library(
     ],
     importpath = "github.com/bazelbuild/buildtools/unused_deps",
     visibility = ["//visibility:private"],
+    x_defs = {
+        "main.buildVersion": "{STABLE_buildVersion}",
+        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+    },
     deps = [
         "//build:go_default_library",
         "//config:go_default_library",
@@ -22,10 +26,36 @@ go_binary(
     name = "unused_deps",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
-    x_defs = {
-        "main.buildVersion": "{STABLE_buildVersion}",
-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
-    },
+)
+
+go_binary(
+    name = "unused_deps-darwin",
+    out = "unused_deps-darwin_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-linux",
+    out = "unused_deps-linux_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-windows",
+    out = "unused_deps-windows_amd64.exe",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
 )
 
 go_test(
