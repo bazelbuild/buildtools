@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_binary(
@@ -73,4 +75,32 @@ go_library(
 exports_files(
     ["runner.bash.template"],
     visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "launcher",
+    srcs = ["//:launcher.js"],
+    outs = ["buildifier.js"],
+    cmd = "sed s/_TOOL_/buildifier/ $< > $@",
+)
+
+copy_file(
+    name = "copy_LICENSE",
+    src = "//:LICENSE",
+    out = "LICENSE",
+)
+
+pkg_npm(
+    name = "npm_package",
+    srcs = [
+        "package.json",
+        "README.md",
+    ],
+    deps = [
+        "LICENSE",
+        "buildifier.js",
+        ":buildifier-darwin",
+        ":buildifier-linux",
+        ":buildifier-windows",
+    ]
 )

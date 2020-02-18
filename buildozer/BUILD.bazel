@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
@@ -20,6 +22,20 @@ go_binary(
     name = "buildozer",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "buildozer_test",
+    size = "small",
+    srcs = ["buildozer_test.sh"],
+    args = [
+        "$(location :buildozer)",
+    ],
+    data = [
+        "test_common.sh",
+        ":buildozer",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 go_binary(
@@ -52,16 +68,30 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-sh_test(
-    name = "buildozer_test",
-    size = "small",
-    srcs = ["buildozer_test.sh"],
-    args = [
-        "$(location :buildozer)",
+genrule(
+    name = "launcher",
+    srcs = ["//:launcher.js"],
+    outs = ["buildozer.js"],
+    cmd = "sed s/_TOOL_/buildozer/ $< > $@",
+)
+
+copy_file(
+    name = "copy_LICENSE",
+    src = "//:LICENSE",
+    out = "LICENSE",
+)
+
+pkg_npm(
+    name = "npm_package",
+    srcs = [
+        "package.json",
+        "README.md",
     ],
-    data = [
-        "test_common.sh",
-        ":buildozer",
-    ],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
+    deps = [
+        "LICENSE",
+        "buildozer.js",
+        ":buildozer-darwin",
+        ":buildozer-linux",
+        ":buildozer-windows",
+    ]
 )
