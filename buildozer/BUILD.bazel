@@ -24,6 +24,20 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+sh_test(
+    name = "buildozer_test",
+    size = "small",
+    srcs = ["buildozer_test.sh"],
+    args = [
+        "$(location :buildozer)",
+    ],
+    data = [
+        "test_common.sh",
+        ":buildozer",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
 go_binary(
     name = "buildozer-darwin",
     out = "buildozer-darwin_amd64",
@@ -53,7 +67,6 @@ go_binary(
     pure = "on",
     visibility = ["//visibility:public"],
 )
-
 
 genrule(
     name = "launcher",
