@@ -373,8 +373,9 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		}
 		if err := diff.Show(infile, outfile); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			return fileDiagnostics, 4
+			return fileDiagnostics, 3
 		}
+		return fileDiagnostics, 4
 
 	case "pipe":
 		// pipe mode - reading from stdin, writing to stdout.
