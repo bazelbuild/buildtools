@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"syscall"
 )
 
 // Invocation of different diff commands, according to environment variables.
@@ -56,11 +57,17 @@ func (d *Differ) run(command string, args ...string) error {
 		return fmt.Errorf("buildifier: %s: %v", command, err)
 	}
 
-	// Assume bash reported anything else worth reporting.
-	// As long as the program started (above), we don't care about the
-	// exact exit status. In the most common case, the diff command
-	// will exit 1, because there are diffs, causing bash to exit 1.
-	return cmd.Wait()
+	// Assume that the diff program adhere to ordinary diff commands
+	// exit codes i.e. 0 no differences, 1 differences found, >1 an
+	// error occoured.
+	fmt.Fprintf(os.Stdout, "differ: %s\n", cmd)
+	if err := cmd.Wait(); err != nil {
+		if status, ok := err.(*exec.ExitError).Sys().(syscall.WaitStatus); ok && status.ExitStatus() != 1 {
+			return fmt.Errorf("buildifier: %s: %v", command, err)
+		}
+	}
+
+	return nil
 }
 
 // Show diffs old and new.
