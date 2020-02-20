@@ -77,20 +77,31 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 	}
 }
 
-// GetPackageName returns the package name of a file by searching for a WORKSPACE file
-func GetPackageName(filename string) string {
-	dirs := filepath.SplitList(path.Dir(filename))
-	dirs = append([]string{""}, dirs...)
-	parent := ""
-	index := len(dirs) - 1
+// SplitFilePath splits a file path into the workspace root and package name.
+// Workspace root is determined as the last directory in the file path that
+// contains a WORKSPACE file.
+// Returns empty strings if no WORKSPACE file is found
+func SplitFilePath(filename string) (workspaceRoot, pkg string) {
+	directory := path.Dir(filename)
+	root := "/"
+	if volume := filepath.VolumeName(directory); volume != "" {
+		// Windows
+		root = volume + "\\"
+	}
+	// directory relative to the file system root
+	relPath := directory[len(root):]
+
+	dirs := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
+	parent := root
 	for i, chunk := range dirs {
-		parent = path.Join(parent, chunk)
-		workspace := path.Join(parent, "WORKSPACE")
+		parent = filepath.Join(parent, chunk)
+		workspace := filepath.Join(parent, "WORKSPACE")
 		if _, err := os.Stat(workspace); !os.IsNotExist(err) {
-			index = i
+			workspaceRoot = parent
+			pkg = strings.Join(dirs[i+1:], "/")
 		}
 	}
-	return strings.Join(dirs[index+1:], "/")
+	return workspaceRoot, pkg
 }
 
 // Lint calls the linter and returns a list of unresolved findings

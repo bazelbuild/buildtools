@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -116,4 +119,42 @@ func TestIsStarlarkFile(t *testing.T) {
 			t.Errorf("Wrong result for %q, want %t", tc.filename, tc.ok)
 		}
 	}
+}
+
+func checkSplitFilePathOutput(t *testing.T, name, filename, expectedWorkspaceRoot, expectedPkg string) {
+	workspaceRoot, pkg := SplitFilePath(filename)
+	if workspaceRoot != expectedWorkspaceRoot {
+		t.Errorf("%s: expected the workspace root to be %q, was %q instead", name, expectedWorkspaceRoot, workspaceRoot)
+	}
+	if pkg != expectedPkg {
+		t.Errorf("%s: expected the package name to be %q, was %q instead", name, expectedPkg, pkg)
+	}
+}
+
+func TestSplitFilePath(t *testing.T) {
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	filename := filepath.Join(dir, "path", "to", "package", "file.bzl")
+	checkSplitFilePathOutput(t, "No WORKSPACE file", filename, "", "")
+
+	// Create a WORKSPACE file and try again (dir/WORKSPACE)
+	if err := ioutil.WriteFile(filepath.Join(dir, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
+		t.Error(err)
+	}
+	checkSplitFilePathOutput(t, "WORKSPACE file exists", filename, dir, "path/to/package")
+	checkSplitFilePathOutput(t, "WORKSPACE file exists, empty package", filepath.Join(dir, "file.bzl"), dir, "")
+
+	// Create another WORKSPACE file and try again (dir/path/WORKSPACE)
+	newRoot := filepath.Join(dir, "path")
+	if err := os.MkdirAll(newRoot, os.ModePerm); err != nil {
+		t.Error(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(newRoot, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
+		t.Error(err)
+	}
+	checkSplitFilePathOutput(t, "Two WORKSPACE files exist", filename, newRoot, "to/package")
 }
