@@ -146,6 +146,7 @@ func TestSplitFilePath(t *testing.T) {
 		t.Error(err)
 	}
 	checkSplitFilePathOutput(t, "WORKSPACE file exists", filename, dir, "path/to/package")
+	checkSplitFilePathOutput(t, "WORKSPACE file exists, empty package", filepath.Join(dir, "file.bzl"), dir, "")
 
 	// Create another WORKSPACE file and try again (dir/path/WORKSPACE)
 	newRoot := filepath.Join(dir, "path")
