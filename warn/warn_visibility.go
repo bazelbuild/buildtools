@@ -12,8 +12,15 @@ import (
 
 var internalDirectory = regexp.MustCompile("/(internal|private)[/:]")
 
-func deprecatedBzlLoadWarning(f *build.File) []*LinterFinding {
+func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
+
+	if f.WorkspaceRoot == "" {
+		// Empty workspace root means buildifier doesn't know the location of
+		// the file relative to the workspace directory and can't warn about .bzl
+		// file visibility correctly.
+		return findings
+	}
 
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
