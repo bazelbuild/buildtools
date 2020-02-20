@@ -327,7 +327,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		return utils.InvalidFileDiagnostics(displayFilename), exitCode
 	}
 
-	f.Pkg = utils.GetPackageName(displayFilename)
+	_, f.Pkg = utils.SplitFilePath(displayFilename)
 	warnings := utils.Lint(f, lint, warningsList, *vflag)
 	if len(warnings) > 0 {
 		exitCode = 4
