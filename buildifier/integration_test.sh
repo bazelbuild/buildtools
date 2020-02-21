@@ -33,7 +33,7 @@ die () {
 buildifier="$(rlocation "$buildifier")"
 buildifier2="$(rlocation "$buildifier2")"
 
-touch WORKSPACE
+touch WORKSPACE.bazel
 mkdir -p test_dir/subdir
 mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
@@ -152,9 +152,7 @@ test_lint () {
   ret=0
   cp test_dir/to_fix.bzl test_dir/to_fix_tmp.bzl
   echo "$4" > golden/error_golden
-  cp golden/error_golden golden/error_golden_foo
-  sed -i 's/test_dir/another\/test\/dir/g' golden/error_golden_foo
-  sed -i 's/to_fix_tmp.bzl/foo.bzl/g' golden/error_golden_foo
+  echo "${4//test_dir/another_test_dir}" > golden/error_golden_another
 
   cat > golden/fix_report_golden <<EOF
 test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
@@ -177,11 +175,11 @@ EOF
   diff test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
 
   # --lint=warn with --path
-  $buildifier --lint=warn --path=another/test/dir/foo.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
+  $buildifier --lint=warn --path=another_test_dir/to_fix_tmp.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/error golden/error_golden_foo || die "$1: wrong console output for --lint=warn and --path"
+  diff test_dir/error golden/error_golden_another || die "$1: wrong console output for --lint=warn and --path"
 
   # --lint=fix
   $buildifier --lint=fix $2 -v test_dir/to_fix_tmp.bzl 2> test_dir/fix_report || ret=$?
