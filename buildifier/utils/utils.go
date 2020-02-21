@@ -77,7 +77,7 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 }
 
 // hasWorkspaceFile checks whether a given directory contains a file called
-// WORKSPACE or WORKSPACE.bazel. The contents are not checked
+// WORKSPACE or WORKSPACE.bazel.
 func hasWorkspaceFile(path string) bool {
 	for _, filename := range []string{"WORKSPACE", "WORKSPACE.bazel"} {
 		workspace := filepath.Join(path, filename)
