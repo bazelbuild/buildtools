@@ -34,6 +34,7 @@ buildifier="$(rlocation "$buildifier")"
 buildifier2="$(rlocation "$buildifier2")"
 
 touch WORKSPACE.bazel
+rm -r test_dir || true
 mkdir -p test_dir/subdir
 mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes

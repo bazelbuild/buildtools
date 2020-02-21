@@ -4,7 +4,6 @@ package utils
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -95,7 +94,7 @@ func hasWorkspaceFile(path string) bool {
 // contains a WORKSPACE (or WORKSPACE.bazel) file.
 // Returns empty strings if no WORKSPACE file is found
 func SplitFilePath(filename string) (workspaceRoot, pkg string) {
-	directory := path.Dir(filename)
+	directory := filepath.Dir(filename)
 	root := "/"
 	if volume := filepath.VolumeName(directory); volume != "" {
 		// Windows
