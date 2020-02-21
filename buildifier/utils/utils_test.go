@@ -148,6 +148,13 @@ func TestSplitFilePath(t *testing.T) {
 	checkSplitFilePathOutput(t, "WORKSPACE file exists", filename, dir, "path/to/package")
 	checkSplitFilePathOutput(t, "WORKSPACE file exists, empty package", filepath.Join(dir, "file.bzl"), dir, "")
 
+	// Rename WORKSPACE to WORKSPACE.bazel and try again (dir/WORKSPACE.bazel)
+	if err := os.Rename(filepath.Join(dir, "WORKSPACE"), filepath.Join(dir, "WORKSPACE.bazel")); err != nil {
+		t.Error(err)
+	}
+	checkSplitFilePathOutput(t, "WORKSPACE file exists", filename, dir, "path/to/package")
+	checkSplitFilePathOutput(t, "WORKSPACE file exists, empty package", filepath.Join(dir, "file.bzl"), dir, "")
+
 	// Create another WORKSPACE file and try again (dir/path/WORKSPACE)
 	newRoot := filepath.Join(dir, "path")
 	if err := os.MkdirAll(newRoot, os.ModePerm); err != nil {

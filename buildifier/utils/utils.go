@@ -4,7 +4,6 @@ package utils
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -77,12 +76,25 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 	}
 }
 
+// hasWorkspaceFile checks whether a given directory contains a file called
+// WORKSPACE or WORKSPACE.bazel.
+func hasWorkspaceFile(path string) bool {
+	for _, filename := range []string{"WORKSPACE", "WORKSPACE.bazel"} {
+		workspace := filepath.Join(path, filename)
+		info, err := os.Stat(workspace)
+		if err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
 // SplitFilePath splits a file path into the workspace root and package name.
 // Workspace root is determined as the last directory in the file path that
-// contains a WORKSPACE file.
+// contains a WORKSPACE (or WORKSPACE.bazel) file.
 // Returns empty strings if no WORKSPACE file is found
 func SplitFilePath(filename string) (workspaceRoot, pkg string) {
-	directory := path.Dir(filename)
+	directory := filepath.Dir(filename)
 	root := "/"
 	if volume := filepath.VolumeName(directory); volume != "" {
 		// Windows
@@ -95,8 +107,7 @@ func SplitFilePath(filename string) (workspaceRoot, pkg string) {
 	parent := root
 	for i, chunk := range dirs {
 		parent = filepath.Join(parent, chunk)
-		workspace := filepath.Join(parent, "WORKSPACE")
-		if _, err := os.Stat(workspace); !os.IsNotExist(err) {
+		if hasWorkspaceFile(parent) {
 			workspaceRoot = parent
 			pkg = strings.Join(dirs[i+1:], "/")
 		}

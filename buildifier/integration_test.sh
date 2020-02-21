@@ -33,6 +33,8 @@ die () {
 buildifier="$(rlocation "$buildifier")"
 buildifier2="$(rlocation "$buildifier2")"
 
+touch WORKSPACE.bazel
+rm -r test_dir || true
 mkdir -p test_dir/subdir
 mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
@@ -97,50 +99,61 @@ fi
 # Test the linter
 
 cat > test_dir/to_fix.bzl <<EOF
+load("//foo/bar/internal/baz:module.bzl", "b")
+
 a = b / c
 d = {"b": 2, "a": 1}
 attr.foo(bar, cfg = "data")
 EOF
 
 cat > test_dir/fixed_golden.bzl <<EOF
+load("//foo/bar/internal/baz:module.bzl", "b")
+
 a = b // c
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
 
 cat > test_dir/fixed_golden_all.bzl <<EOF
+load("//foo/bar/internal/baz:module.bzl", "b")
+
 a = b // c
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
 
 cat > test_dir/fixed_golden_dict_cfg.bzl <<EOF
+load("//foo/bar/internal/baz:module.bzl", "b")
+
 a = b / c
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
 
 cat > test_dir/fixed_golden_cfg.bzl <<EOF
+load("//foo/bar/internal/baz:module.bzl", "b")
+
 a = b / c
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
 
 cat > test_dir/fix_report_golden <<EOF
-test_dir/to_fix_tmp.bzl: applied fixes, 1 warnings left
+test_dir/to_fix_tmp.bzl: applied fixes, 2 warnings left
 fixed test_dir/to_fix_tmp.bzl
 EOF
 
+error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
 error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
-error_integer="test_dir/to_fix_tmp.bzl:1: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
-error_dict="test_dir/to_fix_tmp.bzl:2: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
-error_cfg="test_dir/to_fix_tmp.bzl:3: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
+error_integer="test_dir/to_fix_tmp.bzl:3: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
+error_dict="test_dir/to_fix_tmp.bzl:4: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
+error_cfg="test_dir/to_fix_tmp.bzl:5: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
 
 test_lint () {
   ret=0
   cp test_dir/to_fix.bzl test_dir/to_fix_tmp.bzl
   echo "$4" > golden/error_golden
-  echo "${4//test_dir\/to_fix_tmp.bzl/foo.bzl}" > golden/error_golden_foo
+  echo "${4//test_dir/another_test_dir}" > golden/error_golden_another
 
   cat > golden/fix_report_golden <<EOF
 test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
@@ -163,11 +176,11 @@ EOF
   diff test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
 
   # --lint=warn with --path
-  $buildifier --lint=warn --path=foo.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
+  $buildifier --lint=warn --path=another_test_dir/to_fix_tmp.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/error golden/error_golden_foo || die "$1: wrong console output for --lint=warn and --path"
+  diff test_dir/error golden/error_golden_another || die "$1: wrong console output for --lint=warn and --path"
 
   # --lint=fix
   $buildifier --lint=fix $2 -v test_dir/to_fix_tmp.bzl 2> test_dir/fix_report || ret=$?
@@ -178,8 +191,8 @@ EOF
   diff test_dir/fix_report golden/fix_report_golden || die "$1: wrong console output for --lint=fix"
 }
 
-test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_integer"$'\n'"$error_docstring"$'\n'"$error_cfg" 1
-test_lint "all" "--warnings=all" "test_dir/fixed_golden_all.bzl" "$error_integer"$'\n'"$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
+test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_docstring"$'\n'"$error_integer"$'\n'"$error_cfg" 1
+test_lint "all" "--warnings=all" "test_dir/fixed_golden_all.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_dict"$'\n'"$error_cfg" 2
 test_lint "cfg" "--warnings=attr-cfg" "test_dir/fixed_golden_cfg.bzl" "$error_cfg" 0
 test_lint "custom" "--warnings=-integer-division,+unsorted-dict-items" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
 
@@ -219,11 +232,11 @@ cat > golden/json_report_golden <<EOF
             "warnings": [
                 {
                     "start": {
-                        "line": 1,
+                        "line": 3,
                         "column": 5
                     },
                     "end": {
-                        "line": 1,
+                        "line": 3,
                         "column": 10
                     },
                     "category": "integer-division",
@@ -233,11 +246,11 @@ cat > golden/json_report_golden <<EOF
                 },
                 {
                     "start": {
-                        "line": 3,
+                        "line": 5,
                         "column": 15
                     },
                     "end": {
-                        "line": 3,
+                        "line": 5,
                         "column": 27
                     },
                     "category": "attr-cfg",

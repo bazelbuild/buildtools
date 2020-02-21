@@ -106,7 +106,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
-	"bzl-visibility":            deprecatedBzlLoadWarning,
+	"bzl-visibility":            bzlVisibilityWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -327,7 +328,10 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		return utils.InvalidFileDiagnostics(displayFilename), exitCode
 	}
 
-	_, f.Pkg = utils.SplitFilePath(displayFilename)
+	if absoluteFilename, err := filepath.Abs(displayFilename); err == nil {
+		f.WorkspaceRoot, f.Pkg = utils.SplitFilePath(absoluteFilename)
+	}
+
 	warnings := utils.Lint(f, lint, warningsList, *vflag)
 	if len(warnings) > 0 {
 		exitCode = 4
