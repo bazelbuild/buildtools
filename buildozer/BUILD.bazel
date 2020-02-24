@@ -84,8 +84,8 @@ copy_file(
 pkg_npm(
     name = "npm_package",
     srcs = [
-        "package.json",
         "README.md",
+        "package.json",
     ],
     deps = [
         "LICENSE",
@@ -93,5 +93,5 @@ pkg_npm(
         ":buildozer-darwin",
         ":buildozer-linux",
         ":buildozer-windows",
-    ]
+    ],
 )
