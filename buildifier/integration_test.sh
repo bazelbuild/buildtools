@@ -191,10 +191,10 @@ EOF
   diff test_dir/fix_report golden/fix_report_golden || die "$1: wrong console output for --lint=fix"
 }
 
-test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_docstring"$'\n'"$error_integer"$'\n'"$error_cfg" 1
+test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_cfg" 2
 test_lint "all" "--warnings=all" "test_dir/fixed_golden_all.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_dict"$'\n'"$error_cfg" 2
 test_lint "cfg" "--warnings=attr-cfg" "test_dir/fixed_golden_cfg.bzl" "$error_cfg" 0
-test_lint "custom" "--warnings=-integer-division,+unsorted-dict-items" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
+test_lint "custom" "--warnings=-bzl-visibility,-integer-division,+unsorted-dict-items" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
 
 # Test --format=json
 
@@ -230,6 +230,20 @@ cat > golden/json_report_golden <<EOF
             "formatted": true,
             "valid": true,
             "warnings": [
+                {
+                    "start": {
+                        "line": 1,
+                        "column": 6
+                    },
+                    "end": {
+                        "line": 1,
+                        "column": 41
+                    },
+                    "category": "bzl-visibility",
+                    "actionable": true,
+                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json\".",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility"
+                },
                 {
                     "start": {
                         "line": 3,
