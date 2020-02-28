@@ -50,4 +50,5 @@ strings = [
     # correct escape sequences
     """ aa\\bb\n \
   """,
+    "\000\111\222",
 ]
