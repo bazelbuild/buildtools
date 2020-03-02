@@ -70,11 +70,13 @@ Buildozer supports the following commands(`'command args'`):
     `buildozer 'fix unusedLoads'`.
   * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
     existing load statements for the requested symbols before adding new loads.
-  * `substitute_load <old_regexp> <new_template>` Replaces modules of loads which
-    match `old_regexp` according to `new_template`. The regular expression must
-    follow [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
-    `new_template` may be a simple replacement string, but it may also expand
-    numbered or named groups using `$0` or `$x`.
+  * `substitute_load <old_regexp> <new_template> [<except_match_regexp>]`
+    Replaces modules of loads which match `old_regexp` according to
+    `new_template`. If `except_match_regexp` is defined, loads matching
+    `except_match_regexp` are never replaced. The regular expression must follow
+    [RE2 syntax](https://github.com/google/re2/wiki/Syntax). `new_template` may
+    be a simple replacement string, but it may also expand numbered or named
+    groups using `$0` or `$x`.
   * `comment <attr>? <value>? <comment>`: Add a comment to a rule, an attribute,
     or a specific value in a list. Spaces in the comment should be escaped with
     backslashes.
@@ -97,9 +99,11 @@ Buildozer supports the following commands(`'command args'`):
   * `replace <attr> <old_value> <new_value>`: Replaces `old_value` with `new_value`
     in the list `attr`. Wildcard `*` matches all attributes. Lists not containing
     `old_value` are not modified.
-  * `substitute <attr> <old_regexp> <new_template>`: Replaces strings which
-    match `old_regexp` in the list `attr` according to `new_template`. Wildcard
-    `*` matches all attributes. The regular expression must follow
+  * `substitute <attr> <old_regexp> <new_template> [<except_match_regexp>]`:
+    Replaces strings which match `old_regexp` in the list `attr` according to
+    `new_template`. Wildcard `*` matches all attributes.
+    If `except_match_regexp` is defined, values matching `except_match_regexp`
+    are never replaced. The regular expression must follow
     [RE2 syntax](https://github.com/google/re2/wiki/Syntax). `new_template` may
     be a simple replacement string, but it may also expand numbered or named
     groups using `$0` or `$x`. Lists without strings that match `old_regexp`
@@ -162,6 +166,11 @@ buildozer 'replace deps //pkg_v1 //pkg_v2' //pkg:rule
 
 # Replace all dependencies using regular expressions.
 buildozer 'substitute deps //old/(.*) //new/${1}' //pkg:rule
+
+# Replace all attributes looking like workspace-relative labels using regular
+# expressions, except if they start with `//conditions`, `//external`, or
+# `//visibility` (which are not regular Bazel packages).
+buildozer 'substitute * ^//([^:].*)$ //third_party/foo/${1} ^//(conditions|external|visibility).*$' //pkg:rule
 
 # Delete the dependency on foo in every cc_library in the package
 buildozer 'remove deps foo' //pkg:%cc_library

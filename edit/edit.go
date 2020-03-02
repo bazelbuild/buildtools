@@ -722,7 +722,7 @@ func ListReplace(e build.Expr, old, value, pkg string) bool {
 // ListSubstitute replaces strings matching a regular expression in all lists
 // in e and returns a Boolean to indicate whether the replacement was
 // successful.
-func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) bool {
+func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string, exceptRegexp *regexp.Regexp) bool {
 	substituted := false
 	for _, li := range AllLists(e) {
 		for k, elem := range li.List {
@@ -730,7 +730,7 @@ func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) 
 			if !ok {
 				continue
 			}
-			newValue, ok := stringSubstitute(str.Value, oldRegexp, newTemplate)
+			newValue, ok := stringSubstitute(str.Value, oldRegexp, newTemplate, exceptRegexp)
 			if ok {
 				li.List[k] = &build.StringExpr{Value: newValue, Comments: *elem.Comment()}
 				substituted = true
@@ -740,7 +740,11 @@ func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) 
 	return substituted
 }
 
-func stringSubstitute(oldValue string, oldRegexp *regexp.Regexp, newTemplate string) (string, bool) {
+func stringSubstitute(oldValue string, oldRegexp *regexp.Regexp, newTemplate string, exceptRegexp *regexp.Regexp) (string, bool) {
+	if exceptRegexp.MatchString(oldValue) {
+		return oldValue, false
+	}
+
 	match := oldRegexp.FindStringSubmatchIndex(oldValue)
 	if match == nil {
 		return oldValue, false
