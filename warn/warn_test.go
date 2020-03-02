@@ -39,6 +39,7 @@ func getFindings(category, input string, fileType build.FileType) []*Finding {
 		panic(fmt.Sprintf("%v", err))
 	}
 	buildFile.Pkg = "test/package"
+	buildFile.WorkspaceRoot = "/home/users/foo/bar"
 	return FileWarnings(buildFile, []string{category}, nil, ModeWarn)
 }
 

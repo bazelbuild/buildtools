@@ -69,3 +69,7 @@ rules_proto_toolchains()
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 
 buildifier_dependencies()
+
+load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
+
+node_repositories()

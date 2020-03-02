@@ -106,7 +106,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
-	"bzl-visibility":            deprecatedBzlLoadWarning,
+	"bzl-visibility":            bzlVisibilityWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
@@ -160,7 +160,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 var nonDefaultWarnings = map[string]bool{
 	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
-	"bzl-visibility":      true, // visibility of .bzl files
 }
 
 // fileWarningWrapper is a wrapper that converts a file warning function to a generic function.

@@ -1,6 +1,11 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 
+exports_files([
+    "LICENSE",
+    "launcher.js",
+])
+
 config_setting(
     name = "windows",
     values = {"cpu": "x64_windows"},
