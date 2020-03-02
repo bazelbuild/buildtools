@@ -1,5 +1,3 @@
-load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
@@ -68,30 +66,10 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-genrule(
-    name = "launcher",
-    srcs = ["//:launcher.js"],
-    outs = ["buildozer.js"],
-    cmd = "sed s/_TOOL_/buildozer/ $< > $@",
-)
-
-copy_file(
-    name = "copy_LICENSE",
-    src = "//:LICENSE",
-    out = "LICENSE",
-)
-
-pkg_npm(
-    name = "npm_package",
-    srcs = [
+exports_files(
+    [
         "README.md",
         "package.json",
     ],
-    deps = [
-        "LICENSE",
-        "buildozer.js",
-        ":buildozer-darwin",
-        ":buildozer-linux",
-        ":buildozer-windows",
-    ],
+    visibility = ["//buildozer/npm:__pkg__"],
 )
