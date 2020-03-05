@@ -1,0 +1,30 @@
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+
+copy_file(
+    name = "copy_LICENSE",
+    src = "//:LICENSE",
+    out = "LICENSE",
+)
+
+genrule(
+    name = "buildozer_launcher",
+    srcs = ["//:launcher.js"],
+    outs = ["buildozer.js"],
+    cmd = "sed s/_TOOL_/buildozer/ $< > $@",
+)
+
+pkg_npm(
+    name = "buildozer",
+    srcs = [
+        "package.json",
+    ],
+    deps = [
+        "LICENSE",
+        "buildozer.js",
+        "//buildozer:README.md",
+        "//buildozer:buildozer-darwin",
+        "//buildozer:buildozer-linux",
+        "//buildozer:buildozer-windows",
+    ],
+)

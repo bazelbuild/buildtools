@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -u -e -o pipefail 
+set -u -e -o pipefail
 
 # TODO(vladmos): add bits for publishing go binaries to github￼
 
@@ -17,5 +17,5 @@ readonly NPM_ARGS=(
     # "--dry-run"
 )
 for pkg in buildifier buildozer; do
-    bazel run --config=release //$pkg:npm_package.publish -- ${NPM_ARGS[@]}
+    bazel run --config=release //$pkg/npm:$pkg.publish -- ${NPM_ARGS[@]}
 done

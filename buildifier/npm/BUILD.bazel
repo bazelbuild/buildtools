@@ -1,0 +1,30 @@
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+
+copy_file(
+    name = "copy_LICENSE",
+    src = "//:LICENSE",
+    out = "LICENSE",
+)
+
+genrule(
+    name = "buildifier_launcher",
+    srcs = ["//:launcher.js"],
+    outs = ["buildifier.js"],
+    cmd = "sed s/_TOOL_/buildifier/ $< > $@",
+)
+
+pkg_npm(
+    name = "buildifier",
+    srcs = [
+        "package.json",
+    ],
+    deps = [
+        "LICENSE",
+        "buildifier.js",
+        "//buildifier:README.md",
+        "//buildifier:buildifier-darwin",
+        "//buildifier:buildifier-linux",
+        "//buildifier:buildifier-windows",
+    ],
+)
