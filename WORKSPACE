@@ -77,6 +77,11 @@ http_archive(
     urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/1.3.0/rules_nodejs-1.3.0.tar.gz"],
 )
 
-load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
+load("@build_bazel_rules_nodejs//:index.bzl", "npm_install")
 
-node_repositories()
+# Fetch third-party dependencies for building npm packages
+npm_install(
+    name = "buildozer_npm_deps",
+    package_json = "//buildozer/npm:package.json",
+    package_lock_json = "//buildozer/npm:package-lock.json",
+)

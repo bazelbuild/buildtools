@@ -15,5 +15,9 @@
     },
     "bugs": {
         "url": "https://github.com/bazelbuild/buildtools/issues"
+    },
+    "devDependencies": {
+        "@types/node": "^13.9.0",
+        "typescript": "^3.8.3"
     }
 }
