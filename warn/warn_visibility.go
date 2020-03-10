@@ -28,8 +28,22 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 			continue
 		}
 
+		// A load statement may use a fully qualified module name (including a
+		// repository name). Buildifier should check if the repository name refers
+		// to the current repository, but because it doesn't know the current
+		// repository name it's better to assume that it matches the repository name
+		// in the load statement: this way it may miss some usages of private .bzl
+		// files that aren't supposed to be visible, but won't show false-positive
+		// warnings in case the private file is actually allowed to be used.
+		module := load.Module.Value
+		if strings.HasPrefix(module, "@") {
+			if chunks := strings.SplitN(module, "//", 2); len(chunks) == 2 {
+				module = "//" + chunks[1]
+			}
+		}
+
 		pkg := "//" + f.Pkg // Canonical name of the package
-		chunks := internalDirectory.Split(load.Module.Value, 2)
+		chunks := internalDirectory.Split(module, 2)
 		if len(chunks) < 2 {
 			continue
 		}
