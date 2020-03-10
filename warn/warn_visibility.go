@@ -37,7 +37,7 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 		// warnings in case the private file is actually allowed to be used.
 		module := load.Module.Value
 		if strings.HasPrefix(module, "@") {
-			if chunks := strings.SplitN(module, "//",2); len(chunks) == 2 {
+			if chunks := strings.SplitN(module, "//", 2); len(chunks) == 2 {
 				module = "//" + chunks[1]
 			}
 		}
