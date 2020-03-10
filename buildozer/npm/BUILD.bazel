@@ -1,10 +1,30 @@
 load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
 
 copy_file(
     name = "copy_LICENSE",
     src = "//:LICENSE",
     out = "LICENSE",
+)
+
+tsc(
+    name = "compile_ts",
+    args = [
+        "$(execpath index.ts)",
+        "--outDir $(RULEDIR)",
+        "--target es2015",
+        "--module commonjs",
+        "--declaration",
+    ],
+    outs = [
+        "index.js",
+        "index.d.ts",
+    ],
+    data = [
+        "index.ts",
+        "@buildozer_npm_deps//@types/node",
+    ],
 )
 
 genrule(
@@ -22,6 +42,8 @@ pkg_npm(
     deps = [
         "LICENSE",
         "buildozer.js",
+        "index.js",
+        "index.d.ts",
         "//buildozer:README.md",
         "//buildozer:buildozer-darwin",
         "//buildozer:buildozer-linux",
