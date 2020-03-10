@@ -1,4 +1,4 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm", "nodejs_test")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 copy_file(
@@ -14,6 +14,28 @@ genrule(
     cmd = "sed s/_TOOL_/buildifier/ $< > $@",
 )
 
+# npm rules live in this subdirectory to avoid a load() statement
+# in the parent package leaking to users. This means we need
+# to copy the output files so the pkg_npm will find them in the 
+# output directory for this package.
+_PARENT_PACKAGE_FILES = [
+    "README.md",
+    "buildifier-darwin_amd64",
+    "buildifier-linux_amd64",
+    "buildifier-windows_amd64.exe",
+]
+
+[
+    copy_file(
+        name = "copy_%s" % s,
+        # go_binary doesn't give a predeclared output for
+        # the file in "out" so we have to construct a
+        # label to reference the go_binary rule itself.
+        src = "//buildifier:%s" % s.split("_")[0],
+        out = s,
+    ) for s in _PARENT_PACKAGE_FILES
+]
+
 pkg_npm(
     name = "buildifier",
     srcs = [
@@ -22,9 +44,11 @@ pkg_npm(
     deps = [
         "LICENSE",
         "buildifier.js",
-        "//buildifier:README.md",
-        "//buildifier:buildifier-darwin",
-        "//buildifier:buildifier-linux",
-        "//buildifier:buildifier-windows",
-    ],
+    ] + _PARENT_PACKAGE_FILES,
+)
+
+nodejs_test(
+    name = "integration_test",
+    data = [":buildifier"],
+    entry_point = "test.js",
 )

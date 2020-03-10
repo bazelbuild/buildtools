@@ -69,7 +69,6 @@ go_binary(
 exports_files(
     [
         "README.md",
-        "package.json",
     ],
     visibility = ["//buildozer/npm:__pkg__"],
 )
