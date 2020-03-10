@@ -1,4 +1,4 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm", "nodejs_test")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 copy_file(
@@ -45,4 +45,10 @@ pkg_npm(
         "LICENSE",
         "buildifier.js",
     ] + _PARENT_PACKAGE_FILES,
+)
+
+nodejs_test(
+    name = "integration_test",
+    data = [":buildifier"],
+    entry_point = "test.js",
 )

@@ -1,4 +1,4 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm", "nodejs_test")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
 
@@ -67,4 +67,10 @@ pkg_npm(
         "index.js",
         "index.d.ts"
     ] + _PARENT_PACKAGE_FILES
+)
+
+nodejs_test(
+    name = "integration_test",
+    data = [":buildozer"],
+    entry_point = "test.js",
 )
