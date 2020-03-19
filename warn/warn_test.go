@@ -23,7 +23,7 @@ const (
 // reset it when it finishes.
 var testFileReader *FileReader
 
-func setUpFileReader(data map[string]string) func() {
+func setUpFileReader(data map[string]string) (cleanup func()) {
 	readFile := func(filename string) ([]byte, error) {
 		if contents, ok := data[filename]; ok {
 			return []byte(contents), nil
@@ -31,7 +31,7 @@ func setUpFileReader(data map[string]string) func() {
 		return nil, fmt.Errorf("File not found")
 	}
 	testFileReader = &FileReader{}
-	testFileReader.Init(readFile)
+	testFileReader.NewFileReader(readFile)
 
 	return func() {
 		// Tear down

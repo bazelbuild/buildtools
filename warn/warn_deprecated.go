@@ -25,10 +25,32 @@ func getPathFromLabel(label, pkg string) string {
 
 func readBzlFile(path string, fileReader *FileReader) (*build.File, bool) {
 	file := fileReader.GetFile(path)
-	if file == nil {
-		return nil, false
+	return file, file != nil
+}
+
+func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.Ident, path string) *LinterFinding {
+	def, ok := stmt.(*build.DefStmt)
+	if !ok {
+		return nil
 	}
-	return file, true
+	node, ok := (*loadedSymbols)[def.Name]
+	if !ok {
+		return nil
+	}
+	docstring, ok := getDocstring(def.Body)
+	if !ok {
+		return nil
+	}
+	str, ok := docstring.(*build.StringExpr)
+	if !ok {
+		return nil
+	}
+	docstringInfo := parseFunctionDocstring(str)
+	if !docstringInfo.deprecated {
+		return nil
+	}
+
+	return makeLinterFinding(node, fmt.Sprintf("The function %q defined in %q is deprecated.", def.Name, path))
 }
 
 func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterFinding {
@@ -57,29 +79,9 @@ func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterF
 		}
 
 		for _, stmt := range loadedFile.Stmt {
-			def, ok := stmt.(*build.DefStmt)
-			if !ok {
-				continue
+			if finding := checkDeprecatedFunction(stmt, &loadedSymbols, path); finding != nil {
+				findings = append(findings, finding)
 			}
-			if _, ok := loadedSymbols[def.Name]; !ok {
-				continue
-			}
-			docstring, ok := getDocstring(def.Body)
-			if !ok {
-				continue
-			}
-			str, ok := docstring.(*build.StringExpr)
-			if !ok {
-				continue
-			}
-			docstringInfo := parseFunctionDocstring(str)
-			if !docstringInfo.deprecated {
-				continue
-			}
-
-			findings = append(findings,
-				makeLinterFinding(loadedSymbols[def.Name], fmt.Sprintf(
-					"The function %q defined in %q is deprecated.", def.Name, path)))
 		}
 
 	}

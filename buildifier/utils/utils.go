@@ -3,7 +3,7 @@
 package utils
 
 import (
-    "io/ioutil"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -124,19 +124,15 @@ func getFileReader(workspaceRoot string) *warn.FileReader {
 	}
 
 	readFile := func(filename string) ([]byte, error) {
-	    // Use OS-specific path separators
-        filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
+		// Use OS-specific path separators
+		filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 		path := filepath.Join(workspaceRoot, filename)
 
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		return data, nil
+		return ioutil.ReadFile(path)
 	}
 
 	fileReader := &warn.FileReader{}
-	fileReader.Init(readFile)
+	fileReader.NewFileReader(readFile)
 	return fileReader
 }
 

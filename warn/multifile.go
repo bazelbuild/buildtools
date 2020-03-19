@@ -11,10 +11,10 @@ type FileReader struct {
 	readFile func(string) ([]byte, error)
 }
 
-// Init initializes a FileReader instance with an instance of function
+// NewFileReader initializes a FileReader instance with an instance of function
 // that can read an arbitrary file in the repository using a path relative
 // to the workspace root.
-func (fr *FileReader) Init(readFile func(string) ([]byte, error)) {
+func (fr *FileReader) NewFileReader(readFile func(string) ([]byte, error)) {
 	fr.cache = make(map[string]*build.File)
 	fr.readFile = readFile
 }
