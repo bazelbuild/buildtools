@@ -3,6 +3,7 @@
 package utils
 
 import (
+    "io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -115,13 +116,37 @@ func SplitFilePath(filename string) (workspaceRoot, pkg string) {
 	return workspaceRoot, pkg
 }
 
+// getFileReader returns a *FileReader object that reads files from the local
+// filesystem if the workspace root is known.
+func getFileReader(workspaceRoot string) *warn.FileReader {
+	if workspaceRoot == "" {
+		return nil
+	}
+
+	readFile := func(filename string) ([]byte, error) {
+		path := filepath.Join(workspaceRoot, filename)
+
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+
+	fileReader := &warn.FileReader{}
+	fileReader.Init(readFile)
+	return fileReader
+}
+
 // Lint calls the linter and returns a list of unresolved findings
 func Lint(f *build.File, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
+	fileReader := getFileReader(f.WorkspaceRoot)
+
 	switch lint {
 	case "warn":
-		return warn.FileWarnings(f, *warningsList, nil, warn.ModeWarn)
+		return warn.FileWarnings(f, *warningsList, nil, warn.ModeWarn, fileReader)
 	case "fix":
-		warn.FixWarnings(f, *warningsList, verbose)
+		warn.FixWarnings(f, *warningsList, verbose, fileReader)
 	}
 	return nil
 }

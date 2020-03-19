@@ -67,6 +67,7 @@ type docstringInfo struct {
 	hasHeader    bool                      // whether the docstring has a one-line header
 	args         map[string]build.Position // map of documented arguments, the values are line numbers
 	returns      bool                      // whether the return value is documented
+	deprecated   bool                      // whether the function is marked as deprecated
 	argumentsPos build.Position            // line of the `Arguments:` block (not `Args:`), if it exists
 }
 
@@ -130,6 +131,10 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 		case prefix + "Returns:":
 			isArgumentsDescription = false
 			info.returns = true
+			continue
+		case prefix + "Deprecated:":
+			isArgumentsDescription = false
+			info.deprecated = true
 			continue
 		}
 

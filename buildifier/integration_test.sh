@@ -360,3 +360,44 @@ diff json_report ../../golden/json_report_stdin_golden || die "$1: wrong console
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix_4.bzl foo.bar > json_report
 diff json_report ../../golden/json_report_invalid_file_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with an invalid file"
+
+cd ../..
+
+# Test the multifile functionality
+
+mkdir multifile
+cd multifile
+
+cat > lib.bzl <<EOF
+def foo():
+  """
+  This is a function foo.
+
+  Please use it in favor of the
+  deprecated function bar
+  """
+  pass
+
+def bar():
+  """
+  This is a function bar.
+
+  Deprecated:
+    please use foo instead.
+  """
+  pass
+EOF
+
+touch WORKSPACE
+
+cat > BUILD <<EOF
+load(":lib.bzl", "foo", "bar")
+load(":nonexistent.bzl", "foo2", "bar2")
+EOF
+
+cat > report_golden <<EOF
+BUILD:1: deprecated-function: The function "bar" defined in "/lib.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#deprecated-function)
+EOF
+
+$buildifier --lint=warn --warnings=deprecated-function BUILD 2> report || ret=$?
+diff report_golden report || die "$1: wrong console output for multifile warnings (WORKSPACE exists)"

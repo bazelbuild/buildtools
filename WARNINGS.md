@@ -13,6 +13,7 @@ Warning categories supported by buildifier's linter:
   * [`constant-glob`](#constant-glob)
   * [`ctx-actions`](#ctx-actions)
   * [`ctx-args`](#ctx-args)
+  * [`deprecated-function`](#deprecated-function)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
@@ -241,6 +242,17 @@ depending on the desired behavior.
 
 --------------------------------------------------------------------------------
 
+## <a name="deprecated-function"></a>The function is deprecated
+
+  * Category name: `deprecated-function`
+  * Automatic fix: no
+
+The defined in another .bzl file has a docstring stating that it's deprecated, i. e. it
+contains a `Deprecated:` section. The convention for function docstrings is described by
+the [`function-docstring`](function-docstring) warning.
+
+--------------------------------------------------------------------------------
+
 ## <a name="depset-iteration"></a>Depset iteration is deprecated
 
   * Category name: `depset-iteration`
@@ -394,6 +406,9 @@ Returns:
   Description of the return value.
   Should be indented by at least one, preferably two spaces (as here)
   Can span multiple lines.
+
+Deprecated:
+  Optional, description of why the function is deprecated and what should be used instead. 
 """
 ```
 
