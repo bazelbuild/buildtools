@@ -4,29 +4,23 @@ package warn
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
 )
 
 func getPathFromLabel(label, pkg string) string {
-	var path string // File path relative to the workspace root
 	switch {
 	case strings.HasPrefix(label, "//"):
 		// Absolute label path
-		path = strings.ReplaceAll(label[2:], ":", "/")
+		return strings.ReplaceAll(label[2:], ":", "/")
 	case strings.HasPrefix(label, ":"):
 		// Relative label path
-		path = pkg + "/" + label[1:]
+		return pkg + "/" + label[1:]
 	default:
 		// External repositories are not supported
 		return ""
 	}
-
-	// Use the correct OS-specific slashes
-	path = strings.ReplaceAll(path, "/", string(os.PathSeparator))
-	return path
 }
 
 func readBzlFile(path string, fileReader *FileReader) (*build.File, bool) {

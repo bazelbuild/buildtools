@@ -3,7 +3,6 @@ package warn
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -26,7 +25,6 @@ var testFileReader *FileReader
 
 func setUpFileReader(data map[string]string) func() {
 	readFile := func(filename string) ([]byte, error) {
-		filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 		if contents, ok := data[filename]; ok {
 			return []byte(contents), nil
 		}

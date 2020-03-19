@@ -124,6 +124,8 @@ func getFileReader(workspaceRoot string) *warn.FileReader {
 	}
 
 	readFile := func(filename string) ([]byte, error) {
+	    // Use OS-specific path separators
+        filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 		path := filepath.Join(workspaceRoot, filename)
 
 		data, err := ioutil.ReadFile(path)
