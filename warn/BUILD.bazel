@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
+        "multifile.go",
         "types.go",
         "warn.go",
         "warn_bazel.go",
@@ -10,6 +11,7 @@ go_library(
         "warn_bazel_operation.go",
         "warn_control_flow.go",
         "warn_cosmetic.go",
+        "warn_deprecated.go",
         "warn_docstring.go",
         "warn_naming.go",
         "warn_operation.go",
@@ -36,6 +38,7 @@ go_test(
         "warn_bazel_test.go",
         "warn_control_flow_test.go",
         "warn_cosmetic_test.go",
+        "warn_deprecated_test.go",
         "warn_docstring_test.go",
         "warn_naming_test.go",
         "warn_operation_test.go",

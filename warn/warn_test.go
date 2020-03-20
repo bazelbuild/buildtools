@@ -19,6 +19,25 @@ const (
 	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
 )
 
+// A global FileReader object that can be used by tests. If a test redefines it it must
+// reset it when it finishes.
+var testFileReader *FileReader
+
+func setUpFileReader(data map[string]string) (cleanup func()) {
+	readFile := func(filename string) ([]byte, error) {
+		if contents, ok := data[filename]; ok {
+			return []byte(contents), nil
+		}
+		return nil, fmt.Errorf("File not found")
+	}
+	testFileReader = NewFileReader(readFile)
+
+	return func() {
+		// Tear down
+		testFileReader = nil
+	}
+}
+
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
@@ -40,7 +59,7 @@ func getFindings(category, input string, fileType build.FileType) []*Finding {
 	}
 	buildFile.Pkg = "test/package"
 	buildFile.WorkspaceRoot = "/home/users/foo/bar"
-	return FileWarnings(buildFile, []string{category}, nil, ModeWarn)
+	return FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
 }
 
 func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
@@ -88,7 +107,7 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	FixWarnings(buildFile, []string{category}, false)
+	FixWarnings(buildFile, []string{category}, false, testFileReader)
 	have := build.Format(buildFile)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
@@ -108,7 +127,7 @@ func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
 	formatted := build.Format(buildFile)
 
 	// No fixes expected
-	FileWarnings(buildFile, []string{category}, nil, ModeWarn)
+	FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
 	fixed := build.Format(buildFile)
 
 	if !bytes.Equal(formatted, fixed) {
@@ -246,7 +265,7 @@ attr.baz("baz", cfg = "data")
 		t.Fatalf("Parse error: %v", err)
 	}
 
-	findings := FileWarnings(f, []string{"attr-cfg"}, nil, ModeSuggest)
+	findings := FileWarnings(f, []string{"attr-cfg"}, nil, ModeSuggest, testFileReader)
 	want := []struct {
 		start       int
 		end         int
