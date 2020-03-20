@@ -30,8 +30,7 @@ func setUpFileReader(data map[string]string) (cleanup func()) {
 		}
 		return nil, fmt.Errorf("File not found")
 	}
-	testFileReader = &FileReader{}
-	testFileReader.NewFileReader(readFile)
+	testFileReader = NewFileReader(readFile)
 
 	return func() {
 		// Tear down

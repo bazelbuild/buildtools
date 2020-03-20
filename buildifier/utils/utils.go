@@ -131,9 +131,7 @@ func getFileReader(workspaceRoot string) *warn.FileReader {
 		return ioutil.ReadFile(path)
 	}
 
-	fileReader := &warn.FileReader{}
-	fileReader.NewFileReader(readFile)
-	return fileReader
+	return warn.NewFileReader(readFile)
 }
 
 // Lint calls the linter and returns a list of unresolved findings

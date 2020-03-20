@@ -11,12 +11,15 @@ type FileReader struct {
 	readFile func(string) ([]byte, error)
 }
 
-// NewFileReader initializes a FileReader instance with an instance of function
-// that can read an arbitrary file in the repository using a path relative
-// to the workspace root.
-func (fr *FileReader) NewFileReader(readFile func(string) ([]byte, error)) {
-	fr.cache = make(map[string]*build.File)
-	fr.readFile = readFile
+// NewFileReader creates and initializes a FileReader instance with a
+// custom readFile function that can read an arbitrary file in the
+// repository using a path relative to the workspace root
+// (OS-independent, with forward slashes).
+func NewFileReader(readFile func(string) ([]byte, error)) *FileReader {
+	return &FileReader{
+		cache: make(map[string]*build.File),
+		readFile: readFile,
+	}
 }
 
 // retrieveFile reads a Starlark file using only the readFile method
