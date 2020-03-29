@@ -1,0 +1,15 @@
+{
+  "default": {},
+  "dev": {
+    "node_modules": true,
+    ".gitignore": true,
+    ".stylelintrc": true,
+    ".editorconfig": true,
+    ".vscode": true,
+    "package.json": true,
+    "package-lock.json": true,
+    "LICENSE": true,
+    "README.md": true
+  },
+  "admin": {}
+}
