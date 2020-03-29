@@ -14,6 +14,8 @@
 // limitations under the License.
 'use strict';
 
+const { main } = require("./main");
+
 // This package inspired by
 // https://github.com/angular/clang-format/blob/master/index.js
 const os = require('os');
@@ -52,21 +54,7 @@ function getNativeBinary() {
       path.join(__dirname, `_TOOL_-${platform}_${arch}${extension}`);
   return binary;
 }
-
-function main(args) {
-  const binary = getNativeBinary();
-  const ps = spawn(binary, args, {stdio : 'inherit'});
-
-  function shutdown() {
-    ps.kill("SIGTERM")
-    process.exit();
-  }
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
-
-  ps.on('close', e => process.exitCode = e);
-}
+exports.getNativeBinary = getNativeBinary;
 
 if (require.main === module) {
   main(process.argv.slice(2));
