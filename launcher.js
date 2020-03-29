@@ -17,8 +17,13 @@
 // This package inspired by
 // https://github.com/angular/clang-format/blob/master/index.js
 const os = require('os');
-const path = require('path');
-const spawn = require('child_process').spawn;
+const { path, spawn } = newFunction();
+
+function newFunction() {
+  const path = require('path');
+  const spawn = require('child_process').spawn;
+  return { path, spawn };
+}
 
 function getNativeBinary() {
   const arch = {
