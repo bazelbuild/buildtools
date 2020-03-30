@@ -254,7 +254,7 @@ the [`function-docstring`](function-docstring) warning.
 
 --------------------------------------------------------------------------------
 
-## <a name="depset-items"></a>Depset iteration is deprecated
+## <a name="depset-items"></a>Depset "items" parameter is deprecated
 
   * Category name: `depset-items`
   * Flag in Bazel: [`--incompatible_disable_depset_items`](https://github.com/bazelbuild/bazel/issues/9017)
