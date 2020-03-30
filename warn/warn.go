@@ -111,6 +111,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
 	"ctx-args":                  contextArgsAPIWarning,
+	"depset-items":              depsetItemsWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,

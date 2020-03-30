@@ -26,6 +26,19 @@ attr.label_list(mandatory = True, cfg = "host")`,
 		scopeBzl)
 }
 
+func TestDepsetItemsWarning(t *testing.T) {
+	checkFindings(t, "depset-items", `
+def f():
+  depset(items=foo)
+  a = depset()
+  depset(a)
+`, []string{
+		`:2: Parameter "items" is deprecated, use "direct" and/or "transitive" instead.`,
+		`:4: Giving a depset as first unnamed parameter to depset() is deprecated, use the "transitive" parameter instead.`,
+	},
+		scopeEverywhere)
+}
+
 func TestAttrNonEmptyWarning(t *testing.T) {
 	checkFindingsAndFix(t, "attr-non-empty", `
 rule(

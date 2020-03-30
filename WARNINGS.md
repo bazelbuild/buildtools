@@ -14,6 +14,7 @@ Warning categories supported by buildifier's linter:
   * [`ctx-actions`](#ctx-actions)
   * [`ctx-args`](#ctx-args)
   * [`deprecated-function`](#deprecated-function)
+  * [`depset-items`](#depset-items)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
@@ -250,6 +251,20 @@ depending on the desired behavior.
 The defined in another .bzl file has a docstring stating that it's deprecated, i. e. it
 contains a `Deprecated:` section. The convention for function docstrings is described by
 the [`function-docstring`](function-docstring) warning.
+
+--------------------------------------------------------------------------------
+
+## <a name="depset-items"></a>Depset "items" parameter is deprecated
+
+  * Category name: `depset-items`
+  * Flag in Bazel: [`--incompatible_disable_depset_items`](https://github.com/bazelbuild/bazel/issues/9017)
+  * Automatic fix: no
+
+The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
+is deprecated. In it's old form it's either a list of direct elements to be
+added (use the `direct` or unnamed first parameter instead) or a depset that
+becomes a tarnsitive element of the new depset (use the `transitive` parameter
+instead).
 
 --------------------------------------------------------------------------------
 
