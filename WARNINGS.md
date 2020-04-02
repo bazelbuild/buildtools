@@ -53,7 +53,6 @@ Warning categories supported by buildifier's linter:
   * [`return-value`](#return-value)
   * [`rule-impl-return`](#rule-impl-return)
   * [`same-origin-load`](#same-origin-load)
-  * [`string-escape`](#string-escape)
   * [`string-iteration`](#string-iteration)
   * [`uninitialized`](#uninitialized)
   * [`unreachable`](#unreachable)
@@ -423,7 +422,7 @@ Returns:
   Can span multiple lines.
 
 Deprecated:
-  Optional, description of why the function is deprecated and what should be used instead. 
+  Optional, description of why the function is deprecated and what should be used instead.
 """
 ```
 
@@ -709,7 +708,7 @@ Or in simple cases you can use list comprehensions instead:
 x = depset(..., transitive = [y.deps for y in ...])
 ```
 
-For more information, read Bazel documentation about 
+For more information, read Bazel documentation about
 [depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
 and
 [reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
@@ -877,17 +876,6 @@ can be written more compactly as
 ```python
 load(":f.bzl", "s1", "s2")
 ```
-
---------------------------------------------------------------------------------
-
-## <a name="string-escape"></a>Invalid escape sequence
-
-  * Category name: `string-escape`
-  * Flag in Bazel: [`--incompatible_restrict_string_escapes`](https://github.com/bazelbuild/bazel/issues/8380)
-  * Automatic fix: yes
-
-Unrecognized escape sequences in string literals (e.g. `"\a \b"` is error-prone and shouldn't
-be used. If you need the backslash symbol, escape it explicitly: `"\\a \\b"`.
 
 --------------------------------------------------------------------------------
 
