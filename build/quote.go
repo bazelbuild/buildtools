@@ -134,7 +134,9 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 			quoted = quoted[2:]
 
 		case '\n':
-			// Ignore the escape and the line break.
+			// Line continuation detected, persist.
+			buf.WriteByte('\\')
+			buf.WriteByte('n')
 			quoted = quoted[2:]
 
 		case 'n', 'r', 't', '\\', '\'', '"':
@@ -243,6 +245,13 @@ func quote(unquoted string, triple bool) string {
 		if triple && c == '\n' {
 			// Can allow newline in triple-quoted string.
 			buf.WriteByte(c)
+			continue
+		}
+		if c == '\\' && unquoted[i+1] == 'n' {
+			// Backslashes followed by a newline should be treated as a line continuation and newline
+			buf.WriteByte(c)
+			buf.WriteByte('\n')
+			i++
 			continue
 		}
 		if c == '\'' {
