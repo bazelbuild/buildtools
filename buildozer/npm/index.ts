@@ -33,16 +33,22 @@ export function run(...commands: CommandBatch[]): string[] {
     return runWithOptions(commands, {});
 }
 
-export function runWithOptions(commands: CommandBatch[], options: {cwd?: string}): string[] {
+/**
+ * run buildozer with a list of commands
+ * @param commands a list of CommandBatch to pass to buildozer
+ * @param options Options to pass to spawn
+ * @param flags any buildozer flags to pass
+ */
+export function runWithOptions(commands: CommandBatch[], options: {cwd?: string}, flags: string[] = []): string[] {
     // From https://github.com/bazelbuild/buildtools/tree/master/buildozer#usage:
     // Here, label-list is a comma-separated list of Bazel labels,
     // for example //path/to/pkg1:rule1, //path/to/pkg2:rule2.
     // Buildozer reads commands from FILE (- for stdin 
     //   (format: |-separated command line arguments to buildozer, excluding flags))
     const input = commands.map(c => [...c.commands, c.targets.join(',')].join('|')).join('\n');
-    const {stdout, stderr, status, error} = spawnSync(getNativeBinary(), [
+    const {stdout, stderr, status, error} = spawnSync(getNativeBinary(), flags.concat([
         '-f', '-' /* read commands from stdin */
-    ], {
+    ]), {
         ...options,
         input,
         encoding: 'utf-8',
