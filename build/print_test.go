@@ -109,7 +109,7 @@ func TestPrintRewrite(t *testing.T) {
 	}
 }
 
-// Test that attempting to format an incorrect file throws a syntax error
+// Test that attempting to FormatWithoutRewriting an incorrect file throws a syntax error
 func TestSyntaxError(t *testing.T) {
 	ins, chdir := findTests(t, ".error")
 	defer chdir()
@@ -208,8 +208,6 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 			return
 		}
 
-		Rewrite(file, nil)
-
 		ndata := Format(file)
 
 		if !bytes.Equal(ndata, golden) {
@@ -244,7 +242,7 @@ func TestPrintParse(t *testing.T) {
 			t.Errorf("parsing original: %v", err)
 		}
 
-		ndata := Format(f)
+		ndata := FormatWithoutRewriting(f)
 
 		f2, err := Parse(base, ndata)
 		if err != nil {
@@ -374,8 +372,6 @@ func TestPrintNewSequences(t *testing.T) {
 				Stmt: newSequences,
 			}
 
-			Rewrite(file, nil)
-
 			ndata := Format(file)
 
 			if !bytes.Equal(ndata, golden) {
@@ -393,7 +389,7 @@ type eqchecker struct {
 	pos  Position
 }
 
-// errorf returns an error described by the printf-style format and arguments,
+// errorf returns an error described by the printf-style FormatWithoutRewriting and arguments,
 // inserting the current file position before the error text.
 func (eq *eqchecker) errorf(format string, args ...interface{}) error {
 	return fmt.Errorf("%s:%d: %s", eq.file, eq.pos.Line,

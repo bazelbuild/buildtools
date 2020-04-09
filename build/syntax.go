@@ -95,6 +95,7 @@ type File struct {
 	Path          string // absolute file path
 	Pkg           string // optional; the package of the file
 	WorkspaceRoot string // optional; path to the directory containing the WORKSPACE file
+	IsRewritten   bool   // to prevent rewriting the same file more than once
 	Type          FileType
 	Comments
 	Stmt []Expr

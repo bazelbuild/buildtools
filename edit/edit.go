@@ -21,7 +21,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -1026,12 +1025,7 @@ func AppendToLoad(load *build.LoadStmt, from, to []string) bool {
 	}
 
 	// Append the remaining loads to the load statement.
-	sortedSymbols := []string{}
 	for s := range symbolsToLoad {
-		sortedSymbols = append(sortedSymbols, s)
-	}
-	sort.Strings(sortedSymbols)
-	for _, s := range sortedSymbols {
 		load.From = append(load.From, &build.Ident{Name: symbolsToLoad[s]})
 		load.To = append(load.To, &build.Ident{Name: s})
 	}
