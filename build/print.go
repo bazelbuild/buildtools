@@ -39,7 +39,7 @@ func FormatWithoutRewriting(f *File) []byte {
 
 // Format rewrites the file and returns the formatted form of it.
 func Format(f *File) []byte {
-	rewrite(f)
+	Rewrite(f)
 	return FormatWithoutRewriting(f)
 }
 

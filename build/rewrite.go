@@ -29,7 +29,7 @@ import (
 // For debugging: flag to disable certain rewrites.
 var DisableRewrites []string
 
-// disabled reports whether the named rewrite is disabled.
+// disabled reports whether the named Rewrite is disabled.
 func disabled(name string) bool {
 	for _, x := range DisableRewrites {
 		if name == x {
@@ -52,13 +52,8 @@ func allowedSort(name string) bool {
 	return false
 }
 
-// rewrite applies the high-level Buildifier rewrites to f, modifying it in place.
-func rewrite(f *File) {
-	if f.IsRewritten {
-		return
-	}
-	f.IsRewritten = true
-
+// Rewrite applies the high-level Buildifier rewrites to f, modifying it in place.
+func Rewrite(f *File) {
 	for _, r := range rewrites {
 		if !disabled(r.name) {
 			if f.Type&r.scope != 0 {
@@ -723,7 +718,7 @@ func fixMultilinePlus(f *File) {
 
 		// The 'all' slice is alternating addends and BinaryExpr +'s:
 		//	w, +, x, +, y, +, z
-		// If there are no lists involved, don't rewrite anything.
+		// If there are no lists involved, don't Rewrite anything.
 		haveList := false
 		for i := 0; i < len(all); i += 2 {
 			if isList(all[i]) {
