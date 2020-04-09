@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "multifile.go",
+        "stacktrace.go",
         "types.go",
         "warn.go",
         "warn_bazel.go",
@@ -13,6 +14,7 @@ go_library(
         "warn_cosmetic.go",
         "warn_deprecated.go",
         "warn_docstring.go",
+        "warn_macro.go",
         "warn_naming.go",
         "warn_operation.go",
         "warn_visibility.go",
@@ -40,6 +42,7 @@ go_test(
         "warn_cosmetic_test.go",
         "warn_deprecated_test.go",
         "warn_docstring_test.go",
+        "warn_macro_test.go",
         "warn_naming_test.go",
         "warn_operation_test.go",
         "warn_test.go",

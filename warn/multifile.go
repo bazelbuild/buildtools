@@ -1,6 +1,8 @@
 package warn
 
 import (
+	"path"
+
 	"github.com/bazelbuild/buildtools/build"
 )
 
@@ -35,6 +37,7 @@ func (fr *FileReader) retrieveFile(filename string) *build.File {
 		return nil
 	}
 
+	file.Pkg = path.Dir(filename)
 	return file
 }
 
