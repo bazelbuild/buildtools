@@ -142,7 +142,7 @@ func analyzeFile(f *build.File) fileData {
 			start, _ := stmt.Span()
 			report.rules[lhsIdent.Name] = start.Line
 		case *build.DefStmt:
-			report.functions[stmt.Name] = getFunCalls(stmt, f.Path, externalSymbols)
+			report.functions[stmt.Name] = getFunCalls(stmt, f.DisplayPath(), externalSymbols)
 		default:
 			continue
 		}
@@ -270,7 +270,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 	}
 
 	macroAnalyzer := newMacroAnalyzer(fileReader)
-	macroAnalyzer.files[f.Path] = analyzeFile(f)
+	macroAnalyzer.files[f.DisplayPath()] = analyzeFile(f)
 
 	findings := []*LinterFinding{}
 	for _, stmt := range f.Stmt {
@@ -283,7 +283,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		isMacro, stackTrace := macroAnalyzer.IsMacro(function{f.Path, def.Name})
+		isMacro, stackTrace := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
 		if !isMacro {
 			continue
 		}
