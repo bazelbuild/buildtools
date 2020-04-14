@@ -14,6 +14,7 @@ type function struct {
 	name     string // original name of the function
 }
 
+// function call node (`foo(...)`)
 type funCall struct {
 	function
 	filename  string // .bzl file where the function is called from
@@ -27,15 +28,29 @@ func (fc funCall) format() string {
     %s(...)`, fc.filename, fc.line, fc.caller, fc.nameAlias)
 }
 
+// rule definition node (`foo = rule(...)`)
 type ruleDef struct {
-	filename string
-	name     string
-	line     int
+	function
+	line int
 }
 
 func (rd ruleDef) format() string {
 	return fmt.Sprintf(`  File %q, line %d
     %s = rule(...)`, rd.filename, rd.line, rd.name)
+}
+
+// alias node (`foo = bar`)
+type alias struct {
+	function
+	filename string // .bzl file where the alias is defined at
+	oldName  string
+	newName  string
+	line     int
+}
+
+func (a alias) format() string {
+	return fmt.Sprintf(`  File %q, line %d
+    %s = %s`, a.filename, a.line, a.newName, a.oldName)
 }
 
 func formatStackTrace(stackTrace []frame) string {

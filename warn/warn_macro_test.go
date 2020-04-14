@@ -60,16 +60,20 @@ my_rule = rule()
 def macro(name):
   my_rule(name = name)
 
+alias = macro
+
 def bad_macro():
   for x in y:
-    macro(x)
+    alias(x)
 `,
 		[]string{
-			`6: Macro function "bad_macro" doesn't accept a keyword argument "name".
+			`8: Macro function "bad_macro" doesn't accept a keyword argument "name".
 
 Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 8, in bad_macro
-    macro(...)
+  File "test/package/test_file.bzl", line 10, in bad_macro
+    alias(...)
+  File "test/package/test_file.bzl", line 6
+    alias = macro
   File "test/package/test_file.bzl", line 4, in macro
     my_rule(...)
   File "test/package/test_file.bzl", line 1
@@ -415,4 +419,45 @@ Example stack trace (statically analyzed):
 		return
 	}
 	t.Errorf("expected to load only a.bzl, instead loaded %d files: %v", len(fileReaderRequests), fileReaderRequests)
+}
+
+func TestUnnamedMacroAliases(t *testing.T) {
+	// Test that not necessary files are not loaded
+
+	defer setUpFileReader(map[string]string{
+		"test/package/foo.bzl": `
+load(":bar.bzl", _bar = "bar")
+
+bar = _bar`,
+		"test/package/bar.bzl": `
+my_rule = rule()
+
+bar = my_rule`,
+	})()
+
+	checkFindings(t, "unnamed-macro", `
+load(":foo.bzl", "bar")
+
+baz = bar
+
+def macro1():
+  baz()
+
+def macro2(name):
+  baz()
+`, []string{
+		`5: Macro function "macro1" doesn't accept a keyword argument "name".
+
+Example stack trace (statically analyzed):
+  File "test/package/test_file.bzl", line 6, in macro1
+    baz(...)
+  File "test/package/test_file.bzl", line 3
+    baz = bar
+  File "test/package/foo.bzl", line 4
+    bar = _bar
+  File "test/package/bar.bzl", line 4
+    bar = my_rule
+  File "test/package/bar.bzl", line 2
+    my_rule = rule(...)`,
+	}, scopeBzl)
 }

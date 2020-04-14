@@ -37,12 +37,34 @@ func acceptsNameArgument(def *build.DefStmt) bool {
 type fileData struct {
 	rules     map[string]int
 	functions map[string]map[string]funCall
+	aliases   map[string]alias
 }
 
 // externalDependency is a reference to a symbol defined in another file
 type externalDependency struct {
 	filename string
 	symbol   string
+}
+
+// resolvesExternal takes a local function definition and replaces it with an external one if it's been defined
+// in another file and loaded
+func resolveExternal(fn function, externalSymbols map[string]externalDependency) function {
+	external, ok := externalSymbols[fn.name]
+	if !ok {
+		// Not an externally defined function
+		return fn
+	}
+
+	return function{
+		filename: external.filename,
+		name:     external.symbol,
+	}
+}
+
+// exprLine returns the start line of an expression
+func exprLine(expr build.Expr) int {
+	start, _ := expr.Span()
+	return start.Line
 }
 
 // getFunCalls extracts information about functions that are being called from the given function
@@ -54,23 +76,12 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 			return
 		}
 		if ident, ok := call.X.(*build.Ident); ok {
-			start, _ := call.Span()
 			f := funCall{
-				function: function{
-					filename: filename,
-					name:     ident.Name,
-				},
+				function:  resolveExternal(function{filename, ident.Name}, externalSymbols),
 				filename:  filename,
 				nameAlias: ident.Name,
-				line:      start.Line,
+				line:      exprLine(call),
 				caller:    def.Name,
-			}
-			if external, ok := externalSymbols[ident.Name]; ok {
-				// The function is defined in another file
-				f.function = function{
-					filename: external.filename,
-					name:     external.symbol,
-				}
 			}
 			funCalls[ident.Name] = f
 			return
@@ -82,7 +93,6 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 		if ident, ok := dot.X.(*build.Ident); !ok || ident.Name != "native" {
 			return
 		}
-		start, _ := dot.Span()
 		name := "native." + dot.Name
 		funCalls[name] = funCall{
 			function: function{
@@ -91,7 +101,7 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 			},
 			filename:  filename,
 			nameAlias: name,
-			line:      start.Line,
+			line:      exprLine(dot),
 			caller:    def.Name,
 		}
 	})
@@ -123,10 +133,27 @@ func analyzeFile(f *build.File) fileData {
 	report := fileData{
 		rules:     make(map[string]int),
 		functions: make(map[string]map[string]funCall),
+		aliases:   make(map[string]alias),
 	}
 	for _, stmt := range f.Stmt {
 		switch stmt := stmt.(type) {
 		case *build.AssignExpr:
+			// Analyze aliases (`foo = bar`) or rule declarations (`foo = rule(...)`)
+			lhsIdent, ok := stmt.LHS.(*build.Ident)
+			if !ok {
+				continue
+			}
+			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
+				report.aliases[lhsIdent.Name] = alias{
+					function: resolveExternal(function{f.DisplayPath(), rhsIdent.Name}, externalSymbols),
+					filename: f.DisplayPath(),
+					oldName:  rhsIdent.Name,
+					newName:  lhsIdent.Name,
+					line:     exprLine(stmt),
+				}
+				continue
+			}
+
 			call, ok := stmt.RHS.(*build.CallExpr)
 			if !ok {
 				continue
@@ -135,12 +162,7 @@ func analyzeFile(f *build.File) fileData {
 			if !ok || ident.Name != "rule" {
 				continue
 			}
-			lhsIdent, ok := stmt.LHS.(*build.Ident)
-			if !ok {
-				continue
-			}
-			start, _ := stmt.Span()
-			report.rules[lhsIdent.Name] = start.Line
+			report.rules[lhsIdent.Name] = exprLine(stmt)
 		case *build.DefStmt:
 			report.functions[stmt.Name] = getFunCalls(stmt, f.DisplayPath(), externalSymbols)
 		default:
@@ -219,13 +241,24 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 	}
 
 	fileData := ma.getFileData(fn.filename)
+
+	// Check whether fn.name is an alias for another function
+	if a, ok := fileData.aliases[fn.name]; ok {
+		if isMacro, stacktrace := ma.isMacroPrivate(a.function, visited); isMacro {
+			return true, append(stacktrace, a)
+		}
+		return false, nil
+	}
+
+	// Check whether fn.name is a rule
 	if line, ok := fileData.rules[fn.name]; ok {
 		return true, []frame{ruleDef{
-			filename: fn.filename,
-			name:     fn.name,
+			function: fn,
 			line:     line,
 		}}
 	}
+
+	// Check whether fn.name is an ordinary function
 	funCalls, ok := fileData.functions[fn.name]
 	if !ok {
 		return false, nil
@@ -253,6 +286,7 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 	return false, nil
 }
 
+// newMacroAnalyzer creates and initiates an instance of macroAnalyzer.
 func newMacroAnalyzer(fileReader *FileReader) macroAnalyzer {
 	return macroAnalyzer{
 		fileReader: fileReader,
