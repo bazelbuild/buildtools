@@ -11,6 +11,20 @@ import (
 // Internal constant that represents the native module
 const nativeModule = "<native>"
 
+// function represents a function identifier, which is a pair (module name, function name).
+type function struct {
+	filename string // .bzl file where the function is defined
+	name     string // original name of the function
+}
+
+// funCall represents a call to another function. It contains information of the function itself as well as some
+// information about the environment
+type funCall struct {
+	function
+	nameAlias string // function name alias (it could be loaded with a different name or assigned to a new variable).
+	line      int    // line on which the function is being called
+}
+
 // acceptsNameArgument checks whether a function can accept a named argument called "name",
 // either directly or via **kwargs.
 func acceptsNameArgument(def *build.DefStmt) bool {
@@ -35,9 +49,9 @@ func acceptsNameArgument(def *build.DefStmt) bool {
 
 // fileData represents information about rules and functions extracted from a file
 type fileData struct {
-	rules     map[string]int
+	rules     map[string]bool
 	functions map[string]map[string]funCall
-	aliases   map[string]alias
+	aliases   map[string]function
 }
 
 // externalDependency is a reference to a symbol defined in another file
@@ -49,16 +63,10 @@ type externalDependency struct {
 // resolvesExternal takes a local function definition and replaces it with an external one if it's been defined
 // in another file and loaded
 func resolveExternal(fn function, externalSymbols map[string]externalDependency) function {
-	external, ok := externalSymbols[fn.name]
-	if !ok {
-		// Not an externally defined function
-		return fn
+	if external, ok := externalSymbols[fn.name]; ok {
+		return function{filename: external.filename, name: external.symbol}
 	}
-
-	return function{
-		filename: external.filename,
-		name:     external.symbol,
-	}
+	return fn
 }
 
 // exprLine returns the start line of an expression
@@ -76,14 +84,11 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 			return
 		}
 		if ident, ok := call.X.(*build.Ident); ok {
-			f := funCall{
+			funCalls[ident.Name] = funCall{
 				function:  resolveExternal(function{filename, ident.Name}, externalSymbols),
-				filename:  filename,
 				nameAlias: ident.Name,
 				line:      exprLine(call),
-				caller:    def.Name,
 			}
-			funCalls[ident.Name] = f
 			return
 		}
 		dot, ok := call.X.(*build.DotExpr)
@@ -99,10 +104,8 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 				name:     dot.Name,
 				filename: nativeModule,
 			},
-			filename:  filename,
 			nameAlias: name,
 			line:      exprLine(dot),
-			caller:    def.Name,
 		}
 	})
 	return funCalls
@@ -131,9 +134,9 @@ func analyzeFile(f *build.File) fileData {
 	}
 
 	report := fileData{
-		rules:     make(map[string]int),
+		rules:     make(map[string]bool),
 		functions: make(map[string]map[string]funCall),
-		aliases:   make(map[string]alias),
+		aliases:   make(map[string]function),
 	}
 	for _, stmt := range f.Stmt {
 		switch stmt := stmt.(type) {
@@ -144,13 +147,7 @@ func analyzeFile(f *build.File) fileData {
 				continue
 			}
 			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
-				report.aliases[lhsIdent.Name] = alias{
-					function: resolveExternal(function{f.DisplayPath(), rhsIdent.Name}, externalSymbols),
-					filename: f.DisplayPath(),
-					oldName:  rhsIdent.Name,
-					newName:  lhsIdent.Name,
-					line:     exprLine(stmt),
-				}
+				report.aliases[lhsIdent.Name] = resolveExternal(function{f.DisplayPath(), rhsIdent.Name}, externalSymbols)
 				continue
 			}
 
@@ -162,7 +159,7 @@ func analyzeFile(f *build.File) fileData {
 			if !ok || ident.Name != "rule" {
 				continue
 			}
-			report.rules[lhsIdent.Name] = exprLine(stmt)
+			report.rules[lhsIdent.Name] = true
 		case *build.DefStmt:
 			report.functions[stmt.Name] = getFunCalls(stmt, f.DisplayPath(), externalSymbols)
 		default:
@@ -178,8 +175,8 @@ type macroAnalyzer struct {
 	fileReader *FileReader
 	files      map[string]fileData
 	cache      map[function]struct {
-		isMacro    bool
-		stacktrace []frame
+		isMacro bool
+		fc      *funCall
 	}
 }
 
@@ -201,7 +198,7 @@ func (ma macroAnalyzer) getFileData(filename string) fileData {
 }
 
 // IsMacro is a public function that checks whether the given function is a macro
-func (ma macroAnalyzer) IsMacro(fn function) (bool, []frame) {
+func (ma macroAnalyzer) IsMacro(fn function) (bool, *funCall) {
 	// Keep track of already visited functions to prevent crashing because of infinite recursion
 	visited := make(map[function]bool)
 	return ma.isMacroPrivate(fn, visited)
@@ -210,7 +207,7 @@ func (ma macroAnalyzer) IsMacro(fn function) (bool, []frame) {
 // isMacroPrivate is the same as IsMacro except that it takes a set of already visited nodes to prevent
 // infinite recursion (recursion is not allowed in Starlark but can still crash Buildifier if not
 // handled properly)
-func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (isMacro bool, stacktrace []frame) {
+func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (isMacro bool, fc *funCall) {
 	if visited[fn] {
 		// Don't visit the function again to prevent infinite recursion
 		return false, nil
@@ -220,13 +217,13 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 
 	// Check the cache first
 	if cached, ok := ma.cache[fn]; ok {
-		return cached.isMacro, cached.stacktrace
+		return cached.isMacro, cached.fc
 	}
 	defer func() {
 		ma.cache[fn] = struct {
-			isMacro    bool
-			stacktrace []frame
-		}{isMacro, stacktrace}
+			isMacro bool
+			fc      *funCall
+		}{isMacro, fc}
 	}()
 
 	// Check for native rules
@@ -243,19 +240,16 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 	fileData := ma.getFileData(fn.filename)
 
 	// Check whether fn.name is an alias for another function
-	if a, ok := fileData.aliases[fn.name]; ok {
-		if isMacro, stacktrace := ma.isMacroPrivate(a.function, visited); isMacro {
-			return true, append(stacktrace, a)
+	if alias, ok := fileData.aliases[fn.name]; ok {
+		if isMacro, _ := ma.isMacroPrivate(alias, visited); isMacro {
+			return true, nil
 		}
 		return false, nil
 	}
 
 	// Check whether fn.name is a rule
-	if line, ok := fileData.rules[fn.name]; ok {
-		return true, []frame{ruleDef{
-			function: fn,
-			line:     line,
-		}}
+	if fileData.rules[fn.name] {
+		return true, nil
 	}
 
 	// Check whether fn.name is an ordinary function
@@ -277,9 +271,9 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 	}
 
 	for _, fc := range append(knownFunCalls, newFunCalls...) {
-		isMacro, stacktrace := ma.isMacroPrivate(fc.function, visited)
+		isMacro, _ := ma.isMacroPrivate(fc.function, visited)
 		if isMacro {
-			return true, append(stacktrace, fc)
+			return true, &fc
 		}
 	}
 
@@ -292,8 +286,8 @@ func newMacroAnalyzer(fileReader *FileReader) macroAnalyzer {
 		fileReader: fileReader,
 		files:      make(map[string]fileData),
 		cache: make(map[function]struct {
-			isMacro    bool
-			stacktrace []frame
+			isMacro bool
+			fc      *funCall
 		}),
 	}
 }
@@ -317,16 +311,19 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		isMacro, stackTrace := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
+		isMacro, fc := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
 		if !isMacro {
 			continue
 		}
-		finding := makeLinterFinding(def, fmt.Sprintf(`Macro function %q doesn't accept a keyword argument "name".
+		msg := fmt.Sprintf(`Macro function %q doesn't accept a keyword argument "name".`, def.Name)
+		if fc != nil {
+			// fc shouldn't be nil because that's the only node that can be found inside a function.
+			msg += fmt.Sprintf(`
 
-%s
-`, def.Name, formatStackTrace(stackTrace)))
+It is considered a macro because it calls a rule or another macro %q on line %d.`, fc.nameAlias, fc.line)
+		}
+		finding := makeLinterFinding(def, msg)
 		finding.End = def.ColonPos
-
 		findings = append(findings, finding)
 	}
 

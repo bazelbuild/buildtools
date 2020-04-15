@@ -4,7 +4,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "multifile.go",
-        "stacktrace.go",
         "types.go",
         "warn.go",
         "warn_bazel.go",

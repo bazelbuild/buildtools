@@ -26,16 +26,10 @@ def another_macro(x):
 		[]string{
 			`5: Macro function "macro" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 7, in macro
-    my_rule(...)
-  File "test/package/test_file.bzl", line 3
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "my_rule" on line 7.`,
 			`16: Macro function "another_macro" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 18, in another_macro
-    native.cc_library(...)`,
+It is considered a macro because it calls a rule or another macro "native.cc_library" on line 18.`,
 		},
 		scopeBzl)
 
@@ -69,15 +63,7 @@ def bad_macro():
 		[]string{
 			`8: Macro function "bad_macro" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 10, in bad_macro
-    alias(...)
-  File "test/package/test_file.bzl", line 6
-    alias = macro
-  File "test/package/test_file.bzl", line 4, in macro
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "alias" on line 10.`,
 		},
 		scopeBzl)
 
@@ -99,38 +85,16 @@ def macro4():
 		[]string{
 			`3: Macro function "macro1" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 4, in macro1
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "my_rule" on line 4.`,
 			`6: Macro function "macro2" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 7, in macro2
-    macro1(...)
-  File "test/package/test_file.bzl", line 4, in macro1
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "macro1" on line 7`,
 			`9: Macro function "macro3" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 10, in macro3
-    macro2(...)
-  File "test/package/test_file.bzl", line 7, in macro2
-    macro1(...)
-  File "test/package/test_file.bzl", line 4, in macro1
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "macro2" on line 10.`,
 			`12: Macro function "macro4" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 13, in macro4
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "my_rule" on line 13.`,
 		},
 		scopeBzl)
 }
@@ -178,20 +142,10 @@ def bar():
 		[]string{
 			`3: Macro function "foo" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 4, in foo
-    bar(...)
-  File "test/package/test_file.bzl", line 8, in bar
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "bar" on line 4.`,
 			`6: Macro function "bar" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 8, in bar
-    my_rule(...)
-  File "test/package/test_file.bzl", line 1
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "my_rule" on line 8.`,
 		},
 		scopeBzl)
 }
@@ -242,33 +196,13 @@ def not_macro(x):
 		[]string{
 			`4: Macro function "macro1" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 5, in macro1
-    abc(...)
-  File "test/package/foo.bzl", line 6, in bar
-    foo(...)
-  File "test/package/foo.bzl", line 3, in foo
-    native.foo_binary(...)`,
+It is considered a macro because it calls a rule or another macro "abc" on line 5.`,
 			`7: Macro function "macro2" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 8, in macro2
-    baz(...)
-  File "test/package/baz.bzl", line 7, in baz
-    bar(...)
-  File "test/package/foo.bzl", line 6, in bar
-    foo(...)
-  File "test/package/foo.bzl", line 3, in foo
-    native.foo_binary(...)`,
+It is considered a macro because it calls a rule or another macro "baz" on line 8.`,
 			`10: Macro function "macro3" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 11, in macro3
-    qux(...)
-  File "test/package/baz.bzl", line 10, in qux
-    your_rule(...)
-  File "test/package/foo.bzl", line 8
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "qux" on line 11.`,
 		},
 		scopeBzl)
 }
@@ -314,13 +248,7 @@ def macro():
 `, []string{
 		`4: Macro function "macro" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 7, in macro
-    quux(...)
-  File "test/package/bar.bzl", line 10, in qux
-    quuux(...)
-  File "test/package/foo.bzl", line 11, in qux
-    native.cc_library(...)`,
+It is considered a macro because it calls a rule or another macro "quux" on line 7.`,
 	}, scopeBzl)
 }
 
@@ -344,13 +272,7 @@ def macro():
 `, []string{
 		`5: Macro function "macro" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 6, in macro
-    bar(...)
-  File "test/package/foo.bzl", line 5, in foo
-    some_rule(...)
-  File "test/package/test_file.bzl", line 3
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "bar" on line 6.`,
 	}, scopeBzl)
 }
 
@@ -382,37 +304,23 @@ def macro3():
   a()
 
 def macro4():
-  d()  # can skip d.bzl because there's a rule defined in the same file
+  d()  # can skip d.bzl because there's a rule or another macro defined in the same file
   r()
 
 r = rule()
 `, []string{
 		`6: Macro function "macro1" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 7, in macro1
-    a(...)
-  File "a.bzl", line 1
-    a = rule(...)`,
+It is considered a macro because it calls a rule or another macro "a" on line 7.`,
 		`9: Macro function "macro2" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 11, in macro2
-    native.cc_library(...)`,
+It is considered a macro because it calls a rule or another macro "native.cc_library" on line 11.`,
 		`13: Macro function "macro3" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 15, in macro3
-    a(...)
-  File "a.bzl", line 1
-    a = rule(...)`,
+It is considered a macro because it calls a rule or another macro "a" on line 15.`,
 		`17: Macro function "macro4" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 19, in macro4
-    r(...)
-  File "test/package/test_file.bzl", line 21
-    r = rule(...)`,
+It is considered a macro because it calls a rule or another macro "r" on line 19.`,
 	}, scopeBzl)
 
 	if len(fileReaderRequests) == 1 && fileReaderRequests[0] == "a.bzl" {
@@ -436,7 +344,7 @@ bar = my_rule`,
 	})()
 
 	checkFindings(t, "unnamed-macro", `
-load(":foo.bzl", "bar")
+load(":bar.bzl", "bar")
 
 baz = bar
 
@@ -448,16 +356,6 @@ def macro2(name):
 `, []string{
 		`5: Macro function "macro1" doesn't accept a keyword argument "name".
 
-Example stack trace (statically analyzed):
-  File "test/package/test_file.bzl", line 6, in macro1
-    baz(...)
-  File "test/package/test_file.bzl", line 3
-    baz = bar
-  File "test/package/foo.bzl", line 4
-    bar = _bar
-  File "test/package/bar.bzl", line 4
-    bar = my_rule
-  File "test/package/bar.bzl", line 2
-    my_rule = rule(...)`,
+It is considered a macro because it calls a rule or another macro "baz" on line 6.`,
 	}, scopeBzl)
 }
