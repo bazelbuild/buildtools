@@ -23,18 +23,24 @@ const (
 // reset it when it finishes.
 var testFileReader *FileReader
 
+// fileReaderRequests is used by tests to check which files have actually been requested by testFileReader
+var fileReaderRequests []string
+
 func setUpFileReader(data map[string]string) (cleanup func()) {
 	readFile := func(filename string) ([]byte, error) {
+		fileReaderRequests = append(fileReaderRequests, filename)
 		if contents, ok := data[filename]; ok {
 			return []byte(contents), nil
 		}
 		return nil, fmt.Errorf("File not found")
 	}
 	testFileReader = NewFileReader(readFile)
+	fileReaderRequests = nil
 
 	return func() {
 		// Tear down
 		testFileReader = nil
+		fileReaderRequests = nil
 	}
 }
 

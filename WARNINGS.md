@@ -55,6 +55,7 @@ Warning categories supported by buildifier's linter:
   * [`same-origin-load`](#same-origin-load)
   * [`string-iteration`](#string-iteration)
   * [`uninitialized`](#uninitialized)
+  * [`unnamed-macro`](#unnamed-macro)
   * [`unreachable`](#unreachable)
   * [`unsorted-dict-items`](#unsorted-dict-items)
   * [`unused-variable`](#unused-variable)
@@ -906,6 +907,18 @@ for i in range(len(my_string)):
 The local value can be not initialized at the time of execution. It may happen if it's
 initialized in one of the if-else clauses but not in all of them, or in a for-loop which
 can potentially be empty.
+
+--------------------------------------------------------------------------------
+
+## <a name="unnamed-macro"></a>Macro function doesn't accept a keyword argument "name"
+
+  * Category name: `unnamed-macro`
+  * Automatic fix: no
+
+By convention all macro functions should have a keyword argument called "name".
+
+A macro is a function that calls a rule (either directly or indirectly by calling other
+macros).
 
 --------------------------------------------------------------------------------
 
