@@ -175,8 +175,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 
 // testPrint is a helper for testing the printer.
 // It reads the file named in, reformats it, and compares
-// the result to the file named out. If rewrite is true, the
-// reformatting includes buildifier's higher-level rewrites.
+// the result to the file named out.
 func testPrint(t *testing.T, in, out string, isBuild bool) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
@@ -207,8 +206,6 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 			t.Error(err)
 			return
 		}
-
-		Rewrite(file, nil)
 
 		ndata := Format(file)
 
@@ -244,7 +241,7 @@ func TestPrintParse(t *testing.T) {
 			t.Errorf("parsing original: %v", err)
 		}
 
-		ndata := Format(f)
+		ndata := FormatWithoutRewriting(f)
 
 		f2, err := Parse(base, ndata)
 		if err != nil {
@@ -373,8 +370,6 @@ func TestPrintNewSequences(t *testing.T) {
 				Type: fileType,
 				Stmt: newSequences,
 			}
-
-			Rewrite(file, nil)
 
 			ndata := Format(file)
 

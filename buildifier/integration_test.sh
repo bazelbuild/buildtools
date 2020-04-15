@@ -284,10 +284,7 @@ cat > golden/json_report_golden <<EOF
             "filename": "to_fix_3.bzl",
             "formatted": false,
             "valid": true,
-            "warnings": [],
-            "rewrites": {
-                "editoctal": 1
-            }
+            "warnings": []
         },
         {
             "filename": "to_fix_4.bzl",
