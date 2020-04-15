@@ -49,9 +49,9 @@ func acceptsNameArgument(def *build.DefStmt) bool {
 
 // fileData represents information about rules and functions extracted from a file
 type fileData struct {
-	rules     map[string]bool
-	functions map[string]map[string]funCall
-	aliases   map[string]function
+	rules     map[string]bool               // all rules defined in the file
+	functions map[string]map[string]funCall // outer map: all functions defined in the file, inner map: all distinct function calls from the given function
+	aliases   map[string]function           // all top-level aliases (e.g. `foo = bar`).
 }
 
 // externalDependency is a reference to a symbol defined in another file
