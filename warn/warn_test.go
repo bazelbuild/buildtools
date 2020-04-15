@@ -128,7 +128,7 @@ func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
 
 	// No fixes expected
 	FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
-	fixed := build.Format(buildFile)
+	fixed := build.FormatWithoutRewriting(buildFile)
 
 	if !bytes.Equal(formatted, fixed) {
 		t.Errorf("Modified a file (type %s) while getting warnings:\ninput:\n%s\ndiff (-before, +after)\n",

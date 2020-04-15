@@ -36,7 +36,7 @@ func checkTypes(t *testing.T, input, output string) {
 	build.Edit(f, edit)
 
 	want := []byte(strings.TrimLeft(output, "\n"))
-	have := build.Format(f)
+	have := build.FormatWithoutRewriting(f)
 	if !bytes.Equal(have, want) {
 		t.Errorf("detected types incorrectly: diff shows -expected, +ours")
 		testutils.Tdiff(t, want, have)
