@@ -718,7 +718,7 @@ func fixMultilinePlus(f *File) {
 
 		// The 'all' slice is alternating addends and BinaryExpr +'s:
 		//	w, +, x, +, y, +, z
-		// If there are no lists involved, don't Rewrite anything.
+		// If there are no lists involved, don't rewrite anything.
 		haveList := false
 		for i := 0; i < len(all); i += 2 {
 			if isList(all[i]) {
