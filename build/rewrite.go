@@ -29,7 +29,7 @@ import (
 // For debugging: flag to disable certain rewrites.
 var DisableRewrites []string
 
-// disabled reports whether the named Rewrite is disabled.
+// disabled reports whether the named rewrite is disabled.
 func disabled(name string) bool {
 	for _, x := range DisableRewrites {
 		if name == x {

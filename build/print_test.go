@@ -109,7 +109,7 @@ func TestPrintRewrite(t *testing.T) {
 	}
 }
 
-// Test that attempting to FormatWithoutRewriting an incorrect file throws a syntax error
+// Test that attempting to format an incorrect file throws a syntax error
 func TestSyntaxError(t *testing.T) {
 	ins, chdir := findTests(t, ".error")
 	defer chdir()
@@ -175,8 +175,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 
 // testPrint is a helper for testing the printer.
 // It reads the file named in, reformats it, and compares
-// the result to the file named out. If Rewrite is true, the
-// reformatting includes buildifier's higher-level rewrites.
+// the result to the file named out.
 func testPrint(t *testing.T, in, out string, isBuild bool) {
 	data, err := ioutil.ReadFile(in)
 	if err != nil {
@@ -389,7 +388,7 @@ type eqchecker struct {
 	pos  Position
 }
 
-// errorf returns an error described by the printf-style FormatWithoutRewriting and arguments,
+// errorf returns an error described by the printf-style format and arguments,
 // inserting the current file position before the error text.
 func (eq *eqchecker) errorf(format string, args ...interface{}) error {
 	return fmt.Errorf("%s:%d: %s", eq.file, eq.pos.Line,
