@@ -169,15 +169,18 @@ func analyzeFile(f *build.File) fileData {
 	return report
 }
 
+// functionReport represents the analysis result of a function
+type functionReport struct {
+	isMacro bool     // whether the function is a macro (or a rule)
+	fc      *funCall // a call to the rule or another macro
+}
+
 // macroAnalyzer is an object that analyzes the directed graph of functions calling each other,
 // loading other files lazily if necessary.
 type macroAnalyzer struct {
 	fileReader *FileReader
 	files      map[string]fileData
-	cache      map[function]struct {
-		isMacro bool
-		fc      *funCall
-	}
+	cache      map[function]functionReport
 }
 
 // getFileData retrieves a file using the fileReader object and extracts information about functions and rules
@@ -198,32 +201,17 @@ func (ma macroAnalyzer) getFileData(filename string) fileData {
 }
 
 // IsMacro is a public function that checks whether the given function is a macro
-func (ma macroAnalyzer) IsMacro(fn function) (bool, *funCall) {
-	// Keep track of already visited functions to prevent crashing because of infinite recursion
-	visited := make(map[function]bool)
-	return ma.isMacroPrivate(fn, visited)
-}
-
-// isMacroPrivate is the same as IsMacro except that it takes a set of already visited nodes to prevent
-// infinite recursion (recursion is not allowed in Starlark but can still crash Buildifier if not
-// handled properly)
-func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (isMacro bool, fc *funCall) {
-	if visited[fn] {
-		// Don't visit the function again to prevent infinite recursion
-		return false, nil
-	}
-	visited[fn] = true
-	defer func() { visited[fn] = false }()
-
+func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 	// Check the cache first
 	if cached, ok := ma.cache[fn]; ok {
-		return cached.isMacro, cached.fc
+		return cached
 	}
+	// Write a negative result to the cache before analyzing. This will prevent stack overflow crashes
+	// if the input data contains recursion.
+	ma.cache[fn] = report
 	defer func() {
-		ma.cache[fn] = struct {
-			isMacro bool
-			fc      *funCall
-		}{isMacro, fc}
+		// Update the cache with the actual result
+		ma.cache[fn] = report
 	}()
 
 	// Check for native rules
@@ -231,31 +219,32 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 		switch fn.name {
 		case "glob", "existing_rule", "existing_rules":
 			// Not a rule
-			return false, nil
 		default:
-			return true, nil
+			report.isMacro = true
 		}
+		return
 	}
 
 	fileData := ma.getFileData(fn.filename)
 
 	// Check whether fn.name is an alias for another function
 	if alias, ok := fileData.aliases[fn.name]; ok {
-		if isMacro, _ := ma.isMacroPrivate(alias, visited); isMacro {
-			return true, nil
+		if ma.IsMacro(alias).isMacro {
+			report.isMacro = true
 		}
-		return false, nil
+		return
 	}
 
 	// Check whether fn.name is a rule
 	if fileData.rules[fn.name] {
-		return true, nil
+		report.isMacro = true
+		return
 	}
 
 	// Check whether fn.name is an ordinary function
 	funCalls, ok := fileData.functions[fn.name]
 	if !ok {
-		return false, nil
+		return
 	}
 
 	// Prioritize function calls from already loaded files. If some of the function calls are from the same file
@@ -271,13 +260,14 @@ func (ma macroAnalyzer) isMacroPrivate(fn function, visited map[function]bool) (
 	}
 
 	for _, fc := range append(knownFunCalls, newFunCalls...) {
-		isMacro, _ := ma.isMacroPrivate(fc.function, visited)
-		if isMacro {
-			return true, &fc
+		if ma.IsMacro(fc.function).isMacro {
+			report.isMacro = true
+			report.fc = &fc
+			return
 		}
 	}
 
-	return false, nil
+	return
 }
 
 // newMacroAnalyzer creates and initiates an instance of macroAnalyzer.
@@ -285,10 +275,7 @@ func newMacroAnalyzer(fileReader *FileReader) macroAnalyzer {
 	return macroAnalyzer{
 		fileReader: fileReader,
 		files:      make(map[string]fileData),
-		cache: make(map[function]struct {
-			isMacro bool
-			fc      *funCall
-		}),
+		cache:      make(map[function]functionReport),
 	}
 }
 
@@ -311,16 +298,16 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		isMacro, fc := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
-		if !isMacro {
+		report := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
+		if !report.isMacro {
 			continue
 		}
 		msg := fmt.Sprintf(`Macro function %q doesn't accept a keyword argument "name".`, def.Name)
-		if fc != nil {
+		if report.fc != nil {
 			// fc shouldn't be nil because that's the only node that can be found inside a function.
 			msg += fmt.Sprintf(`
 
-It is considered a macro because it calls a rule or another macro %q on line %d.`, fc.nameAlias, fc.line)
+It is considered a macro because it calls a rule or another macro %q on line %d.`, report.fc.nameAlias, report.fc.line)
 		}
 		finding := makeLinterFinding(def, msg)
 		finding.End = def.ColonPos
