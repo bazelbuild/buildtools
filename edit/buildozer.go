@@ -990,7 +990,6 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // opts.Buildifier is useful to force consistency with other tools that call Buildifier.
 func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 	if opts.Buildifier == "" {
-		build.Rewrite(f, nil)
 		return build.Format(f), nil
 	}
 

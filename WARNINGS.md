@@ -53,9 +53,9 @@ Warning categories supported by buildifier's linter:
   * [`return-value`](#return-value)
   * [`rule-impl-return`](#rule-impl-return)
   * [`same-origin-load`](#same-origin-load)
-  * [`string-escape`](#string-escape)
   * [`string-iteration`](#string-iteration)
   * [`uninitialized`](#uninitialized)
+  * [`unnamed-macro`](#unnamed-macro)
   * [`unreachable`](#unreachable)
   * [`unsorted-dict-items`](#unsorted-dict-items)
   * [`unused-variable`](#unused-variable)
@@ -423,7 +423,7 @@ Returns:
   Can span multiple lines.
 
 Deprecated:
-  Optional, description of why the function is deprecated and what should be used instead. 
+  Optional, description of why the function is deprecated and what should be used instead.
 """
 ```
 
@@ -709,7 +709,7 @@ Or in simple cases you can use list comprehensions instead:
 x = depset(..., transitive = [y.deps for y in ...])
 ```
 
-For more information, read Bazel documentation about 
+For more information, read Bazel documentation about
 [depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
 and
 [reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
@@ -880,17 +880,6 @@ load(":f.bzl", "s1", "s2")
 
 --------------------------------------------------------------------------------
 
-## <a name="string-escape"></a>Invalid escape sequence
-
-  * Category name: `string-escape`
-  * Flag in Bazel: [`--incompatible_restrict_string_escapes`](https://github.com/bazelbuild/bazel/issues/8380)
-  * Automatic fix: yes
-
-Unrecognized escape sequences in string literals (e.g. `"\a \b"` is error-prone and shouldn't
-be used. If you need the backslash symbol, escape it explicitly: `"\\a \\b"`.
-
---------------------------------------------------------------------------------
-
 ## <a name="string-iteration"></a>String iteration is deprecated
 
   * Category name: `string-iteration`
@@ -918,6 +907,18 @@ for i in range(len(my_string)):
 The local value can be not initialized at the time of execution. It may happen if it's
 initialized in one of the if-else clauses but not in all of them, or in a for-loop which
 can potentially be empty.
+
+--------------------------------------------------------------------------------
+
+## <a name="unnamed-macro"></a>Macro function doesn't accept a keyword argument "name"
+
+  * Category name: `unnamed-macro`
+  * Automatic fix: no
+
+By convention all macro functions should have a keyword argument called "name".
+
+A macro is a function that calls a rule (either directly or indirectly by calling other
+macros).
 
 --------------------------------------------------------------------------------
 

@@ -23,18 +23,24 @@ const (
 // reset it when it finishes.
 var testFileReader *FileReader
 
+// fileReaderRequests is used by tests to check which files have actually been requested by testFileReader
+var fileReaderRequests []string
+
 func setUpFileReader(data map[string]string) (cleanup func()) {
 	readFile := func(filename string) ([]byte, error) {
+		fileReaderRequests = append(fileReaderRequests, filename)
 		if contents, ok := data[filename]; ok {
 			return []byte(contents), nil
 		}
 		return nil, fmt.Errorf("File not found")
 	}
 	testFileReader = NewFileReader(readFile)
+	fileReaderRequests = nil
 
 	return func() {
 		// Tear down
 		testFileReader = nil
+		fileReaderRequests = nil
 	}
 }
 
@@ -128,7 +134,7 @@ func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
 
 	// No fixes expected
 	FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
-	fixed := build.Format(buildFile)
+	fixed := build.FormatWithoutRewriting(buildFile)
 
 	if !bytes.Equal(formatted, fixed) {
 		t.Errorf("Modified a file (type %s) while getting warnings:\ninput:\n%s\ndiff (-before, +after)\n",
