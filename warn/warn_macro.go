@@ -13,8 +13,13 @@ const nativeModule = "<native>"
 
 // function represents a function identifier, which is a pair (module name, function name).
 type function struct {
-	filename string // .bzl file where the function is defined
+	pkg      string // package where the function is defined
+	filename string // name of a .bzl file relative to the package
 	name     string // original name of the function
+}
+
+func (f function) label() string {
+	return f.pkg + ":" + f.filename
 }
 
 // funCall represents a call to another function. It contains information of the function itself as well as some
@@ -54,17 +59,11 @@ type fileData struct {
 	aliases   map[string]function           // all top-level aliases (e.g. `foo = bar`).
 }
 
-// externalDependency is a reference to a symbol defined in another file
-type externalDependency struct {
-	filename string
-	symbol   string
-}
-
 // resolvesExternal takes a local function definition and replaces it with an external one if it's been defined
 // in another file and loaded
-func resolveExternal(fn function, externalSymbols map[string]externalDependency) function {
+func resolveExternal(fn function, externalSymbols map[string]function) function {
 	if external, ok := externalSymbols[fn.name]; ok {
-		return function{filename: external.filename, name: external.symbol}
+		return external
 	}
 	return fn
 }
@@ -76,7 +75,7 @@ func exprLine(expr build.Expr) int {
 }
 
 // getFunCalls extracts information about functions that are being called from the given function
-func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string]externalDependency) map[string]funCall {
+func getFunCalls(def *build.DefStmt, pkg, filename string, externalSymbols map[string]function) map[string]funCall {
 	funCalls := make(map[string]funCall)
 	build.Walk(def, func(expr build.Expr, stack []build.Expr) {
 		call, ok := expr.(*build.CallExpr)
@@ -85,7 +84,7 @@ func getFunCalls(def *build.DefStmt, filename string, externalSymbols map[string
 		}
 		if ident, ok := call.X.(*build.Ident); ok {
 			funCalls[ident.Name] = funCall{
-				function:  resolveExternal(function{filename, ident.Name}, externalSymbols),
+				function:  resolveExternal(function{pkg, filename, ident.Name}, externalSymbols),
 				nameAlias: ident.Name,
 				line:      exprLine(call),
 			}
@@ -118,18 +117,18 @@ func analyzeFile(f *build.File) fileData {
 	}
 
 	// Collect loaded symbols
-	externalSymbols := make(map[string]externalDependency)
+	externalSymbols := make(map[string]function)
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
 		if !ok {
 			continue
 		}
-		moduleFile := getPathFromLabel(load.Module.Value, f.Pkg)
-		if moduleFile == "" {
+		pkg, name := ResolveLabel(f.Pkg, load.Module.Value)
+		if name == "" {
 			continue
 		}
 		for i, from := range load.From {
-			externalSymbols[load.To[i].Name] = externalDependency{moduleFile, from.Name}
+			externalSymbols[load.To[i].Name] = function{pkg, name, from.Name}
 		}
 	}
 
@@ -147,7 +146,7 @@ func analyzeFile(f *build.File) fileData {
 				continue
 			}
 			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
-				report.aliases[lhsIdent.Name] = resolveExternal(function{f.DisplayPath(), rhsIdent.Name}, externalSymbols)
+				report.aliases[lhsIdent.Name] = resolveExternal(function{f.Pkg, f.Label, rhsIdent.Name}, externalSymbols)
 				continue
 			}
 
@@ -161,7 +160,7 @@ func analyzeFile(f *build.File) fileData {
 			}
 			report.rules[lhsIdent.Name] = true
 		case *build.DefStmt:
-			report.functions[stmt.Name] = getFunCalls(stmt, f.DisplayPath(), externalSymbols)
+			report.functions[stmt.Name] = getFunCalls(stmt, f.Pkg, f.Label, externalSymbols)
 		default:
 			continue
 		}
@@ -185,7 +184,8 @@ type macroAnalyzer struct {
 
 // getFileData retrieves a file using the fileReader object and extracts information about functions and rules
 // defined in the file.
-func (ma macroAnalyzer) getFileData(filename string) fileData {
+func (ma macroAnalyzer) getFileData(pkg, label string) fileData {
+	filename := pkg + ":" + label
 	if fd, ok := ma.files[filename]; ok {
 		return fd
 	}
@@ -194,7 +194,7 @@ func (ma macroAnalyzer) getFileData(filename string) fileData {
 		ma.files[filename] = fd
 		return fd
 	}
-	f := ma.fileReader.GetFile(filename)
+	f := ma.fileReader.GetFile(pkg, label)
 	fd := analyzeFile(f)
 	ma.files[filename] = fd
 	return fd
@@ -225,7 +225,7 @@ func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 		return
 	}
 
-	fileData := ma.getFileData(fn.filename)
+	fileData := ma.getFileData(fn.pkg, fn.filename)
 
 	// Check whether fn.name is an alias for another function
 	if alias, ok := fileData.aliases[fn.name]; ok {
@@ -249,10 +249,9 @@ func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 
 	// Prioritize function calls from already loaded files. If some of the function calls are from the same file
 	// (or another file that has been loaded already), check them first.
-	knownFunCalls := []funCall{}
-	newFunCalls := []funCall{}
+	var knownFunCalls, newFunCalls []funCall
 	for _, fc := range funCalls {
-		if _, ok := ma.files[fc.function.filename]; ok || fc.function.filename == nativeModule {
+		if _, ok := ma.files[fc.function.pkg+":"+fc.function.filename]; ok || fc.function.filename == nativeModule {
 			knownFunCalls = append(knownFunCalls, fc)
 		} else {
 			newFunCalls = append(newFunCalls, fc)
@@ -285,7 +284,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 	}
 
 	macroAnalyzer := newMacroAnalyzer(fileReader)
-	macroAnalyzer.files[f.DisplayPath()] = analyzeFile(f)
+	macroAnalyzer.files[f.Pkg+":"+f.Label] = analyzeFile(f)
 
 	findings := []*LinterFinding{}
 	for _, stmt := range f.Stmt {
@@ -298,7 +297,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		report := macroAnalyzer.IsMacro(function{f.DisplayPath(), def.Name})
+		report := macroAnalyzer.IsMacro(function{f.Pkg, f.Label, def.Name})
 		if !report.isMacro {
 			continue
 		}

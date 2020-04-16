@@ -20,6 +20,7 @@ package build
 // Syntax data structure definitions.
 
 import (
+	"fmt"
 	"strings"
 	"unicode/utf8"
 )
@@ -93,7 +94,8 @@ func stmtsEnd(stmts []Expr) Position {
 // A File represents an entire BUILD or .bzl file.
 type File struct {
 	Path          string // absolute file path
-	Pkg           string // optional; the package of the file
+	Pkg           string // optional; the package of the file (always forward slashes)
+	Label         string // optional; file path relative to the package name (always forward slashes)
 	WorkspaceRoot string // optional; path to the directory containing the WORKSPACE file
 	Type          FileType
 	Comments
@@ -106,6 +108,14 @@ func (f *File) DisplayPath() string {
 		return "<stdin>"
 	}
 	return f.Path
+}
+
+// Full label of the file, e.g. "//package:file.bzl"
+func (f *File) FullLabel() string {
+	if f.Pkg == "" {
+		return fmt.Sprintf("//%s", f.Label)
+	}
+	return fmt.Sprintf("//%s:%s", f.Pkg, f.Label)
 }
 
 func (f *File) Span() (start, end Position) {

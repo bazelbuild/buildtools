@@ -32,7 +32,7 @@ func setUpFileReader(data map[string]string) (cleanup func()) {
 		if contents, ok := data[filename]; ok {
 			return []byte(contents), nil
 		}
-		return nil, fmt.Errorf("File not found")
+		return nil, fmt.Errorf("file not found")
 	}
 	testFileReader = NewFileReader(readFile)
 	fileReaderRequests = nil
@@ -47,25 +47,32 @@ func setUpFileReader(data map[string]string) (cleanup func()) {
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
-		return "test/package/BUILD"
+		return "BUILD"
 	case build.TypeWorkspace:
-		return "test/package/WORKSPACE"
+		return "WORKSPACE"
 	case build.TypeBzl:
-		return "test/package/test_file.bzl"
+		return "test_file.bzl"
 	default:
-		return "test/package/test_file.strlrk"
+		return "test_file.strlrk"
 	}
 }
 
-func getFindings(category, input string, fileType build.FileType) []*Finding {
+func getFileForTest(input string, fileType build.FileType) *build.File {
 	input = strings.TrimLeft(input, "\n")
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
+	filename := getFilename(fileType)
+	file, err := build.Parse("test/package/"+filename, []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	buildFile.Pkg = "test/package"
-	buildFile.WorkspaceRoot = "/home/users/foo/bar"
-	return FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
+	file.Pkg = "test/package"
+	file.Label = filename
+	file.WorkspaceRoot = "/home/users/foo/bar"
+	return file
+}
+
+func getFindings(category, input string, fileType build.FileType) []*Finding {
+	file := getFileForTest(input, fileType)
+	return FileWarnings(file, []string{category}, nil, ModeWarn, testFileReader)
 }
 
 func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
@@ -104,17 +111,11 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 		expected = input
 	}
 
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	goldenFile, err := build.Parse(getFilename(fileType), []byte(expected))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
+	file := getFileForTest(input, fileType)
+	goldenFile := getFileForTest(expected, fileType)
 
-	FixWarnings(buildFile, []string{category}, false, testFileReader)
-	have := build.Format(buildFile)
+	FixWarnings(file, []string{category}, false, testFileReader)
+	have := build.Format(file)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
 		t.Errorf("fixed a test (type %s) incorrectly:\ninput:\n%s\ndiff (-expected, +ours)\n",
@@ -126,15 +127,12 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 // checkFix makes sure that the file contents don't change if a fix is not requested
 // (i.e. the warning functions have no side effects modifying the AST)
 func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	formatted := build.Format(buildFile)
+	file := getFileForTest(input, fileType)
+	formatted := build.Format(file)
 
 	// No fixes expected
-	FileWarnings(buildFile, []string{category}, nil, ModeWarn, testFileReader)
-	fixed := build.FormatWithoutRewriting(buildFile)
+	FileWarnings(file, []string{category}, nil, ModeWarn, testFileReader)
+	fixed := build.FormatWithoutRewriting(file)
 
 	if !bytes.Equal(formatted, fixed) {
 		t.Errorf("Modified a file (type %s) while getting warnings:\ninput:\n%s\ndiff (-before, +after)\n",

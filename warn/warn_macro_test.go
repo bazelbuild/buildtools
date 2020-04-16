@@ -152,7 +152,7 @@ It is considered a macro because it calls a rule or another macro "my_rule" on l
 
 func TestUnnamedMacroWithReader(t *testing.T) {
 	defer setUpFileReader(map[string]string{
-		"test/package/foo.bzl": `
+		"test/package/subdir1/foo.bzl": `
 def foo():
   native.foo_binary()
 
@@ -161,8 +161,8 @@ def bar():
 
 my_rule = rule()
 `,
-		"test/package/baz.bzl": `
-load(":foo.bzl", "bar", your_rule = "my_rule")
+		"test/package/subdir2/baz.bzl": `
+load(":subdir1/foo.bzl", "bar", your_rule = "my_rule")
 load("//does/not:exist.bzl", "something")
 
 def baz():
@@ -178,8 +178,8 @@ def f():
 	})()
 
 	checkFindings(t, "unnamed-macro", `
-load("//test/package/foo.bzl", abc = "bar")
-load(":baz.bzl", "baz", "qux", "f")
+load("//test/package:subdir1/foo.bzl", abc = "bar")
+load(":subdir2/baz.bzl", "baz", "qux", "f")
 
 def macro1(surname):
   abc()
@@ -287,10 +287,10 @@ func TestUnnamedMacroLoadedFiles(t *testing.T) {
 	})()
 
 	checkFindings(t, "unnamed-macro", `
-load("//a.bzl", "a")
-load("//b.bzl", "b")
-load("//c.bzl", "c")
-load("//d.bzl", "d")
+load("//:a.bzl", "a")
+load("//:b.bzl", "b")
+load("//:c.bzl", "c")
+load("//:d.bzl", "d")
 
 def macro1():
   a()  # has to load a.bzl to analyze
@@ -330,8 +330,6 @@ It is considered a macro because it calls a rule or another macro "r" on line 19
 }
 
 func TestUnnamedMacroAliases(t *testing.T) {
-	// Test that not necessary files are not loaded
-
 	defer setUpFileReader(map[string]string{
 		"test/package/foo.bzl": `
 load(":bar.bzl", _bar = "bar")
