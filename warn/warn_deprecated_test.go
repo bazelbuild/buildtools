@@ -35,8 +35,8 @@ load(":invalid.bzl", "foo", "bar", "baz")
 load(":nonexistent.bzl", "foo", "bar", "baz")
 `,
 		[]string{
-			`1: The function "bar" defined in "test/package/foo.bzl" is deprecated.`,
-			`2: The function "bar" defined in "test/package/foo.bzl" is deprecated.`,
+			`1: The function "bar" defined in "//test/package/foo.bzl" is deprecated.`,
+			`2: The function "bar" defined in "//test/package/foo.bzl" is deprecated.`,
 		},
 		scopeEverywhere)
 }

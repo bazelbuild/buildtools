@@ -13,8 +13,8 @@ bar()
 baz()
 `,
 		[]string{
-			`:1: Module "//foo/bar/internal/baz:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
-			`:2: Module "//foo/bar/private/baz:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
+			`:1: Module "//foo/bar/internal/baz:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
+			`:2: Module "//foo/bar/private/baz:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
 		},
 		scopeEverywhere)
 
@@ -28,8 +28,8 @@ bar()
 baz()
 `,
 		[]string{
-			`:1: Module "//foo/bar/internal:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
-			`:2: Module "//foo/bar/private:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
+			`:1: Module "//foo/bar/internal:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
+			`:2: Module "//foo/bar/private:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
 		},
 		scopeEverywhere)
 
@@ -46,9 +46,9 @@ baz()
 qux()
 `,
 		[]string{
-			`:1: Module "@repo//foo/bar/internal:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
-			`:2: Module "@repo//foo/bar/private:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package".`,
-			`:4: Module "@repo/internal:module.bzl" can only be loaded from files located inside "@repo", not from "//test/package".`,
+			`:1: Module "@repo//foo/bar/internal:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
+			`:2: Module "@repo//foo/bar/private:module.bzl" can only be loaded from files located inside "//foo/bar", not from "//test/package/`,
+			`:4: Module "@repo/internal:module.bzl" can only be loaded from files located inside "@repo", not from "//test/package/`,
 		},
 		scopeEverywhere)
 

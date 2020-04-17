@@ -143,7 +143,7 @@ test_dir/to_fix_tmp.bzl: applied fixes, 2 warnings left
 fixed test_dir/to_fix_tmp.bzl
 EOF
 
-error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
+error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
 error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
 error_integer="test_dir/to_fix_tmp.bzl:3: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
 error_dict="test_dir/to_fix_tmp.bzl:4: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
@@ -241,7 +241,7 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "bzl-visibility",
                     "actionable": true,
-                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json\".",
+                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json/to_fix.bzl\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility"
                 },
                 {
@@ -393,7 +393,7 @@ load(":nonexistent.bzl", "foo2", "bar2")
 EOF
 
 cat > report_golden <<EOF
-BUILD:1: deprecated-function: The function "bar" defined in "/lib.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#deprecated-function)
+BUILD:1: deprecated-function: The function "bar" defined in "//lib.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#deprecated-function)
 EOF
 
 $buildifier --lint=warn --warnings=deprecated-function BUILD 2> report || ret=$?

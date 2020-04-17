@@ -42,19 +42,19 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 			}
 		}
 
-		pkg := "//" + f.Pkg // Canonical name of the package
+		path := f.CanonicalPath() // Canonical name of the file
 		chunks := internalDirectory.Split(module, 2)
 		if len(chunks) < 2 {
 			continue
 		}
 
-		if strings.HasPrefix(pkg, chunks[0]) {
+		if strings.HasPrefix(path, chunks[0]) {
 			continue
 		}
 
 		findings = append(findings, makeLinterFinding(
 			load.Module,
-			fmt.Sprintf("Module %q can only be loaded from files located inside %q, not from %q.", load.Module.Value, chunks[0], pkg)))
+			fmt.Sprintf("Module %q can only be loaded from files located inside %q, not from %q.", load.Module.Value, chunks[0], path)))
 	}
 
 	return findings

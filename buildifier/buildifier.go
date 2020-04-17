@@ -329,7 +329,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 
 	if absoluteFilename, err := filepath.Abs(displayFilename); err == nil {
-		f.WorkspaceRoot, f.Pkg = utils.SplitFilePath(absoluteFilename)
+		f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(absoluteFilename)
 	}
 
 	warnings := utils.Lint(f, lint, warningsList, *vflag)

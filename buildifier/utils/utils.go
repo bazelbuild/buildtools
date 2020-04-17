@@ -5,6 +5,7 @@ package utils
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -77,12 +78,12 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 	}
 }
 
-// hasWorkspaceFile checks whether a given directory contains a file called
-// WORKSPACE or WORKSPACE.bazel.
-func hasWorkspaceFile(path string) bool {
-	for _, filename := range []string{"WORKSPACE", "WORKSPACE.bazel"} {
-		workspace := filepath.Join(path, filename)
-		info, err := os.Stat(workspace)
+// containsFile checks whether a given directory contains a file called
+// <file> or <file>.bazel.
+func containsFile(dir, file string) bool {
+	for _, filename := range []string{file, file + ".bazel"} {
+		path := filepath.Join(dir, filename)
+		info, err := os.Stat(path)
 		if err == nil && !info.IsDir() {
 			return true
 		}
@@ -94,26 +95,33 @@ func hasWorkspaceFile(path string) bool {
 // Workspace root is determined as the last directory in the file path that
 // contains a WORKSPACE (or WORKSPACE.bazel) file.
 // Returns empty strings if no WORKSPACE file is found
-func SplitFilePath(filename string) (workspaceRoot, pkg string) {
-	directory := filepath.Dir(filename)
+func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
 	root := "/"
-	if volume := filepath.VolumeName(directory); volume != "" {
+	if volume := filepath.VolumeName(filename); volume != "" {
 		// Windows
 		root = volume + "\\"
 	}
-	// directory relative to the file system root
-	relPath := directory[len(root):]
+	// filename relative to the file system root
+	relPath := filename[len(root):]
 
-	dirs := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
+	chunks := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
 	parent := root
-	for i, chunk := range dirs {
+	workspaceIndex := -1
+	for i := 0; i < len(chunks)-1; i++ {
+		chunk := chunks[i]
 		parent = filepath.Join(parent, chunk)
-		if hasWorkspaceFile(parent) {
+		if containsFile(parent, "WORKSPACE") {
+			workspaceIndex = i
 			workspaceRoot = parent
-			pkg = strings.Join(dirs[i+1:], "/")
+			pkg = ""
+			label = path.Join(chunks[i+1:]...)
+		}
+		if workspaceIndex != -1 && containsFile(parent, "BUILD") {
+			pkg = path.Join(chunks[workspaceIndex+1 : i+1]...)
+			label = path.Join(chunks[i+1:]...)
 		}
 	}
-	return workspaceRoot, pkg
+	return workspaceRoot, pkg, label
 }
 
 // getFileReader returns a *FileReader object that reads files from the local

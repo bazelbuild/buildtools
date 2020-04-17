@@ -4,31 +4,11 @@ package warn
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
 )
 
-func getPathFromLabel(label, pkg string) string {
-	switch {
-	case strings.HasPrefix(label, "//"):
-		// Absolute label path
-		return strings.ReplaceAll(label[2:], ":", "/")
-	case strings.HasPrefix(label, ":"):
-		// Relative label path
-		return pkg + "/" + label[1:]
-	default:
-		// External repositories are not supported
-		return ""
-	}
-}
-
-func readBzlFile(path string, fileReader *FileReader) (*build.File, bool) {
-	file := fileReader.GetFile(path)
-	return file, file != nil
-}
-
-func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.Ident, path string) *LinterFinding {
+func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.Ident, fullLabel string) *LinterFinding {
 	def, ok := stmt.(*build.DefStmt)
 	if !ok {
 		return nil
@@ -50,7 +30,7 @@ func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.I
 		return nil
 	}
 
-	return makeLinterFinding(node, fmt.Sprintf("The function %q defined in %q is deprecated.", def.Name, path))
+	return makeLinterFinding(node, fmt.Sprintf("The function %q defined in %q is deprecated.", def.Name, fullLabel))
 }
 
 func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterFinding {
@@ -64,22 +44,21 @@ func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterF
 		if !ok {
 			continue
 		}
-		path := getPathFromLabel(load.Module.Value, f.Pkg)
-		if path == "" {
+		pkg, fileLabel := ResolveLabel(f.Pkg, load.Module.Value)
+		if fileLabel == "" {
 			continue
 		}
-		loadedFile, ok := readBzlFile(path, fileReader)
-		if !ok {
+		loadedFile := fileReader.GetFile(pkg, fileLabel)
+		if loadedFile == nil {
 			continue
 		}
-
 		loadedSymbols := make(map[string]*build.Ident)
 		for _, from := range load.From {
 			loadedSymbols[from.Name] = from
 		}
 
 		for _, stmt := range loadedFile.Stmt {
-			if finding := checkDeprecatedFunction(stmt, &loadedSymbols, path); finding != nil {
+			if finding := checkDeprecatedFunction(stmt, &loadedSymbols, loadedFile.CanonicalPath()); finding != nil {
 				findings = append(findings, finding)
 			}
 		}
