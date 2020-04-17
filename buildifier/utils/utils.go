@@ -91,10 +91,37 @@ func containsFile(dir, file string) bool {
 	return false
 }
 
-// SplitFilePath splits a file path into the workspace root and package name.
+// SplitRelativePath splits a path relative to the workspace root into package name and label.
+// It takes the workspace root and chunks of the relative path (already split) as input arguments.
+// Both output variables always have forward slashes as separators.
+func SplitRelativePath(workspaceRoot string, chunks []string) (pkg, label string) {
+	switch chunks[len(chunks)-1] {
+	case "BUILD", "BUILD.bazel":
+		return path.Join(chunks[:len(chunks)-1]...), chunks[len(chunks)-1]
+	}
+
+	pkg = ""
+	label = path.Join(chunks...)
+	parent := workspaceRoot
+	for i, chunk := range chunks {
+		if i == len(chunks)-1 {
+			// The last chunk is a filename, not a directory
+			break
+		}
+		parent = filepath.Join(parent, chunk)
+		if containsFile(parent, "BUILD") {
+			pkg = path.Join(chunks[:i+1]...)
+			label = path.Join(chunks[i+1:]...)
+		}
+	}
+	return pkg, label
+}
+
+// SplitFilePath splits a file path into the workspace root, package name and label.
 // Workspace root is determined as the last directory in the file path that
 // contains a WORKSPACE (or WORKSPACE.bazel) file.
-// Returns empty strings if no WORKSPACE file is found
+// Package and label are always separated with forward slashes.
+// Returns empty strings if no WORKSPACE file is found.
 func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
 	root := "/"
 	if volume := filepath.VolumeName(filename); volume != "" {
@@ -107,19 +134,19 @@ func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
 	chunks := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
 	parent := root
 	workspaceIndex := -1
-	for i := 0; i < len(chunks)-1; i++ {
-		chunk := chunks[i]
+	for i, chunk := range chunks {
+		if i == len(chunks)-1 {
+			// The last chunk is a filename, not a directory
+			break
+		}
 		parent = filepath.Join(parent, chunk)
 		if containsFile(parent, "WORKSPACE") {
-			workspaceIndex = i
 			workspaceRoot = parent
-			pkg = ""
-			label = path.Join(chunks[i+1:]...)
+			workspaceIndex = i
 		}
-		if workspaceIndex != -1 && containsFile(parent, "BUILD") {
-			pkg = path.Join(chunks[workspaceIndex+1 : i+1]...)
-			label = path.Join(chunks[i+1:]...)
-		}
+	}
+	if workspaceIndex != -1 {
+		pkg, label = SplitRelativePath(workspaceRoot, chunks[workspaceIndex+1:])
 	}
 	return workspaceRoot, pkg, label
 }

@@ -32,6 +32,9 @@ func (d *Diagnostics) Format(format string, verbose bool) string {
 					w.Message,
 					w.URL))
 			}
+			if !f.Formatted {
+				output.WriteString(fmt.Sprintf("%s # reformat\n", f.Filename))
+			}
 		}
 		return output.String()
 	case "json":
