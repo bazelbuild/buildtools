@@ -110,12 +110,12 @@ func (f *File) DisplayPath() string {
 	return f.Path
 }
 
-// Full label of the file, e.g. "//package:file.bzl"
-func (f *File) FullLabel() string {
+// CanonicalPath returns the path of a file relative to the workspace root with forward slashes only
+func (f *File) CanonicalPath() string {
 	if f.Pkg == "" {
-		return fmt.Sprintf("//%s", f.Label)
+		return "//" + f.Label
 	}
-	return fmt.Sprintf("//%s:%s", f.Pkg, f.Label)
+	return fmt.Sprintf("//%s/%s", f.Pkg, f.Label)
 }
 
 func (f *File) Span() (start, end Position) {

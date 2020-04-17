@@ -42,7 +42,7 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 			}
 		}
 
-		path := strings.ReplaceAll(f.FullLabel(), ":", "/") // Canonical name of the file
+		path := f.CanonicalPath() // Canonical name of the file
 		chunks := internalDirectory.Split(module, 2)
 		if len(chunks) < 2 {
 			continue

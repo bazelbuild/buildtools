@@ -58,7 +58,7 @@ func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterF
 		}
 
 		for _, stmt := range loadedFile.Stmt {
-			if finding := checkDeprecatedFunction(stmt, &loadedSymbols, loadedFile.FullLabel()); finding != nil {
+			if finding := checkDeprecatedFunction(stmt, &loadedSymbols, loadedFile.CanonicalPath()); finding != nil {
 				findings = append(findings, finding)
 			}
 		}
