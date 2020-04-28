@@ -101,7 +101,14 @@ func ShortenLabel(label string, pkg string) string {
 func LabelsEqual(label1, label2, pkg string) bool {
 	str1 := strings.TrimPrefix(ShortenLabel(label1, pkg), ":")
 	str2 := strings.TrimPrefix(ShortenLabel(label2, pkg), ":")
-	return str1 == str2
+
+	if str1 == str2 {
+		return true
+	} else {
+		pattern := "^" + label2 + "$"
+		match, _ := regexp.MatchString(pattern, str1)
+		return match
+	}
 }
 
 // isFile returns true if the path refers to a regular file after following
