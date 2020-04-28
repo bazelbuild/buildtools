@@ -2,8 +2,6 @@
 
 set -u -e -o pipefail
 
-# TODO(vladmos): add bits for publishing go binaries to github￼
-
 # Googlers: you should npm login using the go/npm-publish service:
 #      $ npm login --registry https://wombat-dressing-room.appspot.com
 # Non-googlers: you should run this script with
