@@ -4,6 +4,7 @@ package warn
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
 )
@@ -293,7 +294,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		if !ok || acceptsNameArgument(def) {
+		if strings.HasPrefix(def.Name, "_") || acceptsNameArgument(def) {
 			continue
 		}
 
