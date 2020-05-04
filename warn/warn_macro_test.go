@@ -364,7 +364,14 @@ my_rule = rule()
 
 def _not_macro(x):
   my_rule(name = x)
+
+def macro(x):
+  _not_macro(x)
 `,
-		[]string{},
+		[]string{
+			`6: Macro function "macro" doesn't accept a keyword argument "name".
+
+It is considered a macro because it calls a rule or another macro "_not_macro" on line 7.`,
+		},
 		scopeBzl)
 }
