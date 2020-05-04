@@ -94,6 +94,11 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 	prefix := strings.Repeat(" ", indent)
 	lines := strings.Split(doc.Value, "\n")
 
+	// Trim "/r" in the end of the lines to parse CRLF-formatted files correctly
+	for i, line := range lines {
+		lines[i] = strings.TrimRight(line, "\r")
+	}
+
 	info := docstringInfo{}
 	info.args = make(map[string]build.Position)
 
