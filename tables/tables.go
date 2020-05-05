@@ -153,20 +153,9 @@ var SortableBlacklist = map[string]bool{
 	"genrule.srcs": true,
 }
 
-// SortableWhitelist records specific rule arguments that are guaranteed
-// to be reorderable, because bazel re-sorts the list itself after reading the BUILD file.
-var SortableWhitelist = map[string]bool{
-	"cc_inc_library.hdrs":      true,
-	"cc_library.hdrs":          true,
-	"java_library.srcs":        true,
-	"java_library.resources":   true,
-	"java_binary.srcs":         true,
-	"java_binary.resources":    true,
-	"java_test.srcs":           true,
-	"java_test.resources":      true,
-	"java_library.constraints": true,
-	"java_import.constraints":  true,
-}
+// SortableWhitelist records specific rule arguments that are guaranteed to be reorderable
+// (format: "rule_name.attribute_name").
+var SortableWhitelist = map[string]bool{}
 
 // NamePriority maps an argument name to its sorting priority.
 //
