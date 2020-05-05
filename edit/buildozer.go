@@ -425,8 +425,8 @@ func cmdRename(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
-	oldV := env.Args[1]
-	newV := env.Args[2]
+	oldV := getStringValue(env.Args[1])
+	newV := getStringValue(env.Args[2])
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
@@ -509,9 +509,18 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 	}
 }
 
+// getStringValue extracts a string value, which can be either quoted or not, from an input argument
+func getStringValue(value string) string {
+	if unquoted, _, err := build.Unquote(value); err == nil {
+		return unquoted
+	}
+	return value
+}
+
+// getStringExpr creates a StringExpr from an input argument, which can be either quoter or not,
+// and shortens the label value if possible.
 func getStringExpr(value, pkg string) build.Expr {
-	unquoted, triple, err := build.Unquote(value)
-	if err == nil {
+	if unquoted, triple, err := build.Unquote(value); err == nil {
 		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
 	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
