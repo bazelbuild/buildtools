@@ -171,6 +171,18 @@ def f():
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-header", `
+def f():
+   """\r
+   Header in a CRLF formatted file.\r
+\r
+   This is a\r
+   multiline description"""
+`,
+		[]string{},
+		scopeEverywhere)
+
 }
 
 func TestFunctionDocstringArgs(t *testing.T) {
