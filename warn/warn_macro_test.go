@@ -357,3 +357,21 @@ def macro2(name):
 It is considered a macro because it calls a rule or another macro "baz" on line 6.`,
 	}, scopeBzl)
 }
+
+func TestUnnamedMacroPrivate(t *testing.T) {
+	checkFindings(t, "unnamed-macro", `
+my_rule = rule()
+
+def _not_macro(x):
+  my_rule(name = x)
+
+def macro(x):
+  _not_macro(x)
+`,
+		[]string{
+			`6: Macro function "macro" doesn't accept a keyword argument "name".
+
+It is considered a macro because it calls a rule or another macro "_not_macro" on line 7.`,
+		},
+		scopeBzl)
+}
