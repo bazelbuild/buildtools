@@ -378,6 +378,10 @@ func sortStringLists(f *File) {
 	Walk(f, func(v Expr, stk []Expr) {
 		switch v := v.(type) {
 		case *CallExpr:
+			if f.Type == TypeDefault || f.Type == TypeBzl {
+				// Rule parameters, not applicable to .bzl or default file types
+				return
+			}
 			if leaveAlone(stk, v) {
 				return
 			}
@@ -395,22 +399,22 @@ func sortStringLists(f *File) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || f.Type == TypeDefault || f.Type == TypeBzl {
+				if tables.SortableBlacklist[context] {
 					continue
 				}
-				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
-					continue
+				if tables.IsSortableListArg[key.Name] ||
+					tables.SortableWhitelist[context] ||
+					(!disabled("unsafesort") && allowedSort(context)) {
+					sortStringList(as.RHS, context)
 				}
-				sortStringList(as.RHS, context)
 			}
 		case *AssignExpr:
 			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
-			as := v
-			if keepSorted(as) {
-				sortStringList(as.RHS, "?")
+			if keepSorted(v) {
+				sortStringList(v.RHS, "?")
 			}
 		case *KeyValueExpr:
 			if disabled("unsafesort") {
