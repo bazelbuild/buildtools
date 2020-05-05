@@ -88,6 +88,14 @@ function test_add_dep_no_deps() {
 )'
 }
 
+function test_add_dep_quotes() {
+  run "$no_deps" 'add deps "//foo"' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = ["//foo"],
+)'
+}
+
 function test_add_dep_empty_deps() {
   run "$empty_deps" 'add deps //foo' '//pkg:edit'
   assert_equals 'go_library(
@@ -196,6 +204,14 @@ function test_remove_last_dep() {
 
 function test_remove_dep() {
   run "$two_deps" 'remove deps //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":local"],
+)'
+}
+
+function test_remove_dep_quotes() {
+  run "$two_deps" 'remove deps "//buildifier:build"' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     deps = [":local"],
@@ -466,6 +482,18 @@ function test_replace_string_attr() {
     shared_library = ":local",  # Suffix comment.
 )'
   run "$in" 'replace shared_library :local :new' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    shared_library = ":new",  # Suffix comment.
+)'
+}
+
+function test_replace_string_attr_quotes() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'replace shared_library ":local" ":new"' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     shared_library = ":new",  # Suffix comment.
