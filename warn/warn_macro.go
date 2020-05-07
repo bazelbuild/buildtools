@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"google3/third_party/bazel_buildifier/build/build"
+	"github.com/bazelbuild/buildtools/build"
 )
 
 // Internal constant that represents the native module
