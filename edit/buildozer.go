@@ -51,11 +51,18 @@ type Options struct {
 	Quiet             bool     // suppress informational messages.
 	EditVariables     bool     // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool     // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	BuildFileNames    []string // the list of files that will be considered Bazel BUILD files. Useful to override if you have template build files that you want to modify
 }
+
+// When checking the filesystem, we need to look for any of the
+// possible buildFileNames. For historical reasons, the
+// parts of the tool that generate paths that we may want to examine
+// continue to assume that build files are all named "BUILD".
+var DefaultBuildFileNames = []string{"BUILD.bazel", "BUILD", "BUCK"}
 
 // NewOpts returns a new Options struct with some defaults set.
 func NewOpts() *Options {
-	return &Options{NumIO: 200, PreferEOLComments: true}
+	return &Options{NumIO: 200, PreferEOLComments: true, BuildFileNames: DefaultBuildFileNames}
 }
 
 // Usage is a user-overridden func to print the program usage.
@@ -850,17 +857,6 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 	return vars
 }
 
-// When checking the filesystem, we need to look for any of the
-// possible buildFileNames. For historical reasons, the
-// parts of the tool that generate paths that we may want to examine
-// continue to assume that build files are all named "BUILD".
-var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
-var buildFileNamesSet = map[string]bool{
-	"BUILD.bazel": true,
-	"BUILD":       true,
-	"BUCK":        true,
-}
-
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout).
 func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
@@ -876,13 +872,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	} else {
 		origName := name
-		for _, suffix := range buildFileNames {
+		for _, suffix := range opts.BuildFileNames {
 			if strings.HasSuffix(name, "/"+suffix) {
 				name = strings.TrimSuffix(name, suffix)
 				break
 			}
 		}
-		for _, suffix := range buildFileNames {
+		for _, suffix := range opts.BuildFileNames {
 			name = name + suffix
 			data, fi, err = file.ReadFile(name)
 			if err == nil {
@@ -1021,7 +1017,7 @@ func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
-func targetExpressionToBuildFiles(rootDir string, target string) []string {
+func targetExpressionToBuildFiles(rootDir string, buildFileNames []string, target string) []string {
 	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
@@ -1036,11 +1032,16 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 		return []string{file}
 	}
 
-	return findBuildFiles(strings.TrimSuffix(file, suffix))
+	buildFileNamesSet := make(map[string]bool)
+	for _, t := range buildFileNames {
+		buildFileNamesSet[t] = true
+	}
+
+	return findBuildFiles(buildFileNamesSet, strings.TrimSuffix(file, suffix))
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
-func findBuildFiles(rootDir string) []string {
+func findBuildFiles(buildFileNamesSet map[string]bool, rootDir string) []string {
 	var buildFiles []string
 	searchDirs := []string{rootDir}
 
@@ -1071,7 +1072,7 @@ func findBuildFiles(rootDir string) []string {
 func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
 	commands, targets := parseCommands(args)
 	for _, target := range targets {
-		for _, buildFileName := range buildFileNames {
+		for _, buildFileName := range opts.BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
 				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
 			}
@@ -1081,7 +1082,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		if pkg == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
-			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
+			buildFiles = targetExpressionToBuildFiles(opts.RootDir, opts.BuildFileNames, target)
 		}
 
 		for _, file := range buildFiles {

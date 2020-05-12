@@ -47,6 +47,7 @@ var (
 
 	shortenLabelsFlag  = flag.Bool("shorten_labels", true, "convert added labels to short form, e.g. //foo:bar => :bar")
 	deleteWithComments = flag.Bool("delete_with_comments", true, "If a list attribute should be deleted even if there is a comment attached to it")
+	buildFileNames     = stringList("build-file-names", "comma-separated list of files to consider as BUILD files, the default empty list means BUILD, BUILD.bazel and BUCK will be considered")
 )
 
 func stringList(name, help string) func() []string {
@@ -104,6 +105,10 @@ func main() {
 		Quiet:             *quiet,
 		EditVariables:     *editVariables,
 		IsPrintingProto:   *isPrintingProto,
+		BuildFileNames:    buildFileNames(),
+	}
+	if len(opts.BuildFileNames) == 0 {
+		opts.BuildFileNames = edit.DefaultBuildFileNames
 	}
 	os.Exit(edit.Buildozer(opts, flag.Args()))
 }
