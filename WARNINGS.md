@@ -910,7 +910,7 @@ can potentially be empty.
 
 --------------------------------------------------------------------------------
 
-## <a name="unnamed-macro"></a>Macro function doesn't accept a keyword argument "name"
+## <a name="unnamed-macro"></a>By convention the macro should have a keyword argument called "name".
 
   * Category name: `unnamed-macro`
   * Automatic fix: no

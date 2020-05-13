@@ -302,7 +302,7 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 		if !report.isMacro {
 			continue
 		}
-		msg := fmt.Sprintf(`Macro function %q doesn't accept a keyword argument "name".`, def.Name)
+		msg := fmt.Sprintf(`By convention %q should have a keyword argument called "name".`, def.Name)
 		if report.fc != nil {
 			// fc shouldn't be nil because that's the only node that can be found inside a function.
 			msg += fmt.Sprintf(`
