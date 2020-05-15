@@ -126,10 +126,16 @@ func doNotSort(x Expr) bool {
 	return hasComment(x, "do not sort")
 }
 
-// keepSorted reports whether x is marked with a comment containing
+// forceKeepSorted reports whether x is marked with a comment containing
 // "keep sorted", case-insensitive.
-func keepSorted(x Expr) bool {
+func forceKeepSorted(x Expr) bool {
 	return hasComment(x, "keep sorted")
+}
+
+// keepSorted checks whether lists are to be sorted by default, and respects comments as overrides of the default table
+// value
+func keepSorted(x Expr) bool {
+	return !doNotSort(x) && (tables.SortListsByDefault || forceKeepSorted(x))
 }
 
 // fixLabels rewrites labels into a canonical form.
@@ -450,7 +456,7 @@ func sortStringList(x Expr, context string) {
 		return
 	}
 
-	forceSort := keepSorted(list) || keepSorted(list.List[0])
+	forceSort := forceKeepSorted(list) || forceKeepSorted(list.List[0])
 
 	// TODO(bazel-team): Decide how to recognize lists that cannot
 	// be sorted. Avoiding all lists with comments avoids sorting

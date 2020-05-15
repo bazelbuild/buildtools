@@ -30,6 +30,7 @@ type Definitions struct {
 	SortableWhitelist               map[string]bool
 	NamePriority                    map[string]int
 	StripLabelLeadingSlashes        bool
+	SortListsByDefault              bool
 	ShortenAbsoluteLabelsToRelative bool
 }
 
@@ -55,9 +56,9 @@ func ParseAndUpdateJSONDefinitions(file string, merge bool) error {
 	}
 
 	if merge {
-		MergeTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative)
+		MergeTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.SortListsByDefault, definitions.ShortenAbsoluteLabelsToRelative)
 	} else {
-		OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative)
+		OverrideTables(definitions.IsLabelArg, definitions.LabelBlacklist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableBlacklist, definitions.SortableWhitelist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.SortListsByDefault, definitions.ShortenAbsoluteLabelsToRelative)
 	}
 	return nil
 }

@@ -192,6 +192,8 @@ var NamePriority = map[string]int{
 
 var StripLabelLeadingSlashes = false
 
+var SortListsByDefault = false
+
 var ShortenAbsoluteLabelsToRelative = false
 
 // AndroidNativeRules lists all Android rules that are being migrated from Native to Starlark.
@@ -271,7 +273,7 @@ var ProtoNativeSymbols = []string{
 var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, sortListsByDefault, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
 	LabelBlacklist = blacklist
 	IsListArg = listArg
@@ -280,11 +282,12 @@ func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist
 	SortableWhitelist = sortWhitelist
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
+	SortListsByDefault = sortListsByDefault
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, sortListsByDefault, shortenAbsoluteLabelsToRelative bool) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -307,5 +310,6 @@ func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, s
 		NamePriority[k] = v
 	}
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
+	SortListsByDefault = sortListsByDefault || SortListsByDefault
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
 }

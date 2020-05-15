@@ -19,5 +19,6 @@
   "NamePriority": {
     "name": -1
   },
-  "StripLabelLeadingSlashes": true
+  "StripLabelLeadingSlashes": true,
+  "SortListsByDefault": true
 }
