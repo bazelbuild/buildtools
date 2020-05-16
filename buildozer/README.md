@@ -68,6 +68,13 @@ Buildozer supports the following commands(`'command args'`):
     importing the symbols. Before using this, make sure to run
     `buildozer 'fix movePackageToTop'`. Afterwards, consider running
     `buildozer 'fix unusedLoads'`.
+  * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
+    existing load statements for the requested symbols before adding new loads.
+  * `substitute_load <old_regexp> <new_template>` Replaces modules of loads which
+    match `old_regexp` according to `new_template`. The regular expression must
+    follow [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+    `new_template` may be a simple replacement string, but it may also expand
+    numbered or named groups using `$0` or `$x`.
   * `comment <attr>? <value>? <comment>`: Add a comment to a rule, an attribute,
     or a specific value in a list. Spaces in the comment should be escaped with
     backslashes.
@@ -131,7 +138,18 @@ A transformation can be applied to all rules of a particular kind by using
 buildozer 'add deps //base' //pkg:rule //pkg:rule2
 
 # A load for a skylark file in //pkg
-buildozer 'new_load /tools/build_rules/build_test build_test' //pkg:__pkg__
+buildozer 'new_load //tools/build_rules:build_test.bzl build_test' //pkg:__pkg__
+
+# Replaces existing loads for build_test in //pkg
+buildozer 'replace_load @rules_build//build:defs.bzl build_test' //pkg:__pkg__
+
+# Replaces modules of loads using regular expressions.
+#
+# In this example
+#     load("@rules_foo//foo:defs.bzl", "foo_library", "foo_test")
+# will be replaced with
+#     load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo_library", "foo_test")
+buildozer 'substitute_load ^@([^/]*)//([^:].*)$ //third_party/build_defs/${1}/${2}' //pkg:__pkg__
 
 # Change the default_visibility to public for the package //pkg
 buildozer 'set default_visibility //visibility:public' //pkg:__pkg__

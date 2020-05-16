@@ -53,7 +53,18 @@ var escapable = [256]bool{
 	't':  true,
 	'x':  true,
 	'\'': true,
+	'\\': true,
 	'"':  true,
+	'0':  true,
+	'1':  true,
+	'2':  true,
+	'3':  true,
+	'4':  true,
+	'5':  true,
+	'6':  true,
+	'7':  true,
+	'8':  true,
+	'9':  true,
 }
 
 // Unquote unquotes the quoted string, returning the actual
@@ -240,17 +251,9 @@ func quote(unquoted string, triple bool) string {
 			continue
 		}
 		if c == '\\' {
+			// All backslashes should be escaped
 			buf.WriteByte('\\')
-			if i+1 < len(unquoted) && escapable[unquoted[i+1]] {
-				// Can pass \ through when followed by a byte that
-				// known not to be a valid escape sequence and also
-				// that does not trigger an escape sequence of its own.
-				// Use this, because various BUILD files do.
-				buf.WriteByte(unquoted[i+1])
-				i++
-			} else {
-				buf.WriteByte('\\')
-			}
+			buf.WriteByte('\\')
 			continue
 		}
 		if esc[c] != 0 {

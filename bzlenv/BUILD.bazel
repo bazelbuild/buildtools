@@ -14,3 +14,10 @@ go_test(
     srcs = ["bzlenv_test.go"],
     embed = [":go_default_library"],
 )
+
+go_test(
+    name = "go_default_test",
+    srcs = ["bzlenv_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//build:go_default_library"],
+)

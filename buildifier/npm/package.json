@@ -1,0 +1,19 @@
+{
+    "name": "@bazel/buildifier",
+    "description": "A tool for formatting bazel BUILD and .bzl files",
+    "version": "0.0.0-PLACEHOLDER",
+    "license": "Apache-2.0",
+    "bin": {
+        "buildifier": "buildifier.js"
+    },
+    "keywords": [
+        "bazel"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bazelbuild/buildtools.git"
+    },
+    "bugs": {
+        "url": "https://github.com/bazelbuild/buildtools/issues"
+    }
+}

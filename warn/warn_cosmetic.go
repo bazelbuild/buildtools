@@ -9,7 +9,6 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit"
-	"github.com/bazelbuild/buildtools/tables"
 )
 
 func sameOriginLoadWarning(f *build.File) []*LinterFinding {
@@ -289,11 +288,15 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 		if strings.HasPrefix(key2, "_") {
 			return true
 		}
-		key1Priority := tables.NamePriority[key1]
-		key2Priority := tables.NamePriority[key2]
-		if key1Priority != key2Priority {
-			return key1Priority < key2Priority
+
+		// "//conditions:default" should always be the last
+		const conditionsDefault = "//conditions:default"
+		if key1 == conditionsDefault {
+			return false
+		} else if key2 == conditionsDefault {
+			return true
 		}
+
 		return key1 < key2
 	}
 

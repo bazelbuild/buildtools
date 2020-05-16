@@ -26,7 +26,6 @@ package build
 	expr      Expr
 	exprs     []Expr
 	string    *StringExpr
-	strings   []*StringExpr
 	ifstmt    *IfStmt
 	loadarg   *struct{from Ident; to Ident}
 	loadargs  []*struct{from Ident; to Ident}
@@ -140,7 +139,6 @@ package build
 %type	<exprs>		keyvalues
 %type	<exprs>		keyvalues_no_comma
 %type	<string>	string
-%type	<strings>	strings
 %type	<exprs>		suite
 %type	<exprs>		comments
 %type	<loadarg>	load_argument
@@ -464,6 +462,10 @@ semi_opt:
 primary_expr:
 	ident
 |	number
+|	string
+	{
+		$$ = $1
+	}
 |	primary_expr '.' _IDENT
 	{
 		$$ = &DotExpr{
@@ -529,18 +531,6 @@ primary_expr:
 			SecondColon: $6,
 			Step: $7,
 			End: $8,
-		}
-	}
-|	strings %prec ShiftInstead
-	{
-		if len($1) == 1 {
-			$$ = $1[0]
-			break
-		}
-		$$ = $1[0]
-		for _, x := range $1[1:] {
-			_, end := $$.Span()
-			$$ = binary($$, end, "+", x)
 		}
 	}
 |	'[' tests_opt ']'
@@ -919,16 +909,6 @@ string:
 			End: $1.add($<tok>1),
 			Token: $<tok>1,
 		}
-	}
-
-strings:
-	string
-	{
-		$$ = []*StringExpr{$1}
-	}
-|	strings string
-	{
-		$$ = append($1, $2)
 	}
 
 ident:

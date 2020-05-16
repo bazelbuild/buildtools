@@ -255,9 +255,11 @@ func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 	}
 }
 
-func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
-	from := env.Args[1:]
-	to := append([]string{}, from...)
+// splitLoadArgs splits arguments of form <[to=]from>
+// into a slice of froms and a slice of tos.
+func splitLoadArgs(args []string) ([]string, []string) {
+	from := args
+	to := append([]string{}, args...)
 	for i := range from {
 		if s := strings.SplitN(from[i], "=", 2); len(s) == 2 {
 			to[i] = s[0]
@@ -265,7 +267,39 @@ func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	}
 
+	return from, to
+}
+
+func cmdNewLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	from, to := splitLoadArgs(env.Args[1:])
 	env.File.Stmt = InsertLoad(env.File.Stmt, env.Args[0], from, to)
+	return env.File, nil
+}
+
+func cmdReplaceLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	from, to := splitLoadArgs(env.Args[1:])
+	env.File.Stmt = ReplaceLoad(env.File.Stmt, env.Args[0], from, to)
+	return env.File, nil
+}
+
+func cmdSubstituteLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
+	oldRegexp, err := regexp.Compile(env.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	newTemplate := env.Args[1]
+
+	for _, stmt := range env.File.Stmt {
+		load, ok := stmt.(*build.LoadStmt)
+		if !ok {
+			continue
+		}
+
+		if newValue, ok := stringSubstitute(load.Module.Value, oldRegexp, newTemplate); ok {
+			load.Module.Value = newValue
+		}
+	}
+
 	return env.File, nil
 }
 
@@ -391,8 +425,8 @@ func cmdRename(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
-	oldV := env.Args[1]
-	newV := env.Args[2]
+	oldV := getStringValue(env.Args[1])
+	newV := getStringValue(env.Args[2])
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
@@ -475,9 +509,18 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 	}
 }
 
+// getStringValue extracts a string value, which can be either quoted or not, from an input argument
+func getStringValue(value string) string {
+	if unquoted, _, err := build.Unquote(value); err == nil {
+		return unquoted
+	}
+	return value
+}
+
+// getStringExpr creates a StringExpr from an input argument, which can be either quoter or not,
+// and shortens the label value if possible.
 func getStringExpr(value, pkg string) build.Expr {
-	unquoted, triple, err := build.Unquote(value)
-	if err == nil {
+	if unquoted, triple, err := build.Unquote(value); err == nil {
 		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
 	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
@@ -641,6 +684,8 @@ type CommandInfo struct {
 var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
 	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
+	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
+	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
 	"delete":            {cmdDelete, true, 0, 0, ""},
@@ -725,15 +770,18 @@ func checkCommandUsage(name string, cmd CommandInfo, count int) {
 	os.Exit(1)
 }
 
-// Match text that only contains spaces if they're escaped with '\'.
-var spaceRegex = regexp.MustCompile(`(\\ |[^ ])+`)
+// Match text that only contains spaces or line breaks if they're escaped with '\'.
+var spaceRegex = regexp.MustCompile(`(\\ |\\\n|[^ \n])+`)
 
 // SplitOnSpaces behaves like strings.Fields, except that spaces can be escaped.
+// Also splits on linebreaks unless they are escaped too.
 // " some dummy\\ string" -> ["some", "dummy string"]
 func SplitOnSpaces(input string) []string {
 	result := spaceRegex.FindAllString(input, -1)
 	for i, s := range result {
-		result[i] = strings.Replace(s, `\ `, " ", -1)
+		s = strings.Replace(s, `\ `, " ", -1)
+		s = strings.Replace(s, "\\\n", "\n", -1)
+		result[i] = s
 	}
 	return result
 }
@@ -951,7 +999,6 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // opts.Buildifier is useful to force consistency with other tools that call Buildifier.
 func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 	if opts.Buildifier == "" {
-		build.Rewrite(f, nil)
 		return build.Format(f), nil
 	}
 

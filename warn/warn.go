@@ -106,11 +106,12 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
-	"bzl-visibility":            deprecatedBzlLoadWarning,
+	"bzl-visibility":            bzlVisibilityWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
 	"ctx-args":                  contextArgsAPIWarning,
+	"depset-items":              depsetItemsWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
@@ -155,26 +156,40 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"unused-variable":           unusedVariableWarning,
 }
 
+// MultiFileWarningMap lists the warnings that run on the whole file, but may use other files.
+var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader) []*LinterFinding{
+	"deprecated-function": deprecatedFunctionWarning,
+	"unnamed-macro": unnamedMacroWarning,
+}
+
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
 	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
-	"bzl-visibility":      true, // visibility of .bzl files
 }
 
 // fileWarningWrapper is a wrapper that converts a file warning function to a generic function.
-// A generic function takes a `pkg string` argument which is not used for file warnings, so it's just removed.
-func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
-	return func(f *build.File, pkg string) []*LinterFinding {
+// A generic function takes a `pkg string` and a `*ReadFile` arguments which are not used for file warnings,
+// so they are just removed.
+func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, _ string, _ *FileReader) []*LinterFinding {
 		return fct(f)
+	}
+}
+
+// multiFileWarningWrapper is a wrapper that converts a multifile warning function to a generic function.
+// A generic function takes a `pkg string` argument which is not used for file warnings, so it's just removed.
+func multiFileWarningWrapper(fct func(f *build.File, fileReader *FileReader) []*LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, _ string, fileReader *FileReader) []*LinterFinding {
+		return fct(f, fileReader)
 	}
 }
 
 // ruleWarningWrapper is a wrapper that converts a per-rule function to a per-file function.
 // It also doesn't run on .bzl or default files, only on BUILD and WORKSPACE files.
-func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
-	return func(f *build.File, pkg string) []*LinterFinding {
+func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, pkg string, _ *FileReader) []*LinterFinding {
 		if f.Type != build.TypeBuild {
 			return nil
 		}
@@ -201,9 +216,9 @@ func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *Lint
 }
 
 // runWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runWarningsFunction(category string, f *build.File, fct func(f *build.File, pkg string) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
+func runWarningsFunction(category string, f *build.File, fct func(f *build.File, pkg string, fileReader *FileReader) []*LinterFinding, formatted *[]byte, mode LintMode, fileReader *FileReader) []*Finding {
 	findings := []*Finding{}
-	for _, w := range fct(f, f.Pkg) {
+	for _, w := range fct(f, f.Pkg, fileReader) {
 		if !DisabledWarning(f, w.Start.Line, category) {
 			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
 			if len(w.Replacement) > 0 {
@@ -266,7 +281,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 }
 
 // FileWarnings returns a list of all warnings found in the file.
-func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
+func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mode LintMode, fileReader *FileReader) []*Finding {
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
@@ -282,9 +297,11 @@ func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mo
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, fileWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, fileWarningWrapper(fct), formatted, mode, fileReader)...)
+		} else if fct, ok := MultiFileWarningMap[warn]; ok {
+			findings = append(findings, runWarningsFunction(warn, f, multiFileWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else if fct, ok := RuleWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else {
 			log.Fatalf("unexpected warning %q", warn)
 		}
@@ -341,8 +358,8 @@ func calculateDifference(old, new *[]byte) (start, end int, replacement string) 
 }
 
 // FixWarnings fixes all warnings that can be fixed automatically.
-func FixWarnings(f *build.File, enabledWarnings []string, verbose bool) {
-	warnings := FileWarnings(f, enabledWarnings, nil, ModeFix)
+func FixWarnings(f *build.File, enabledWarnings []string, verbose bool, fileReader *FileReader) {
+	warnings := FileWarnings(f, enabledWarnings, nil, ModeFix, fileReader)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),
@@ -354,6 +371,9 @@ func collectAllWarnings() []string {
 	var result []string
 	// Collect list of all warnings.
 	for k := range FileWarningMap {
+		result = append(result, k)
+	}
+	for k := range MultiFileWarningMap {
 		result = append(result, k)
 	}
 	for k := range RuleWarningMap {

@@ -1,0 +1,23 @@
+{
+    "name": "@bazel/buildozer",
+    "description": "A command line tool to rewrite multiple BUILD files using standard commands",
+    "version": "0.0.0-PLACEHOLDER",
+    "license": "Apache-2.0",
+    "bin": {
+        "buildozer": "buildozer.js"
+    },
+    "keywords": [
+        "bazel"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bazelbuild/buildtools.git"
+    },
+    "bugs": {
+        "url": "https://github.com/bazelbuild/buildtools/issues"
+    },
+    "devDependencies": {
+        "@types/node": "^13.9.0",
+        "typescript": "^3.8.3"
+    }
+}

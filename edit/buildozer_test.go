@@ -299,3 +299,66 @@ func TestCmdDictListAdd(t *testing.T) {
 		}
 	}
 }
+
+var substituteLoadsTests = []struct {
+	args      []string
+	buildFile string
+	expected  string
+}{
+	{[]string{
+		"^(.*)$", "${1}",
+	},
+		`load("//foo:foo.bzl", "foo")`,
+		`load("//foo:foo.bzl", "foo")`,
+	},
+	{[]string{
+		"^@rules_foo//foo:defs.bzl$", "//build/rules/foo:defs.bzl",
+	},
+		`load("@rules_bar//bar:defs.bzl", "bar")`,
+		`load("@rules_bar//bar:defs.bzl", "bar")`,
+	},
+	{[]string{
+		"^@rules_foo//foo:defs.bzl$", "//build/rules/foo:defs.bzl",
+	},
+		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
+load("@rules_bar//bar:defs.bzl", "bar")`,
+		`load("//build/rules/foo:defs.bzl", "foo", "foo2")
+load("@rules_bar//bar:defs.bzl", "bar")`,
+	},
+	{[]string{
+		":foo.bzl$", ":defs.bzl",
+	},
+		`load("//foo:foo.bzl", "foo")`,
+		`load("//foo:defs.bzl", "foo")`,
+	},
+	{[]string{
+		// Keep in sync with the example in `//buildozer:README.md`.
+		"^@([^/]*)//([^:].*)$", "//third_party/build_defs/${1}/${2}",
+	},
+		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
+load("@rules_bar//bar:defs.bzl", "bar")
+load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
+		`load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")
+load("//third_party/build_defs/rules_bar/bar:defs.bzl", "bar")
+load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
+	},
+}
+
+func TestCmdSubstituteLoad(t *testing.T) {
+	for i, tt := range substituteLoadsTests {
+		bld, err := build.Parse("BUILD", []byte(tt.buildFile))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		env := CmdEnvironment{
+			File: bld,
+			Args: tt.args,
+		}
+		bld, _ = cmdSubstituteLoad(NewOpts(), env)
+		got := strings.TrimSpace(string(build.Format(bld)))
+		if got != tt.expected {
+			t.Errorf("cmdSubstituteLoad(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
+		}
+	}
+}

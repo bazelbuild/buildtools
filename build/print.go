@@ -29,11 +29,18 @@ const (
 	defIndentation    = 8 // Indentation of multiline function definitions
 )
 
-// Format returns the formatted form of the given BUILD or bzl file.
-func Format(f *File) []byte {
+// FormatWithoutRewriting returns the formatted form of the given Starlark file.
+// This function is mostly useful for tests only, please consider using `Format` instead.
+func FormatWithoutRewriting(f *File) []byte {
 	pr := &printer{fileType: f.Type}
 	pr.file(f)
 	return pr.Bytes()
+}
+
+// Format rewrites the file and returns the formatted form of it.
+func Format(f *File) []byte {
+	Rewrite(f)
+	return FormatWithoutRewriting(f)
 }
 
 // FormatString returns the string form of the given expression.
@@ -356,7 +363,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	// However, even then we can't emit line comments since that would
 	// end the expression. This is only a concern if we have rewritten
 	// the parse tree. If comments were okay before this expression in
-	// the original input they're still okay now, in the absense of rewrites.
+	// the original input they're still okay now, in the absence of rewrites.
 	//
 	// TODO(bazel-team): Check whether it is valid to emit comments right now,
 	// and if not, insert them earlier in the output instead, at the most
@@ -514,7 +521,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *BinaryExpr:
 		// Precedence: use the precedence of the operator.
-		// Since all binary expressions format left-to-right,
+		// Since all binary expressions FormatWithoutRewriting left-to-right,
 		// it is okay for the left side to reuse the same operator
 		// without parentheses, so we use prec for v.X.
 		// For the same reason, the right side cannot reuse the same

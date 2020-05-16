@@ -13,6 +13,8 @@ Warning categories supported by buildifier's linter:
   * [`constant-glob`](#constant-glob)
   * [`ctx-actions`](#ctx-actions)
   * [`ctx-args`](#ctx-args)
+  * [`deprecated-function`](#deprecated-function)
+  * [`depset-items`](#depset-items)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
@@ -51,9 +53,9 @@ Warning categories supported by buildifier's linter:
   * [`return-value`](#return-value)
   * [`rule-impl-return`](#rule-impl-return)
   * [`same-origin-load`](#same-origin-load)
-  * [`string-escape`](#string-escape)
   * [`string-iteration`](#string-iteration)
   * [`uninitialized`](#uninitialized)
+  * [`unnamed-macro`](#unnamed-macro)
   * [`unreachable`](#unreachable)
   * [`unsorted-dict-items`](#unsorted-dict-items)
   * [`unused-variable`](#unused-variable)
@@ -241,6 +243,31 @@ depending on the desired behavior.
 
 --------------------------------------------------------------------------------
 
+## <a name="deprecated-function"></a>The function is deprecated
+
+  * Category name: `deprecated-function`
+  * Automatic fix: no
+
+The defined in another .bzl file has a docstring stating that it's deprecated, i. e. it
+contains a `Deprecated:` section. The convention for function docstrings is described by
+the [`function-docstring`](function-docstring) warning.
+
+--------------------------------------------------------------------------------
+
+## <a name="depset-items"></a>Depset "items" parameter is deprecated
+
+  * Category name: `depset-items`
+  * Flag in Bazel: [`--incompatible_disable_depset_items`](https://github.com/bazelbuild/bazel/issues/9017)
+  * Automatic fix: no
+
+The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
+is deprecated. In it's old form it's either a list of direct elements to be
+added (use the `direct` or unnamed first parameter instead) or a depset that
+becomes a tarnsitive element of the new depset (use the `transitive` parameter
+instead).
+
+--------------------------------------------------------------------------------
+
 ## <a name="depset-iteration"></a>Depset iteration is deprecated
 
   * Category name: `depset-iteration`
@@ -394,6 +421,9 @@ Returns:
   Description of the return value.
   Should be indented by at least one, preferably two spaces (as here)
   Can span multiple lines.
+
+Deprecated:
+  Optional, description of why the function is deprecated and what should be used instead.
 """
 ```
 
@@ -679,7 +709,7 @@ Or in simple cases you can use list comprehensions instead:
 x = depset(..., transitive = [y.deps for y in ...])
 ```
 
-For more information, read Bazel documentation about 
+For more information, read Bazel documentation about
 [depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
 and
 [reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
@@ -850,17 +880,6 @@ load(":f.bzl", "s1", "s2")
 
 --------------------------------------------------------------------------------
 
-## <a name="string-escape"></a>Invalid escape sequence
-
-  * Category name: `string-escape`
-  * Flag in Bazel: [`--incompatible_restrict_string_escapes`](https://github.com/bazelbuild/bazel/issues/8380)
-  * Automatic fix: yes
-
-Unrecognized escape sequences in string literals (e.g. `"\a \b"` is error-prone and shouldn't
-be used. If you need the backslash symbol, escape it explicitly: `"\\a \\b"`.
-
---------------------------------------------------------------------------------
-
 ## <a name="string-iteration"></a>String iteration is deprecated
 
   * Category name: `string-iteration`
@@ -888,6 +907,18 @@ for i in range(len(my_string)):
 The local value can be not initialized at the time of execution. It may happen if it's
 initialized in one of the if-else clauses but not in all of them, or in a for-loop which
 can potentially be empty.
+
+--------------------------------------------------------------------------------
+
+## <a name="unnamed-macro"></a>By convention the macro should have a keyword argument called "name".
+
+  * Category name: `unnamed-macro`
+  * Automatic fix: no
+
+By convention all macro functions should have a keyword argument called "name".
+
+A macro is a function that calls a rule (either directly or indirectly by calling other
+macros).
 
 --------------------------------------------------------------------------------
 

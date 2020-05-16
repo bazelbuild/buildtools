@@ -123,35 +123,35 @@ def f():
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
-	def _f(x):
-	  """Long private function
-	  with a docstring"""
-	  x += 1
-	  x *= 2
-	  x /= 3
-	  x -= 4
-	  x %= 5
-	  return x
-	`,
+def _f(x):
+  """Long private function
+  with a docstring"""
+  x += 1
+  x *= 2
+  x /= 3
+  x -= 4
+  x %= 5
+  return x
+`,
 		[]string{
 			`:2: The docstring for the function "_f" should start with a one-line summary.`,
 		},
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
-	def f(x):
-	  """Long function with a docstring
+def f(x):
+  """Long function with a docstring
 
-		Docstring
-		body
-		"""
-	  x += 1
-	  x *= 2
-	  x /= 3
-	  x -= 4
-	  x %= 5
-	  return x
-	`,
+	Docstring
+	body
+	"""
+  x += 1
+  x *= 2
+  x /= 3
+  x -= 4
+  x %= 5
+  return x
+`,
 		[]string{},
 		scopeEverywhere)
 
@@ -171,6 +171,18 @@ def f():
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-header", `
+def f():
+   """\r
+   Header in a CRLF formatted file.\r
+\r
+   This is a\r
+   multiline description"""
+`,
+		[]string{},
+		scopeEverywhere)
+
 }
 
 func TestFunctionDocstringArgs(t *testing.T) {
@@ -275,7 +287,7 @@ def f(x, y):
 		}, scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
-def f(x, y, z = None, *args, **kwargs):
+def my_function(x, y, z = None, *args, **kwargs):
    """This is a function.
    """
    pass
@@ -285,7 +297,20 @@ def f(x, y, z = None, *args, **kwargs):
    pass
 `,
 		[]string{
-			`2: Arguments "x", "y", "z", "*args", "**kwargs" are not documented.`,
+			`2: Arguments "x", "y", "z", "*args", "**kwargs" are not documented.
+
+If the documentation for the arguments exists but is not recognized by Buildifier
+make sure it follows the line "Args:" which has the same indentation as the opening """,
+and the argument description starts with "<argument_name>:" and indented with at least
+one (preferably two) space more than "Args:", for example:
+
+    def my_function(x):
+        """Function description.
+
+        Args:
+          x: argument description, can be
+            multiline with additional indentation.
+        """`,
 		},
 		scopeEverywhere)
 
@@ -310,6 +335,39 @@ def f(x, y, z = None, *args, **kwargs):
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
+def f(x, *, y, z = None):
+   """This is a function.
+
+   Args:
+    x: x
+    y: y
+    z: z
+   """
+   pass
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
+def f(x, *, y, z = None):
+   """This is a function.
+
+   Args:
+    x: x
+    *: a separator
+    y: y
+    : argument without a name
+    z: z
+   """
+   pass
+`,
+		[]string{
+			`6: Argument "*" is documented but doesn't exist in the function signature.`,
+			`8: Argument "" is documented but doesn't exist in the function signature.`,
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
 def f(x):
    """
    This is a function.
@@ -330,6 +388,26 @@ def f(x):
    return None
 `,
 		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
+def f(foobar, *bar, **baz):
+  """Some function
+  
+  Args:
+    foobar: something
+    foo: something
+    bar: something
+    baz: something
+  """
+  pass
+`,
+		[]string{
+			`:2: Arguments "*bar", "**baz" are not documented.`,
+			`:6: Argument "foo" is documented but doesn't exist in the function signature.`,
+			`:7: Argument "bar" is documented but doesn't exist in the function signature. Do you mean "*bar"?`,
+			`:8: Argument "baz" is documented but doesn't exist in the function signature. Do you mean "**baz"?`,
+		},
 		scopeEverywhere)
 }
 
