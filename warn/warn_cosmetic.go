@@ -4,6 +4,7 @@ package warn
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -370,5 +371,107 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 		}
 		return
 	})
+	return findings
+}
+
+// skylarkToStarlark converts a string "skylark" in different cases to "starlark"
+// trying to preserve the same case style, e.g. capitalized "Skylark" becomes "Starlark".
+func skylarkToStarlark(s string) string {
+	switch {
+	case s == "SKYLARK":
+		return "STARLARK"
+	case strings.HasPrefix(s, "S"):
+		return "Starlark"
+	default:
+		return "starlark"
+	}
+}
+
+func replaceSkylark(s string) (newString string, changed bool) {
+	skylarkRegex := regexp.MustCompile("(?i)skylark")
+	newString = skylarkRegex.ReplaceAllStringFunc(s, skylarkToStarlark)
+	return newString, newString != s
+}
+
+func skylarkCommentWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+	msg := `"Skylark" is an outdated name of the language, please use "starlark" instead.`
+
+	// Check comments
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		comments := (*expr).Comment()
+		newComments := build.Comments{
+			Before: append([]build.Comment{}, comments.Before...),
+			Suffix: append([]build.Comment{}, comments.Suffix...),
+			After:  append([]build.Comment{}, comments.After...),
+		}
+		isModified := false
+		var start, end build.Position
+
+		for _, block := range []*[]build.Comment{&newComments.Before, &newComments.Suffix, &newComments.After} {
+			for i, comment := range *block {
+				newValue, changed := replaceSkylark(comment.Token)
+				(*block)[i] = build.Comment{
+					Start: comment.Start,
+					Token: newValue,
+				}
+				if changed {
+					isModified = true
+					start, end = comment.Span()
+				}
+			}
+		}
+		if !isModified {
+			return
+		}
+		newExpr := (*expr).Copy()
+		newExpr.Comment().Before = newComments.Before
+		newExpr.Comment().Suffix = newComments.Suffix
+		newExpr.Comment().After = newComments.After
+		finding := makeLinterFinding(*expr, msg, LinterReplacement{expr, newExpr})
+		finding.Start = start
+		finding.End = end
+		findings = append(findings, finding)
+	})
+
+	return findings
+}
+
+func checkSkylarkDocstring(stmts []build.Expr) *LinterFinding {
+	msg := `"Skylark" is an outdated name of the language, please use "starlark" instead.`
+
+	doc, ok := getDocstring(stmts)
+	if !ok {
+		return nil
+	}
+	docString := (*doc).(*build.StringExpr)
+	newValue, updated := replaceSkylark(docString.Value)
+	if !updated {
+		return nil
+	}
+	newDocString := *docString
+	newDocString.Value = newValue
+	return makeLinterFinding(docString, msg, LinterReplacement{doc, &newDocString})
+}
+
+func skylarkDocstringWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	// File docstring
+	if finding := checkSkylarkDocstring(f.Stmt); finding != nil {
+		findings = append(findings, finding)
+	}
+
+	// Function docstrings
+	for _, stmt := range f.Stmt {
+		def, ok := stmt.(*build.DefStmt)
+		if !ok {
+			continue
+		}
+		if finding := checkSkylarkDocstring(def.Body); finding != nil {
+			findings = append(findings, finding)
+		}
+	}
+
 	return findings
 }

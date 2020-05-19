@@ -149,6 +149,8 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"rule-impl-return":          ruleImplReturnWarning,
 	"return-value":              missingReturnValueWarning,
 	"same-origin-load":          sameOriginLoadWarning,
+	"skylark-comment":           skylarkCommentWarning,
+	"skylark-docstring":         skylarkDocstringWarning,
 	"string-iteration":          stringIterationWarning,
 	"uninitialized":             uninitializedVariableWarning,
 	"unreachable":               unreachableStatementWarning,
@@ -159,7 +161,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 // MultiFileWarningMap lists the warnings that run on the whole file, but may use other files.
 var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader) []*LinterFinding{
 	"deprecated-function": deprecatedFunctionWarning,
-	"unnamed-macro": unnamedMacroWarning,
+	"unnamed-macro":       unnamedMacroWarning,
 }
 
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
