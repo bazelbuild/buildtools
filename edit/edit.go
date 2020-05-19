@@ -134,12 +134,15 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		// TODO(rodrigoq): report error for other repos
 	}
 
+	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
-		buildFile = filepath.Join(rootDir, pkg, "BUILD")
-		if !isFile(buildFile) && isFile(buildFile+".bazel") {
-			// try it with the .bazel extension
-			buildFile += ".bazel"
+		for _, buildFileName := range BuildFileNames {
+			buildFile = filepath.Join(rootDir, pkg, buildFileName)
+			if isFile(buildFile) {
+				return
+			}
 		}
+		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
 		return
 	}
 	if isFile(pkg) {
@@ -148,15 +151,19 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
 		return
 	}
-	if pkg != "" {
-		buildFile = filepath.Join(pkg, "/BUILD")
-	} else {
-		buildFile = "BUILD"
+
+	found := false
+	for _, buildFileName := range BuildFileNames {
+		buildFile = filepath.Join(pkg, buildFileName)
+		if isFile(buildFile) {
+			found = true
+			break
+		}
 	}
-	if !isFile(buildFile) && isFile(buildFile+".bazel") {
-		// try it with the .bazel extension
-		buildFile += ".bazel"
+	if !found {
+		buildFile = filepath.Join(pkg, defaultBuildFileName)
 	}
+
 	pkg = filepath.Join(relativePath, pkg)
 	return
 }

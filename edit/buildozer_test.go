@@ -201,8 +201,9 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 }
 
 func TestTargetExpressionToBuildFiles(t *testing.T) {
-	runTestTargetExpressionToBuildFiles(t, "BUILD")
-	runTestTargetExpressionToBuildFiles(t, "BUILD.bazel")
+	for _, buildFileName := range BuildFileNames {
+		runTestTargetExpressionToBuildFiles(t, buildFileName)
+	}
 }
 
 var dictListAddTests = []struct {
