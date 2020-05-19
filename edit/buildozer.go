@@ -851,15 +851,13 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 }
 
 // When checking the filesystem, we need to look for any of the
-// possible buildFileNames. For historical reasons, the
+// possible BuildFileNames. For historical reasons, the
 // parts of the tool that generate paths that we may want to examine
 // continue to assume that build files are all named "BUILD".
-var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
-var buildFileNamesSet = map[string]bool{
-	"BUILD.bazel": true,
-	"BUILD":       true,
-	"BUCK":        true,
-}
+
+// This var is exported so that users that want to override it
+// in scripts are free to do so.
+var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout).
@@ -876,13 +874,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	} else {
 		origName := name
-		for _, suffix := range buildFileNames {
+		for _, suffix := range BuildFileNames {
 			if strings.HasSuffix(name, "/"+suffix) {
 				name = strings.TrimSuffix(name, suffix)
 				break
 			}
 		}
-		for _, suffix := range buildFileNames {
+		for _, suffix := range BuildFileNames {
 			name = name + suffix
 			data, fi, err = file.ReadFile(name)
 			if err == nil {
@@ -1057,8 +1055,12 @@ func findBuildFiles(rootDir string) []string {
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
 				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
-			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
-				buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+			} else {
+				for _, buildFileName := range BuildFileNames {
+					if dirFile.Name() == buildFileName {
+						buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+					}
+				}
 			}
 		}
 	}
@@ -1071,7 +1073,7 @@ func findBuildFiles(rootDir string) []string {
 func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
 	commands, targets := parseCommands(args)
 	for _, target := range targets {
-		for _, buildFileName := range buildFileNames {
+		for _, buildFileName := range BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
 				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
 			}
