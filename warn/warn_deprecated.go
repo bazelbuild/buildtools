@@ -21,7 +21,7 @@ func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.I
 	if !ok {
 		return nil
 	}
-	str, ok := docstring.(*build.StringExpr)
+	str, ok := (*docstring).(*build.StringExpr)
 	if !ok {
 		return nil
 	}

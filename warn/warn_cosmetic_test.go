@@ -455,3 +455,46 @@ d.update(
 		[]string{},
 		scopeEverywhere)
 }
+
+func TestSkylark(t *testing.T) {
+	checkFindingsAndFix(t, "skylark-comment", `
+# Skyline
+foo()
+# SkyLark
+
+# Implemented in skylark
+# Skylark
+bar() # SKYLARK
+`, `
+# Skyline
+foo()
+# Starlark
+
+# Implemented in starlark
+# Starlark
+bar() # STARLARK
+`,
+		[]string{
+			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+			`:7: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+		},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "skylark-docstring", `
+# Some file
+
+"""
+This is a docstring describing a skylark file
+"""
+`, `
+# Some file
+
+"""
+This is a docstring describing a starlark file
+"""
+`,
+		[]string{
+			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+		},
+		scopeEverywhere)
+}

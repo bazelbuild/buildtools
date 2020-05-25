@@ -53,6 +53,8 @@ Warning categories supported by buildifier's linter:
   * [`return-value`](#return-value)
   * [`rule-impl-return`](#rule-impl-return)
   * [`same-origin-load`](#same-origin-load)
+  * [`skylark-comment`](#skylark-comment)
+  * [`skylark-docstring`](#skylark-docstring)
   * [`string-iteration`](#string-iteration)
   * [`uninitialized`](#uninitialized)
   * [`unnamed-macro`](#unnamed-macro)
@@ -877,6 +879,16 @@ can be written more compactly as
 ```python
 load(":f.bzl", "s1", "s2")
 ```
+
+--------------------------------------------------------------------------------
+
+## <a name="skylark-comment"></a><a name="skylark-docstring"></a>"Skylark" is an outdated name of the language, please use "starlark" instead
+
+  * Category name: `skylark-comment`, `skylark-docstring`
+  * Automatic fix: yes
+
+The configuration language for Bazel is called "Starlark" now, the name "Skylark" is
+outdated and shouldn't be used.
 
 --------------------------------------------------------------------------------
 
