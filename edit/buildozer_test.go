@@ -124,7 +124,7 @@ type targetExpressionToBuildFilesTestCase struct {
 	buildFiles      []string
 }
 
-func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
+func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,6 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(tmp)
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -158,6 +157,12 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
+	return
+}
+
+func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
+	tmp := setupTestTmpWorkspace(t, buildFileName)
+	defer os.RemoveAll(tmp)
 
 	for _, tc := range []targetExpressionToBuildFilesTestCase{
 		{tmp, "//", []string{filepath.Join(tmp, buildFileName)}},
@@ -203,6 +208,48 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 func TestTargetExpressionToBuildFiles(t *testing.T) {
 	for _, buildFileName := range BuildFileNames {
 		runTestTargetExpressionToBuildFiles(t, buildFileName)
+	}
+}
+
+func runTestAppendCommands(t *testing.T, buildFileName string) {
+	tmp := setupTestTmpWorkspace(t, buildFileName)
+	defer os.RemoveAll(tmp)
+
+	for _, tc := range []targetExpressionToBuildFilesTestCase{
+		{tmp, ".:__pkg__", []string{"./" + buildFileName}},
+		{tmp, "a" + ":__pkg__", []string{"a/" + buildFileName}},
+		{"", "a" + ":__pkg__", []string{"a/" + buildFileName}},
+	} {
+		if tc.rootDir == "" {
+			cwd, err := os.Getwd()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// buildozer should be able to find the WORKSPACE file in the current wd
+			if err := os.Chdir(tmp); err != nil {
+				t.Fatal(err)
+			}
+			defer os.Chdir(cwd)
+		}
+
+		commandsByFile := make(map[string][]commandsForTarget)
+		opts := NewOpts()
+		opts.RootDir = tc.rootDir
+		appendCommands(opts, commandsByFile, tc.buildFiles)
+		if len(commandsByFile) != 1 {
+			t.Errorf("Expect one target after appendCommands")
+		}
+		for _, value := range commandsByFile {
+			if value[0].target != tc.target {
+				t.Errorf("appendCommands for buildfile %s yielded target %s, expected %s", tc.buildFiles, value[0].target, tc.target)
+			}
+		}
+	}
+}
+
+func TestAppendCommands(t *testing.T) {
+	for _, buildFileName := range BuildFileNames {
+		runTestAppendCommands(t, buildFileName)
 	}
 }
 
