@@ -17,6 +17,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,6 +27,9 @@ import (
 	buildpb "github.com/bazelbuild/buildtools/build_proto"
 	"github.com/golang/protobuf/proto"
 )
+
+var inputPath = flag.String("input", "", "input file")
+var outputPath = flag.String("output", "", "output file")
 
 // bazelBuildLanguage reads a proto file and returns a BuildLanguage object.
 func bazelBuildLanguage(file string) (*buildpb.BuildLanguage, error) {
@@ -76,10 +80,11 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatal("Expected argument: proto file\n")
+	flag.Parse()
+	if *inputPath == "" {
+		log.Fatal("No input file specified")
 	}
-	lang, err := bazelBuildLanguage(os.Args[1])
+	lang, err := bazelBuildLanguage(*inputPath)
 	if err != nil {
 		log.Fatalf("%s\n", err)
 	}
@@ -92,8 +97,14 @@ func main() {
 	}
 	sort.Strings(keys)
 
+	f, err := os.Create(*outputPath)
+	if err != nil {
+		log.Fatalf("%s\n", err)
+	}
+	defer f.Close()
+
 	// print
-	fmt.Printf(`// Generated file, do not edit.
+	fmt.Fprintf(f, `// Generated file, do not edit.
 package lang
 
 import buildpb "github.com/bazelbuild/buildtools/build_proto"
@@ -101,7 +112,7 @@ import buildpb "github.com/bazelbuild/buildtools/build_proto"
 var TypeOf = map[string]buildpb.Attribute_Discriminator{
 `)
 	for _, attr := range keys {
-		fmt.Printf("	\"%s\":	buildpb.Attribute_%s,\n", attr, types[attr])
+		fmt.Fprintf(f, "	\"%s\":	buildpb.Attribute_%s,\n", attr, types[attr])
 	}
-	fmt.Printf("}\n")
+	fmt.Fprintf(f, "}\n")
 }
