@@ -12,7 +12,7 @@ def _generate_tables_impl(ctx):
 generate_tables = rule(
     implementation = _generate_tables_impl,
     attrs = {
-        "src": attr.label(allow_single_file=True),
+        "src": attr.label(allow_single_file = True),
         "out": attr.output(),
         "bin": attr.label(
             default = "//generatetables",
