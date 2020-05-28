@@ -855,7 +855,7 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 // parts of the tool that generate paths that we may want to examine
 // continue to assume that build files are all named "BUILD".
 
-// This var is exported so that users that want to override it
+// BuildFileNames is exported so that users that want to override it
 // in scripts are free to do so.
 var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
