@@ -56,8 +56,8 @@ _go_yacc = rule(
     },
 )
 
-"""Runs go tool yacc -o $out $src."""
 def go_yacc(src, out, visibility = None):
+    """Runs go tool yacc -o $out $src."""
     _go_yacc(
         name = src + ".go_yacc",
         src = src,
