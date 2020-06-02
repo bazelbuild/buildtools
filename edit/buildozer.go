@@ -1076,6 +1076,8 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		for _, buildFileName := range BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
 				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
+			} else if strings.HasSuffix(target, "/"+buildFileName) {
+				target = strings.TrimSuffix(target, "/"+buildFileName) + ":__pkg__"
 			}
 		}
 		var buildFiles []string
