@@ -5,7 +5,6 @@
 package convertast
 
 import (
-	"log"
 	"strconv"
 	"strings"
 
@@ -159,7 +158,9 @@ func convExpr(e syntax.Expr) build.Expr {
 				Token:    strconv.FormatInt(e.Value.(int64), 10),
 				Comments: convComments(e.Comments())}
 		case syntax.FLOAT:
-			log.Fatal("float not yet supported")
+			return &build.LiteralExpr{
+				Token:    e.Raw,
+				Comments: convComments(e.Comments())}
 		case syntax.STRING:
 			return &build.StringExpr{
 				Value:       e.Value.(string),
