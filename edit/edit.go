@@ -450,6 +450,14 @@ func allListsFromSelects(e build.Expr) []*build.ListExpr {
 	return lists
 }
 
+// allListsIncludingSelects returns all the lists concatenated in an expression
+// including lists inside select statements.
+// For example, in: glob(["*.go"]) + [":rule"] + select({"foo": [":bar"]})
+// the function will return [[":rule", ":bar"]].
+func allListsIncludingSelects(e build.Expr) []*build.ListExpr {
+	return append(AllLists(e), allListsFromSelects(e)...)
+}
+
 // FirstList works in the same way as AllLists, except that it
 // returns only one list, or nil.
 func FirstList(e build.Expr) *build.ListExpr {
@@ -740,7 +748,7 @@ func ListAttributeDelete(rule *build.Rule, attr, item, pkg string) *build.String
 func ListReplace(e build.Expr, old, value, pkg string) bool {
 	replaced := false
 	old = ShortenLabel(old, pkg)
-	for _, li := range append(AllLists(e), allListsFromSelects(e)...) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok || !LabelsEqual(str.Value, old, pkg) {
