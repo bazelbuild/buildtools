@@ -402,7 +402,7 @@ func (x *KeyValueExpr) Copy() Expr {
 type DictExpr struct {
 	Comments
 	Start Position
-	List  []Expr // all *KeyValueExprs
+	List  []*KeyValueExpr
 	End
 	ForceMultiLine bool // force multiline form when printing
 }

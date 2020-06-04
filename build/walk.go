@@ -95,9 +95,6 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 	case *IndexExpr:
 		f(&v.X)
 		f(&v.Y)
-	case *KeyValueExpr:
-		f(&v.Key)
-		f(&v.Value)
 	case *SliceExpr:
 		f(&v.X)
 		if v.From != nil {
@@ -145,7 +142,8 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 		}
 	case *DictExpr:
 		for i := range v.List {
-			f(&v.List[i])
+			f(&v.List[i].Key)
+			f(&v.List[i].Value)
 		}
 	case *Comprehension:
 		f(&v.Body)
