@@ -57,6 +57,22 @@ two_deps='go_library(
     ],
 )'
 
+two_deps_with_select='go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+
 quoted_deps='go_library(
     name = "edit",
     deps = [
@@ -208,6 +224,86 @@ function test_remove_dep() {
     name = "edit",
     deps = [":local"],
 )'
+}
+
+function test_remove_dep_outside_of_select() {
+  run "$two_deps_with_select" 'remove deps //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":local"] + select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_all_deps_outside_of_select() {
+  run "$two_deps_with_select" 'remove deps //buildifier:build :local' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_dep_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": ["//some/other:value"],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_deps_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": [],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_all_deps_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value //yet/another:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ],
+)'
+}
+
+function test_remove_all_deps() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value //yet/another:value :local //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
 }
 
 function test_remove_dep_quotes() {
@@ -531,7 +627,11 @@ function test_replace_dep() {
         # Before-comment.
         ":local",  # Suffix comment.
         "//buildifier:build",
-    ],
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+        ],
+    }),
 )'
   run "$in" 'replace deps :local :new' '//pkg:edit'
   assert_equals 'go_library(
@@ -540,7 +640,40 @@ function test_replace_dep() {
         # Before-comment.
         ":new",  # Suffix comment.
         "//buildifier:build",
-    ],
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+        ],
+    }),
+)'
+}
+
+function test_replace_dep_select() {
+  # Replace a dep inside a select statement
+  in='go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+  run "$in" 'replace deps //some/other:value :new' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            ":new",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
 )'
 }
 

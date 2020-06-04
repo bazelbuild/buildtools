@@ -422,6 +422,42 @@ func AllSelects(e build.Expr) []*build.CallExpr {
 	return nil
 }
 
+// allListsFromSelects returns all ListExpr nodes from all select statements
+// in an expression
+func allListsFromSelects(e build.Expr) []*build.ListExpr {
+	var lists []*build.ListExpr
+
+	for _, s := range AllSelects(e) {
+		if len(s.List) != 1 {
+			return nil
+		}
+		dict, ok := s.List[0].(*build.DictExpr)
+		if !ok {
+			return nil
+		}
+		for _, item := range dict.List {
+			kv, ok := item.(*build.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			list, ok := kv.Value.(*build.ListExpr)
+			if !ok {
+				continue
+			}
+			lists = append(lists, list)
+		}
+	}
+	return lists
+}
+
+// allListsIncludingSelects returns all the lists concatenated in an expression
+// including lists inside select statements.
+// For example, in: glob(["*.go"]) + [":rule"] + select({"foo": [":bar"]})
+// the function will return [[":rule", ":bar"]].
+func allListsIncludingSelects(e build.Expr) []*build.ListExpr {
+	return append(AllLists(e), allListsFromSelects(e)...)
+}
+
 // FirstList works in the same way as AllLists, except that it
 // returns only one list, or nil.
 func FirstList(e build.Expr) *build.ListExpr {
@@ -712,7 +748,7 @@ func ListAttributeDelete(rule *build.Rule, attr, item, pkg string) *build.String
 func ListReplace(e build.Expr, old, value, pkg string) bool {
 	replaced := false
 	old = ShortenLabel(old, pkg)
-	for _, li := range AllLists(e) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok || !LabelsEqual(str.Value, old, pkg) {
