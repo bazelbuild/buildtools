@@ -375,6 +375,10 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 				fixed = true
 			}
 			ResolveAttr(env.Rule, key, env.Pkg)
+			// Remove the attribute if's an empty list
+			if listExpr, ok := env.Rule.Attr(key).(*build.ListExpr); ok && len(listExpr.List) == 0 {
+				env.Rule.DelAttr(key)
+			}
 		}
 		if fixed {
 			return env.File, nil
