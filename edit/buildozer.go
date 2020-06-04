@@ -117,7 +117,7 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 3: // Attach to a specific value in a list
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				if fullLine {
 					expr.Comments.Before = comment
 				} else {
@@ -169,7 +169,7 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 			return nil, attrError()
 		}
 		value := env.Args[1]
-		expr := ListFind(attr, value, env.Pkg)
+		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
@@ -407,7 +407,7 @@ func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 2: // Remove comment attached to value
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				expr.Comments.Before = nil
 				expr.Comments.Suffix = nil
 				expr.Comments.After = nil

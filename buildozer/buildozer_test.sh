@@ -1388,6 +1388,24 @@ function test_value_multiline_print_comment() {
   assert_output 'Just a multiline comment'
 }
 
+function test_value_inside_select_print_comment() {
+  in='cc_library(
+    name = "a",
+    srcs = [
+        "a.cc",  # World
+        "b.cc",  # Hello
+    ] + select({
+        "foo": [
+            "c.cc",  # hello
+            "d.cc",  # world
+        ],
+    }),
+)'
+  ERROR=3 run "$in" 'print_comment srcs c.cc' 'print_comment srcs d.cc' //pkg:a
+  assert_output 'hello
+world'
+}
+
 # Test both absolute and relative package names
 function test_path() {
   mkdir -p "java/com/foo/myproject"

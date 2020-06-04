@@ -491,13 +491,11 @@ func AllStrings(e build.Expr) []*build.StringExpr {
 	return nil
 }
 
-// ListFind looks for a string in the list expression (which may be a
-// concatenation of lists). It returns the element if it is found. nil
-// otherwise.
-func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
+// listsFind looks for a string in list expressions
+func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringExpr {
 	item = ShortenLabel(item, pkg)
-	for _, li := range AllLists(e) {
-		for _, elem := range li.List {
+	for _, list := range lists {
+		for _, elem := range list.List {
 			str, ok := elem.(*build.StringExpr)
 			if ok && LabelsEqual(str.Value, item, pkg) {
 				return str
@@ -505,6 +503,22 @@ func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
 		}
 	}
 	return nil
+}
+
+// ListFind looks for a string in the list expression (which may be a
+// concatenation of lists). It returns the element if it is found. nil
+// otherwise.
+func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
+	item = ShortenLabel(item, pkg)
+	return listsFind(AllLists(e), item, pkg)
+}
+
+// listOrSelectFind looks for a string in the list expression (which may be a
+// concatenation of lists and select statements). It returns the element
+// if it is found. nil otherwise.
+func listOrSelectFind(e build.Expr, item string, pkg string) *build.StringExpr {
+	item = ShortenLabel(item, pkg)
+	return listsFind(allListsIncludingSelects(e), item, pkg)
 }
 
 // hasComments returns whether the StringExpr literal has a comment attached to it.
