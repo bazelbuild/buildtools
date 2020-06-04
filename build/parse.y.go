@@ -1394,9 +1394,9 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line build/parse.y:570
 		{
-			exprValues := make([]Expr, len(yyDollar[2].kvs))
-			for i, kv := range yyDollar[2].kvs {
-				exprValues[i] = Expr(kv)
+			exprValues := make([]Expr, 0, len(yyDollar[2].kvs))
+			for _, kv := range yyDollar[2].kvs {
+				exprValues = append(exprValues, Expr(kv))
 			}
 			yyVAL.expr = &DictExpr{
 				Start:          yyDollar[1].pos,

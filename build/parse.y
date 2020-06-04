@@ -568,9 +568,9 @@ primary_expr:
 	}
 |	'{' keyvalues '}'
 	{
-		exprValues := make([]Expr, len($2))
-		for i, kv := range $2 {
-			exprValues[i] = Expr(kv)
+		exprValues := make([]Expr, 0, len($2))
+		for _, kv := range $2 {
+			exprValues = append(exprValues, Expr(kv))
 		}
 		$$ = &DictExpr{
 			Start: $1,

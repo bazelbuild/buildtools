@@ -637,13 +637,13 @@ func SelectListsIntersection(sel *build.CallExpr, pkg string) (intersection []bu
 	}
 
 	for _, keyVal := range dict.List[1:] {
-		if val, ok := keyVal.Value.(*build.ListExpr); ok {
-			intersection = ComputeIntersection(intersection, val.List)
-			if len(intersection) == 0 {
-				return intersection
-			}
-		} else {
+		val, ok := keyVal.Value.(*build.ListExpr)
+		if !ok {
 			return nil
+		}
+		intersection = ComputeIntersection(intersection, val.List)
+		if len(intersection) == 0 {
+			return intersection
 		}
 	}
 
