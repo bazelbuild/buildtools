@@ -81,7 +81,7 @@ package build
 %token	<pos>	_FOR     // keyword for
 %token	<pos>	_GE      // operator >=
 %token	<pos>	_IDENT   // non-keyword identifier
-%token	<pos>	_NUMBER  // number
+%token	<pos>	_INT     // integer number
 %token	<pos>	_IF      // keyword if
 %token	<pos>	_ELSE    // keyword else
 %token	<pos>	_ELIF    // keyword elif
@@ -924,7 +924,19 @@ ident:
 	}
 
 number:
-	_NUMBER
+	_INT '.' _INT
+	{
+		$$ = &LiteralExpr{Start: $1, Token: $<tok>1 + "." + $<tok>3}
+	}
+|	_INT '.'
+	{
+		$$ = &LiteralExpr{Start: $1, Token: $<tok>1 + "."}
+	}
+|	'.' _INT
+	{
+		$$ = &LiteralExpr{Start: $1, Token: "." + $<tok>2}
+	}
+|	_INT %prec ShiftInstead
 	{
 		$$ = &LiteralExpr{Start: $1, Token: $<tok>1}
 	}

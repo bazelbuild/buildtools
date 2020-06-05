@@ -611,7 +611,7 @@ func (in *input) Lex(val *yySymType) int {
 		return _CONTINUE
 	}
 	if len(val.tok) > 0 && val.tok[0] >= '0' && val.tok[0] <= '9' {
-		return _NUMBER
+		return _INT
 	}
 	return _IDENT
 }
