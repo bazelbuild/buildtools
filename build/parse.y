@@ -25,6 +25,8 @@ package build
 	// partial syntax trees
 	expr      Expr
 	exprs     []Expr
+	kv        *KeyValueExpr
+	kvs       []*KeyValueExpr
 	string    *StringExpr
 	ifstmt    *IfStmt
 	loadarg   *struct{from Ident; to Ident}
@@ -135,9 +137,9 @@ package build
 %type	<exprs>		simple_stmt   // One or many small_stmts on one line, e.g. 'a = f(x); return str(a)'
 %type	<expr>		small_stmt    // A single statement, e.g. 'a = f(x)'
 %type <exprs>		small_stmts_continuation  // A sequence of `';' small_stmt`
-%type	<expr>		keyvalue
-%type	<exprs>		keyvalues
-%type	<exprs>		keyvalues_no_comma
+%type	<kv>		keyvalue
+%type	<kvs>		keyvalues
+%type	<kvs>		keyvalues_no_comma
 %type	<string>	string
 %type	<exprs>		suite
 %type	<exprs>		comments
@@ -566,11 +568,15 @@ primary_expr:
 	}
 |	'{' keyvalues '}'
 	{
+		exprValues := make([]Expr, 0, len($2))
+		for _, kv := range $2 {
+			exprValues = append(exprValues, Expr(kv))
+		}
 		$$ = &DictExpr{
 			Start: $1,
 			List: $2,
 			End: End{Pos: $3},
-			ForceMultiLine: forceMultiLine($1, $2, $3),
+			ForceMultiLine: forceMultiLine($1, exprValues, $3),
 		}
 	}
 |	'{' tests comma_opt '}'  // TODO: remove, not supported
@@ -862,7 +868,7 @@ keyvalue:
 keyvalues_no_comma:
 	keyvalue
 	{
-		$$ = []Expr{$1}
+		$$ = []*KeyValueExpr{$1}
 	}
 |	keyvalues_no_comma ',' keyvalue
 	{

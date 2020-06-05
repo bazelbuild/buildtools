@@ -319,11 +319,7 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 			}
 		}
 		var sortedItems []*build.KeyValueExpr
-		for _, stmt := range dict.List {
-			item, ok := stmt.(*build.KeyValueExpr)
-			if !ok {
-				continue
-			}
+		for _, item := range dict.List {
 			// include only string literal keys into consideration
 			if _, ok = item.Key.(*build.StringExpr); !ok {
 				continue
@@ -348,15 +344,12 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 			return
 		}
 		newDict := *dict
-		newDict.List = append([]build.Expr{}, dict.List...)
+		newDict.List = append([]*build.KeyValueExpr{}, dict.List...)
 
 		sort.SliceStable(sortedItems, comp)
 		sortedItemIndex := 0
 		for originalItemIndex := 0; originalItemIndex < len(dict.List); originalItemIndex++ {
-			item, ok := dict.List[originalItemIndex].(*build.KeyValueExpr)
-			if !ok {
-				continue
-			}
+			item := dict.List[originalItemIndex]
 			if _, ok := item.Key.(*build.StringExpr); !ok {
 				continue
 			}

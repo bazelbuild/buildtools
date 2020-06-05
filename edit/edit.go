@@ -435,11 +435,7 @@ func allListsFromSelects(e build.Expr) []*build.ListExpr {
 		if !ok {
 			return nil
 		}
-		for _, item := range dict.List {
-			kv, ok := item.(*build.KeyValueExpr)
-			if !ok {
-				continue
-			}
+		for _, kv := range dict.List {
 			list, ok := kv.Value.(*build.ListExpr)
 			if !ok {
 				continue
@@ -572,12 +568,8 @@ func RemoveEmptySelectsAndConcatLists(e build.Expr) build.Expr {
 
 			if dict, ok := e.List[0].(*build.DictExpr); ok {
 				for _, keyVal := range dict.List {
-					if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-						val, ok := keyVal.Value.(*build.ListExpr)
-						if !ok || len(val.List) > 0 {
-							return e
-						}
-					} else {
+					val, ok := keyVal.Value.(*build.ListExpr)
+					if !ok || len(val.List) > 0 {
 						return e
 					}
 				}
@@ -639,25 +631,19 @@ func SelectListsIntersection(sel *build.CallExpr, pkg string) (intersection []bu
 		return nil
 	}
 
-	if keyVal, ok := dict.List[0].(*build.KeyValueExpr); ok {
-		if val, ok := keyVal.Value.(*build.ListExpr); ok {
-			intersection = make([]build.Expr, len(val.List))
-			copy(intersection, val.List)
-		}
+	if val, ok := dict.List[0].Value.(*build.ListExpr); ok {
+		intersection = make([]build.Expr, len(val.List))
+		copy(intersection, val.List)
 	}
 
 	for _, keyVal := range dict.List[1:] {
-		if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-			if val, ok := keyVal.Value.(*build.ListExpr); ok {
-				intersection = ComputeIntersection(intersection, val.List)
-				if len(intersection) == 0 {
-					return intersection
-				}
-			} else {
-				return nil
-			}
-		} else {
+		val, ok := keyVal.Value.(*build.ListExpr)
+		if !ok {
 			return nil
+		}
+		intersection = ComputeIntersection(intersection, val.List)
+		if len(intersection) == 0 {
+			return intersection
 		}
 	}
 
@@ -699,10 +685,8 @@ func SelectDelete(e build.Expr, item, pkg string, deleted **build.StringExpr) {
 
 		if dict, ok := sel.List[0].(*build.DictExpr); ok {
 			for _, keyVal := range dict.List {
-				if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-					if val, ok := keyVal.Value.(*build.ListExpr); ok {
-						RemoveFromList(val, item, pkg, deleted)
-					}
+				if val, ok := keyVal.Value.(*build.ListExpr); ok {
+					RemoveFromList(val, item, pkg, deleted)
 				}
 			}
 		}
@@ -933,8 +917,7 @@ func MoveAllListAttributeValues(rule *build.Rule, oldAttr, newAttr, pkg string, 
 // DictionarySet looks for the key in the dictionary expression. If value is not nil,
 // it replaces the current value with it. In all cases, it returns the current value.
 func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Expr {
-	for _, e := range dict.List {
-		kv, _ := e.(*build.KeyValueExpr)
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
 			if value != nil {
 				kv.Value = value
@@ -952,11 +935,7 @@ func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Exp
 // DictionaryGet looks for the key in the dictionary expression, and returns the
 // current value. If it is unset, it returns nil.
 func DictionaryGet(dict *build.DictExpr, key string) build.Expr {
-	for _, e := range dict.List {
-		kv, ok := e.(*build.KeyValueExpr)
-		if !ok {
-			continue
-		}
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
 			return kv.Value
 		}
@@ -971,14 +950,13 @@ func DictionaryDelete(dict *build.DictExpr, key string) (deleted build.Expr) {
 		key = unquoted
 	}
 	deleted = nil
-	var all []build.Expr
-	for _, e := range dict.List {
-		kv, _ := e.(*build.KeyValueExpr)
+	var all []*build.KeyValueExpr
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok {
 			if k.Value == key {
 				deleted = kv
 			} else {
-				all = append(all, e)
+				all = append(all, kv)
 			}
 		}
 	}
