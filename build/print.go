@@ -509,11 +509,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *LambdaExpr:
 		addParen(precColon)
-		p.printf("lambda ")
+		p.printf("lambda")
 		for i, param := range v.Params {
 			if i > 0 {
-				p.printf(", ")
+				p.printf(",")
 			}
+			p.printf(" ")
 			p.expr(param, precLow)
 		}
 		p.printf(": ")

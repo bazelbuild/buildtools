@@ -579,7 +579,7 @@ primary_expr:
 			ForceMultiLine: forceMultiLine($1, exprValues, $3),
 		}
 	}
-|	'{' tests comma_opt '}'  // TODO: remove, not supported
+|	'{' tests comma_opt '}'
 	{
 		$$ = &SetExpr{
 			Start: $1,
@@ -767,7 +767,7 @@ exprs_opt:
 
 test:
 	primary_expr
-|	_LAMBDA exprs_opt ':' expr  // TODO: remove, not supported
+|	_LAMBDA exprs_opt ':' expr
 	{
 		$$ = &LambdaExpr{
 			Function: Function{
