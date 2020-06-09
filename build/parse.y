@@ -767,7 +767,7 @@ exprs_opt:
 
 test:
 	primary_expr
-|	_LAMBDA exprs_opt ':' expr
+|	_LAMBDA parameters_opt ':' expr
 	{
 		$$ = &LambdaExpr{
 			Function: Function{

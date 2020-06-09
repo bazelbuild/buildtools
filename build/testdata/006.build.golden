@@ -15,3 +15,10 @@ plus = lambda x, y: x + y
 two = (lambda x: x(x))(lambda z: lambda y: z)(1)(2)(3)
 
 make_one = lambda: 1
+
+l = lambda x, y, *args, **kwargs: f(
+    y,
+    key = x,
+    *args,
+    **kwargs
+)
