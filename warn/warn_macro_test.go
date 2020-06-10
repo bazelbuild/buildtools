@@ -18,6 +18,8 @@ def not_macro(x):
   native.existing_rule()
   native.existing_rules()
   native.package_name()
+  native.repository_name()
+  native.exports_files()
   return my_rule
 
 def another_macro(x):
@@ -28,9 +30,9 @@ def another_macro(x):
 			`5: By convention "macro" should have a keyword argument called "name".
 
 It is considered a macro because it calls a rule or another macro "my_rule" on line 7.`,
-			`17: By convention "another_macro" should have a keyword argument called "name".
+			`19: By convention "another_macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "native.cc_library" on line 19.`,
+It is considered a macro because it calls a rule or another macro "native.cc_library" on line 21.`,
 		},
 		scopeBzl)
 
