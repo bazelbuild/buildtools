@@ -465,6 +465,9 @@ foo()
 # Implemented in skylark
 # Skylark
 bar() # SKYLARK
+
+# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+Label()
 `, `
 # Skyline
 foo()
@@ -473,6 +476,9 @@ foo()
 # Implemented in starlark
 # Starlark
 bar() # STARLARK
+
+# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+Label()
 `,
 		[]string{
 			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
@@ -486,15 +492,34 @@ bar() # STARLARK
 """
 This is a docstring describing a skylark file
 """
+
+def f():
+  """SKYLARK"""
+
+def l():
+  """
+  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  """
+  return Label("skylark")
 `, `
 # Some file
 
 """
 This is a docstring describing a starlark file
-"""
+""" 
+
+def f():
+  """STARLARK"""
+
+def l():
+  """
+  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  """
+  return Label("skylark")
 `,
 		[]string{
 			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+			`:8: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
 		},
 		scopeEverywhere)
 }
