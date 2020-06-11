@@ -16,6 +16,9 @@ const FunctionLengthDocstringThreshold = 5
 // Otherwise it returns the first non-comment statement and false.
 func getDocstring(stmts []build.Expr) (*build.Expr, bool) {
 	for i, stmt := range stmts {
+		if stmt == nil {
+			continue
+		}
 		switch stmt.(type) {
 		case *build.CommentBlock:
 			continue
