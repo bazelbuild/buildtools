@@ -486,6 +486,26 @@ Label()
 		},
 		scopeEverywhere)
 
+	checkFindingsAndFix(t, "skylark-comment", `
+"""
+Some docstring with skylark
+""" # buildifier: disable=skylark-docstring
+
+def f():
+  """Some docstring with skylark"""
+  # buildozer: disable=skylark-docstring
+`, `
+"""
+Some docstring with skylark
+""" # buildifier: disable=skylark-docstring
+
+def f():
+  """Some docstring with skylark"""
+  # buildozer: disable=skylark-docstring
+`,
+		[]string{},
+		scopeEverywhere)
+
 	checkFindingsAndFix(t, "skylark-docstring", `
 # Some file
 

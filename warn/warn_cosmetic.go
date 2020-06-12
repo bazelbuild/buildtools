@@ -418,6 +418,10 @@ func skylarkCommentWarning(f *build.File) []*LinterFinding {
 
 		for _, block := range []*[]build.Comment{&newComments.Before, &newComments.Suffix, &newComments.After} {
 			for i, comment := range *block {
+				// Don't trigger on disabling comments
+				if strings.Contains(comment.Token, "disable=skylark-docstring") {
+					continue
+				}
 				newValue, changed := replaceSkylark(comment.Token)
 				(*block)[i] = build.Comment{
 					Start: comment.Start,
