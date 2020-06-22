@@ -1,4 +1,4 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm", "nodejs_test")
+load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 copy_file(
@@ -16,7 +16,7 @@ genrule(
 
 # npm rules live in this subdirectory to avoid a load() statement
 # in the parent package leaking to users. This means we need
-# to copy the output files so the pkg_npm will find them in the 
+# to copy the output files so the pkg_npm will find them in the
 # output directory for this package.
 _PARENT_PACKAGE_FILES = [
     "README.md",
@@ -33,7 +33,8 @@ _PARENT_PACKAGE_FILES = [
         # label to reference the go_binary rule itself.
         src = "//buildifier:%s" % s.split("_")[0],
         out = s,
-    ) for s in _PARENT_PACKAGE_FILES
+    )
+    for s in _PARENT_PACKAGE_FILES
 ]
 
 pkg_npm(
