@@ -16,7 +16,7 @@ import (
 func isStarlarkFile(name string) bool {
 	ext := filepath.Ext(name)
 	switch ext {
-	case ".bzl", ".sky":
+	case ".bzl", ".sky", ".star":
 		return true
 	}
 
