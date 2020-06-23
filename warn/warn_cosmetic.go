@@ -319,11 +319,7 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 			}
 		}
 		var sortedItems []*build.KeyValueExpr
-		for _, stmt := range dict.List {
-			item, ok := stmt.(*build.KeyValueExpr)
-			if !ok {
-				continue
-			}
+		for _, item := range dict.List {
 			// include only string literal keys into consideration
 			if _, ok = item.Key.(*build.StringExpr); !ok {
 				continue
@@ -348,15 +344,12 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 			return
 		}
 		newDict := *dict
-		newDict.List = append([]build.Expr{}, dict.List...)
+		newDict.List = append([]*build.KeyValueExpr{}, dict.List...)
 
 		sort.SliceStable(sortedItems, comp)
 		sortedItemIndex := 0
 		for originalItemIndex := 0; originalItemIndex < len(dict.List); originalItemIndex++ {
-			item, ok := dict.List[originalItemIndex].(*build.KeyValueExpr)
-			if !ok {
-				continue
-			}
+			item := dict.List[originalItemIndex]
 			if _, ok := item.Key.(*build.StringExpr); !ok {
 				continue
 			}
@@ -387,9 +380,24 @@ func skylarkToStarlark(s string) string {
 	}
 }
 
+// replaceSkylark replaces a substring "skylark" (case-insensitive) with a
+// similar cased string "starlark". Doesn't replace it if the previous or the
+// next symbol is '/', which may indicate it's a part of a URL.
+// Normally that should be done with look-ahead and look-behind assertions in a
+// regular expression, but negative look-aheads and look-behinds are not
+// supported by Go regexp module.
 func replaceSkylark(s string) (newString string, changed bool) {
 	skylarkRegex := regexp.MustCompile("(?i)skylark")
-	newString = skylarkRegex.ReplaceAllStringFunc(s, skylarkToStarlark)
+	newString = s
+	for _, r := range skylarkRegex.FindAllStringIndex(s, -1) {
+		if r[0] > 0 && s[r[0]-1] == '/' {
+			continue
+		}
+		if r[1] < len(s)-1 && s[r[1]+1] == '/' {
+			continue
+		}
+		newString = newString[:r[0]] + skylarkToStarlark(newString[r[0]:r[1]]) + newString[r[1]:]
+	}
 	return newString, newString != s
 }
 
@@ -410,6 +418,10 @@ func skylarkCommentWarning(f *build.File) []*LinterFinding {
 
 		for _, block := range []*[]build.Comment{&newComments.Before, &newComments.Suffix, &newComments.After} {
 			for i, comment := range *block {
+				// Don't trigger on disabling comments
+				if strings.Contains(comment.Token, "disable=skylark-docstring") {
+					continue
+				}
 				newValue, changed := replaceSkylark(comment.Token)
 				(*block)[i] = build.Comment{
 					Start: comment.Start,

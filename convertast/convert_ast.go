@@ -5,7 +5,6 @@
 package convertast
 
 import (
-	"log"
 	"strconv"
 	"strings"
 
@@ -159,7 +158,9 @@ func convExpr(e syntax.Expr) build.Expr {
 				Token:    strconv.FormatInt(e.Value.(int64), 10),
 				Comments: convComments(e.Comments())}
 		case syntax.FLOAT:
-			log.Fatal("float not yet supported")
+			return &build.LiteralExpr{
+				Token:    e.Raw,
+				Comments: convComments(e.Comments())}
 		case syntax.STRING:
 			return &build.StringExpr{
 				Value:       e.Value.(string),
@@ -208,7 +209,7 @@ func convExpr(e syntax.Expr) build.Expr {
 		}
 		return &build.ListExpr{List: list, Comments: convComments(e.Comments())}
 	case *syntax.DictExpr:
-		list := []build.Expr{}
+		list := []*build.KeyValueExpr{}
 		for i := range e.List {
 			entry := e.List[i].(*syntax.DictEntry)
 			list = append(list, &build.KeyValueExpr{

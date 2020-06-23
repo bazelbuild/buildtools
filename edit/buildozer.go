@@ -117,7 +117,7 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 3: // Attach to a specific value in a list
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				if fullLine {
 					expr.Comments.Before = comment
 				} else {
@@ -169,7 +169,7 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 			return nil, attrError()
 		}
 		value := env.Args[1]
-		expr := ListFind(attr, value, env.Pkg)
+		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
@@ -375,6 +375,10 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 				fixed = true
 			}
 			ResolveAttr(env.Rule, key, env.Pkg)
+			// Remove the attribute if's an empty list
+			if listExpr, ok := env.Rule.Attr(key).(*build.ListExpr); ok && len(listExpr.List) == 0 {
+				env.Rule.DelAttr(key)
+			}
 		}
 		if fixed {
 			return env.File, nil
@@ -403,7 +407,7 @@ func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 2: // Remove comment attached to value
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				expr.Comments.Before = nil
 				expr.Comments.Suffix = nil
 				expr.Comments.After = nil
@@ -855,7 +859,7 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 // parts of the tool that generate paths that we may want to examine
 // continue to assume that build files are all named "BUILD".
 
-// This var is exported so that users that want to override it
+// BuildFileNames is exported so that users that want to override it
 // in scripts are free to do so.
 var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
@@ -1076,6 +1080,8 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		for _, buildFileName := range BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
 				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
+			} else if strings.HasSuffix(target, "/"+buildFileName) {
+				target = strings.TrimSuffix(target, "/"+buildFileName) + ":__pkg__"
 			}
 		}
 		var buildFiles []string
