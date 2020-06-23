@@ -1,3 +1,7 @@
+"""
+Helper rules for language proto.
+"""
+
 def _generate_tables_impl(ctx):
     args = ctx.actions.args()
     args.add("-input", ctx.file.src)
