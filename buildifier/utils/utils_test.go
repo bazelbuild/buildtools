@@ -101,6 +101,10 @@ func TestIsStarlarkFile(t *testing.T) {
 			ok:       true,
 		},
 		{
+			filename: "foo.star",
+			ok:       true,
+		},
+		{
 			filename: "foo.bar",
 			ok:       false,
 		},
