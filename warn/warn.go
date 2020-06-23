@@ -269,6 +269,13 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 		}
 
 		start, end := expr.Span()
+		comments := expr.Comment()
+		if len(comments.Before) > 0 {
+			start, _ = comments.Before[0].Span()
+		}
+		if len(comments.After) > 0 {
+			_, end = comments.After[len(comments.After)-1].Span()
+		}
 		if findingLine < start.Line || findingLine > end.Line {
 			return
 		}
