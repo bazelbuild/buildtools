@@ -1,3 +1,7 @@
+"""
+The module defines buildifier as a Bazel rule.
+"""
+
 load("@bazel_skylib//lib:shell.bzl", "shell")
 
 def _buildifier_impl(ctx):
@@ -94,6 +98,13 @@ _buildifier = rule(
 )
 
 def buildifier(**kwargs):
+    """
+    Wrapper for the _buildifier rule. Adds 'manual' to the tags.
+
+    Args:
+      **kwargs: all parameters for _buildifier
+    """
+
     tags = kwargs.get("tags", [])
     if "manual" not in tags:
         tags.append("manual")
