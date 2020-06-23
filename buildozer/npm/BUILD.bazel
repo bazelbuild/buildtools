@@ -1,4 +1,4 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm", "nodejs_test")
+load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
 
@@ -10,16 +10,16 @@ copy_file(
 
 tsc(
     name = "compile_ts",
+    outs = [
+        "index.d.ts",
+        "index.js",
+    ],
     args = [
         "$(execpath index.ts)",
         "--outDir $(RULEDIR)",
         "--target es2015",
         "--module commonjs",
         "--declaration",
-    ],
-    outs = [
-        "index.js",
-        "index.d.ts",
     ],
     data = [
         "index.ts",
@@ -36,7 +36,7 @@ genrule(
 
 # npm rules live in this subdirectory to avoid a load() statement
 # in the parent package leaking to users. This means we need
-# to copy the output files so the pkg_npm will find them in the 
+# to copy the output files so the pkg_npm will find them in the
 # output directory for this package.
 _PARENT_PACKAGE_FILES = [
     "README.md",
@@ -53,7 +53,8 @@ _PARENT_PACKAGE_FILES = [
         # label to reference the go_binary rule itself.
         src = "//buildozer:%s" % s.split("_")[0],
         out = s,
-    ) for s in _PARENT_PACKAGE_FILES
+    )
+    for s in _PARENT_PACKAGE_FILES
 ]
 
 pkg_npm(
@@ -65,8 +66,8 @@ pkg_npm(
         "LICENSE",
         "buildozer.js",
         "index.js",
-        "index.d.ts"
-    ] + _PARENT_PACKAGE_FILES
+        "index.d.ts",
+    ] + _PARENT_PACKAGE_FILES,
 )
 
 nodejs_test(
