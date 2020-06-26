@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/warn"
-	"sort"
 	"strings"
 )
 
@@ -34,18 +33,7 @@ func (d *Diagnostics) Format(format string, verbose bool) string {
 					w.URL))
 			}
 			if !f.Formatted {
-				rewrites := []string{}
-				for category, count := range f.Rewrites {
-					if count > 0 {
-						rewrites = append(rewrites, category)
-					}
-				}
-				log := ""
-				if len(rewrites) > 0 {
-					sort.Strings(rewrites)
-					log = " " + strings.Join(rewrites, " ")
-				}
-				output.WriteString(fmt.Sprintf("%s # reformat%s\n", f.Filename, log))
+				output.WriteString(fmt.Sprintf("%s # reformat\n", f.Filename))
 			}
 		}
 		return output.String()
@@ -63,20 +51,10 @@ func (d *Diagnostics) Format(format string, verbose bool) string {
 
 // FileDiagnostics contains diagnostics information for a file
 type FileDiagnostics struct {
-	Filename  string         `json:"filename"`
-	Formatted bool           `json:"formatted"`
-	Valid     bool           `json:"valid"`
-	Warnings  []*warning     `json:"warnings"`
-	Rewrites  map[string]int `json:"rewrites,omitempty"`
-}
-
-// SetRewrites adds information about rewrites to the diagnostics
-func (fd *FileDiagnostics) SetRewrites(categories map[string]int) {
-	for category, count := range categories {
-		if count > 0 {
-			fd.Rewrites[category] = count
-		}
-	}
+	Filename  string     `json:"filename"`
+	Formatted bool       `json:"formatted"`
+	Valid     bool       `json:"valid"`
+	Warnings  []*warning `json:"warnings"`
 }
 
 type warning struct {
@@ -115,7 +93,6 @@ func NewFileDiagnostics(filename string, warnings []*warn.Finding) *FileDiagnost
 		Formatted: true,
 		Valid:     true,
 		Warnings:  []*warning{},
-		Rewrites:  map[string]int{},
 	}
 
 	for _, w := range warnings {
@@ -139,7 +116,6 @@ func InvalidFileDiagnostics(filename string) *FileDiagnostics {
 		Formatted: false,
 		Valid:     false,
 		Warnings:  []*warning{},
-		Rewrites:  map[string]int{},
 	}
 	if filename == "" {
 		fileDiagnostics.Filename = "<stdin>"

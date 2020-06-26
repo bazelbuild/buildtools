@@ -70,6 +70,18 @@ load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_depen
 
 buildifier_dependencies()
 
-load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
+# We don't use any nodejs but this includes a rule for publishing releases to npm
+http_archive(
+    name = "build_bazel_rules_nodejs",
+    sha256 = "b6670f9f43faa66e3009488bbd909bc7bc46a5a9661a33f6bc578068d1837f37",
+    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/1.3.0/rules_nodejs-1.3.0.tar.gz"],
+)
 
-node_repositories()
+load("@build_bazel_rules_nodejs//:index.bzl", "npm_install")
+
+# Fetch third-party dependencies for building npm packages
+npm_install(
+    name = "buildozer_npm_deps",
+    package_json = "//buildozer/npm:package.json",
+    package_lock_json = "//buildozer/npm:package-lock.json",
+)

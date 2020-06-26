@@ -1,0 +1,77 @@
+load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
+
+copy_file(
+    name = "copy_LICENSE",
+    src = "//:LICENSE",
+    out = "LICENSE",
+)
+
+tsc(
+    name = "compile_ts",
+    outs = [
+        "index.d.ts",
+        "index.js",
+    ],
+    args = [
+        "$(execpath index.ts)",
+        "--outDir $(RULEDIR)",
+        "--target es2015",
+        "--module commonjs",
+        "--declaration",
+    ],
+    data = [
+        "index.ts",
+        "@buildozer_npm_deps//@types/node",
+    ],
+)
+
+genrule(
+    name = "buildozer_launcher",
+    srcs = ["//:launcher.js"],
+    outs = ["buildozer.js"],
+    cmd = "sed s/_TOOL_/buildozer/ $< > $@",
+)
+
+# npm rules live in this subdirectory to avoid a load() statement
+# in the parent package leaking to users. This means we need
+# to copy the output files so the pkg_npm will find them in the
+# output directory for this package.
+_PARENT_PACKAGE_FILES = [
+    "README.md",
+    "buildozer-darwin_amd64",
+    "buildozer-linux_amd64",
+    "buildozer-windows_amd64.exe",
+]
+
+[
+    copy_file(
+        name = "copy_%s" % s,
+        # go_binary doesn't give a predeclared output for
+        # the file in "out" so we have to construct a
+        # label to reference the go_binary rule itself.
+        src = "//buildozer:%s" % s.split("_")[0],
+        out = s,
+    )
+    for s in _PARENT_PACKAGE_FILES
+]
+
+pkg_npm(
+    name = "buildozer",
+    srcs = [
+        "package.json",
+    ],
+    deps = [
+        "LICENSE",
+        "buildozer.js",
+        "index.js",
+        "index.d.ts",
+    ] + _PARENT_PACKAGE_FILES,
+)
+
+nodejs_test(
+    name = "integration_test",
+    data = [":buildozer"],
+    entry_point = "test.js",
+)

@@ -120,7 +120,7 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 3: // Attach to a specific value in a list
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				if fullLine {
 					expr.Comments.Before = comment
 				} else {
@@ -172,7 +172,7 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 			return nil, attrError()
 		}
 		value := env.Args[1]
-		expr := ListFind(attr, value, env.Pkg)
+		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
@@ -386,6 +386,10 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 				fixed = true
 			}
 			ResolveAttr(env.Rule, key, env.Pkg)
+			// Remove the attribute if's an empty list
+			if listExpr, ok := env.Rule.Attr(key).(*build.ListExpr); ok && len(listExpr.List) == 0 {
+				env.Rule.DelAttr(key)
+			}
 		}
 		if fixed {
 			return env.File, nil
@@ -414,7 +418,7 @@ func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	case 2: // Remove comment attached to value
 		if attr := env.Rule.Attr(env.Args[0]); attr != nil {
-			if expr := ListFind(attr, env.Args[1], env.Pkg); expr != nil {
+			if expr := listOrSelectFind(attr, env.Args[1], env.Pkg); expr != nil {
 				expr.Comments.Before = nil
 				expr.Comments.Suffix = nil
 				expr.Comments.After = nil
@@ -436,8 +440,8 @@ func cmdRename(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
-	oldV := env.Args[1]
-	newV := env.Args[2]
+	oldV := getStringValue(env.Args[1])
+	newV := getStringValue(env.Args[2])
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
@@ -529,9 +533,18 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 	}
 }
 
+// getStringValue extracts a string value, which can be either quoted or not, from an input argument
+func getStringValue(value string) string {
+	if unquoted, _, err := build.Unquote(value); err == nil {
+		return unquoted
+	}
+	return value
+}
+
+// getStringExpr creates a StringExpr from an input argument, which can be either quoter or not,
+// and shortens the label value if possible.
 func getStringExpr(value, pkg string) build.Expr {
-	unquoted, triple, err := build.Unquote(value)
-	if err == nil {
+	if unquoted, triple, err := build.Unquote(value); err == nil {
 		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
 	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
@@ -862,15 +875,13 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 }
 
 // When checking the filesystem, we need to look for any of the
-// possible buildFileNames. For historical reasons, the
+// possible BuildFileNames. For historical reasons, the
 // parts of the tool that generate paths that we may want to examine
 // continue to assume that build files are all named "BUILD".
-var buildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
-var buildFileNamesSet = map[string]bool{
-	"BUILD.bazel": true,
-	"BUILD":       true,
-	"BUCK":        true,
-}
+
+// BuildFileNames is exported so that users that want to override it
+// in scripts are free to do so.
+var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout).
@@ -887,13 +898,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	} else {
 		origName := name
-		for _, suffix := range buildFileNames {
+		for _, suffix := range BuildFileNames {
 			if strings.HasSuffix(name, "/"+suffix) {
 				name = strings.TrimSuffix(name, suffix)
 				break
 			}
 		}
-		for _, suffix := range buildFileNames {
+		for _, suffix := range BuildFileNames {
 			name = name + suffix
 			data, fi, err = file.ReadFile(name)
 			if err == nil {
@@ -1010,7 +1021,6 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // opts.Buildifier is useful to force consistency with other tools that call Buildifier.
 func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 	if opts.Buildifier == "" {
-		build.Rewrite(f, nil)
 		return build.Format(f), nil
 	}
 
@@ -1069,8 +1079,12 @@ func findBuildFiles(rootDir string) []string {
 		for _, dirFile := range dirFiles {
 			if dirFile.IsDir() {
 				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
-			} else if _, ok := buildFileNamesSet[dirFile.Name()]; ok {
-				buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+			} else {
+				for _, buildFileName := range BuildFileNames {
+					if dirFile.Name() == buildFileName {
+						buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+					}
+				}
 			}
 		}
 	}
@@ -1083,9 +1097,11 @@ func findBuildFiles(rootDir string) []string {
 func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
 	commands, targets := parseCommands(args)
 	for _, target := range targets {
-		for _, buildFileName := range buildFileNames {
+		for _, buildFileName := range BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
 				target = strings.TrimSuffix(target, filepath.FromSlash("/"+buildFileName)) + ":__pkg__"
+			} else if strings.HasSuffix(target, "/"+buildFileName) {
+				target = strings.TrimSuffix(target, "/"+buildFileName) + ":__pkg__"
 			}
 		}
 		var buildFiles []string

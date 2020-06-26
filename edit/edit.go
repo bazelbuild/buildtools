@@ -21,7 +21,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -135,12 +134,15 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		// TODO(rodrigoq): report error for other repos
 	}
 
+	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
-		buildFile = filepath.Join(rootDir, pkg, "BUILD")
-		if !isFile(buildFile) && isFile(buildFile+".bazel") {
-			// try it with the .bazel extension
-			buildFile += ".bazel"
+		for _, buildFileName := range BuildFileNames {
+			buildFile = filepath.Join(rootDir, pkg, buildFileName)
+			if isFile(buildFile) {
+				return
+			}
 		}
+		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
 		return
 	}
 	if isFile(pkg) {
@@ -149,15 +151,19 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
 		return
 	}
-	if pkg != "" {
-		buildFile = filepath.Join(pkg, "/BUILD")
-	} else {
-		buildFile = "BUILD"
+
+	found := false
+	for _, buildFileName := range BuildFileNames {
+		buildFile = filepath.Join(pkg, buildFileName)
+		if isFile(buildFile) {
+			found = true
+			break
+		}
 	}
-	if !isFile(buildFile) && isFile(buildFile+".bazel") {
-		// try it with the .bazel extension
-		buildFile += ".bazel"
+	if !found {
+		buildFile = filepath.Join(pkg, defaultBuildFileName)
 	}
+
 	pkg = filepath.Join(relativePath, pkg)
 	return
 }
@@ -416,6 +422,38 @@ func AllSelects(e build.Expr) []*build.CallExpr {
 	return nil
 }
 
+// allListsFromSelects returns all ListExpr nodes from all select statements
+// in an expression
+func allListsFromSelects(e build.Expr) []*build.ListExpr {
+	var lists []*build.ListExpr
+
+	for _, s := range AllSelects(e) {
+		if len(s.List) != 1 {
+			return nil
+		}
+		dict, ok := s.List[0].(*build.DictExpr)
+		if !ok {
+			return nil
+		}
+		for _, kv := range dict.List {
+			list, ok := kv.Value.(*build.ListExpr)
+			if !ok {
+				continue
+			}
+			lists = append(lists, list)
+		}
+	}
+	return lists
+}
+
+// allListsIncludingSelects returns all the lists concatenated in an expression
+// including lists inside select statements.
+// For example, in: glob(["*.go"]) + [":rule"] + select({"foo": [":bar"]})
+// the function will return [[":rule", ":bar"]].
+func allListsIncludingSelects(e build.Expr) []*build.ListExpr {
+	return append(AllLists(e), allListsFromSelects(e)...)
+}
+
 // FirstList works in the same way as AllLists, except that it
 // returns only one list, or nil.
 func FirstList(e build.Expr) *build.ListExpr {
@@ -449,13 +487,11 @@ func AllStrings(e build.Expr) []*build.StringExpr {
 	return nil
 }
 
-// ListFind looks for a string in the list expression (which may be a
-// concatenation of lists). It returns the element if it is found. nil
-// otherwise.
-func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
+// listsFind looks for a string in list expressions
+func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringExpr {
 	item = ShortenLabel(item, pkg)
-	for _, li := range AllLists(e) {
-		for _, elem := range li.List {
+	for _, list := range lists {
+		for _, elem := range list.List {
 			str, ok := elem.(*build.StringExpr)
 			if ok && LabelsEqual(str.Value, item, pkg) {
 				return str
@@ -463,6 +499,22 @@ func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
 		}
 	}
 	return nil
+}
+
+// ListFind looks for a string in the list expression (which may be a
+// concatenation of lists). It returns the element if it is found. nil
+// otherwise.
+func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
+	item = ShortenLabel(item, pkg)
+	return listsFind(AllLists(e), item, pkg)
+}
+
+// listOrSelectFind looks for a string in the list expression (which may be a
+// concatenation of lists and select statements). It returns the element
+// if it is found. nil otherwise.
+func listOrSelectFind(e build.Expr, item string, pkg string) *build.StringExpr {
+	item = ShortenLabel(item, pkg)
+	return listsFind(allListsIncludingSelects(e), item, pkg)
 }
 
 // hasComments returns whether the StringExpr literal has a comment attached to it.
@@ -516,12 +568,8 @@ func RemoveEmptySelectsAndConcatLists(e build.Expr) build.Expr {
 
 			if dict, ok := e.List[0].(*build.DictExpr); ok {
 				for _, keyVal := range dict.List {
-					if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-						val, ok := keyVal.Value.(*build.ListExpr)
-						if !ok || len(val.List) > 0 {
-							return e
-						}
-					} else {
+					val, ok := keyVal.Value.(*build.ListExpr)
+					if !ok || len(val.List) > 0 {
 						return e
 					}
 				}
@@ -583,25 +631,19 @@ func SelectListsIntersection(sel *build.CallExpr, pkg string) (intersection []bu
 		return nil
 	}
 
-	if keyVal, ok := dict.List[0].(*build.KeyValueExpr); ok {
-		if val, ok := keyVal.Value.(*build.ListExpr); ok {
-			intersection = make([]build.Expr, len(val.List))
-			copy(intersection, val.List)
-		}
+	if val, ok := dict.List[0].Value.(*build.ListExpr); ok {
+		intersection = make([]build.Expr, len(val.List))
+		copy(intersection, val.List)
 	}
 
 	for _, keyVal := range dict.List[1:] {
-		if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-			if val, ok := keyVal.Value.(*build.ListExpr); ok {
-				intersection = ComputeIntersection(intersection, val.List)
-				if len(intersection) == 0 {
-					return intersection
-				}
-			} else {
-				return nil
-			}
-		} else {
+		val, ok := keyVal.Value.(*build.ListExpr)
+		if !ok {
 			return nil
+		}
+		intersection = ComputeIntersection(intersection, val.List)
+		if len(intersection) == 0 {
+			return intersection
 		}
 	}
 
@@ -643,10 +685,8 @@ func SelectDelete(e build.Expr, item, pkg string, deleted **build.StringExpr) {
 
 		if dict, ok := sel.List[0].(*build.DictExpr); ok {
 			for _, keyVal := range dict.List {
-				if keyVal, ok := keyVal.(*build.KeyValueExpr); ok {
-					if val, ok := keyVal.Value.(*build.ListExpr); ok {
-						RemoveFromList(val, item, pkg, deleted)
-					}
+				if val, ok := keyVal.Value.(*build.ListExpr); ok {
+					RemoveFromList(val, item, pkg, deleted)
 				}
 			}
 		}
@@ -706,7 +746,7 @@ func ListAttributeDelete(rule *build.Rule, attr, item, pkg string) *build.String
 func ListReplace(e build.Expr, old, value, pkg string) bool {
 	replaced := false
 	old = ShortenLabel(old, pkg)
-	for _, li := range AllLists(e) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok || !LabelsEqual(str.Value, old, pkg) {
@@ -881,8 +921,7 @@ func MoveAllListAttributeValues(rule *build.Rule, oldAttr, newAttr, pkg string, 
 // DictionarySet looks for the key in the dictionary expression. If value is not nil,
 // it replaces the current value with it. In all cases, it returns the current value.
 func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Expr {
-	for _, e := range dict.List {
-		kv, _ := e.(*build.KeyValueExpr)
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
 			if value != nil {
 				kv.Value = value
@@ -900,11 +939,7 @@ func DictionarySet(dict *build.DictExpr, key string, value build.Expr) build.Exp
 // DictionaryGet looks for the key in the dictionary expression, and returns the
 // current value. If it is unset, it returns nil.
 func DictionaryGet(dict *build.DictExpr, key string) build.Expr {
-	for _, e := range dict.List {
-		kv, ok := e.(*build.KeyValueExpr)
-		if !ok {
-			continue
-		}
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok && k.Value == key {
 			return kv.Value
 		}
@@ -919,14 +954,13 @@ func DictionaryDelete(dict *build.DictExpr, key string) (deleted build.Expr) {
 		key = unquoted
 	}
 	deleted = nil
-	var all []build.Expr
-	for _, e := range dict.List {
-		kv, _ := e.(*build.KeyValueExpr)
+	var all []*build.KeyValueExpr
+	for _, kv := range dict.List {
 		if k, ok := kv.Key.(*build.StringExpr); ok {
 			if k.Value == key {
 				deleted = kv
 			} else {
-				all = append(all, e)
+				all = append(all, kv)
 			}
 		}
 	}
@@ -1030,12 +1064,7 @@ func AppendToLoad(load *build.LoadStmt, from, to []string) bool {
 	}
 
 	// Append the remaining loads to the load statement.
-	sortedSymbols := []string{}
 	for s := range symbolsToLoad {
-		sortedSymbols = append(sortedSymbols, s)
-	}
-	sort.Strings(sortedSymbols)
-	for _, s := range sortedSymbols {
 		load.From = append(load.From, &build.Ident{Name: symbolsToLoad[s]})
 		load.To = append(load.To, &build.Ident{Name: s})
 	}

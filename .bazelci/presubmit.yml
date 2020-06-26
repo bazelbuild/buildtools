@@ -1,4 +1,7 @@
 ---
+buildifier:
+  version: latest
+  warnings: "default"
 platforms:
   ubuntu1604:
     test_targets:

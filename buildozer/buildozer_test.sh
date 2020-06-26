@@ -57,6 +57,22 @@ two_deps='go_library(
     ],
 )'
 
+two_deps_with_select='go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+
 quoted_deps='go_library(
     name = "edit",
     deps = [
@@ -82,6 +98,14 @@ function test_add_one_dep() {
 
 function test_add_dep_no_deps() {
   run "$no_deps" 'add deps //foo' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = ["//foo"],
+)'
+}
+
+function test_add_dep_quotes() {
+  run "$no_deps" 'add deps "//foo"' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     deps = ["//foo"],
@@ -196,6 +220,94 @@ function test_remove_last_dep() {
 
 function test_remove_dep() {
   run "$two_deps" 'remove deps //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":local"],
+)'
+}
+
+function test_remove_dep_outside_of_select() {
+  run "$two_deps_with_select" 'remove deps //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":local"] + select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_all_deps_outside_of_select() {
+  run "$two_deps_with_select" 'remove deps //buildifier:build :local' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = select({
+        "//tools/some:condition": [
+            "//some:value",
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_dep_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": ["//some/other:value"],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_deps_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ] + select({
+        "//tools/some:condition": [],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+    }),
+)'
+}
+
+function test_remove_all_deps_in_select() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value //yet/another:value' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":local",
+        "//buildifier:build",
+    ],
+)'
+}
+
+function test_remove_all_deps() {
+  run "$two_deps_with_select" 'remove deps //some:value //some/other:value //yet/another:value :local //buildifier:build' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_dep_quotes() {
+  run "$two_deps" 'remove deps "//buildifier:build"' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     deps = [":local"],
@@ -472,6 +584,18 @@ function test_replace_string_attr() {
 )'
 }
 
+function test_replace_string_attr_quotes() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'replace shared_library ":local" ":new"' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    shared_library = ":new",  # Suffix comment.
+)'
+}
+
 function test_replace_string_attr_no_match() {
   in='go_library(
     name = "edit",
@@ -503,7 +627,11 @@ function test_replace_dep() {
         # Before-comment.
         ":local",  # Suffix comment.
         "//buildifier:build",
-    ],
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+        ],
+    }),
 )'
   run "$in" 'replace deps :local :new' '//pkg:edit'
   assert_equals 'go_library(
@@ -512,7 +640,40 @@ function test_replace_dep() {
         # Before-comment.
         ":new",  # Suffix comment.
         "//buildifier:build",
-    ],
+    ] + select({
+        "//tools/some:condition": [
+            "//some:value",
+        ],
+    }),
+)'
+}
+
+function test_replace_dep_select() {
+  # Replace a dep inside a select statement
+  in='go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            "//some/other:value",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+  run "$in" 'replace deps //some/other:value :new' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            ":new",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
 )'
 }
 
@@ -1225,6 +1386,24 @@ function test_value_multiline_print_comment() {
 )'
   ERROR=3 run "$in" 'print_comment srcs b.cc' //pkg:a
   assert_output 'Just a multiline comment'
+}
+
+function test_value_inside_select_print_comment() {
+  in='cc_library(
+    name = "a",
+    srcs = [
+        "a.cc",  # World
+        "b.cc",  # Hello
+    ] + select({
+        "foo": [
+            "c.cc",  # hello
+            "d.cc",  # world
+        ],
+    }),
+)'
+  ERROR=3 run "$in" 'print_comment srcs c.cc' 'print_comment srcs d.cc' //pkg:a
+  assert_output 'hello
+world'
 }
 
 # Test both absolute and relative package names

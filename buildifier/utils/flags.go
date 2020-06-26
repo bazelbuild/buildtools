@@ -108,7 +108,7 @@ func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) 
 			}
 		}
 		if len(warningsList) > 0 && (len(plus) > 0 || len(minus) > 0) {
-			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories")
+			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't be mixed with raw warning categories")
 		}
 		if len(warningsList) == 0 {
 			for _, warning := range *defaultWarnings {

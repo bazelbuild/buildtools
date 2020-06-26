@@ -3,7 +3,9 @@
 package utils
 
 import (
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -14,7 +16,7 @@ import (
 func isStarlarkFile(name string) bool {
 	ext := filepath.Ext(name)
 	switch ext {
-	case ".bzl", ".sky":
+	case ".bzl", ".sky", ".star":
 		return true
 	}
 
@@ -76,12 +78,12 @@ func GetParser(inputType string) func(filename string, data []byte) (*build.File
 	}
 }
 
-// hasWorkspaceFile checks whether a given directory contains a file called
-// WORKSPACE or WORKSPACE.bazel.
-func hasWorkspaceFile(path string) bool {
-	for _, filename := range []string{"WORKSPACE", "WORKSPACE.bazel"} {
-		workspace := filepath.Join(path, filename)
-		info, err := os.Stat(workspace)
+// containsFile checks whether a given directory contains a file called
+// <file> or <file>.bazel.
+func containsFile(dir, file string) bool {
+	for _, filename := range []string{file, file + ".bazel"} {
+		path := filepath.Join(dir, filename)
+		info, err := os.Stat(path)
 		if err == nil && !info.IsDir() {
 			return true
 		}
@@ -89,39 +91,93 @@ func hasWorkspaceFile(path string) bool {
 	return false
 }
 
-// SplitFilePath splits a file path into the workspace root and package name.
+// SplitRelativePath splits a path relative to the workspace root into package name and label.
+// It takes the workspace root and chunks of the relative path (already split) as input arguments.
+// Both output variables always have forward slashes as separators.
+func SplitRelativePath(workspaceRoot string, chunks []string) (pkg, label string) {
+	switch chunks[len(chunks)-1] {
+	case "BUILD", "BUILD.bazel":
+		return path.Join(chunks[:len(chunks)-1]...), chunks[len(chunks)-1]
+	}
+
+	pkg = ""
+	label = path.Join(chunks...)
+	parent := workspaceRoot
+	for i, chunk := range chunks {
+		if i == len(chunks)-1 {
+			// The last chunk is a filename, not a directory
+			break
+		}
+		parent = filepath.Join(parent, chunk)
+		if containsFile(parent, "BUILD") {
+			pkg = path.Join(chunks[:i+1]...)
+			label = path.Join(chunks[i+1:]...)
+		}
+	}
+	return pkg, label
+}
+
+// SplitFilePath splits a file path into the workspace root, package name and label.
 // Workspace root is determined as the last directory in the file path that
 // contains a WORKSPACE (or WORKSPACE.bazel) file.
-// Returns empty strings if no WORKSPACE file is found
-func SplitFilePath(filename string) (workspaceRoot, pkg string) {
-	directory := filepath.Dir(filename)
+// Package and label are always separated with forward slashes.
+// Returns empty strings if no WORKSPACE file is found.
+func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
 	root := "/"
-	if volume := filepath.VolumeName(directory); volume != "" {
+	if volume := filepath.VolumeName(filename); volume != "" {
 		// Windows
 		root = volume + "\\"
 	}
-	// directory relative to the file system root
-	relPath := directory[len(root):]
+	// filename relative to the file system root
+	relPath := filename[len(root):]
 
-	dirs := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
+	chunks := append([]string{""}, strings.Split(relPath, string(os.PathSeparator))...)
 	parent := root
-	for i, chunk := range dirs {
+	workspaceIndex := -1
+	for i, chunk := range chunks {
+		if i == len(chunks)-1 {
+			// The last chunk is a filename, not a directory
+			break
+		}
 		parent = filepath.Join(parent, chunk)
-		if hasWorkspaceFile(parent) {
+		if containsFile(parent, "WORKSPACE") {
 			workspaceRoot = parent
-			pkg = strings.Join(dirs[i+1:], "/")
+			workspaceIndex = i
 		}
 	}
-	return workspaceRoot, pkg
+	if workspaceIndex != -1 {
+		pkg, label = SplitRelativePath(workspaceRoot, chunks[workspaceIndex+1:])
+	}
+	return workspaceRoot, pkg, label
+}
+
+// getFileReader returns a *FileReader object that reads files from the local
+// filesystem if the workspace root is known.
+func getFileReader(workspaceRoot string) *warn.FileReader {
+	if workspaceRoot == "" {
+		return nil
+	}
+
+	readFile := func(filename string) ([]byte, error) {
+		// Use OS-specific path separators
+		filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
+		path := filepath.Join(workspaceRoot, filename)
+
+		return ioutil.ReadFile(path)
+	}
+
+	return warn.NewFileReader(readFile)
 }
 
 // Lint calls the linter and returns a list of unresolved findings
 func Lint(f *build.File, lint string, warningsList *[]string, verbose bool) []*warn.Finding {
+	fileReader := getFileReader(f.WorkspaceRoot)
+
 	switch lint {
 	case "warn":
-		return warn.FileWarnings(f, *warningsList, nil, warn.ModeWarn)
+		return warn.FileWarnings(f, *warningsList, nil, warn.ModeWarn, fileReader)
 	case "fix":
-		warn.FixWarnings(f, *warningsList, verbose)
+		warn.FixWarnings(f, *warningsList, verbose, fileReader)
 	}
 	return nil
 }

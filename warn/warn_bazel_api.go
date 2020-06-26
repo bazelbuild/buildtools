@@ -345,6 +345,40 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+func depsetItemsWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	types := detectTypes(f)
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		call, ok := (*expr).(*build.CallExpr)
+		if !ok {
+			return
+		}
+		base, ok := call.X.(*build.Ident)
+		if !ok || base.Name != "depset" {
+			return
+		}
+		if len(call.List) == 0 {
+			return
+		}
+		_, _, param := getParam(call.List, "items")
+		if param != nil {
+			findings = append(findings,
+				makeLinterFinding(param, `Parameter "items" is deprecated, use "direct" and/or "transitive" instead.`))
+			return
+		}
+		if _, ok := call.List[0].(*build.AssignExpr); ok {
+			return
+		}
+		// We have an unnamed first parameter. Check the type.
+		if types[call.List[0]] == Depset {
+			findings = append(findings,
+				makeLinterFinding(call.List[0], `Giving a depset as first unnamed parameter to depset() is deprecated, use the "transitive" parameter instead.`))
+		}
+	})
+	return findings
+}
+
 func attrNonEmptyWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
 		return nil

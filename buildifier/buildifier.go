@@ -329,7 +329,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 
 	if absoluteFilename, err := filepath.Abs(displayFilename); err == nil {
-		f.WorkspaceRoot, f.Pkg = utils.SplitFilePath(absoluteFilename)
+		f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(absoluteFilename)
 	}
 
 	warnings := utils.Lint(f, lint, warningsList, *vflag)
@@ -338,9 +338,6 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 	fileDiagnostics := utils.NewFileDiagnostics(f.DisplayPath(), warnings)
 
-	var info build.RewriteInfo
-	build.Rewrite(f, &info)
-
 	ndata := build.Format(f)
 
 	switch *mode {
@@ -348,7 +345,6 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		// check mode: print names of files that need formatting.
 		if !bytes.Equal(data, ndata) {
 			fileDiagnostics.Formatted = false
-			fileDiagnostics.SetRewrites(info.Stats())
 			return fileDiagnostics, 4
 		}
 

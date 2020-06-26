@@ -455,3 +455,91 @@ d.update(
 		[]string{},
 		scopeEverywhere)
 }
+
+func TestSkylark(t *testing.T) {
+	checkFindingsAndFix(t, "skylark-comment", `
+# Skyline
+foo()
+# SkyLark
+
+# Implemented in skylark
+# Skylark
+bar() # SKYLARK
+
+# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+Label()
+`, `
+# Skyline
+foo()
+# Starlark
+
+# Implemented in starlark
+# Starlark
+bar() # STARLARK
+
+# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+Label()
+`,
+		[]string{
+			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+			`:7: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+		},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "skylark-comment", `
+"""
+Some docstring with skylark
+""" # buildifier: disable=skylark-docstring
+
+def f():
+  """Some docstring with skylark"""
+  # buildozer: disable=skylark-docstring
+`, `
+"""
+Some docstring with skylark
+""" # buildifier: disable=skylark-docstring
+
+def f():
+  """Some docstring with skylark"""
+  # buildozer: disable=skylark-docstring
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindingsAndFix(t, "skylark-docstring", `
+# Some file
+
+"""
+This is a docstring describing a skylark file
+"""
+
+def f():
+  """SKYLARK"""
+
+def l():
+  """
+  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  """
+  return Label("skylark")
+`, `
+# Some file
+
+"""
+This is a docstring describing a starlark file
+""" 
+
+def f():
+  """STARLARK"""
+
+def l():
+  """
+  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  """
+  return Label("skylark")
+`,
+		[]string{
+			`:3: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+			`:8: "Skylark" is an outdated name of the language, please use "starlark" instead.`,
+		},
+		scopeEverywhere)
+}

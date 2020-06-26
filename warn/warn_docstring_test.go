@@ -123,35 +123,35 @@ def f():
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
-	def _f(x):
-	  """Long private function
-	  with a docstring"""
-	  x += 1
-	  x *= 2
-	  x /= 3
-	  x -= 4
-	  x %= 5
-	  return x
-	`,
+def _f(x):
+  """Long private function
+  with a docstring"""
+  x += 1
+  x *= 2
+  x /= 3
+  x -= 4
+  x %= 5
+  return x
+`,
 		[]string{
 			`:2: The docstring for the function "_f" should start with a one-line summary.`,
 		},
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
-	def f(x):
-	  """Long function with a docstring
+def f(x):
+  """Long function with a docstring
 
-		Docstring
-		body
-		"""
-	  x += 1
-	  x *= 2
-	  x /= 3
-	  x -= 4
-	  x %= 5
-	  return x
-	`,
+	Docstring
+	body
+	"""
+  x += 1
+  x *= 2
+  x /= 3
+  x -= 4
+  x %= 5
+  return x
+`,
 		[]string{},
 		scopeEverywhere)
 
@@ -171,6 +171,18 @@ def f():
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-header", `
+def f():
+   """\r
+   Header in a CRLF formatted file.\r
+\r
+   This is a\r
+   multiline description"""
+`,
+		[]string{},
+		scopeEverywhere)
+
 }
 
 func TestFunctionDocstringArgs(t *testing.T) {
