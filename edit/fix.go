@@ -78,7 +78,7 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 	fixed := false
 	for _, attr := range r.AttrKeys() {
 		e := r.Attr(attr)
-		if !ContainsLabels(attr) {
+		if !ContainsLabels(r.Kind(), attr) {
 			continue
 		}
 		for _, li := range AllLists(e) {
