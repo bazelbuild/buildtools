@@ -754,9 +754,12 @@ getattr(
 func TestProvider(t *testing.T) {
 	checkFindings(t, "provider-params", `provider(doc = "doc", fields = [])`, []string{}, scopeBzl)
 	checkFindings(t, "provider-params", `provider("doc", fields = [])`, []string{}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(fields = None, doc = "doc")`, []string{}, scopeBzl)
 
-	err := `1: Calls to 'provider' should specify a list of fields and a documentation:\n  provider("description", fields = [...])`
-	checkFindings(t, "provider-params", `provider(fields = [])`, []string{err}, scopeBzl)
-	checkFindings(t, "provider-params", `provider(doc = "doc")`, []string{err}, scopeBzl)
-	checkFindings(t, "provider-params", `p = provider()`, []string{err}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(fields = [])`,
+		[]string{`1: Calls to 'provider' should provide a documentation`}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(doc = "doc")`,
+		[]string{`1: Calls to 'provider' should provide a list of fields:`}, scopeBzl)
+	checkFindings(t, "provider-params", `p = provider()`,
+		[]string{`1: Calls to 'provider' should provide a list of fields and a documentation:`}, scopeBzl)
 }

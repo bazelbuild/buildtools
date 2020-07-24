@@ -814,7 +814,7 @@ fooInfo = provider(
 Fields should also be documented when needed:
 
 ```python
-provider(
+fooInfo = provider(
     doc = "Some documentation.",
     fields = {
         "field1": "Documentation for field1",
@@ -823,7 +823,14 @@ provider(
 ``
 
 Note that specifying a list of fields is a breaking change. It is an error if a
-call to the provider uses undeclared fields.
+call to the provider uses undeclared fields. If you cannot declare the list of
+fields, you may explicitly set it to None (and explain why in a comment).
+
+```python
+allInfo = provider("This provider accepts any field.", fields = None)
+
+noneInfo = provider("This provider cannot have fields.", fields = [])
+```
 
 See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
 

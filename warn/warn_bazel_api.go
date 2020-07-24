@@ -1030,9 +1030,19 @@ func providerParamsWarning(f *build.File) []*LinterFinding {
 				hasPositional = true
 			}
 		}
-		if fields == nil || (doc == nil && !hasPositional) {
+		msg := ""
+		if fields == nil {
+			msg = "a list of fields"
+		}
+		if doc == nil && !hasPositional {
+			if msg != "" {
+				msg += " and "
+			}
+			msg += "a documentation"
+		}
+		if msg != "" {
 			findings = append(findings, makeLinterFinding(call,
-				`Calls to 'provider' should specify a list of fields and a documentation:\n`+
+				`Calls to 'provider' should provide `+msg+`:\n`+
 					`  provider("description", fields = [...])`))
 		}
 	})
