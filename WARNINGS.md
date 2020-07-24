@@ -805,20 +805,19 @@ may never see the warning.
 Calls to `provider` should specify a documentation string and a list of fields:
 
 ```python
-fooInfo = provider(
-    doc = "Some documentation.",
-    fields = ["field1", "field2"],
-)
+ServerAddressInfo = provider(
+    "The address of an HTTP server. Fields are host (string) and port (int).",
+    fields = ["host", "port"])
 ```
 
 Fields should also be documented when needed:
 
 ```python
-fooInfo = provider(
-    doc = "Some documentation.",
+ServerAddressInfo = provider(
+    "The address of an HTTP server.",
     fields = {
-        "field1": "Documentation for field1",
-        "field2': "Documentation for field2",
+        "host": "string, e.g. 'example.com'",
+        "port: "int",
     })
 ``
 
@@ -827,9 +826,9 @@ call to the provider uses undeclared fields. If you cannot declare the list of
 fields, you may explicitly set it to None (and explain why in a comment).
 
 ```python
-allInfo = provider("This provider accepts any field.", fields = None)
+AllInfo = provider("This provider accepts any field.", fields = None)
 
-noneInfo = provider("This provider cannot have fields.", fields = [])
+NoneInfo = provider("This provider cannot have fields.", fields = [])
 ```
 
 See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
