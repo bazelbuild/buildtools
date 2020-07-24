@@ -817,7 +817,7 @@ ServerAddressInfo = provider(
     "The address of an HTTP server.",
     fields = {
         "host": "string, e.g. 'example.com'",
-        "port: "int",
+        "port": "int, a TCP port number",
     })
 ``
 
