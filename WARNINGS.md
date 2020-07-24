@@ -48,6 +48,7 @@ Warning categories supported by buildifier's linter:
   * [`package-on-top`](#package-on-top)
   * [`positional-args`](#positional-args)
   * [`print`](#print)
+  * [`provider-params`](#provider-params)
   * [`redefined-variable`](#redefined-variable)
   * [`repository-name`](#repository-name)
   * [`return-value`](#return-value)
@@ -793,6 +794,38 @@ Using the `print()` function for warnings is discouraged: they are often spammy 
 non actionable, the people who see the warning are usually not the people who can
 fix the code to make the warning disappear, and the actual maintainers of the code
 may never see the warning.
+
+--------------------------------------------------------------------------------
+
+## <a name="provider-params"></a>Calls to 'provider' should specify a list of fields and a documentation
+
+  * Category name: `provider-params`
+  * Automatic fix: no
+
+Calls to `provider` should specify a documentation string and a list of fields:
+
+```python
+fooInfo = provider(
+    doc = "Some documentation.",
+    fields = ["field1", "field2"],
+)
+```
+
+Fields should also be documented when needed:
+
+```python
+provider(
+    doc = "Some documentation.",
+    fields = {
+        "field1": "Documentation for field1",
+        "field2': "Documentation for field2",
+    })
+``
+
+Note that specifying a list of fields is a breaking change. It is an error if a
+call to the provider uses undeclared fields.
+
+See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
 
 --------------------------------------------------------------------------------
 

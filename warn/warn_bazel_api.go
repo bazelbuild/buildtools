@@ -1008,3 +1008,33 @@ func keywordPositionalParametersWarning(f *build.File) []*LinterFinding {
 
 	return findings
 }
+
+func providerParamsWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl {
+		return nil
+	}
+
+	var findings []*LinterFinding
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := isFunctionCall(expr, "provider")
+		if !ok {
+			return
+		}
+
+		_, _, fields := getParam(call.List, "fields")
+		_, _, doc := getParam(call.List, "doc")
+		// doc can also be the first positional argument
+		hasPositional := false
+		if len(call.List) > 0 {
+			if _, ok := call.List[0].(*build.AssignExpr); !ok {
+				hasPositional = true
+			}
+		}
+		if fields == nil || (doc == nil && !hasPositional) {
+			findings = append(findings, makeLinterFinding(call,
+				`Calls to 'provider' should specify a list of fields and a documentation:\n`+
+					`  provider("description", fields = [...])`))
+		}
+	})
+	return findings
+}
