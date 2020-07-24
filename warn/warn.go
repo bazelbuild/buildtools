@@ -144,6 +144,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
 	"print":                     printWarning,
+	"provider-params":           providerParamsWarning,
 	"redefined-variable":        redefinedVariableWarning,
 	"repository-name":           repositoryNameWarning,
 	"rule-impl-return":          ruleImplReturnWarning,

@@ -48,6 +48,7 @@ Warning categories supported by buildifier's linter:
   * [`package-on-top`](#package-on-top)
   * [`positional-args`](#positional-args)
   * [`print`](#print)
+  * [`provider-params`](#provider-params)
   * [`redefined-variable`](#redefined-variable)
   * [`repository-name`](#repository-name)
   * [`return-value`](#return-value)
@@ -793,6 +794,44 @@ Using the `print()` function for warnings is discouraged: they are often spammy 
 non actionable, the people who see the warning are usually not the people who can
 fix the code to make the warning disappear, and the actual maintainers of the code
 may never see the warning.
+
+--------------------------------------------------------------------------------
+
+## <a name="provider-params"></a>Calls to 'provider' should specify a list of fields and a documentation
+
+  * Category name: `provider-params`
+  * Automatic fix: no
+
+Calls to `provider` should specify a documentation string and a list of fields:
+
+```python
+ServerAddressInfo = provider(
+    "The address of an HTTP server. Fields are host (string) and port (int).",
+    fields = ["host", "port"])
+```
+
+Fields should also be documented when needed:
+
+```python
+ServerAddressInfo = provider(
+    "The address of an HTTP server.",
+    fields = {
+        "host": "string, e.g. 'example.com'",
+        "port": "int, a TCP port number",
+    })
+``
+
+Note that specifying a list of fields is a breaking change. It is an error if a
+call to the provider uses undeclared fields. If you cannot declare the list of
+fields, you may explicitly set it to None (and explain why in a comment).
+
+```python
+AllInfo = provider("This provider accepts any field.", fields = None)
+
+NoneInfo = provider("This provider cannot have fields.", fields = [])
+```
+
+See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
 
 --------------------------------------------------------------------------------
 
