@@ -2,8 +2,9 @@ package warn
 
 import (
 	"fmt"
-	"github.com/bazelbuild/buildtools/tables"
 	"testing"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 func TestAttrConfigurationWarning(t *testing.T) {
@@ -748,4 +749,17 @@ getattr(
 		`:11: Keyword parameter "name" for "getattr" should be positional.`,
 		`:12: Keyword parameter "default" for "getattr" should be positional.`,
 	}, scopeEverywhere)
+}
+
+func TestProvider(t *testing.T) {
+	checkFindings(t, "provider-params", `provider(doc = "doc", fields = [])`, []string{}, scopeBzl)
+	checkFindings(t, "provider-params", `provider("doc", fields = [])`, []string{}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(fields = None, doc = "doc")`, []string{}, scopeBzl)
+
+	checkFindings(t, "provider-params", `provider(fields = [])`,
+		[]string{`1: Calls to 'provider' should provide a documentation`}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(doc = "doc")`,
+		[]string{`1: Calls to 'provider' should provide a list of fields:`}, scopeBzl)
+	checkFindings(t, "provider-params", `p = provider()`,
+		[]string{`1: Calls to 'provider' should provide a list of fields and a documentation:`}, scopeBzl)
 }

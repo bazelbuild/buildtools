@@ -62,7 +62,11 @@ func IsStringDict(attr string) bool {
 }
 
 // ContainsLabels returns true for all attributes whose type is a label or a label list.
-func ContainsLabels(attr string) bool {
+func ContainsLabels(kind, attr string) bool {
+	if kind == "package_group" && attr == "packages" {
+		// "package_group" is a special rule and its "packages" attribute is not a list of labels.
+		return false
+	}
 	ty := typeOf[attr]
 	return ty == buildpb.Attribute_LABEL_LIST ||
 		ty == buildpb.Attribute_LABEL
