@@ -29,3 +29,11 @@ macro(
 )
 
 nested = 1
+
+comments = [
+    "a",
+    ("b"),  # end of line comment
+
+    # before comment
+    ("c"),
+]  # comment

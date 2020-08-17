@@ -4,7 +4,7 @@ st2 = ("""
 multiline""")
 
 st3 = (
-"multi"
+    "multi"
 )
 
 n = (123)
@@ -29,3 +29,11 @@ fct3 = (
 ))
 
 nested = (((((1)))))
+
+comments = ([
+    "a",
+    ("b"),  # end of line comment
+
+    # before comment
+    ("c"),
+])  # comment

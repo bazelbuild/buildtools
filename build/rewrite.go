@@ -947,7 +947,7 @@ func removeParens(f *File) {
 		if !ok || pa.ForceMultiLine {
 			return expr
 		}
-		if len(pa.Comment().Before) > 0 || len(pa.Comment().After) > 0 || len(pa.Comment().Before) > 0 {
+		if len(pa.Comment().Before) > 0 || len(pa.Comment().After) > 0 || len(pa.Comment().Suffix) > 0 {
 			return expr
 		}
 
