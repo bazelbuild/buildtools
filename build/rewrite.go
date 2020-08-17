@@ -18,12 +18,13 @@ distributed under the License is distributed on an "AS IS" BASIS,
 package build
 
 import (
-	"github.com/bazelbuild/buildtools/tables"
 	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 // For debugging: flag to disable certain rewrites.
@@ -79,6 +80,7 @@ var rewrites = []struct {
 	fn    func(*File)
 	scope FileType
 }{
+	{"removeParens", removeParens, scopeBoth},
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
 	{"listsort", sortStringLists, scopeBoth},
@@ -933,4 +935,35 @@ func editOctals(f *File) {
 			l.Token = "0o" + l.Token[1:]
 		}
 	})
+}
+
+// removeParens removes trivial parens
+func removeParens(f *File) {
+	var simplify func(expr Expr, stack []Expr) Expr
+	simplify = func(expr Expr, stack []Expr) Expr {
+		// Look for parenthesized expressions, ignoring those with
+		// comments and those that are intentionally multiline.
+		pa, ok := expr.(*ParenExpr)
+		if !ok || pa.ForceMultiLine {
+			return expr
+		}
+		if len(pa.Comment().Before) > 0 || len(pa.Comment().After) > 0 || len(pa.Comment().Suffix) > 0 {
+			return expr
+		}
+
+		switch x := pa.X.(type) {
+		case *Comprehension, *DictExpr, *Ident, *ListExpr, *LiteralExpr, *ParenExpr, *SetExpr, *StringExpr:
+			// These expressions don't need parens, remove them (recursively).
+			return Edit(x, simplify)
+		case *CallExpr:
+			// Parens might be needed if the callable is multiline.
+			start, end := x.X.Span()
+			if start.Line == end.Line {
+				return Edit(x, simplify)
+			}
+		}
+		return expr
+	}
+
+	Edit(f, simplify)
 }
