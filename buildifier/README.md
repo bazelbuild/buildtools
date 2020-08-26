@@ -139,7 +139,7 @@ bazel run //:buildifier
 ## File diagnostics in json
 
 Buildifier supports diagnostics output in machine-readable format (json), triggered by
-`--format=json` (only works in combination with `--type=check`). If used in combination with `-v`,
+`--format=json` (only works in combination with `--mode=check`). If used in combination with `-v`,
 the output json will be indented for better readability.
 
 The output format is the following:

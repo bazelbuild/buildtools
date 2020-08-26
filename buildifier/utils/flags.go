@@ -40,7 +40,7 @@ func ValidateFormat(format, mode *string) error {
 
 	case "text", "json":
 		if *mode != "check" {
-			return fmt.Errorf("cannot specify --format without --type=check")
+			return fmt.Errorf("cannot specify --format without --mode=check")
 		}
 
 	default:
