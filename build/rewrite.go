@@ -81,7 +81,7 @@ var rewrites = []struct {
 	fn    func(*File)
 	scope FileType
 }{
-	{"removeParens", removeParens, scopeBoth},
+	{"removeParens", removeParens, scopeBuild},
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
 	{"listsort", sortStringLists, scopeBoth},
