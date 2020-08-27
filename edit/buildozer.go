@@ -1188,6 +1188,10 @@ func Buildozer(opts *Options, args []string) int {
 	results := make(chan *rewriteResult, numFiles)
 	data := make(chan commandsForFile)
 
+	if opts.NumIO < 1 {
+		fmt.Fprintf(os.Stderr, "NumIO must be at least 1; got %d (are you using `NewOpts`?)\n", opts.NumIO)
+		return 1
+	}
 	for i := 0; i < opts.NumIO; i++ {
 		go func(results chan *rewriteResult, data chan commandsForFile) {
 			for commandsForFile := range data {
