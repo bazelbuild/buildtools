@@ -1004,7 +1004,15 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // opts.Buildifier is useful to force consistency with other tools that call Buildifier.
 func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
 	if opts.Buildifier == "" {
-		return build.Format(f), nil
+		// Current AST may be not entirely correct, e.g. it may contain Ident which
+		// value is a chunk of code, like "f(x)". The AST should be printed and
+		// re-read to parse such expressions correctly.
+		contents := build.Format(f)
+		newF, err := build.ParseBuild(f.Path, []byte(contents))
+		if err != nil {
+			return nil, err
+		}
+		return build.Format(newF), nil
 	}
 
 	cmd := exec.Command(opts.Buildifier, "--type=build")
