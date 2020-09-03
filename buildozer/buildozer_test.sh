@@ -969,7 +969,7 @@ function test_print_all_functions() {
 cc_test(name = "a")
 java_binary(name = "b")
 exports_files(["a.cc"])'
-  ERROR=3 run "$in" 'print kind' '//pkg:all'
+  run "$in" 'print kind' '//pkg:all'
   assert_output 'package
 cc_test
 java_binary
@@ -980,7 +980,7 @@ function test_print_java_libraries() {
   in='cc_test(name = "a")
 java_library(name = "b")
 java_library(name = "c")'
-  ERROR=3 run "$in" 'print' '//pkg:%java_library'
+  run "$in" 'print' '//pkg:%java_library'
   assert_output 'b java_library
 c java_library'
 }
@@ -989,7 +989,7 @@ function test_refer_to_rule_by_location() {
   in='cc_test(name = "a")
 java_library(name = "b")
 java_library(name = "c")'
-  ERROR=3 run "$in" 'print label' '//pkg:%2'
+  run "$in" 'print label' '//pkg:%2'
   assert_output '//pkg:b'
 }
 
@@ -1017,7 +1017,7 @@ function test_print_srcs() {
   in='cc_test(name = "a", srcs = ["foo.cc"])
 java_library(name = "b")
 java_library(name = "c", srcs = ["foo.java", "bar.java"])'
-  ERROR=3 run "$in" 'print name kind srcs' '//pkg:*'
+  run "$in" 'print name kind srcs' '//pkg:*'
   assert_output 'a cc_test [foo.cc]
 b java_library (missing)
 c java_library [foo.java bar.java]'
@@ -1027,21 +1027,21 @@ c java_library [foo.java bar.java]'
 function test_print_empty_list() {
   in='package()
 java_library(name = "b", deps = [])'
-  ERROR=3 run "$in" 'print deps' '//pkg:b'
+  run "$in" 'print deps' '//pkg:b'
   assert_output '[]'
 }
 
 function test_print_label() {
   in='package()
 java_library(name = "b")'
-  ERROR=3 run "$in" 'print label kind' '//pkg:*'
+  run "$in" 'print label kind' '//pkg:*'
   assert_output '//pkg:b java_library'
 }
 
 function test_print_startline() {
   in='package()
 java_library(name = "b")'
-  ERROR=3 run "$in" 'print startline label' '//pkg:*'
+  run "$in" 'print startline label' '//pkg:*'
   assert_output '2 //pkg:b'
 }
 
@@ -1050,7 +1050,7 @@ function test_print_endline() {
 java_library(
     name = "b"
 )'
-  ERROR=3 run "$in" 'print endline label' '//pkg:*'
+  run "$in" 'print endline label' '//pkg:*'
   assert_output '4 //pkg:b'
 }
 
@@ -1067,7 +1067,7 @@ cc_test(
 )
 
 cc_library(name = "c")'
-  ERROR=3 run "$in" 'print rule' '//pkg:b'
+  run "$in" 'print rule' '//pkg:b'
   assert_output '# Comment before
 cc_test(
     name = "b",
@@ -1080,7 +1080,7 @@ cc_test(
 
 function test_print_version() {
   in='gendeb(name = "foobar", version = "12345")'
-  ERROR=3 run "$in" 'print version' '//pkg:*'
+  run "$in" 'print version' '//pkg:*'
   assert_output '12345'
 }
 
@@ -1351,7 +1351,7 @@ multiline\ comment' //pkg:a
 function test_rule_print_comment() {
   in='# Hello
 cc_library(name = "a")'
-  ERROR=3 run "$in" 'print_comment' //pkg:a
+  run "$in" 'print_comment' //pkg:a
   assert_output 'Hello'
 }
 
@@ -1360,7 +1360,7 @@ function test_attribute_print_comment() {
     name = "a",
     srcs = ["a.cc"],  # Hello World
 )'
-  ERROR=3 run "$in" 'print_comment srcs' //pkg:a
+  run "$in" 'print_comment srcs' //pkg:a
   assert_output 'Hello World'
 }
 
@@ -1370,7 +1370,7 @@ function test_attribute_print_comment_no_eol() {
     # Hello World
     srcs = ["a.cc"],
 )'
-  ERROR=3 run "$in" --eol-comments=false 'print_comment srcs' //pkg:a
+  run "$in" --eol-comments=false 'print_comment srcs' //pkg:a
   assert_output 'Hello World'
 }
 
@@ -1382,7 +1382,7 @@ function test_value_print_comment() {
         "b.cc",  # Hello
     ],
 )'
-  ERROR=3 run "$in" 'print_comment srcs b.cc' 'print_comment srcs a.cc' //pkg:a
+  run "$in" 'print_comment srcs b.cc' 'print_comment srcs a.cc' //pkg:a
   assert_output 'Hello
 World'
 }
@@ -1397,7 +1397,7 @@ function test_value_multiline_print_comment() {
         "b.cc",
     ],
 )'
-  ERROR=3 run "$in" 'print_comment srcs b.cc' //pkg:a
+  run "$in" 'print_comment srcs b.cc' //pkg:a
   assert_output 'Just a multiline comment'
 }
 
@@ -1414,7 +1414,7 @@ function test_value_inside_select_print_comment() {
         ],
     }),
 )'
-  ERROR=3 run "$in" 'print_comment srcs c.cc' 'print_comment srcs d.cc' //pkg:a
+  run "$in" 'print_comment srcs c.cc' 'print_comment srcs d.cc' //pkg:a
   assert_output 'hello
 world'
 }
@@ -1642,7 +1642,7 @@ load("/foo/bar", "x")'
 
 function test_print_attribute_value_with_spaces() {
   in='cc_test(name = "a", deprecation = "one two three")'
-  ERROR=3 run "$in" 'print deprecation' '//pkg:a'
+  run "$in" 'print deprecation' '//pkg:a'
   assert_output '"one two three"'
 }
 

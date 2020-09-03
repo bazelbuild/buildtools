@@ -194,8 +194,8 @@ buildozer 'add new_attr def_val' //:%cc_binary
 
 ### Print commands
 
-They work just like the edit commands. Expect a return code of 3 as they are not
-modifying any file.
+These commands are not modifying files, Buildifier returns 0 after a successful
+execution.
 
   * `print <attribute(s)>`: For each target, prints the value of the attributes
    (see below).
@@ -274,7 +274,7 @@ processed in parallel.
 
 The return code is:
 
-  * `0` on success, if changes were made
+  * `0` on success, if changes were made or only readonly commands were executed
   * `1` when there is a usage error
   * `2` when at least one command has failed
   * `3` on success, when no changes were made

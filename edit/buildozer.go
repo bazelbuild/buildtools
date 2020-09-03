@@ -715,6 +715,11 @@ var AllCommands = map[string]CommandInfo{
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
 }
 
+var readonlyCommands = map[string]bool{
+	"print":         true,
+	"print_comment": true,
+}
+
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
 	if r := FindRuleByName(f, rule); r != nil {
 		return []*build.Rule{r}, nil
@@ -1246,7 +1251,22 @@ func Buildozer(opts *Options, args []string) int {
 	if hasErrors {
 		return 2
 	}
-	if !fileModified && !opts.Stdout {
+	if fileModified || opts.Stdout {
+		return 0
+	}
+	// The file is not modified, check if there were any non-readonly commands
+	nonReadonlyCommands := false
+	for _, commandsByTarget := range commandsByFile {
+		for _, commands := range commandsByTarget {
+			for _, command := range commands.commands {
+				if _, ok := readonlyCommands[command.tokens[0]]; !ok {
+					nonReadonlyCommands = true
+					break
+				}
+			}
+		}
+	}
+	if nonReadonlyCommands {
 		return 3
 	}
 	return 0
