@@ -1765,4 +1765,23 @@ function test_set_config_string() {
 )'
 }
 
+function test_fix_unused_load() {
+  run 'load(":a.bzl", "a")
+# TODO: refactor
+
+load(":foo.bzl", "foo")  # foo
+load(":baz.bzl", "baz")  # this is @unused
+load(":bar.bzl", "bar")  # bar
+# end loads
+
+foo()' 'fix unusedLoads' 'pkg/BUILD'
+  assert_equals '# TODO: refactor
+
+load(":foo.bzl", "foo")  # foo
+load(":baz.bzl", "baz")  # this is @unused
+# end loads
+
+foo()'
+}
+
 run_suite "buildozer tests"
