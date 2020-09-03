@@ -946,6 +946,19 @@ function test_set_if_absent_present() {
 )'
 }
 
+function test_set_custom_code() {
+  in='cc_test(name = "a")'
+
+  run "$in" 'set attr foo(a=1,b=2)' '//pkg:a'
+  assert_equals 'cc_test(
+    name = "a",
+    attr = foo(
+        a = 1,
+        b = 2,
+    ),
+)'
+}
+
 function assert_output() {
   echo "$1" > "expected"
   diff -u "expected" "$log" || fail "Output didn't match"
