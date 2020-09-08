@@ -394,7 +394,7 @@ func sortStringLists(f *File) {
 					continue
 				}
 				as, ok := arg.(*AssignExpr)
-				if !ok || leaveAlone1(as) || doNotSort(as) {
+				if !ok || leaveAlone1(as) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
@@ -408,7 +408,11 @@ func sortStringLists(f *File) {
 				if tables.IsSortableListArg[key.Name] ||
 					tables.SortableWhitelist[context] ||
 					(!disabled("unsafesort") && allowedSort(context)) {
-					sortStringList(as.RHS, context)
+					if doNotSort(as) {
+						deduplicateStringList(as.RHS)
+					} else {
+						SortStringList(as.RHS)
+					}
 				}
 			}
 		case *AssignExpr:
@@ -417,7 +421,7 @@ func sortStringLists(f *File) {
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
 			if keepSorted(v) {
-				sortStringList(v.RHS, "?")
+				SortStringList(v.RHS)
 			}
 		case *KeyValueExpr:
 			if disabled("unsafesort") {
@@ -425,7 +429,7 @@ func sortStringLists(f *File) {
 			}
 			// "keep sorted" before key: list also forces sorting of list.
 			if keepSorted(v) {
-				sortStringList(v.Value, "?")
+				SortStringList(v.Value)
 			}
 		case *ListExpr:
 			if disabled("unsafesort") {
@@ -433,23 +437,59 @@ func sortStringLists(f *File) {
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
 			if len(v.List) > 0 && (keepSorted(v) || keepSorted(v.List[0])) {
-				sortStringList(v, "?")
+				SortStringList(v)
 			}
 		}
 	})
 }
 
-// SortStringList sorts x, a list of strings.
-func SortStringList(x Expr) {
-	sortStringList(x, "")
+// deduplicateStingList removes duplicates from a list with string expressions
+// without reordering its elements.
+// Any suffix-comments are lost, any before- and after-comments are preserved.
+func deduplicateStringList(x Expr) {
+	list, ok := x.(*ListExpr)
+	if !ok {
+		return
+	}
+
+	var comments []Comment
+	alreadySeen := make(map[string]bool)
+	deduplicatedList := make([]Expr, 0)
+	for _, value := range list.List {
+		str, ok := value.(*StringExpr)
+		if !ok {
+			deduplicatedList = append(deduplicatedList, value)
+			continue
+		}
+		strVal := str.Value
+		if _, ok := alreadySeen[strVal]; ok {
+			// This is a duplicate of a string above.
+			// Collect comments so that they're not lost.
+			comments = append(comments, str.Comment().Before...)
+			comments = append(comments, str.Comment().After...)
+			continue
+		}
+		alreadySeen[strVal] = true
+		if len(comments) > 0 {
+			comments = append(comments, value.Comment().Before...)
+			value.Comment().Before = comments
+			comments = nil
+		}
+		deduplicatedList = append(deduplicatedList, value)
+	}
+	list.List = deduplicatedList
 }
 
-// sortStringList sorts x, a list of strings.
+// SortStringList sorts x, a list of strings.
 // The list is broken by non-strings and by blank lines and comments into chunks.
 // Each chunk is sorted in place.
-func sortStringList(x Expr, context string) {
+func SortStringList(x Expr) {
 	list, ok := x.(*ListExpr)
-	if !ok || len(list.List) < 2 || doNotSort(list.List[0]) {
+	if !ok || len(list.List) < 2 {
+		return
+	}
+	if doNotSort(list.List[0]) {
+		deduplicateStringList(list)
 		return
 	}
 
@@ -462,6 +502,7 @@ func sortStringList(x Expr, context string) {
 	// certain order in their deps attributes.
 	if !forceSort {
 		if line, _ := hasComments(list); line {
+			deduplicateStringList(list)
 			return
 		}
 	}
