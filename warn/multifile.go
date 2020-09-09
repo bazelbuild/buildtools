@@ -18,7 +18,6 @@ package warn
 
 import (
 	"github.com/bazelbuild/buildtools/build"
-	"strings"
 )
 
 // FileReader is a class that can read an arbitrary Starlark file
@@ -75,24 +74,4 @@ func (fr *FileReader) GetFile(pkg, label string) *build.File {
 	}
 	fr.cache[filename] = file
 	return file
-}
-
-// ResolveLabel resolves a label to a .bzl file (which may be absolute or relative to the current package)
-// to a pair (package, label) for the .bzl file
-func ResolveLabel(currentPkg, label string) (pkg, newLabel string) {
-	switch {
-	case strings.HasPrefix(label, "//"):
-		// Absolute label path
-		label = label[2:]
-		if chunks := strings.SplitN(label, ":", 2); len(chunks) == 2 {
-			return chunks[0], chunks[1]
-		}
-		return "", label
-	case strings.HasPrefix(label, ":"):
-		// Relative label path
-		return currentPkg, label[1:]
-	default:
-		// External repositories are not supported
-		return "", ""
-	}
 }
