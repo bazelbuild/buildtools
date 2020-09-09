@@ -91,13 +91,13 @@ func ParseLabel(target string) Label {
 	return label
 }
 
-// ParseRelativeLabel parses a label which may be relative, then it's considered
-// to belong to `pkg`
-func ParseRelativeLabel(target, pkg string) Label {
-	if !strings.HasPrefix(target, "@") && !strings.HasPrefix(target, "//") {
-		return Label{Package: pkg, Target: strings.TrimLeft(target, ":")}
+// ParseRelativeLabel parses a label `input` which may be absolute or relative.
+// If it's relative then it's considered to belong to `pkg`
+func ParseRelativeLabel(input, pkg string) Label {
+	if !strings.HasPrefix(input, "@") && !strings.HasPrefix(input, "//") {
+		return Label{Package: pkg, Target: strings.TrimLeft(input, ":")}
 	}
-	return ParseLabel(target)
+	return ParseLabel(input)
 }
 
 // ShortenLabel rewrites labels to use the canonical form (the form
