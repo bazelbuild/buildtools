@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // splitOptionsWithSpaces is a cleanup function.
@@ -88,8 +89,8 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 		for _, li := range AllLists(e) {
 			for _, elem := range li.List {
 				str, ok := elem.(*build.StringExpr)
-				if ok && str.Value != ShortenLabel(str.Value, pkg) {
-					str.Value = ShortenLabel(str.Value, pkg)
+				if ok && str.Value != labels.ShortenLabel(str.Value, pkg) {
+					str.Value = labels.ShortenLabel(str.Value, pkg)
 					fixed = true
 				}
 			}
