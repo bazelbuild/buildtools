@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// The package labels contains helper functions for working with labels.
+// Package labels contains helper functions for working with labels.
 package labels
 
 import (
@@ -25,11 +25,14 @@ import (
 
 // Label represents a Bazel target label.
 type Label struct {
-	Repository string
-	Package    string
-	Target     string
+	Repository string // Repository of the target, can be empty if the target belongs to the current repository
+	Package    string // Package of a target, can be empty for top packages
+	Target     string // Name of the target, should be always non-empty
 }
 
+// Format returns a string representation of a label. It's always absolute but
+// the target name is omitted if it's equal to the package directory, e.g.
+// "//package/foo:foo" is formatted as "//package/foo".
 func (l Label) Format() string {
 	b := new(bytes.Buffer)
 	if l.Repository != "" {
@@ -48,6 +51,8 @@ func (l Label) Format() string {
 	return b.String()
 }
 
+// FormatRelative returns a string representation of a label relative to `pkg`
+// (relative label if it represent a target in the same package, absolute otherwise)
 func (l Label) FormatRelative(pkg string) string {
 	if l.Repository != "" || pkg != l.Package {
 		// External repository or different package
@@ -56,8 +61,8 @@ func (l Label) FormatRelative(pkg string) string {
 	return ":" + l.Target
 }
 
-// ParseLabel parses a Bazel label (eg. //devtools/buildozer:rule), and returns
-// the corresponding Label object.
+// ParseLabel parses an absolute Bazel label (eg. //devtools/buildozer:rule)
+// and returns the corresponding Label object.
 func ParseLabel(target string) Label {
 	label := Label{}
 	if strings.HasPrefix(target, "@") {
@@ -86,6 +91,8 @@ func ParseLabel(target string) Label {
 	return label
 }
 
+// ParseRelativeLabel parses a label which may be relative, then it's considered
+// to belong to `pkg`
 func ParseRelativeLabel(target, pkg string) Label {
 	if !strings.HasPrefix(target, "@") && !strings.HasPrefix(target, "//") {
 		return Label{Package: pkg, Target: strings.TrimLeft(target, ":")}
