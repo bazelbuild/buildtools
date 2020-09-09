@@ -28,9 +28,10 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/buildifier/utils"
+	bfutils "github.com/bazelbuild/buildtools/buildifier/utils"
 	"github.com/bazelbuild/buildtools/differ"
 	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/utils"
 	"github.com/bazelbuild/buildtools/warn"
 )
 
@@ -133,22 +134,22 @@ func main() {
 	build.DisableRewrites = disable()
 	build.AllowSort = allowSort()
 
-	if err := utils.ValidateInputType(inputType); err != nil {
+	if err := bfutils.ValidateInputType(inputType); err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
 	}
 
-	if err := utils.ValidateFormat(format, mode); err != nil {
+	if err := bfutils.ValidateFormat(format, mode); err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
 	}
 
-	if err := utils.ValidateModes(mode, lint, dflag); err != nil {
+	if err := bfutils.ValidateModes(mode, lint, dflag); err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
 	}
 
-	warningsList, err := utils.ValidateWarnings(warnings, &warn.AllWarnings, &warn.DefaultWarnings)
+	warningsList, err := bfutils.ValidateWarnings(warnings, &warn.AllWarnings, &warn.DefaultWarnings)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 		os.Exit(2)
@@ -191,11 +192,11 @@ func main() {
 }
 
 func run(args, warningsList *[]string) int {
-	tf := &utils.TempFile{}
+	tf := &bfutils.TempFile{}
 	defer tf.Clean()
 
 	exitCode := 0
-	var diagnostics *utils.Diagnostics
+	var diagnostics *bfutils.Diagnostics
 	if len(*args) == 0 || (len(*args) == 1 && (*args)[0] == "-") {
 		// Read from stdin, write to stdout.
 		data, err := ioutil.ReadAll(os.Stdin)
@@ -206,14 +207,14 @@ func run(args, warningsList *[]string) int {
 		if *mode == "fix" {
 			*mode = "pipe"
 		}
-		var fileDiagnostics *utils.FileDiagnostics
+		var fileDiagnostics *bfutils.FileDiagnostics
 		fileDiagnostics, exitCode = processFile("", data, *inputType, *lint, warningsList, false, tf)
-		diagnostics = utils.NewDiagnostics(fileDiagnostics)
+		diagnostics = bfutils.NewDiagnostics(fileDiagnostics)
 	} else {
 		files := *args
 		if *rflag {
 			var err error
-			files, err = utils.ExpandDirectories(args)
+			files, err = bfutils.ExpandDirectories(args)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "buildifier: %v\n", err)
 				return 3
@@ -241,7 +242,7 @@ func run(args, warningsList *[]string) int {
 	return exitCode
 }
 
-func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *utils.TempFile) (*utils.Diagnostics, int) {
+func processFiles(files []string, inputType, lint string, warningsList *[]string, tf *bfutils.TempFile) (*bfutils.Diagnostics, int) {
 	// Decide how many file reads to run in parallel.
 	// At most 100, and at most one per 10 input files.
 	nworker := 100
@@ -273,7 +274,7 @@ func processFiles(files []string, inputType, lint string, warningsList *[]string
 	}
 
 	exitCode := 0
-	fileDiagnostics := []*utils.FileDiagnostics{}
+	fileDiagnostics := []*bfutils.FileDiagnostics{}
 
 	// Process files. The processing still runs in a single goroutine
 	// in sequence. Only the reading of the files has been parallelized.
@@ -298,7 +299,7 @@ func processFiles(files []string, inputType, lint string, warningsList *[]string
 			exitCode = newExitCode
 		}
 	}
-	return utils.NewDiagnostics(fileDiagnostics...), exitCode
+	return bfutils.NewDiagnostics(fileDiagnostics...), exitCode
 }
 
 // diff is the differ to use when *mode == "diff".
@@ -306,7 +307,7 @@ var diff *differ.Differ
 
 // processFile processes a single file containing data.
 // It has been read from filename and should be written back if fixing.
-func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *utils.TempFile) (*utils.FileDiagnostics, int) {
+func processFile(filename string, data []byte, inputType, lint string, warningsList *[]string, displayFileNames bool, tf *bfutils.TempFile) (*bfutils.FileDiagnostics, int) {
 	var exitCode int
 
 	displayFilename := filename
@@ -314,7 +315,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		displayFilename = *filePath
 	}
 
-	parser := utils.GetParser(inputType)
+	parser := bfutils.GetParser(inputType)
 
 	f, err := parser(displayFilename, data)
 	if err != nil {
@@ -325,18 +326,18 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 		if exitCode < 1 {
 			exitCode = 1
 		}
-		return utils.InvalidFileDiagnostics(displayFilename), exitCode
+		return bfutils.InvalidFileDiagnostics(displayFilename), exitCode
 	}
 
 	if absoluteFilename, err := filepath.Abs(displayFilename); err == nil {
 		f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(absoluteFilename)
 	}
 
-	warnings := utils.Lint(f, lint, warningsList, *vflag)
+	warnings := bfutils.Lint(f, lint, warningsList, *vflag)
 	if len(warnings) > 0 {
 		exitCode = 4
 	}
-	fileDiagnostics := utils.NewFileDiagnostics(f.DisplayPath(), warnings)
+	fileDiagnostics := bfutils.NewFileDiagnostics(f.DisplayPath(), warnings)
 
 	ndata := build.Format(f)
 

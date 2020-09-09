@@ -37,6 +37,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
+	"github.com/bazelbuild/buildtools/utils"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -910,6 +911,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 
 	f, err := build.ParseBuild(name, data)
+	f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(name)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
@@ -924,9 +926,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		target := commands.target
 		commands := commands.commands
 		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		_, pkg, _ := ParseLabel(target)
-		if pkg == stdinPackageName { // Special-case: This is already absolute
+		if _, pkg, _ := ParseLabel(target); pkg == stdinPackageName {
+			// Special-case: This is already absolute
 			absPkg = stdinPackageName
+		}
+		if strings.HasSuffix(absPkg, "...") {
+			// Special case: the provided target contains an ellipsis, use the file package
+			absPkg = f.Pkg
 		}
 
 		targets, err := expandTargets(f, rule)
