@@ -62,7 +62,7 @@ func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterF
 			continue
 		}
 		label := labels.ParseRelativeLabel(load.Module.Value, f.Pkg)
-		if label.Target == "" {
+		if label.Repository != "" || label.Target == "" {
 			continue
 		}
 		loadedFile := fileReader.GetFile(label.Package, label.Target)

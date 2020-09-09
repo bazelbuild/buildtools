@@ -57,6 +57,27 @@ load(":nonexistent.bzl", "foo", "bar", "baz")
 		scopeEverywhere)
 }
 
+func TestDeprecatedFunctionAnotherRepo(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"test/package/foo.bzl": `
+def foo():
+  """
+  This is a function foo.
+
+  Deprecated:
+    do not use.
+  """
+  pass
+`,
+	})()
+
+	checkFindings(t, "deprecated-function", `
+load("@another_repo//test/package:foo.bzl", "foo")
+`,
+		[]string{},
+		scopeEverywhere)
+}
+
 func TestDeprecatedFunctionNoReader(t *testing.T) {
 	checkFindings(t, "deprecated-function", `
 load(":foo.bzl", "foo", "bar", "baz")
