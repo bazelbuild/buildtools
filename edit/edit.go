@@ -1121,3 +1121,25 @@ func ReplaceLoad(stmts []build.Expr, location string, from, to []string) []build
 	// 2. Insert new loads.
 	return InsertLoad(all, location, from, to)
 }
+
+// ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
+// the repo name ("" for the main repo), package (with leading slashes trimmed)
+// and rule name (e.g. ["", "devtools/buildozer", "rule"]).
+// Deprecated; use labels.ParseLabel instead
+func ParseLabel(target string) (string, string, string) {
+	label := labels.ParseLabel(target)
+	return label.Repository, label.Package, label.Target
+}
+
+// ShortenLabel rewrites labels to use the canonical form (the form
+// recommended by build-style).
+// Deprecated; use labels.ShortenLabel instead
+func ShortenLabel(label string, pkg string) string {
+	return labels.ShortenLabel(label, pkg)
+}
+
+// LabelsEqual returns true if label1 and label2 are equal.
+// Deprecated; use labels.Equal instead
+func LabelsEqual(label1, label2, pkg string) bool {
+	return labels.Equal(label1, label2, pkg)
+}
