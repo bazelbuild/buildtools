@@ -529,9 +529,9 @@ func getStringValue(value string) string {
 // and shortens the label value if possible.
 func getStringExpr(value, pkg string) build.Expr {
 	if unquoted, triple, err := build.Unquote(value); err == nil {
-		return &build.StringExpr{Value: labels.ShortenLabel(unquoted, pkg), TripleQuote: triple}
+		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
-	return &build.StringExpr{Value: labels.ShortenLabel(value, pkg)}
+	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
 }
 
 func cmdCopy(opts *Options, env CmdEnvironment) (*build.File, error) {
