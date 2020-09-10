@@ -1128,8 +1128,9 @@ func ParseLabel(target string) (string, string, string) {
 
 // ShortenLabel rewrites labels to use the canonical form (the form
 // recommended by build-style).
-// Doesn't do anything if `--noshorten_label` flag is provided.
-func ShortenLabel(label string, pkg string) string {
+// Doesn't do anything if `--shorten_label=false` flag is provided.
+// Use `labels.ShortenLabel` to shorten labels unconditionally.
+func ShortenLabel(label, pkg string) string {
 	if !ShortenLabelsFlag {
 		return label
 	}

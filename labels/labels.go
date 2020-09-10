@@ -103,7 +103,7 @@ func ParseRelativeLabel(input, pkg string) Label {
 // ShortenLabel rewrites labels to use the canonical form (the form
 // recommended by build-style).
 // "//foo/bar:bar" => "//foo/bar", or ":bar" if the label belongs to pkg
-func ShortenLabel(input string, pkg string) string {
+func ShortenLabel(input, pkg string) string {
 	if !strings.HasPrefix(input, "//") && !strings.HasPrefix(input, "@") {
 		// It doesn't look like a long label, so we preserve it.
 		// Maybe it's not a label at all, e.g. a filename.
