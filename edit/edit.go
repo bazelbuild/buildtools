@@ -426,7 +426,6 @@ func AllStrings(e build.Expr) []*build.StringExpr {
 
 // listsFind looks for a string in list expressions
 func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringExpr {
-	item = labels.ShortenLabel(item, pkg)
 	for _, list := range lists {
 		for _, elem := range list.List {
 			str, ok := elem.(*build.StringExpr)
@@ -442,7 +441,6 @@ func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringEx
 // concatenation of lists). It returns the element if it is found. nil
 // otherwise.
 func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
-	item = labels.ShortenLabel(item, pkg)
 	return listsFind(AllLists(e), item, pkg)
 }
 
@@ -450,7 +448,6 @@ func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
 // concatenation of lists and select statements). It returns the element
 // if it is found. nil otherwise.
 func listOrSelectFind(e build.Expr, item string, pkg string) *build.StringExpr {
-	item = labels.ShortenLabel(item, pkg)
 	return listsFind(allListsIncludingSelects(e), item, pkg)
 }
 
@@ -656,7 +653,6 @@ func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
 		item = unquoted
 	}
 	deleted = nil
-	item = labels.ShortenLabel(item, pkg)
 	for _, li := range AllLists(e) {
 		RemoveFromList(li, item, pkg, &deleted)
 	}
@@ -682,14 +678,13 @@ func ListAttributeDelete(rule *build.Rule, attr, item, pkg string) *build.String
 // to indicate whether the replacement was successful.
 func ListReplace(e build.Expr, old, value, pkg string) bool {
 	replaced := false
-	old = labels.ShortenLabel(old, pkg)
 	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok || !labels.Equal(str.Value, old, pkg) {
 				continue
 			}
-			li.List[k] = &build.StringExpr{Value: labels.ShortenLabel(value, pkg), Comments: *elem.Comment()}
+			li.List[k] = &build.StringExpr{Value: ShortenLabel(value, pkg), Comments: *elem.Comment()}
 			replaced = true
 		}
 	}
@@ -1133,8 +1128,11 @@ func ParseLabel(target string) (string, string, string) {
 
 // ShortenLabel rewrites labels to use the canonical form (the form
 // recommended by build-style).
-// Deprecated; use labels.ShortenLabel instead
+// Doesn't do anything if `--noshorten_label` flag is provided.
 func ShortenLabel(label string, pkg string) string {
+	if !ShortenLabelsFlag {
+		return label
+	}
 	return labels.ShortenLabel(label, pkg)
 }
 
