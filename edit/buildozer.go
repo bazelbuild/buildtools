@@ -37,7 +37,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
-	"github.com/bazelbuild/buildtools/utils"
+	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -911,7 +911,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 
 	f, err := build.ParseBuild(name, data)
-	f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(name)
+	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}

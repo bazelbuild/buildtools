@@ -27,17 +27,26 @@ import (
 )
 
 const workspaceFile = "WORKSPACE"
+const buildFile = "BUILD"
 
-func alwaysTrue(fi os.FileInfo) bool {
-	return true
+func isFile(fi os.FileInfo) bool {
+	return fi.Mode()&os.ModeType == 0
+}
+
+func isExecutable(fi os.FileInfo) bool {
+	return isFile(fi) && fi.Mode()&0100 == 0100
 }
 
 var repoRootFiles = map[string]func(os.FileInfo) bool{
-	workspaceFile: alwaysTrue,
-	".buckconfig": alwaysTrue,
-	"pants": func(fi os.FileInfo) bool {
-		return fi.Mode()&os.ModeType == 0 && fi.Mode()&0100 == 0100
-	},
+	workspaceFile:            isFile,
+	workspaceFile + ".bazel": isFile,
+	".buckconfig":            isFile,
+	"pants":                  isExecutable,
+}
+
+var packageRootFiles = map[string]func(os.FileInfo) bool{
+	buildFile:            isFile,
+	buildFile + ".bazel": isFile,
 }
 
 // findContextPath finds the context path inside of a WORKSPACE-rooted source tree.
@@ -56,7 +65,7 @@ func FindWorkspaceRoot(rootDir string) (root string, rest string) {
 	if err != nil {
 		return "", ""
 	}
-	if root, err = Find(wd); err != nil {
+	if root, err = find(wd, repoRootFiles); err != nil {
 		return "", ""
 	}
 	if len(wd) == len(root) {
@@ -65,20 +74,20 @@ func FindWorkspaceRoot(rootDir string) (root string, rest string) {
 	return root, wd[len(root)+1:]
 }
 
-// Find searches from the given dir and up for the WORKSPACE file
+// find searches from the given dir and up for the file that satisfies a condition of `rootFiles`
 // returning the directory containing it, or an error if none found in the tree.
-func Find(dir string) (string, error) {
+func find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, error) {
 	if dir == "" || dir == "/" || dir == "." || (len(dir) == 3 && strings.HasSuffix(dir, ":\\")) {
 		return "", os.ErrNotExist
 	}
-	for repoRootFile, fiFunc := range repoRootFiles {
+	for repoRootFile, fiFunc := range rootFiles {
 		if fi, err := os.Stat(filepath.Join(dir, repoRootFile)); err == nil && fiFunc(fi) {
 			return dir, nil
-		} else if !os.IsNotExist(err) {
+		} else if err != nil && !os.IsNotExist(err) {
 			return "", err
 		}
 	}
-	return Find(filepath.Dir(dir))
+	return find(filepath.Dir(dir), rootFiles)
 }
 
 // FindRepoBuildFiles parses the WORKSPACE to find BUILD files for non-Bazel
@@ -111,4 +120,45 @@ func FindRepoBuildFiles(root string) (map[string]string, error) {
 		}
 	}
 	return files, nil
+}
+
+// relPath returns a path for `target` relative to `base`, but an empty string
+// instead of "." if the directories are equivalent, and with forward slashes.
+func relPath(base, target string) (string, error) {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." {
+		return "", nil
+	}
+	return strings.ReplaceAll(rel, string(os.PathSeparator), "/"), nil
+}
+
+// SplitFilePath splits a file path into the workspace root, package name and label.
+// Workspace root is determined as the last directory in the file path that
+// contains a WORKSPACE (or WORKSPACE.bazel) file.
+// Package and label are always separated with forward slashes.
+// Returns empty strings if no WORKSPACE file is found.
+func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
+	dir := filepath.Dir(filename)
+	workspaceRoot, err := find(dir, repoRootFiles)
+	if err != nil {
+		return "", "", ""
+	}
+	packageRoot, err := find(dir, packageRootFiles)
+	if err != nil || !strings.HasPrefix(packageRoot, workspaceRoot) {
+		// No BUILD file or it's outside of the workspace. Shouldn't happen,
+		// but assume it's in the workspace root.
+		packageRoot = workspaceRoot
+	}
+	pkg, err = relPath(workspaceRoot, packageRoot)
+	if err != nil {
+		return "", "", ""
+	}
+	label, err = relPath(packageRoot, filename)
+	if err != nil {
+		return "", "", ""
+	}
+	return workspaceRoot, pkg, label
 }
