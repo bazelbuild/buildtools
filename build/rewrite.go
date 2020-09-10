@@ -454,11 +454,11 @@ func deduplicateStringList(x Expr) {
 
 	var comments []Comment
 	alreadySeen := make(map[string]bool)
-	deduplicatedList := make([]Expr, 0)
+	var deduplicated []Expr
 	for _, value := range list.List {
 		str, ok := value.(*StringExpr)
 		if !ok {
-			deduplicatedList = append(deduplicatedList, value)
+			deduplicated = append(deduplicated, value)
 			continue
 		}
 		strVal := str.Value
@@ -475,9 +475,9 @@ func deduplicateStringList(x Expr) {
 			value.Comment().Before = comments
 			comments = nil
 		}
-		deduplicatedList = append(deduplicatedList, value)
+		deduplicated = append(deduplicated, value)
 	}
-	list.List = deduplicatedList
+	list.List = deduplicated
 }
 
 // SortStringList sorts x, a list of strings.
