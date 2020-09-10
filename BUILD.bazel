@@ -27,6 +27,7 @@ test_suite(
         "//deps_proto:deps.gen.pb.go_checkshtest",
         "//edit:go_default_test",
         "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
+        "//labels:go_default_test",
         "//lang:tables.gen.go_checkshtest",
         "//tables:go_default_test",
         "//warn:go_default_test",

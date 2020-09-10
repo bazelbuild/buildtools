@@ -36,6 +36,7 @@ import (
 	depspb "github.com/bazelbuild/buildtools/deps_proto"
 	"github.com/bazelbuild/buildtools/edit"
 	eapb "github.com/bazelbuild/buildtools/extra_actions_base_proto"
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -267,7 +268,7 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 		for _, elem := range li.List {
 			for dep := range deps {
 				str, ok := elem.(*build.StringExpr)
-				if ok && edit.LabelsEqual(str.Value, dep, pkg) {
+				if ok && labels.Equal(str.Value, dep, pkg) {
 					if hasRuntimeComment(str) {
 						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
 					} else {

@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.Ident, fullLabel string) *LinterFinding {
@@ -60,11 +61,11 @@ func deprecatedFunctionWarning(f *build.File, fileReader *FileReader) []*LinterF
 		if !ok {
 			continue
 		}
-		pkg, fileLabel := ResolveLabel(f.Pkg, load.Module.Value)
-		if fileLabel == "" {
+		label := labels.ParseRelativeLabel(load.Module.Value, f.Pkg)
+		if label.Repository != "" || label.Target == "" {
 			continue
 		}
-		loadedFile := fileReader.GetFile(pkg, fileLabel)
+		loadedFile := fileReader.GetFile(label.Package, label.Target)
 		if loadedFile == nil {
 			continue
 		}

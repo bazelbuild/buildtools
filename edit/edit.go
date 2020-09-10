@@ -21,14 +21,13 @@ package edit
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
 )
 
@@ -38,74 +37,6 @@ var (
 	// DeleteWithComments if true a list attribute will be be deleted in ListDelete, even if there is a comment attached to it
 	DeleteWithComments = true
 )
-
-// ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
-// the repo name ("" for the main repo), package (with leading slashes trimmed)
-// and rule name (e.g. ["", "devtools/buildozer", "rule"]).
-func ParseLabel(target string) (string, string, string) {
-	repo := ""
-	if strings.HasPrefix(target, "@") {
-		target = strings.TrimLeft(target, "@")
-		parts := strings.SplitN(target, "/", 2)
-		if len(parts) == 1 {
-			// "@foo" -> "foo", "", "foo" (ie @foo//:foo)
-			return target, "", target
-		}
-		repo = parts[0]
-		target = "/" + parts[1]
-	}
-	// TODO(bazel-team): check if the next line can now be deleted
-	target = strings.TrimRight(target, ":") // labels can end with ':'
-	parts := strings.SplitN(target, ":", 2)
-	parts[0] = strings.TrimPrefix(parts[0], "//")
-	if len(parts) == 1 {
-		if strings.HasPrefix(target, "//") || tables.StripLabelLeadingSlashes {
-			// "//absolute/pkg" -> "absolute/pkg", "pkg"
-			return repo, parts[0], path.Base(parts[0])
-		}
-		// "relative/label" -> "", "relative/label"
-		return repo, "", parts[0]
-	}
-	return repo, parts[0], parts[1]
-}
-
-// ShortenLabel rewrites labels to use the canonical form (the form
-// recommended by build-style).  This behavior can be disabled using the
-// --noshorten_labels flag for projects that consistently use long-form labels.
-// "//foo/bar:bar" => "//foo/bar", or ":bar" when possible.
-func ShortenLabel(label string, pkg string) string {
-	if !ShortenLabelsFlag {
-		return label
-	}
-	if !strings.Contains(label, "//") {
-		// It doesn't look like a long label, so we preserve it.
-		return label
-	}
-	repo, labelPkg, rule := ParseLabel(label)
-	if repo == "" && labelPkg == pkg { // local label
-		return ":" + rule
-	}
-	slash := strings.LastIndex(labelPkg, "/")
-	if (slash >= 0 && labelPkg[slash+1:] == rule) || labelPkg == rule {
-		if repo == "" {
-			return "//" + labelPkg
-		}
-		return "@" + repo + "//" + labelPkg
-	}
-	if strings.HasPrefix(label, "@") && repo == rule && labelPkg == "" {
-		return "@" + repo
-	}
-	return label
-}
-
-// LabelsEqual returns true if label1 and label2 are equal. The function
-// takes care of the optional ":" prefix and differences between long-form
-// labels and local labels.
-func LabelsEqual(label1, label2, pkg string) bool {
-	str1 := strings.TrimPrefix(ShortenLabel(label1, pkg), ":")
-	str2 := strings.TrimPrefix(ShortenLabel(label2, pkg), ":")
-	return str1 == str2
-}
 
 // isFile returns true if the path refers to a regular file after following
 // symlinks.
@@ -125,7 +56,10 @@ func isFile(path string) bool {
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
 func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile string, pkg string, rule string) {
-	repo, pkg, rule := ParseLabel(target)
+	label := labels.ParseLabel(target)
+	repo := label.Repository
+	pkg = label.Package
+	rule = label.Target
 	rootDir, relativePath := wspace.FindWorkspaceRoot(root)
 	if repo != "" {
 		files, err := wspace.FindRepoBuildFiles(rootDir)
@@ -492,11 +426,11 @@ func AllStrings(e build.Expr) []*build.StringExpr {
 
 // listsFind looks for a string in list expressions
 func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringExpr {
-	item = ShortenLabel(item, pkg)
+	item = labels.ShortenLabel(item, pkg)
 	for _, list := range lists {
 		for _, elem := range list.List {
 			str, ok := elem.(*build.StringExpr)
-			if ok && LabelsEqual(str.Value, item, pkg) {
+			if ok && labels.Equal(str.Value, item, pkg) {
 				return str
 			}
 		}
@@ -508,7 +442,7 @@ func listsFind(lists []*build.ListExpr, item string, pkg string) *build.StringEx
 // concatenation of lists). It returns the element if it is found. nil
 // otherwise.
 func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
-	item = ShortenLabel(item, pkg)
+	item = labels.ShortenLabel(item, pkg)
 	return listsFind(AllLists(e), item, pkg)
 }
 
@@ -516,7 +450,7 @@ func ListFind(e build.Expr, item string, pkg string) *build.StringExpr {
 // concatenation of lists and select statements). It returns the element
 // if it is found. nil otherwise.
 func listOrSelectFind(e build.Expr, item string, pkg string) *build.StringExpr {
-	item = ShortenLabel(item, pkg)
+	item = labels.ShortenLabel(item, pkg)
 	return listsFind(allListsIncludingSelects(e), item, pkg)
 }
 
@@ -702,7 +636,7 @@ func RemoveFromList(li *build.ListExpr, item, pkg string, deleted **build.String
 	var all []build.Expr
 	for _, elem := range li.List {
 		if str, ok := elem.(*build.StringExpr); ok {
-			if LabelsEqual(str.Value, item, pkg) && (DeleteWithComments || !hasComments(str)) {
+			if labels.Equal(str.Value, item, pkg) && (DeleteWithComments || !hasComments(str)) {
 				if deleted != nil {
 					*deleted = str
 				}
@@ -722,7 +656,7 @@ func ListDelete(e build.Expr, item, pkg string) (deleted *build.StringExpr) {
 		item = unquoted
 	}
 	deleted = nil
-	item = ShortenLabel(item, pkg)
+	item = labels.ShortenLabel(item, pkg)
 	for _, li := range AllLists(e) {
 		RemoveFromList(li, item, pkg, &deleted)
 	}
@@ -748,14 +682,14 @@ func ListAttributeDelete(rule *build.Rule, attr, item, pkg string) *build.String
 // to indicate whether the replacement was successful.
 func ListReplace(e build.Expr, old, value, pkg string) bool {
 	replaced := false
-	old = ShortenLabel(old, pkg)
+	old = labels.ShortenLabel(old, pkg)
 	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
-			if !ok || !LabelsEqual(str.Value, old, pkg) {
+			if !ok || !labels.Equal(str.Value, old, pkg) {
 				continue
 			}
-			li.List[k] = &build.StringExpr{Value: ShortenLabel(value, pkg), Comments: *elem.Comment()}
+			li.List[k] = &build.StringExpr{Value: labels.ShortenLabel(value, pkg), Comments: *elem.Comment()}
 			replaced = true
 		}
 	}

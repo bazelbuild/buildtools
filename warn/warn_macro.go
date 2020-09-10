@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // Internal constant that represents the native module
@@ -140,12 +141,12 @@ func analyzeFile(f *build.File) fileData {
 		if !ok {
 			continue
 		}
-		pkg, name := ResolveLabel(f.Pkg, load.Module.Value)
-		if name == "" {
+		label := labels.ParseRelativeLabel(load.Module.Value, f.Pkg)
+		if label.Repository != "" || label.Target == "" {
 			continue
 		}
 		for i, from := range load.From {
-			externalSymbols[load.To[i].Name] = function{pkg, name, from.Name}
+			externalSymbols[load.To[i].Name] = function{label.Package, label.Target, from.Name}
 		}
 	}
 
