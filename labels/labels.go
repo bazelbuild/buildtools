@@ -52,7 +52,7 @@ func (l Label) Format() string {
 }
 
 // FormatRelative returns a string representation of a label relative to `pkg`
-// (relative label if it represent a target in the same package, absolute otherwise)
+// (relative label if it represents a target in the same package, absolute otherwise)
 func (l Label) FormatRelative(pkg string) string {
 	if l.Repository != "" || pkg != l.Package {
 		// External repository or different package
@@ -102,7 +102,7 @@ func ParseRelativeLabel(input, pkg string) Label {
 
 // ShortenLabel rewrites labels to use the canonical form (the form
 // recommended by build-style).
-// "//foo/bar:bar" => "//foo/bar", or ":bar" when possible.
+// "//foo/bar:bar" => "//foo/bar", or ":bar" if the label belongs to pkg
 func ShortenLabel(input string, pkg string) string {
 	if !strings.HasPrefix(input, "//") && !strings.HasPrefix(input, "@") {
 		// It doesn't look like a long label, so we preserve it.
@@ -115,7 +115,7 @@ func ShortenLabel(input string, pkg string) string {
 
 // Equal returns true if label1 and label2 are equal. The function
 // takes care of the optional ":" prefix and differences between long-form
-// labels and local labels.
+// labels and local labels (relative to pkg).
 func Equal(label1, label2, pkg string) bool {
 	return ParseRelativeLabel(label1, pkg) == ParseRelativeLabel(label2, pkg)
 }
