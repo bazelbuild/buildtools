@@ -61,9 +61,9 @@ func (l Label) FormatRelative(pkg string) string {
 	return ":" + l.Target
 }
 
-// ParseLabel parses an absolute Bazel label (eg. //devtools/buildozer:rule)
+// Parse parses an absolute Bazel label (eg. //devtools/buildozer:rule)
 // and returns the corresponding Label object.
-func ParseLabel(target string) Label {
+func Parse(target string) Label {
 	label := Label{}
 	if strings.HasPrefix(target, "@") {
 		target = strings.TrimLeft(target, "@")
@@ -91,25 +91,25 @@ func ParseLabel(target string) Label {
 	return label
 }
 
-// ParseRelativeLabel parses a label `input` which may be absolute or relative.
+// ParseRelative parses a label `input` which may be absolute or relative.
 // If it's relative then it's considered to belong to `pkg`
-func ParseRelativeLabel(input, pkg string) Label {
+func ParseRelative(input, pkg string) Label {
 	if !strings.HasPrefix(input, "@") && !strings.HasPrefix(input, "//") {
 		return Label{Package: pkg, Target: strings.TrimLeft(input, ":")}
 	}
-	return ParseLabel(input)
+	return Parse(input)
 }
 
-// ShortenLabel rewrites labels to use the canonical form (the form
+// Shorten rewrites labels to use the canonical form (the form
 // recommended by build-style).
 // "//foo/bar:bar" => "//foo/bar", or ":bar" if the label belongs to pkg
-func ShortenLabel(input, pkg string) string {
+func Shorten(input, pkg string) string {
 	if !strings.HasPrefix(input, "//") && !strings.HasPrefix(input, "@") {
 		// It doesn't look like a long label, so we preserve it.
 		// Maybe it's not a label at all, e.g. a filename.
 		return input
 	}
-	label := ParseLabel(input)
+	label := Parse(input)
 	return label.FormatRelative(pkg)
 }
 
@@ -117,5 +117,5 @@ func ShortenLabel(input, pkg string) string {
 // takes care of the optional ":" prefix and differences between long-form
 // labels and local labels (relative to pkg).
 func Equal(label1, label2, pkg string) bool {
-	return ParseRelativeLabel(label1, pkg) == ParseRelativeLabel(label2, pkg)
+	return ParseRelative(label1, pkg) == ParseRelative(label2, pkg)
 }

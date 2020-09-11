@@ -141,7 +141,7 @@ func analyzeFile(f *build.File) fileData {
 		if !ok {
 			continue
 		}
-		label := labels.ParseRelativeLabel(load.Module.Value, f.Pkg)
+		label := labels.ParseRelative(load.Module.Value, f.Pkg)
 		if label.Repository != "" || label.Target == "" {
 			continue
 		}
