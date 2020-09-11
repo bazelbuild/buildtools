@@ -56,7 +56,7 @@ func isFile(path string) bool {
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
 func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile string, pkg string, rule string) {
-	label := labels.ParseLabel(target)
+	label := labels.Parse(target)
 	repo := label.Repository
 	pkg = label.Package
 	rule = label.Target
@@ -1120,25 +1120,25 @@ func ReplaceLoad(stmts []build.Expr, location string, from, to []string) []build
 // ParseLabel parses a Blaze label (eg. //devtools/buildozer:rule), and returns
 // the repo name ("" for the main repo), package (with leading slashes trimmed)
 // and rule name (e.g. ["", "devtools/buildozer", "rule"]).
-// Deprecated; use labels.ParseLabel instead
+// Deprecated; use `labels.Parse` instead
 func ParseLabel(target string) (string, string, string) {
-	label := labels.ParseLabel(target)
+	label := labels.Parse(target)
 	return label.Repository, label.Package, label.Target
 }
 
 // ShortenLabel rewrites labels to use the canonical form (the form
 // recommended by build-style).
 // Doesn't do anything if `--shorten_label=false` flag is provided.
-// Use `labels.ShortenLabel` to shorten labels unconditionally.
+// Use `labels.Shorten` to shorten labels unconditionally.
 func ShortenLabel(label, pkg string) string {
 	if !ShortenLabelsFlag {
 		return label
 	}
-	return labels.ShortenLabel(label, pkg)
+	return labels.Shorten(label, pkg)
 }
 
 // LabelsEqual returns true if label1 and label2 are equal.
-// Deprecated; use labels.Equal instead
+// Deprecated; use `labels.Equal` instead
 func LabelsEqual(label1, label2, pkg string) bool {
 	return labels.Equal(label1, label2, pkg)
 }

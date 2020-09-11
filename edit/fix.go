@@ -89,8 +89,8 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 		for _, li := range AllLists(e) {
 			for _, elem := range li.List {
 				str, ok := elem.(*build.StringExpr)
-				if ok && str.Value != labels.ShortenLabel(str.Value, pkg) {
-					str.Value = labels.ShortenLabel(str.Value, pkg)
+				if ok && str.Value != labels.Shorten(str.Value, pkg) {
+					str.Value = labels.Shorten(str.Value, pkg)
 					fixed = true
 				}
 			}

@@ -925,7 +925,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		target := commands.target
 		commands := commands.commands
 		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		if label := labels.ParseLabel(target); label.Package == stdinPackageName {
+		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
 		}
@@ -1102,7 +1102,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 			}
 		}
 		var buildFiles []string
-		if label := labels.ParseLabel(target); label.Package == stdinPackageName {
+		if label := labels.Parse(target); label.Package == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
 			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)

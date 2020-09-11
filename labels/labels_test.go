@@ -43,9 +43,9 @@ var parseLabelTests = []struct {
 
 func TestParseLabel(t *testing.T) {
 	for i, tt := range parseLabelTests {
-		l := ParseLabel(tt.in)
+		l := Parse(tt.in)
 		if l.Repository != tt.repo || l.Package != tt.pkg || l.Target != tt.target {
-			t.Errorf("%d. ParseLabel(%q) => (%q, %q, %q), want (%q, %q, %q)",
+			t.Errorf("%d. Parse(%q) => (%q, %q, %q), want (%q, %q, %q)",
 				i, tt.in, l.Repository, l.Package, l.Target, tt.repo, tt.pkg, tt.target)
 		}
 	}
@@ -80,9 +80,9 @@ var shortenLabelTests = []struct {
 
 func TestShortenLabel(t *testing.T) {
 	for i, tt := range shortenLabelTests {
-		result := ShortenLabel(tt.in, tt.pkg)
+		result := Shorten(tt.in, tt.pkg)
 		if result != tt.result {
-			t.Errorf("%d. ShortenLabel(%q, %q) => %q, want %q",
+			t.Errorf("%d. Shorten(%q, %q) => %q, want %q",
 				i, tt.in, tt.pkg, result, tt.result)
 		}
 	}
