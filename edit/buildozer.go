@@ -323,7 +323,8 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Name()}}
 		} else if str == "label" {
 			if env.Rule.Name() != "" {
-				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{fmt.Sprintf("//%s:%s", env.Pkg, env.Rule.Name())}}
+				label := labels.Label{Package: env.Pkg, Target: env.Rule.Name()}
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{label.Format()}}
 			} else {
 				return nil, nil
 			}

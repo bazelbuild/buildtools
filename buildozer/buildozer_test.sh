@@ -1065,9 +1065,9 @@ function test_print_label_ellipsis() {
 java_library(name = "b")'
   run "$in" 'print label' '//ellipsis_test/...:*'
   assert_output_any_order '//ellipsis_test:test
-//ellipsis_test/foo:foo
+//ellipsis_test/foo
 //ellipsis_test/foo/bar:foobar
-//ellipsis_test/foo/bar:bar'
+//ellipsis_test/foo/bar'
 }
 
 function test_print_startline() {
