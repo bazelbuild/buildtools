@@ -187,6 +187,17 @@ function test_sorted_deps() {
 )'
 }
 
+function test_noshorten_labels_flag() {
+  in='go_library(
+    name = "edit",
+)'
+  run "$in" --shorten_labels=false 'add deps //pkg:local' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = ["//pkg:local"],
+)'
+}
+
 function test_add_duplicate_label() {
   # "build" and ":build" labels are equivalent
   in='go_library(

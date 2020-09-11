@@ -37,6 +37,7 @@ import (
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
@@ -438,7 +439,7 @@ func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
-			if LabelsEqual(e.Value, oldV, env.Pkg) {
+			if labels.Equal(e.Value, oldV, env.Pkg) {
 				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}, env))
 			}
 		} else {
@@ -525,7 +526,7 @@ func getStringValue(value string) string {
 	return value
 }
 
-// getStringExpr creates a StringExpr from an input argument, which can be either quoter or not,
+// getStringExpr creates a StringExpr from an input argument, which can be either quoted or not,
 // and shortens the label value if possible.
 func getStringExpr(value, pkg string) build.Expr {
 	if unquoted, triple, err := build.Unquote(value); err == nil {
@@ -911,10 +912,10 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 
 	f, err := build.ParseBuild(name, data)
-	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
+	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 
 	vars := map[string]*build.AssignExpr{}
 	if opts.EditVariables {
@@ -926,7 +927,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		target := commands.target
 		commands := commands.commands
 		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		if _, pkg, _ := ParseLabel(target); pkg == stdinPackageName {
+		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
 		}
@@ -1107,8 +1108,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 			}
 		}
 		var buildFiles []string
-		_, pkg, _ := ParseLabel(target)
-		if pkg == stdinPackageName {
+		if label := labels.Parse(target); label.Package == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
 			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
