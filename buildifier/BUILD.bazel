@@ -67,6 +67,7 @@ go_library(
         "//differ:go_default_library",
         "//tables:go_default_library",
         "//warn:go_default_library",
+        "//wspace:go_default_library",
     ],
 )
 

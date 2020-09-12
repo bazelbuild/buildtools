@@ -38,6 +38,7 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/file"
 	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/wspace"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -322,7 +323,8 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Name()}}
 		} else if str == "label" {
 			if env.Rule.Name() != "" {
-				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{fmt.Sprintf("//%s:%s", env.Pkg, env.Rule.Name())}}
+				label := labels.Label{Package: env.Pkg, Target: env.Rule.Name()}
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{label.Format()}}
 			} else {
 				return nil, nil
 			}
@@ -914,6 +916,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
+	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 
 	vars := map[string]*build.AssignExpr{}
 	if opts.EditVariables {
@@ -928,6 +931,10 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
+		}
+		if strings.HasSuffix(absPkg, "...") {
+			// Special case: the provided target contains an ellipsis, use the file package
+			absPkg = f.Pkg
 		}
 
 		targets, err := expandTargets(f, rule)

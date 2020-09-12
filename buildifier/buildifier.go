@@ -32,6 +32,7 @@ import (
 	"github.com/bazelbuild/buildtools/differ"
 	"github.com/bazelbuild/buildtools/tables"
 	"github.com/bazelbuild/buildtools/warn"
+	"github.com/bazelbuild/buildtools/wspace"
 )
 
 var buildVersion = "redacted"
@@ -329,7 +330,7 @@ func processFile(filename string, data []byte, inputType, lint string, warningsL
 	}
 
 	if absoluteFilename, err := filepath.Abs(displayFilename); err == nil {
-		f.WorkspaceRoot, f.Pkg, f.Label = utils.SplitFilePath(absoluteFilename)
+		f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(absoluteFilename)
 	}
 
 	warnings := utils.Lint(f, lint, warningsList, *vflag)

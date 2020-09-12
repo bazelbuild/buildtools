@@ -975,6 +975,12 @@ function assert_output() {
   diff -u "expected" "$log" || fail "Output didn't match"
 }
 
+function assert_output_any_order() {
+  echo "$1" | sort > "expected"
+  sort < "$log" > "log_sorted"
+  diff -u "expected" "log_sorted" || fail "Output didn't match"
+}
+
 function test_print_all_functions() {
   in='package(default_visibility = ["//visibility:public"])
 cc_test(name = "a")
@@ -1047,6 +1053,21 @@ function test_print_label() {
 java_library(name = "b")'
   run "$in" 'print label kind' '//pkg:*'
   assert_output '//pkg:b java_library'
+}
+
+function test_print_label_ellipsis() {
+  mkdir -p "ellipsis_test/foo/bar"
+  echo 'java_library(name = "test")' > "ellipsis_test/BUILD"
+  echo 'java_library(name = "foo")' > "ellipsis_test/foo/BUILD"
+  echo 'java_library(name = "foobar"); java_library(name = "bar");' > "ellipsis_test/foo/bar/BUILD"
+
+  in='package()
+java_library(name = "b")'
+  run "$in" 'print label' '//ellipsis_test/...:*'
+  assert_output_any_order '//ellipsis_test:test
+//ellipsis_test/foo
+//ellipsis_test/foo/bar:foobar
+//ellipsis_test/foo/bar'
 }
 
 function test_print_startline() {
