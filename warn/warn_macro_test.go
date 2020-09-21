@@ -215,13 +215,25 @@ def not_macro(x):
 		[]string{
 			`4: By convention "macro1" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "abc" on line 5.`,
+It is considered a macro because it calls a rule or another macro "abc" on line 5.
+
+This warning is not shown for private functions because they can't be loaded from BUILD files.
+If this function is a helper function that's not supposed to be used outside of this file,
+consider making it private (e.g. rename it to "_macro1").`,
 			`7: By convention "macro2" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "baz" on line 8.`,
+It is considered a macro because it calls a rule or another macro "baz" on line 8.
+
+This warning is not shown for private functions because they can't be loaded from BUILD files.
+If this function is a helper function that's not supposed to be used outside of this file,
+consider making it private (e.g. rename it to "_macro2").`,
 			`10: By convention "macro3" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "qux" on line 11.`,
+It is considered a macro because it calls a rule or another macro "qux" on line 11.
+
+This warning is not shown for private functions because they can't be loaded from BUILD files.
+If this function is a helper function that's not supposed to be used outside of this file,
+consider making it private (e.g. rename it to "_macro3").`,
 		},
 		scopeBzl)
 }

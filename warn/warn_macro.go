@@ -325,7 +325,11 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			// fc shouldn't be nil because that's the only node that can be found inside a function.
 			msg += fmt.Sprintf(`
 
-It is considered a macro because it calls a rule or another macro %q on line %d.`, report.fc.nameAlias, report.fc.line)
+It is considered a macro because it calls a rule or another macro %q on line %d.
+
+This warning is not shown for private functions because they can't be loaded from BUILD files.
+If this function is a helper function that's not supposed to be used outside of this file,
+consider making it private (e.g. rename it to "_%s").`, report.fc.nameAlias, report.fc.line, def.Name)
 		}
 		finding := makeLinterFinding(def, msg)
 		finding.End = def.ColonPos
