@@ -263,6 +263,7 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
+	types := detectTypes(f)
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
 		as, ok := s.(*build.AssignExpr)
@@ -273,14 +274,20 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 		if !ok {
 			continue
 		}
-		if definedSymbols[left.Name] {
-			findings = append(findings,
-				makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q has already been defined. 
-Redefining a global value is discouraged and will be forbidden in the future.
-Consider using a new variable instead.`, left.Name)))
+		if !definedSymbols[left.Name] {
+			definedSymbols[left.Name] = true
 			continue
 		}
-		definedSymbols[left.Name] = true
+
+		if as.Op == "+=" && (types[as.LHS] == List || types[as.RHS] == List) {
+			// Not a reassignment, just appending to a list
+			continue
+		}
+
+		findings = append(findings,
+			makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q has already been defined. 
+Redefining a global value is discouraged and will be forbidden in the future.
+Consider using a new variable instead.`, left.Name)))
 	}
 	return findings
 }

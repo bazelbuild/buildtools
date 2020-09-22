@@ -76,10 +76,10 @@ d = dict:<{}>
 d2 = dict:<{foo: bar}>
 d3 = dict:<dict(**foo)>
 d4 = dict:<{k: v for k, v in foo}>
-dep = depset:<depset(items = [
+dep = depset:<depset(items = list:<[
     string:<s>,
     dict:<d>,
-])>
+]>)>
 foo = bar
 `)
 }

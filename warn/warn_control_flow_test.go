@@ -353,6 +353,7 @@ func TestRedefinedVariable(t *testing.T) {
 	checkFindings(t, "redefined-variable", `
 x = "old_value"
 x = "new_value"
+x[1] = "new"
 cc_library(name = x)`,
 		[]string{":2: Variable \"x\" has already been defined."},
 		scopeEverywhere)
@@ -370,6 +371,44 @@ def bar():
   y = "f"
   y = "g"`,
 		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "redefined-variable", `
+x = [1, 2, 3]
+y = [a for a in b]
+z = list()
+n = 43
+
+x += something()
+y += something()
+z += something()
+n += something()
+x -= something()`,
+		[]string{
+			":9: Variable \"n\" has already been defined.",
+			":10: Variable \"x\" has already been defined.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "redefined-variable", `
+x = [1, 2, 3]
+y = [a for a in b]
+z = list()
+
+a = something()
+b = something()
+c = something()
+d = something()
+e = something()
+
+a += x
+b += y
+c += z
+d += [42]
+e += foo`,
+		[]string{
+			":15: Variable \"e\" has already been defined.",
+		},
 		scopeEverywhere)
 }
 
