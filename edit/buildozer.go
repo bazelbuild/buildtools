@@ -874,7 +874,7 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 
 // BuildFileNames is exported so that users that want to override it
 // in scripts are free to do so.
-var BuildFileNames = [...]string{"BUILD", "BUILD.bazel", "BUCK"}
+var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout).
