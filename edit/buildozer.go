@@ -48,7 +48,7 @@ type Options struct {
 	Buildifier        string    // path to buildifier binary
 	Parallelism       int       // number of cores to use for concurrent actions
 	NumIO             int       // number of concurrent actions
-	CommandsFile      string    // file name to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
+	CommandsFiles     []string  // file names to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
 	KeepGoing         bool      // apply all commands, even if there are failures
 	FilterRuleTypes   []string  // list of rule types to change, empty means all
 	PreferEOLComments bool      // when adding a new comment, put it on the same line if possible
@@ -1123,16 +1123,18 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 	}
 }
 
-func appendCommandsFromFile(opts *Options, commandsByFile map[string][]commandsForTarget, fileName string) {
-	var reader io.Reader
-	if opts.CommandsFile == stdinPackageName {
-		reader = os.Stdin
-	} else {
-		rc := file.OpenReadFile(opts.CommandsFile)
-		reader = rc
-		defer rc.Close()
+func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commandsForTarget) {
+	for _, fileName := range opts.CommandsFiles {
+		var reader io.Reader
+		if fileName == stdinPackageName {
+			reader = os.Stdin
+		} else {
+			rc := file.OpenReadFile(fileName)
+			reader = rc
+			defer rc.Close()
+		}
+		appendCommandsFromReader(opts, reader, commandsByFile)
 	}
-	appendCommandsFromReader(opts, reader, commandsByFile)
 }
 
 func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget) {
@@ -1200,8 +1202,8 @@ func Buildozer(opts *Options, args []string) int {
 		opts.ErrWriter = os.Stderr
 	}
 	commandsByFile := make(map[string][]commandsForTarget)
-	if opts.CommandsFile != "" {
-		appendCommandsFromFile(opts, commandsByFile, opts.CommandsFile)
+	if len(opts.CommandsFiles) > 0 {
+		appendCommandsFromFiles(opts, commandsByFile)
 	} else {
 		if len(args) == 0 {
 			Usage()
