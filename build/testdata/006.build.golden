@@ -22,3 +22,14 @@ l = lambda x, y, *args, **kwargs: f(
     *args,
     **kwargs
 )
+
+TriggerActionAfterProbe(
+    action = lambda State, response: None,
+    predicate = lambda State, response: all([
+        response["request"]["method"] == "GET",
+        response["request"]["url"].find("/posts/") != -1,
+        response["request"]["url"].endswith("/comments"),
+        response["status_code"] in range(200, 299),
+    ]),
+    probe = ("http", "response"),
+)
