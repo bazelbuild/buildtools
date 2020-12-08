@@ -582,6 +582,21 @@ def foo(x):
 	checkFindings(t, "uninitialized", `
 def foo(x):
   if bar:
+    t = 1
+  else:
+    for y in maybe_empty:  
+      return
+
+  print(t)
+`,
+		[]string{
+			":8: Variable \"t\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
     for t in [2, 3]:
       pass
 
@@ -795,4 +810,22 @@ def f():
 			":7: Variable \"x\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  for y in x:
+    if foo:
+      break
+    elif bar:
+      continue
+    elif baz:
+      return
+    else:
+      z = 3
+    print(z)
+`,
+		[]string{},
+		scopeEverywhere)
+
+
 }
