@@ -57,7 +57,7 @@ var (
 def _javac_params(target, ctx):
     params = []
     for action in target.actions:
-        if not action.mnemonic == "Javac":
+        if not action.mnemonic == "Javac" and not action.mnemonic == "KotlinCompile":
             continue
         output = ctx.actions.declare_file("%s.javac_params" % target.label.name)
         args = ctx.actions.args()
@@ -67,6 +67,7 @@ def _javac_params(target, ctx):
             content = args,
         )
         params.append(output)
+        break
     return [OutputGroupInfo(unused_deps_outputs = depset(params))]
 
 javac_params = aspect(
@@ -332,7 +333,7 @@ func main() {
 	}
 	queryCmd := append([]string{"query"}, blazeFlags...)
 	queryCmd = append(
-		queryCmd, fmt.Sprintf("kind('(java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
+		queryCmd, fmt.Sprintf("kind('(kt|java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
 
 	log.Printf("running: %s %s", *buildTool, strings.Join(queryCmd, " "))
 	queryOut, err := cmdWithStderr(*buildTool, queryCmd...).Output()
@@ -340,7 +341,7 @@ func main() {
 		log.Print(err)
 	}
 	if len(queryOut) == 0 {
-		fmt.Fprintln(os.Stderr, "found no targets of kind (java|android)_*")
+		fmt.Fprintln(os.Stderr, "found no targets of kind (kt|java|android)_*")
 		usage()
 	}
 
