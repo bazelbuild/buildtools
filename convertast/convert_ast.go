@@ -21,6 +21,7 @@ limitations under the License.
 package convertast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -267,6 +268,16 @@ func convExpr(e syntax.Expr) build.Expr {
 			Y:        convExpr(e.Y),
 			Comments: convComments(e.Comments()),
 		}
+	case *syntax.LambdaExpr:
+		return &build.LambdaExpr{
+			Comments: convComments(e.Comments()),
+			Function: build.Function{
+				Params: convExprs(e.Params),
+				Body:   []build.Expr{convExpr(e.Body)},
+			},
+		}
+	default:
+		panic(fmt.Sprintf("other expr: %T %+v", e, e))
 	}
-	panic("other expr")
+	panic("unreachable")
 }
