@@ -418,7 +418,7 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 // terminated explicitly (by return or fail() statements) and a map of variables that are guaranteed
 // to be defined by `stmts`.
 func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) (bool, map[string]bool) {
-	// Variables that are guaranteed to be de initialized
+	// Variables that are guaranteed to be initialized
 	locallyInitialized := make(map[string]bool) // in the local block of `stmts`
 	initialized := make(map[string]bool)        // anywhere before the current line
 	for key := range previouslyInitialized {
@@ -465,6 +465,10 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		case *build.ReturnStmt:
 			findUninitializedIdents(stmt, callback)
 			return true, locallyInitialized
+		case *build.BranchStmt:
+			if stmt.Token == "break" || stmt.Token == "continue" {
+				return true, locallyInitialized
+			}
 		case *build.ForStmt:
 			// Although loop variables are defined as local variables, buildifier doesn't know whether
 			// the collection will be empty or not.
