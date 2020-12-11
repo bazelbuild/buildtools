@@ -147,7 +147,7 @@ def buildifier_impl_factory(ctx, test_rule = False):
         args.append("-add_tables=%s" % ctx.file.add_tables.path)
 
     exclude_patterns_str = ""
-    if ctx.attr.exclude_patterns:
+    if not test_rule and ctx.attr.exclude_patterns:
         exclude_patterns = ["\\! -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
         exclude_patterns_str = " ".join(exclude_patterns)
 
