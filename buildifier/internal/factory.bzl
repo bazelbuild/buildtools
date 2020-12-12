@@ -52,7 +52,7 @@ def buildifier_attr_factory(test_rule = False):
         ),
         "lint_warnings": attr.string_list(
             allow_empty = True,
-            doc = "all prefixed with +/- if you want to include in or exclude from the default set of warnings, or none prefixed with +/- if you want to override the default set, or 'all' for all avaliable warnings",
+            doc = "all prefixed with +/- if you want to include in or exclude from the default set of warnings, or none prefixed with +/- if you want to override the default set, or 'all' for all available warnings",
         ),
         "diff_command": attr.string(
             doc = "Command to use to show diff, with mode=diff. E.g. 'diff -u'",
