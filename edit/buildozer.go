@@ -1232,8 +1232,8 @@ func Buildozer(opts *Options, args []string) int {
 	}
 	close(data)
 	records := []*apipb.Output_Record{}
-	hasErrors := false
-	fileModified := false
+	var hasErrors bool
+	var fileModified bool
 	for i := 0; i < numFiles; i++ {
 		fileResults := <-results
 		if fileResults == nil {
