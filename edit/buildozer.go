@@ -68,8 +68,6 @@ func NewOpts() *Options {
 // Usage is a user-overridden func to print the program usage.
 var Usage = func() {}
 
-var fileModified = false // set to true when a file has been fixed
-
 const stdinPackageName = "-" // the special package name to represent stdin
 
 // CmdEnvironment stores the information the commands below have access to.
@@ -1004,7 +1002,6 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: []error{err}, records: records}
 	}
 
-	fileModified = true
 	return &rewriteResult{file: name, errs: errs, modified: true, records: records}
 }
 
@@ -1235,13 +1232,15 @@ func Buildozer(opts *Options, args []string) int {
 	}
 	close(data)
 	records := []*apipb.Output_Record{}
-	hasErrors := false
+	var hasErrors bool
+	var fileModified bool
 	for i := 0; i < numFiles; i++ {
 		fileResults := <-results
 		if fileResults == nil {
 			continue
 		}
 		hasErrors = hasErrors || len(fileResults.errs) > 0
+		fileModified = fileModified || fileResults.modified
 		for _, err := range fileResults.errs {
 			fmt.Fprintf(opts.ErrWriter, "%s: %s\n", fileResults.file, err)
 		}
