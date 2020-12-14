@@ -961,15 +961,20 @@ can potentially be empty.
 
 --------------------------------------------------------------------------------
 
-## <a name="unnamed-macro"></a>By convention the macro should have a keyword argument called "name".
+## <a name="unnamed-macro"></a>The macro should have a keyword argument called "name".
 
   * Category name: `unnamed-macro`
   * Automatic fix: no
 
-By convention all macro functions should have a keyword argument called "name".
+By convention all macro functions should have a keyword argument called `name`
+(even if they don't use it). This is important for tooling and automation.
 
 A macro is a function that calls a rule (either directly or indirectly by calling other
 macros).
+
+If this function is a helper function that's not supposed to be used outside of its file,
+please make it private (rename it so that the name starts with `_`), this will
+prevent loading the function from BUILD files and suppress the warning.
 
 --------------------------------------------------------------------------------
 

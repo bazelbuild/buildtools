@@ -353,6 +353,7 @@ func TestRedefinedVariable(t *testing.T) {
 	checkFindings(t, "redefined-variable", `
 x = "old_value"
 x = "new_value"
+x[1] = "new"
 cc_library(name = x)`,
 		[]string{":2: Variable \"x\" has already been defined."},
 		scopeEverywhere)
@@ -370,6 +371,44 @@ def bar():
   y = "f"
   y = "g"`,
 		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "redefined-variable", `
+x = [1, 2, 3]
+y = [a for a in b]
+z = list()
+n = 43
+
+x += something()
+y += something()
+z += something()
+n += something()
+x -= something()`,
+		[]string{
+			":9: Variable \"n\" has already been defined.",
+			":10: Variable \"x\" has already been defined.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "redefined-variable", `
+x = [1, 2, 3]
+y = [a for a in b]
+z = list()
+
+a = something()
+b = something()
+c = something()
+d = something()
+e = something()
+
+a += x
+b += y
+c += z
+d += [42]
+e += foo`,
+		[]string{
+			":15: Variable \"e\" has already been defined.",
+		},
 		scopeEverywhere)
 }
 
@@ -532,6 +571,21 @@ def foo(x):
   else:
     for t in maybe_empty:  
       pass
+
+  print(t)
+`,
+		[]string{
+			":8: Variable \"t\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  if bar:
+    t = 1
+  else:
+    for y in maybe_empty:  
+      return
 
   print(t)
 `,
@@ -756,4 +810,22 @@ def f():
 			":7: Variable \"x\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x):
+  for y in x:
+    if foo:
+      break
+    elif bar:
+      continue
+    elif baz:
+      return
+    else:
+      z = 3
+    print(z)
+`,
+		[]string{},
+		scopeEverywhere)
+
+
 }

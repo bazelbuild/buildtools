@@ -36,6 +36,7 @@ const (
 	Int
 	None
 	String
+	List
 )
 
 func (t Type) String() string {
@@ -50,6 +51,7 @@ func (t Type) String() string {
 		"int",
 		"none",
 		"string",
+		"list",
 	}[t]
 }
 
@@ -74,11 +76,15 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 			nodeType = String
 		case *build.DictExpr:
 			nodeType = Dict
+		case *build.ListExpr:
+			nodeType = List
 		case *build.LiteralExpr:
 			nodeType = Int
 		case *build.Comprehension:
 			if node.Curly {
 				nodeType = Dict
+			} else {
+				nodeType = List
 			}
 		case *build.CallExpr:
 			if ident, ok := (node.X).(*build.Ident); ok {
@@ -87,6 +93,8 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 					nodeType = Depset
 				case "dict":
 					nodeType = Dict
+				case "list":
+					nodeType = List
 				}
 			} else if dot, ok := (node.X).(*build.DotExpr); ok {
 				if result[dot.X] == CtxActions && dot.Name == "args" {

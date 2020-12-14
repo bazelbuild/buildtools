@@ -18,6 +18,7 @@ go_library(
         "//deps_proto:go_default_library",
         "//edit:go_default_library",
         "//extra_actions_base_proto:go_default_library",
+        "//labels:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )

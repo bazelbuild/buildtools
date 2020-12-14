@@ -263,6 +263,7 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
+	types := detectTypes(f)
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
 		as, ok := s.(*build.AssignExpr)
@@ -273,14 +274,20 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 		if !ok {
 			continue
 		}
-		if definedSymbols[left.Name] {
-			findings = append(findings,
-				makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q has already been defined. 
-Redefining a global value is discouraged and will be forbidden in the future.
-Consider using a new variable instead.`, left.Name)))
+		if !definedSymbols[left.Name] {
+			definedSymbols[left.Name] = true
 			continue
 		}
-		definedSymbols[left.Name] = true
+
+		if as.Op == "+=" && (types[as.LHS] == List || types[as.RHS] == List) {
+			// Not a reassignment, just appending to a list
+			continue
+		}
+
+		findings = append(findings,
+			makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q has already been defined. 
+Redefining a global value is discouraged and will be forbidden in the future.
+Consider using a new variable instead.`, left.Name)))
 	}
 	return findings
 }
@@ -411,7 +418,7 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 // terminated explicitly (by return or fail() statements) and a map of variables that are guaranteed
 // to be defined by `stmts`.
 func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[string]bool, callback func(*build.Ident)) (bool, map[string]bool) {
-	// Variables that are guaranteed to be de initialized
+	// Variables that are guaranteed to be initialized
 	locallyInitialized := make(map[string]bool) // in the local block of `stmts`
 	initialized := make(map[string]bool)        // anywhere before the current line
 	for key := range previouslyInitialized {
@@ -458,6 +465,10 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		case *build.ReturnStmt:
 			findUninitializedIdents(stmt, callback)
 			return true, locallyInitialized
+		case *build.BranchStmt:
+			if stmt.Token == "break" || stmt.Token == "continue" {
+				return true, locallyInitialized
+			}
 		case *build.ForStmt:
 			// Although loop variables are defined as local variables, buildifier doesn't know whether
 			// the collection will be empty or not.

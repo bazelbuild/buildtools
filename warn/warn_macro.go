@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // Internal constant that represents the native module
@@ -140,12 +141,12 @@ func analyzeFile(f *build.File) fileData {
 		if !ok {
 			continue
 		}
-		pkg, name := ResolveLabel(f.Pkg, load.Module.Value)
-		if name == "" {
+		label := labels.ParseRelative(load.Module.Value, f.Pkg)
+		if label.Repository != "" || label.Target == "" {
 			continue
 		}
 		for i, from := range load.From {
-			externalSymbols[load.To[i].Name] = function{pkg, name, from.Name}
+			externalSymbols[load.To[i].Name] = function{label.Package, label.Target, from.Name}
 		}
 	}
 
@@ -319,12 +320,19 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 		if !report.isMacro {
 			continue
 		}
-		msg := fmt.Sprintf(`By convention %q should have a keyword argument called "name".`, def.Name)
+		msg := fmt.Sprintf(`The macro %q should have a keyword argument called "name".`, def.Name)
 		if report.fc != nil {
 			// fc shouldn't be nil because that's the only node that can be found inside a function.
 			msg += fmt.Sprintf(`
 
-It is considered a macro because it calls a rule or another macro %q on line %d.`, report.fc.nameAlias, report.fc.line)
+It is considered a macro because it calls a rule or another macro %q on line %d.
+
+By convention, every public macro needs a "name" argument (even if it doesn't use it).
+This is important for tooling and automation.
+
+  * If this function is a helper function that's not supposed to be used outside of this file,
+    please make it private (e.g. rename it to "_%s").
+  * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`, report.fc.nameAlias, report.fc.line, def.Name)
 		}
 		finding := makeLinterFinding(def, msg)
 		finding.End = def.ColonPos

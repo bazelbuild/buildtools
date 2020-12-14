@@ -24,6 +24,7 @@ go_library(
         "//build:go_default_library",
         "//bzlenv:go_default_library",
         "//edit:go_default_library",
+        "//labels:go_default_library",
         "//tables:go_default_library",
     ],
 )
