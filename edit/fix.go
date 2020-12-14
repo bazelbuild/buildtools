@@ -376,16 +376,15 @@ func cleanUnusedLoads(f *build.File) bool {
 			all = append(all, load)
 		} else {
 			fixed = true
-			// If the load statement contains a post-comment, keep it
-			if len(load.Comment().After) == 0 {
+			// If the load statement contains before- or after-comments,
+			// keep them by re-attaching to a new CommentBlock node.
+			if len(load.Comment().Before) == 0 && len(load.Comment().After) == 0 {
 				continue
 			}
-
-			if len(all) == 0 {
-				all = append(all, &build.CommentBlock{})
-			}
-			prev := all[len(all)-1]
-			prev.Comment().After = append(prev.Comment().After, load.Comment().After...)
+			cb := &build.CommentBlock{}
+			cb.Comment().After = load.Comment().Before
+			cb.Comment().After = append(cb.Comment().After, load.Comment().After...)
+			all = append(all, cb)
 		}
 	}
 	f.Stmt = all

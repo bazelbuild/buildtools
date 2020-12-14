@@ -1814,19 +1814,33 @@ function test_fix_unused_load() {
   run 'load(":a.bzl", "a")
 # TODO: refactor
 
+# begin loads
+
 load(":foo.bzl", "foo")  # foo
+load(":foobar.bzl", "foobar")  # this one is actually used
 load(":baz.bzl", "baz")  # this is @unused
 load(":bar.bzl", "bar")  # bar
+
 # end loads
 
-foo()' 'fix unusedLoads' 'pkg/BUILD'
+# before
+load(":qux.bzl", "qux")
+# after
+
+foobar()' 'fix unusedLoads' 'pkg/BUILD'
   assert_equals '# TODO: refactor
 
-load(":foo.bzl", "foo")  # foo
+# begin loads
+
+load(":foobar.bzl", "foobar")  # this one is actually used
 load(":baz.bzl", "baz")  # this is @unused
+
 # end loads
 
-foo()'
+# before
+# after
+
+foobar()'
 }
 
 run_suite "buildozer tests"
