@@ -341,27 +341,6 @@ func usePlusEqual(f *build.File) bool {
 	return fixed
 }
 
-func isNonemptyComment(comment *build.Comments) bool {
-	return len(comment.Before)+len(comment.Suffix)+len(comment.After) > 0
-}
-
-// Checks whether a load statement or any of its arguments have a comment
-func hasComment(load *build.LoadStmt) bool {
-	if isNonemptyComment(load.Comment()) {
-		return true
-	}
-	if isNonemptyComment(load.Module.Comment()) {
-		return true
-	}
-
-	for i := range load.From {
-		if isNonemptyComment(load.From[i].Comment()) || isNonemptyComment(load.To[i].Comment()) {
-			return true
-		}
-	}
-	return false
-}
-
 // cleanUnusedLoads removes symbols from load statements that are not used in the file.
 // It also cleans symbols loaded multiple times, sorts symbol list, and removes load
 // statements when the list is empty.
@@ -372,7 +351,7 @@ func cleanUnusedLoads(f *build.File) bool {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
-		if !ok || hasComment(load) {
+		if !ok || ContainsComments(load, "@unused") {
 			all = append(all, stmt)
 			continue
 		}
@@ -397,6 +376,15 @@ func cleanUnusedLoads(f *build.File) bool {
 			all = append(all, load)
 		} else {
 			fixed = true
+			// If the load statement contains before- or after-comments,
+			// keep them by re-attaching to a new CommentBlock node.
+			if len(load.Comment().Before) == 0 && len(load.Comment().After) == 0 {
+				continue
+			}
+			cb := &build.CommentBlock{}
+			cb.Comment().After = load.Comment().Before
+			cb.Comment().After = append(cb.Comment().After, load.Comment().After...)
+			all = append(all, cb)
 		}
 	}
 	f.Stmt = all
