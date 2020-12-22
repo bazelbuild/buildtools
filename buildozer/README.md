@@ -18,8 +18,8 @@ go get github.com/bazelbuild/buildtools/buildozer
 buildozer [OPTIONS] ['command args' | -f FILE ] label-list
 ```
 
-Here, `label-list` is a comma-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1, //path/to/pkg2:rule2`. Buildozer reads commands from
+Here, `label-list` is a space-separated list of Bazel labels, for example
+`//path/to/pkg1:rule1 //path/to/pkg2:rule2`. Buildozer reads commands from
 `FILE` (`-` for stdin (format: `|`-separated command line arguments to buildozer,
 excluding flags))
 
