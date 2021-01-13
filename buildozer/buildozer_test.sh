@@ -1488,7 +1488,9 @@ EOF
 new cc_library baz|//a/pkg1:__pkg__
 add deps a|//a/pkg1:baz
 add deps a|a/pkg1:foo
-add deps x|a/pkg2:foo
+add deps x#|a/pkg2:foo
+# add deps y|a/pkg1:foo
+  # add deps y|a/pkg2:foo
 
 add deps y|a/pkg2:bar|add deps c|a/pkg1:foo
 add deps z|a/pkg2:bar
@@ -1524,7 +1526,7 @@ EOF
   cat > expected_pkg_2 <<EOF
 cc_library(
     name = "foo",
-    deps = ["x"],
+    deps = ["x#"],
 )
 
 cc_library(
