@@ -263,12 +263,15 @@ func hasRuntimeComment(expr build.Expr) bool {
 // to remove that entry from the deps attribute of the rule identified by label.
 // Returns true if at least one command was printed, or false otherwise.
 func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) {
+  // deps to remove is a map of the a string to
 	buildFileName, pkg, ruleName := edit.InterpretLabel(label)
 	depsExpr := getDepsExpr(buildFileName, ruleName)
 	for _, li := range edit.AllLists(depsExpr) {
 		for _, elem := range li.List {
 			for dep := range deps {
 				str, ok := elem.(*build.StringExpr)
+        // the first argument str.Value to the comparison is the entry found in the BUILD file
+        // the question is how does the second file get generated?
 				if ok && labels.Equal(str.Value, dep, pkg) {
 					if hasRuntimeComment(str) {
 						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)

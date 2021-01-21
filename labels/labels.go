@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"path"
 	"strings"
+	//"fmt"
 )
 
 // Label represents a Bazel target label.
@@ -117,5 +118,30 @@ func Shorten(input, pkg string) string {
 // takes care of the optional ":" prefix and differences between long-form
 // labels and local labels (relative to pkg).
 func Equal(label1, label2, pkg string) bool {
-	return ParseRelative(label1, pkg) == ParseRelative(label2, pkg)
+	parsedLabel1, parsedLabel2 := ParseRelative(label1, pkg), ParseRelative(label2, pkg)
+	if parsedLabel1 == parsedLabel2 {
+		return true
+	}
+
+	// cover the case when the first labels package is fully contained in the second
+	if parsedLabel1.Package != "" && strings.Contains(parsedLabel2.Package, parsedLabel1.Package) {
+		//fmt.Println("Found contained condition:")
+		//fmt.Println(parsedLabel1.Package, parsedLabel1.Target)
+		//fmt.Println(parsedLabel2.Package, parsedLabel2.Target)
+		if parsedLabel1.Target == "proto"{
+			//fmt.Println("Returning true because it's a proto package")
+			return true
+		}
+	}
+
+	if parsedLabel1.Package == parsedLabel2.Package && strings.HasSuffix(parsedLabel1.Target, "_proto") && strings.HasSuffix(parsedLabel2.Target, "_proto") {
+		target1Arr := strings.Split(parsedLabel1.Target, "_")
+		javaIdx := len(target1Arr) - 2
+		if target1Arr[javaIdx] != "java" {
+			return false
+		}
+		parsedLabel1.Target = strings.Join(append(target1Arr[:javaIdx], target1Arr[javaIdx+1:]...), "_")
+		return parsedLabel1.Target == parsedLabel2.Target
+	}
+	return false
 }
