@@ -41,8 +41,8 @@ export function run(...commands: CommandBatch[]): string[] {
  */
 export function runWithOptions(commands: CommandBatch[], options: {cwd?: string}, flags: string[] = []): string[] {
     // From https://github.com/bazelbuild/buildtools/tree/master/buildozer#usage:
-    // Here, label-list is a comma-separated list of Bazel labels,
-    // for example //path/to/pkg1:rule1, //path/to/pkg2:rule2.
+    // Here, label-list is a space-separated list of Bazel labels,
+    // for example //path/to/pkg1:rule1 //path/to/pkg2:rule2.
     // Buildozer reads commands from FILE (- for stdin 
     //   (format: |-separated command line arguments to buildozer, excluding flags))
     const input = commands.map(c => [...c.commands, c.targets.join(',')].join('|')).join('\n');
