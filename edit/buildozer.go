@@ -1147,8 +1147,8 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 			fmt.Fprintf(opts.ErrWriter, "Error while reading commands file: %v", err)
 			return
 		}
-		line = strings.TrimSuffix(line, "\n")
-		if line == "" {
+		line = strings.TrimSpace(line)
+		if line == "" || line[0] == '#' {
 			continue
 		}
 		args := strings.Split(line, "|")

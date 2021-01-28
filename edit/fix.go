@@ -61,7 +61,7 @@ func splitStrings(list *build.ListExpr) bool {
 			all = append(all, e)
 			continue
 		}
-		if strings.Contains(str.Value, " ") && !strings.Contains(str.Value, "'\"") {
+		if strings.Contains(str.Value, " ") && !strings.Contains(str.Value, "'\"") && !strings.Contains(str.Value, "$(location") {
 			fixed = true
 			for i, substr := range strings.Fields(str.Value) {
 				item := &build.StringExpr{Value: substr}

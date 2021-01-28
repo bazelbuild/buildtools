@@ -62,13 +62,16 @@ func ExpandDirectories(args *[]string) ([]string, error) {
 			continue
 		}
 		err = filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 			if skip(info) {
 				return filepath.SkipDir
 			}
 			if !info.IsDir() && isStarlarkFile(info.Name()) {
 				files = append(files, path)
 			}
-			return err
+			return nil
 		})
 		if err != nil {
 			return []string{}, err

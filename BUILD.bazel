@@ -14,7 +14,7 @@ config_setting(
 filegroup(
     name = "warnings",
     srcs = ["WARNINGS.md"],
-    visibility = ["//warn:__pkg__"],
+    visibility = ["//warn/docs:__pkg__"],
 )
 
 test_suite(
@@ -31,6 +31,7 @@ test_suite(
         "//lang:tables.gen.go_checkshtest",
         "//tables:go_default_test",
         "//warn:go_default_test",
+        "//warn/docs:go_default_test",
         "//wspace:go_default_test",
     ],
 )
