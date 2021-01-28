@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package docs;
+
+message Warnings {
+  message Warning {
+    repeated string name = 1;
+    string header = 2;
+    string description = 3;
+    bool autofix = 4;
+    string bazel_flag = 5;
+    string bazel_flag_link = 6;
+  };
+  repeated Warning warnings = 1;
+}

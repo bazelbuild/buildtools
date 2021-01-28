@@ -33,7 +33,6 @@ go_test(
     name = "go_default_test",
     size = "small",
     srcs = [
-        "documentation_test.go",
         "types_test.go",
         "warn_bazel_api_test.go",
         "warn_bazel_operation_test.go",
@@ -47,9 +46,6 @@ go_test(
         "warn_operation_test.go",
         "warn_test.go",
         "warn_visibility_test.go",
-    ],
-    data = [
-        "//:warnings",
     ],
     embed = [":go_default_library"],
     deps = [

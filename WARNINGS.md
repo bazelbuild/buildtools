@@ -21,8 +21,8 @@ Warning categories supported by buildifier's linter:
   * [`duplicated-name`](#duplicated-name)
   * [`filetype`](#filetype)
   * [`function-docstring`](#function-docstring)
-  * [`function-docstring-header`](#function-docstring-header)
   * [`function-docstring-args`](#function-docstring-args)
+  * [`function-docstring-header`](#function-docstring-header)
   * [`function-docstring-return`](#function-docstring-return)
   * [`git-repository`](#git-repository)
   * [`http-archive`](#http-archive)
@@ -63,7 +63,7 @@ Warning categories supported by buildifier's linter:
   * [`unsorted-dict-items`](#unsorted-dict-items)
   * [`unused-variable`](#unused-variable)
 
-### How to disable warnings
+### <a name="suppress"></a>How to disable warnings
 
 All warnings can be disabled / suppressed / ignored by adding a special comment `# buildifier: disable=<category_name>` to
 the expression that causes the warning. Historically comments with `buildozer` instead of
@@ -75,6 +75,7 @@ the expression that causes the warning. Historically comments with `buildozer` i
 # buildifier: disable=no-effect
 """
 A multiline comment as a string literal.
+
 Docstrings don't trigger the warning if they are first statements of a file or a function.
 """
 
@@ -89,8 +90,9 @@ if debug:
   * Category name: `attr-cfg`
   * Flag in Bazel: [`--incompatible_disallow_data_transition`](https://github.com/bazelbuild/bazel/issues/6153)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-cfg`
 
-The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+The [Configuration](https://warn.docs.bazel.build/versions/master/skylark/rules.html#configurations)
 `cfg = "data"` is deprecated and has no effect. Consider removing it.
 
 --------------------------------------------------------------------------------
@@ -100,18 +102,20 @@ The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#
   * Category name: `attr-license`
   * Flag in Bazel: `--incompatible_no_attr_license`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-license`
 
 The `attr.license()` method is almost never used and being deprecated.
 
 --------------------------------------------------------------------------------
 
-## <a name="attr-non-empty"></a>`non_empty` attribute for attr definitions are deprecated
+## <a name="attr-non-empty"></a>`non_empty` attribute for attr definitions is deprecated
 
   * Category name: `attr-non-empty`
   * Flag in Bazel: `--incompatible_disable_deprecated_attr_params`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-non-empty`
 
-The `non_empty` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `non_empty` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)
 for attr definitions is deprecated, please use `allow_empty` with an opposite value instead.
 
 --------------------------------------------------------------------------------
@@ -121,6 +125,7 @@ for attr definitions is deprecated, please use `allow_empty` with an opposite va
   * Category name: `attr-output-default`
   * Flag in Bazel: [`--incompatible_no_output_attr_default`](https://github.com/bazelbuild/bazel/issues/7950)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-output-default`
 
 The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
 unable to exist in the same package under default behavior. Use Starlark macros to specify defaults
@@ -133,8 +138,9 @@ for these attributes instead.
   * Category name: `attr-single-file`
   * Flag in Bazel: `--incompatible_disable_deprecated_attr_params`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-single-file`
 
-The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `single_file` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
@@ -144,6 +150,7 @@ is deprecated, please use `allow_single_file` instead.
   * Category name: `build-args-kwargs`
   * Flag in Bazel: `--incompatible_no_kwargs_in_build_files`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=build-args-kwargs`
 
 Having `*args` or `**kwargs` makes BUILD files hard to read and manipulate. The list of
 arguments should be explicit.
@@ -154,6 +161,7 @@ arguments should be explicit.
 
   * Category name: `bzl-visibility`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=bzl-visibility`
 
 If a directory `foo` contains a subdirectory `internal` or `private`, only files located under `foo`
 can access it.
@@ -168,6 +176,7 @@ but not from `dir/other_rule/file.bzl`.
 
   * Category name: `confusing-name`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=confusing-name`
 
 The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspondingly.
 
@@ -177,8 +186,9 @@ The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspo
 
   * Category name: `constant-glob`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=constant-glob`
 
-[Glob function](https://docs.bazel.build/versions/master/be/functions.html#glob)
+[Glob function](https://warn.docs.bazel.build/versions/master/be/functions.html#glob)
 is used to get a list of files from the depot. The patterns (the first argument)
 typically include a wildcard (* character). A pattern without a wildcard is
 often useless and sometimes harmful.
@@ -218,17 +228,18 @@ performance (glob can be relatively slow):
   * Category name: `ctx-actions`
   * Flag in Bazel: [`--incompatible_new_actions_api`](https://github.com/bazelbuild/bazel/issues/5825)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=ctx-actions`
 
-The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
+The following [actions](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html)
 are deprecated, please use the new API:
 
-  * [`ctx.new_file`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)
-  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)
-  * [`ctx.file_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#write)
-  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)
-  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run)
-  * [`ctx.empty_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)
-  * [`ctx.template_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)
+  * [`ctx.new_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)
+  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)
+  * [`ctx.file_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#write)
+  * [`ctx.action(command = "...")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)
+  * [`ctx.action(executable = "...")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run)
+  * [`ctx.empty_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)
+  * [`ctx.template_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)
 
 --------------------------------------------------------------------------------
 
@@ -237,11 +248,12 @@ are deprecated, please use the new API:
   * Category name: `ctx-args`
   * Flag in Bazel: [`--incompatible_disallow_old_style_args_add`](https://github.com/bazelbuild/bazel/issues/5822)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=ctx-args`
 
-It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)
+It's deprecated to use the [`add`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add)
 method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either
-[`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
-[`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
+[`add_all`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
+[`add_joined`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
 depending on the desired behavior.
 
 --------------------------------------------------------------------------------
@@ -250,23 +262,25 @@ depending on the desired behavior.
 
   * Category name: `deprecated-function`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=deprecated-function`
 
-The defined in another .bzl file has a docstring stating that it's deprecated, i. e. it
+The function defined in another .bzl file has a docstring stating that it's deprecated, i.e. it
 contains a `Deprecated:` section. The convention for function docstrings is described by
 the [`function-docstring`](function-docstring) warning.
 
 --------------------------------------------------------------------------------
 
-## <a name="depset-items"></a>Depset "items" parameter is deprecated
+## <a name="depset-items"></a>Depset's "items" parameter is deprecated
 
   * Category name: `depset-items`
   * Flag in Bazel: [`--incompatible_disable_depset_items`](https://github.com/bazelbuild/bazel/issues/9017)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=depset-items`
 
-The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
+The `items` parameter for [`depset`](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
 is deprecated. In it's old form it's either a list of direct elements to be
 added (use the `direct` or unnamed first parameter instead) or a depset that
-becomes a tarnsitive element of the new depset (use the `transitive` parameter
+becomes a transitive element of the new depset (use the `transitive` parameter
 instead).
 
 --------------------------------------------------------------------------------
@@ -276,6 +290,7 @@ instead).
   * Category name: `depset-iteration`
   * Flag in Bazel: [`--incompatible_depset_is_not_iterable`](https://github.com/bazelbuild/bazel/issues/5816)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=depset-iteration`
 
 Depsets are complex structures, iterations over them and lookups require flattening them to
 a list which may be a heavy operation. To make it more obvious it's now required to call
@@ -294,6 +309,7 @@ deps = depset()
   * Category name: `depset-union`
   * Flag in Bazel: [`--incompatible_depset_union`](https://github.com/bazelbuild/bazel/issues/5817)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=depset-union`
 
 The following ways to merge two depsets are deprecated:
 
@@ -303,7 +319,7 @@ depset1 | depset2
 depset1.union(depset2)
 ```
 
-Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
+Please use the [depset](https://warn.docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
 instead:
 
 ```python
@@ -311,9 +327,9 @@ depset(transitive = [depset1, depset2])
 ```
 
 When fixing this issue, make sure you
-[understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[understand depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)
 and try to
-[reduce the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reduce the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
@@ -322,32 +338,33 @@ and try to
   * Category name: `dict-concatenation`
   * Flag in Bazel: [`--incompatible_disallow_dict_plus`](https://github.com/bazelbuild/bazel/issues/6461)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=dict-concatenation`
 
 The `+` operator to concatenate dicts is deprecated. The operator used to create a new dict and
 copy the data to it. There are several ways to avoid it, for example, instead of `d = d1 + d2 + d3`
 you can use one of the following:
 
-* Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
+  * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):
 
-    ```python
-    load("@bazel_skylib//lib:dicts.bzl", "dicts")
+```python
+load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
-    d = dicts.add(d1, d2, d3)
-    ```
+d = dicts.add(d1, d2, d3)
+```
 
-* The same if you don't want to use Skylib:
+  * The same if you don't want to use Skylib:
 
-    ```python
-    d = dict(d1.items() + d2.items() + d3.items())
-    ```
+```python
+d = dict(d1.items() + d2.items() + d3.items())
+```
 
-* The same in several steps:
+  * The same in several steps:
 
-    ```python
-    d = dict(d1)  # If you don't want `d1` to be mutated
-    d.update(d2)
-    d.update(d3)
-    ```
+```python
+d = dict(d1)  # If you don't want `d1` to be mutated
+d.update(d2)
+d.update(d3)
+```
 
 --------------------------------------------------------------------------------
 
@@ -355,8 +372,7 @@ you can use one of the following:
 
   * Category name: `duplicated-name`
   * Automatic fix: no
-
-### Background
+  * [Suppress the warning](#suppress): `# buildifier: disable=duplicated-name`
 
 Each label in Bazel has a unique name, and Bazel doesn’t allow two rules to have
 the same name. With macros, this may be accepted by Bazel (if each macro
@@ -371,9 +387,7 @@ Although the build may work, this code can be very confusing. It can confuse
 users reading a BUILD file (if they look for the rule “foo”, they may read see
 only one of the macros). It will also confuse tools that edit BUILD files.
 
-### How to fix it
-
-Just change the name attribute of one rule/macro.
+To fix the issue just change the name attribute of one rule/macro.
 
 --------------------------------------------------------------------------------
 
@@ -382,9 +396,10 @@ Just change the name attribute of one rule/macro.
   * Category name: `filetype`
   * Flag in Bazel: [`--incompatible_disallow_filetype`](https://github.com/bazelbuild/bazel/issues/5831)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=filetype`
 
-The function `FileType` is deprecated.
-Instead of using it as an argument to the [`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
+The function `FileType` is deprecated. Instead of using it as an argument to the
+[`rule` function](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
 just use a list of strings.
 
 --------------------------------------------------------------------------------
@@ -397,6 +412,7 @@ just use a list of strings.
     * `function-docstring-args`
     * `function-docstring-return`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=function-docstring`, `# buildifier: disable=function-docstring-header`, `# buildifier: disable=function-docstring-args`, `# buildifier: disable=function-docstring-return`
 
 Public functions should have docstrings describing functions and their signatures.
 A docstring is a string literal (not a comment) which should be the first statement
@@ -431,8 +447,8 @@ Deprecated:
 ```
 
 Docstrings are required for all public functions with at least 5 statements. If a docstring exists
-it should start with a one-line summary line followed by an empty line. If a docsrting is required
-or it describe some of the arguments, it should describe all of them. If a docstring is required and
+it should start with a one-line summary line followed by an empty line. If a docstring is required
+or it describes some arguments, it should describe all of them. If a docstring is required and
 the function returns a value, it should be described.
 
 --------------------------------------------------------------------------------
@@ -442,6 +458,7 @@ the function returns a value, it should be described.
   * Category name: `git-repository`
   * Flag in Bazel: [`--incompatible_remove_native_git_repository`](https://github.com/bazelbuild/bazel/issues/6569)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=git-repository`
 
 Native `git_repository` and `new_git_repository` functions are removed.
 Please use the Starlark versions instead:
@@ -457,8 +474,9 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
   * Category name: `http-archive`
   * Flag in Bazel: [`--incompatible_remove_native_http_archive`](https://github.com/bazelbuild/bazel/issues/6570)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=http-archive`
 
-Native `http_archive` function are removed.
+Native `http_archive` function is removed.
 Please use the Starlark versions instead:
 
 ```python
@@ -472,6 +490,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
   * Category name: `integer-division`
   * Flag in Bazel: [`--incompatible_disallow_slash_operator`](https://github.com/bazelbuild/bazel/issues/5823)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=integer-division`
 
 The `/` operator is deprecated in favor of `//`, please use the latter for
 integer division:
@@ -485,8 +504,9 @@ d //= e
 
 ## <a name="keyword-positional-params"></a>Keyword parameter should be positional
 
-  * Category_name: `keyword-positional-params`
+  * Category name: `keyword-positional-params`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=keyword-positional-params`
 
 Some parameters for builtin functions in Starlark are keyword for legacy reasons;
 their names are not meaningful (e.g. `x`). Making them positional-only will improve
@@ -494,10 +514,11 @@ the readability.
 
 --------------------------------------------------------------------------------
 
-## <a name="list-append"></a>Prefer using ".append()" to adding a single element list
+## <a name="list-append"></a>Prefer using `.append()` to adding a single element list
 
   * Category name: `list-append`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=list-append`
 
 Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 
@@ -507,10 +528,11 @@ Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 
   * Category name: `load`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=load`
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the definition is not used in
 the file, the load can be safely removed. If a symbol is loaded two times, you
 will get a warning on the second occurrence.
@@ -535,6 +557,7 @@ If you want to keep the load, you can disable the warning by adding a comment
   * Category name: `load-on-top`
   * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=load-on-top`
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
 they can follow only comments and docstrings.
@@ -545,6 +568,7 @@ they can follow only comments and docstrings.
 
   * Category name: `module-docstring`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=module-docstring`
 
 `.bzl` files should have docstrings on top of them. A docstring is a string literal
 (not a comment) which should be the first statement of the file (it may follow
@@ -564,6 +588,7 @@ This module contains build rules for my project.
 
   * Category name: `name-conventions`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=name-conventions`
 
 By convention, all variables should be lower_snake_case, constant should be
 UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
@@ -573,10 +598,12 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
 ## <a name="native-android"></a>All Android build rules should be loaded from Starlark
 
   * Category name: `native-android`
+  * Flag in Bazel: [`--incompatible_disable_native_android_rules`](https://github.com/bazelbuild/bazel/issues/8391)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-android`
 
-The Android build rules should be loaded from Starlark. The native rules [will be
-disabled](https://github.com/bazelbuild/bazel/issues/8391).
+The Android build rules should be loaded from Starlark.
+The native rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8391).
 
 --------------------------------------------------------------------------------
 
@@ -584,9 +611,10 @@ disabled](https://github.com/bazelbuild/bazel/issues/8391).
 
   * Category name: `native-build`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-build`
 
-There's no need in using `native.` in BUILD files, its members are available as global symbols
-there.
+There's no need in using `native.` in BUILD files, its members are available
+as global symbols there.
 
 --------------------------------------------------------------------------------
 
@@ -595,9 +623,10 @@ there.
   * Category name: `native-cc`
   * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc`
 
-The C++ build rules should be loaded from Starlark. The native rules [will be
-disabled](https://github.com/bazelbuild/bazel/issues/8743).
+The CC build rules should be loaded from Starlark. The native rules
+[will be disabled](https://github.com/bazelbuild/bazel/issues/8743).
 
 --------------------------------------------------------------------------------
 
@@ -606,9 +635,10 @@ disabled](https://github.com/bazelbuild/bazel/issues/8743).
   * Category name: `native-java`
   * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java`
 
-The Java build rules should be loaded from Starlark. The native rules [will be
-disabled](https://github.com/bazelbuild/bazel/issues/8746).
+The Java build rules should be loaded from Starlark. The native rules
+[will be disabled](https://github.com/bazelbuild/bazel/issues/8746).
 
 --------------------------------------------------------------------------------
 
@@ -616,9 +646,10 @@ disabled](https://github.com/bazelbuild/bazel/issues/8746).
 
   * Category name: `native-package`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-package`
 
-It's discouraged and will be disallowed to use `native.package()` in .bzl files. It can silently
-modify the semantics of a BUILD file and makes it hard to maintain.
+It's discouraged and will be disallowed to use `native.package()` in .bzl files.
+It can silently modify the semantics of a BUILD file and makes it hard to maintain.
 
 --------------------------------------------------------------------------------
 
@@ -627,9 +658,10 @@ modify the semantics of a BUILD file and makes it hard to maintain.
   * Category name: `native-proto`
   * Flag in Bazel: [`--incompatible_load_proto_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8922)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto`
 
-The Proto build rules and symbols should be loaded from Starlark. The native
-rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
+The Proto build rules should be loaded from Starlark. The native rules
+[will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
 
 --------------------------------------------------------------------------------
 
@@ -638,9 +670,10 @@ rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
   * Category name: `native-py`
   * Flag in Bazel: [`--incompatible_load_python_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/9006)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-py`
 
-The Python build rules should be loaded from Starlark. The native rules [will be
-disabled](https://github.com/bazelbuild/bazel/issues/9006).
+The Python build rules should be loaded from Starlark. The native rules
+[will be disabled](https://github.com/bazelbuild/bazel/issues/9006).
 
 --------------------------------------------------------------------------------
 
@@ -648,9 +681,9 @@ disabled](https://github.com/bazelbuild/bazel/issues/9006).
 
   * Category name: `no-effect`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=no-effect`
 
-The statement has no effect. Consider removing it or storing its result in a
-variable.
+The statement has no effect. Consider removing it or storing its result in a variable.
 
 --------------------------------------------------------------------------------
 
@@ -659,6 +692,7 @@ variable.
   * Category name: `out-of-order-load`
   * Automatic fix: yes
   * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
 
 Load statements should be ordered by their first argument - extension file label.
 This makes it easier to developers to locate loads of interest and reduces chances
@@ -675,9 +709,10 @@ of a symbol load and its usage can change resulting in runtime error.
   * Category name: `output-group`
   * Flag in Bazel: [`--incompatible_no_target_output_group`](https://github.com/bazelbuild/bazel/issues/7949)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=output-group`
 
 The `output_group` field of a target is deprecated in favor of the
-[`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+[`OutputGroupInfo` provider](https://warn.docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
 
 --------------------------------------------------------------------------------
 
@@ -685,6 +720,7 @@ The `output_group` field of a target is deprecated in favor of the
 
   * Category name: `overly-nested-depset`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=overly-nested-depset`
 
 If a depset is iteratively chained in a for loop, e.g. the following pattern is used:
 
@@ -713,9 +749,9 @@ x = depset(..., transitive = [y.deps for y in ...])
 ```
 
 For more information, read Bazel documentation about
-[depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)
 and
-[reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reducing the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
@@ -724,9 +760,10 @@ and
   * Category name: `package-name`
   * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://github.com/bazelbuild/bazel/issues/5827)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=package-name`
 
 The global variable `PACKAGE_NAME` is deprecated, please use
-[`native.package_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#package_name)
+[`native.package_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#package_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -735,27 +772,28 @@ instead.
 
   * Category name: `package-on-top`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=package-on-top`
 
 Here is a typical structure of a BUILD file:
 
-*   `load()` statements
-*   `package()`
-*   calls to rules, macros
+  * `load()` statements
+  * `package()`
+  * calls to rules, macros
 
 Instantiating a rule and setting the package defaults later can be very
 confusing, and has been a source of bugs (tools and humans sometimes believe
 package applies to everything in a BUILD file). This might become an error in
-the future (but it requires large-scale changes in google3).
+the future.
 
 ### What can be used before package()?
 
 The linter allows the following to be before `package()`:
 
-*   comments
-*   `load()`
-*   variable declarations
-*   `package_group()`
-*   `licenses()`
+  * comments
+  * `load()`
+  * variable declarations
+  * `package_group()`
+  * `licenses()`
 
 --------------------------------------------------------------------------------
 
@@ -763,6 +801,7 @@ The linter allows the following to be before `package()`:
 
   * Category name: `positional-args`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=positional-args`
 
 All top level calls (except for some built-ins) should use keyword args over
 positional arguments. Positional arguments can cause subtle errors if the order
@@ -774,14 +813,13 @@ readability.
 + my_macro(name = "foo", env = "bar")
 ```
 
-The linter allows the following functions to be called with positional
-arguments:
+The linter allows the following functions to be called with positional arguments:
 
-*   `load()`
-*   `vardef()`
-*   `export_files()`
-*   `licenses()`
-*   `print()`
+  * `load()`
+  * `vardef()`
+  * `export_files()`
+  * `licenses()`
+  * `print()`
 
 --------------------------------------------------------------------------------
 
@@ -789,6 +827,7 @@ arguments:
 
   * Category name: `print`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=print`
 
 Using the `print()` function for warnings is discouraged: they are often spammy and
 non actionable, the people who see the warning are usually not the people who can
@@ -797,17 +836,19 @@ may never see the warning.
 
 --------------------------------------------------------------------------------
 
-## <a name="provider-params"></a>Calls to 'provider' should specify a list of fields and a documentation
+## <a name="provider-params"></a>Calls to `provider` should specify a list of fields and a documentation
 
   * Category name: `provider-params`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=provider-params`
 
 Calls to `provider` should specify a documentation string and a list of fields:
 
 ```python
 ServerAddressInfo = provider(
     "The address of an HTTP server. Fields are host (string) and port (int).",
-    fields = ["host", "port"])
+    fields = ["host", "port"]
+)
 ```
 
 Fields should also be documented when needed:
@@ -818,8 +859,9 @@ ServerAddressInfo = provider(
     fields = {
         "host": "string, e.g. 'example.com'",
         "port": "int, a TCP port number",
-    })
-``
+    }
+)
+```
 
 Note that specifying a list of fields is a breaking change. It is an error if a
 call to the provider uses undeclared fields. If you cannot declare the list of
@@ -831,7 +873,7 @@ AllInfo = provider("This provider accepts any field.", fields = None)
 NoneInfo = provider("This provider cannot have fields.", fields = [])
 ```
 
-See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
+See the [documentation for providers](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
 
 --------------------------------------------------------------------------------
 
@@ -839,6 +881,7 @@ See the [documentation for providers](https://docs.bazel.build/versions/master/s
 
   * Category name: `redefined-variable`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=redefined-variable`
 
 ### Background
 
@@ -860,9 +903,10 @@ forbid reassignment, but not every side-effect.
   * Category name: `repository-name`
   * Flag in Bazel: [`--incompatible_package_name_is_a_function`](https://github.com/bazelbuild/bazel/issues/5827)
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=repository-name`
 
 The global variable `REPOSITORY_NAME` is deprecated, please use
-[`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
+[`native.repository_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -871,9 +915,10 @@ instead.
 
   * Category name: `return-value`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=return-value`
 
 Some but not all execution paths of a function return a value. Either there's
-an explicit empty `return` statement, or an implcit return in the end of a
+an explicit empty `return` statement, or an implicit return in the end of a
 function. If it is intentional, make it explicit using `return None`. If you
 know certain parts of the code cannot be reached, add the statement
 `fail("unreachable")` to them.
@@ -884,11 +929,12 @@ know certain parts of the code cannot be reached, add the statement
 
   * Category name: `rule-impl-return`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=rule-impl-return`
 
 Returning structs from rule implementation functions is
-<a href="https://docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers">deprecated</a>,
+[deprecated](https://warn.docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),
 consider using
-<a href="https://docs.bazel.build/versions/master/skylark/rules.html#providers">providers</a>
+[providers](https://warn.docs.bazel.build/versions/master/skylark/rules.html#providers)
 or lists of providers instead.
 
 --------------------------------------------------------------------------------
@@ -897,10 +943,11 @@ or lists of providers instead.
 
   * Category name: `same-origin-load`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=same-origin-load`
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the same label is used for loading
 symbols more the ones, all such loads can be merged into a single one.
 
@@ -923,8 +970,11 @@ load(":f.bzl", "s1", "s2")
 
 ## <a name="skylark-comment"></a><a name="skylark-docstring"></a>"Skylark" is an outdated name of the language, please use "starlark" instead
 
-  * Category name: `skylark-comment`, `skylark-docstring`
+  * Category names:
+    * `skylark-comment`
+    * `skylark-docstring`
   * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=skylark-comment`, `# buildifier: disable=skylark-docstring`
 
 The configuration language for Bazel is called "Starlark" now, the name "Skylark" is
 outdated and shouldn't be used.
@@ -936,6 +986,7 @@ outdated and shouldn't be used.
   * Category name: `string-iteration`
   * Flag in Bazel: [`--incompatible_string_is_not_iterable`](https://github.com/bazelbuild/bazel/issues/5830)
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=string-iteration`
 
 Iteration over strings often leads to confusion with iteration over a sequence of strings,
 therefore strings won't be recognized as sequences of 1-element strings (like in Python).
@@ -954,6 +1005,7 @@ for i in range(len(my_string)):
 
   * Category name: `uninitialized`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=uninitialized`
 
 The local value can be not initialized at the time of execution. It may happen if it's
 initialized in one of the if-else clauses but not in all of them, or in a for-loop which
@@ -961,10 +1013,11 @@ can potentially be empty.
 
 --------------------------------------------------------------------------------
 
-## <a name="unnamed-macro"></a>The macro should have a keyword argument called "name".
+## <a name="unnamed-macro"></a>The macro should have a keyword argument called "name"
 
   * Category name: `unnamed-macro`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=unnamed-macro`
 
 By convention all macro functions should have a keyword argument called `name`
 (even if they don't use it). This is important for tooling and automation.
@@ -982,6 +1035,7 @@ prevent loading the function from BUILD files and suppress the warning.
 
   * Category name: `unreachable`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=unreachable`
 
 The statement is unreachable because it follows a `return`, `break`, `continue`,
 or `fail()` statement.
@@ -993,8 +1047,9 @@ or `fail()` statement.
   * Category name: `unsorted-dict-items`
   * Automatic fix: yes
   * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=unsorted-dict-items`
 
-Dictionary items should be sorted lexicagraphically by their keys. This makes
+Dictionary items should be sorted lexicographically by their keys. This makes
 it easier to find the item of interest and reduces chances of conflicts when
 performing large-scale automated refactoring.
 
@@ -1003,13 +1058,13 @@ The order is affected by `NamePriority` dictionary passed using `-tables` or
 
 If you want to preserve the original dictionary items order, you can disable
 the warning by adding a comment `# @unsorted-dict-items` to the dictionary
-expression or any of its enclosing expressins (binary, if etc). For example,
+expression or any of its enclosing expressions (binary, if etc). For example,
 
 ```python
 # @unsorted-dict-items
 d = {
-  "b": "bvalue",
-  "a": "avalue",
+    "b": "bvalue",
+    "a": "avalue",
 }
 ```
 
@@ -1022,6 +1077,7 @@ the dictionary with unsorted items has a comment disabling this warning.
 
   * Category name: `unused-variable`
   * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=unused-variable`
 
 This happens when a variable is set but not used in the file, e.g.
 

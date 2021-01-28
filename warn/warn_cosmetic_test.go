@@ -482,7 +482,7 @@ foo()
 # Skylark
 bar() # SKYLARK
 
-# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+# see https://warn.docs.bazel.build/versions/master/skylark/lib/Label.html
 Label()
 `, `
 # Skyline
@@ -493,7 +493,7 @@ foo()
 # Starlark
 bar() # STARLARK
 
-# see https://docs.bazel.build/versions/master/skylark/lib/Label.html
+# see https://warn.docs.bazel.build/versions/master/skylark/lib/Label.html
 Label()
 `,
 		[]string{
@@ -534,7 +534,7 @@ def f():
 
 def l():
   """
-  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  Returns https://warn.docs.bazel.build/versions/master/skylark/lib/Label.html
   """
   return Label("skylark")
 `, `
@@ -549,7 +549,7 @@ def f():
 
 def l():
   """
-  Returns https://docs.bazel.build/versions/master/skylark/lib/Label.html
+  Returns https://warn.docs.bazel.build/versions/master/skylark/lib/Label.html
   """
   return Label("skylark")
 `,

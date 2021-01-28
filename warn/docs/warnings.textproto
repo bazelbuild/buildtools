@@ -1,0 +1,812 @@
+# proto-file: warn/docs/docs.proto
+# proto-message: Warnings
+# After modifying this file, run `bazel build //warn/docs:warn_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
+
+warnings: {
+  name: "attr-cfg"
+  header: "`cfg = \"data\"` for attr definitions has no effect"
+  description:
+    "The [Configuration](https://warn.docs.bazel.build/versions/master/skylark/rules.html#configurations)\n"
+    "`cfg = \"data\"` is deprecated and has no effect. Consider removing it."
+  bazel_flag: "--incompatible_disallow_data_transition"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6153"
+  autofix: true
+}
+
+warnings: {
+  name: "attr-license"
+  header: "`attr.license()` is deprecated and shouldn't be used"
+  description: "The `attr.license()` method is almost never used and being deprecated."
+  bazel_flag: "--incompatible_no_attr_license"
+  autofix: false
+}
+
+warnings: {
+  name: "attr-non-empty"
+  header: "`non_empty` attribute for attr definitions is deprecated"
+  description:
+    "The `non_empty` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
+    "for attr definitions is deprecated, please use `allow_empty` with an opposite value instead."
+  bazel_flag: "--incompatible_disable_deprecated_attr_params"
+  autofix: true
+}
+
+warnings: {
+  name: "attr-output-default"
+  header: "The `default` parameter for `attr.output()`is deprecated"
+  description:
+    "The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be\n"
+    "unable to exist in the same package under default behavior. Use Starlark macros to specify defaults\n"
+    "for these attributes instead."
+  bazel_flag: "--incompatible_no_output_attr_default"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/7950"
+  autofix: false
+}
+
+warnings: {
+  name: "attr-single-file"
+  header: "`single_file` is deprecated"
+  description:
+    "The `single_file` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
+    "is deprecated, please use `allow_single_file` instead."
+  bazel_flag: "--incompatible_disable_deprecated_attr_params"
+  autofix: true
+}
+
+warnings: {
+  name: "build-args-kwargs"
+  header: "`*args` and `**kwargs` are not allowed in BUILD files"
+  description:
+    "Having `*args` or `**kwargs` makes BUILD files hard to read and manipulate. The list of\n"
+    "arguments should be explicit."
+  bazel_flag: "--incompatible_no_kwargs_in_build_files"
+  autofix: false
+}
+warnings: {
+  name: "bzl-visibility"
+  header: "Module shouldn't be used directly"
+  description:
+    "If a directory `foo` contains a subdirectory `internal` or `private`, only files located under `foo`\n"
+    "can access it.\n\n"
+    "For example, `dir/rules_mockascript/private/foo.bzl` can be loaded from\n"
+    "`dir/rules_mockascript/private/bar.bzl` or `dir/rules_mockascript/sub/public.bzl`,\n"
+    "but not from `dir/other_rule/file.bzl`."
+  autofix: false
+}
+
+warnings: {
+  name: "confusing-name"
+  header: "Never use `l`, `I`, or `O` as names"
+  description: "The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspondingly."
+  autofix: false
+}
+
+warnings: {
+  name: "constant-glob"
+  header: "Glob pattern has no wildcard ('*')"
+  description:
+    "[Glob function](https://warn.docs.bazel.build/versions/master/be/functions.html#glob)\n"
+    "is used to get a list of files from the depot. The patterns (the first argument)\n"
+    "typically include a wildcard (* character). A pattern without a wildcard is\n"
+    "often useless and sometimes harmful.\n\n"
+    "To fix the warning, move the string out of the glob:\n\n"
+    "```diff\n"
+    "- glob([\"*.cc\", \"test.cpp\"])\n"
+    "+ glob([\"*.cc\"]) + [\"test.cpp\"]\n"
+    "```\n\n"
+    "**There’s one important difference**: before the change, Bazel would silently\n"
+    "ignore test.cpp if file is missing; after the change, Bazel will throw an error\n"
+    "if file is missing.\n\n"
+    "If `test.cpp` doesn’t exist, the fix becomes:\n\n"
+    "```diff\n"
+    "- glob([\"*.cc\", \"test.cpp\"])\n"
+    "+ glob([\"*.cc\"])\n"
+    "```\n\n"
+    "which improves maintenance and readability.\n\n"
+    "If no pattern has a wildcard, just remove the glob. It will also improve build\n"
+    "performance (glob can be relatively slow):\n\n"
+    "```diff\n"
+    "- glob([\"test.cpp\"])\n"
+    "+ [\"test.cpp\"]\n"
+    "```"
+}
+
+warnings: {
+  name: "ctx-actions"
+  header: "`ctx.{action_name}` is deprecated"
+  description:
+    "The following [actions](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html)\n"
+    "are deprecated, please use the new API:\n\n"
+    "  * [`ctx.new_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)\n"
+    "  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)\n"
+    "  * [`ctx.file_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#write)\n"
+    "  * [`ctx.action(command = \"...\")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)\n"
+    "  * [`ctx.action(executable = \"...\")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run)\n"
+    "  * [`ctx.empty_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)\n"
+    "  * [`ctx.template_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)"
+  bazel_flag: "--incompatible_new_actions_api"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5825"
+  autofix: true
+}
+
+warnings: {
+  name: "ctx-args"
+  header: "`ctx.actions.args().add()` for multiple arguments is deprecated"
+  description:
+    "It's deprecated to use the [`add`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add)\n"
+    "method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either\n"
+    "[`add_all`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or\n"
+    "[`add_joined`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),\n"
+    "depending on the desired behavior."
+  bazel_flag: "--incompatible_disallow_old_style_args_add"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5822"
+  autofix: true
+}
+
+warnings: {
+  name: "deprecated-function"
+  header: "The function is deprecated"
+  description:
+    "The function defined in another .bzl file has a docstring stating that it's deprecated, i.e. it\n"
+    "contains a `Deprecated:` section. The convention for function docstrings is described by\n"
+    "the [`function-docstring`](function-docstring) warning."
+}
+
+warnings: {
+  name: "depset-items"
+  header: "Depset's \"items\" parameter is deprecated"
+  description:
+    "The `items` parameter for [`depset`](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#depset)\n"
+    "is deprecated. In it's old form it's either a list of direct elements to be\n"
+    "added (use the `direct` or unnamed first parameter instead) or a depset that\n"
+    "becomes a transitive element of the new depset (use the `transitive` parameter\n"
+    "instead)."
+  bazel_flag: "--incompatible_disable_depset_items"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/9017"
+}
+
+warnings: {
+  name: "depset-iteration"
+  header: "Depset iteration is deprecated"
+  description:
+    "Depsets are complex structures, iterations over them and lookups require flattening them to\n"
+    "a list which may be a heavy operation. To make it more obvious it's now required to call\n"
+    "the `.to_list()` method on them in order to be able to iterate their items:\n\n"
+    "```python\n"
+    "deps = depset()\n"
+    "[x.path for x in deps]  # deprecated\n"
+    "[x.path for x in deps.to_list()]  # recommended\n"
+    "```"
+  bazel_flag: "--incompatible_depset_is_not_iterable"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5816"
+  autofix: true
+}
+
+warnings: {
+  name: "depset-union"
+  header: "Depsets should be joined using the depset constructor"
+  description:
+    "The following ways to merge two depsets are deprecated:\n\n"
+    "```python\n"
+    "depset1 + depset2\n"
+    "depset1 | depset2\n"
+    "depset1.union(depset2)\n"
+    "```\n\n"
+    "Please use the [depset](https://warn.docs.bazel.build/versions/master/skylark/lib/depset.html) constructor\n"
+    "instead:\n\n"
+    "```python\n"
+    "depset(transitive = [depset1, depset2])\n"
+    "```\n\n"
+    "When fixing this issue, make sure you\n"
+    "[understand depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)\n"
+    "and try to\n"
+    "[reduce the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
+  bazel_flag: "--incompatible_depset_union"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5817"
+}
+
+warnings: {
+  name: "dict-concatenation"
+  header: "Dictionary concatenation is deprecated"
+  description:
+    "The `+` operator to concatenate dicts is deprecated. The operator used to create a new dict and\n"
+    "copy the data to it. There are several ways to avoid it, for example, instead of `d = d1 + d2 + d3`\n"
+    "you can use one of the following:\n\n"
+    "  * Use [Skylib](https://github.com/bazelbuild/bazel-skylib):\n\n"
+    "```python\n"
+    "load(\"@bazel_skylib//lib:dicts.bzl\", \"dicts\")\n\n"
+    "d = dicts.add(d1, d2, d3)\n"
+    "```\n\n"
+    "  * The same if you don't want to use Skylib:\n\n"
+    "```python\n"
+    "d = dict(d1.items() + d2.items() + d3.items())\n"
+    "```\n\n"
+    "  * The same in several steps:\n\n"
+    "```python\n"
+    "d = dict(d1)  # If you don't want `d1` to be mutated\n"
+    "d.update(d2)\n"
+    "d.update(d3)\n"
+    "```"
+  bazel_flag: "--incompatible_disallow_dict_plus"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6461"
+}
+
+warnings: {
+  name: "duplicated-name"
+  header: "A rule with name `foo` was already found on line"
+  description:
+    "Each label in Bazel has a unique name, and Bazel doesn’t allow two rules to have\n"
+    "the same name. With macros, this may be accepted by Bazel (if each macro\n"
+    "generates different rules):\n\n"
+    "```python\n"
+    "my_first_macro(name = \"foo\")\n"
+    "my_other_macro(name = \"foo\")\n"
+    "```\n\n"
+    "Although the build may work, this code can be very confusing. It can confuse\n"
+    "users reading a BUILD file (if they look for the rule “foo”, they may read see\n"
+    "only one of the macros). It will also confuse tools that edit BUILD files.\n\n"
+    "To fix the issue just change the name attribute of one rule/macro."
+}
+
+warnings: {
+  name: "filetype"
+  header: "The `FileType` function is deprecated"
+  description:
+    "The function `FileType` is deprecated. Instead of using it as an argument to the\n"
+    "[`rule` function](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#rule)\n"
+    "just use a list of strings."
+  bazel_flag: "--incompatible_disallow_filetype"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5831"
+}
+
+warnings: {
+  name: "function-docstring"
+  name: "function-docstring-header"
+  name: "function-docstring-args"
+  name: "function-docstring-return"
+  header: "Function docstring"
+  description:
+    "Public functions should have docstrings describing functions and their signatures.\n"
+    "A docstring is a string literal (not a comment) which should be the first statement\n"
+    "of a function (it may follow comment lines). Function docstrings are expected to be\n"
+    "formatted in the following way:\n\n"
+    "```python\n"
+    "\"\"\"One-line summary: must be followed and may be preceded by a blank line.\n"
+    "\n"
+    "Optional additional description like this.\n"
+    "\n"
+    "If it's a function docstring and the function has more than one argument, the docstring has\n"
+    "to document these parameters as follows:\n"
+    "\n"
+    "Args:\n"
+    "  parameter1: description of the first parameter. Each parameter line\n"
+    "    should be indented by one, preferably two, spaces (as here).\n"
+    "  parameter2: description of the second\n"
+    "    parameter that spans two lines. Each additional line should have a\n"
+    "    hanging indentation of at least one, preferably two, additional spaces (as here).\n"
+    "  another_parameter (unused, mutable): a parameter may be followed\n"
+    "    by additional attributes in parentheses\n"
+    "\n"
+    "Returns:\n"
+    "  Description of the return value.\n"
+    "  Should be indented by at least one, preferably two spaces (as here)\n"
+    "  Can span multiple lines.\n"
+    "\n"
+    "Deprecated:\n"
+    "  Optional, description of why the function is deprecated and what should be used instead.\n"
+    "\"\"\"\n"
+    "```\n\n"
+    "Docstrings are required for all public functions with at least 5 statements. If a docstring exists\n"
+    "it should start with a one-line summary line followed by an empty line. If a docstring is required\n"
+    "or it describes some arguments, it should describe all of them. If a docstring is required and\n"
+    "the function returns a value, it should be described."
+}
+
+warnings: {
+  name: "git-repository"
+  header: "Function `git_repository` is not global anymore"
+  description:
+    "Native `git_repository` and `new_git_repository` functions are removed.\n"
+    "Please use the Starlark versions instead:\n\n"
+    "```python\n"
+    "load(\"@bazel_tools//tools/build_defs/repo:git.bzl\", \"git_repository\", \"new_git_repository\")\n"
+    "```"
+  bazel_flag: "--incompatible_remove_native_git_repository"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6569"
+  autofix: true
+}
+
+warnings: {
+  name: "http-archive"
+  header: "Function `http_archive` is not global anymore"
+  description:
+    "Native `http_archive` function is removed.\n"
+    "Please use the Starlark versions instead:\n\n"
+    "```python\n"
+    "load(\"@bazel_tools//tools/build_defs/repo:http.bzl\", \"http_archive\")\n"
+    "```"
+  bazel_flag: "--incompatible_remove_native_http_archive"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6570"
+  autofix: true
+}
+
+warnings: {
+  name: "integer-division"
+  header: "The `/` operator for integer division is deprecated"
+  description:
+    "The `/` operator is deprecated in favor of `//`, please use the latter for\n"
+    "integer division:\n\n"
+    "```python\n"
+    "a = b // c\n"
+    "d //= e\n"
+    "```"
+  bazel_flag: "--incompatible_disallow_slash_operator"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5823"
+  autofix: true
+}
+
+warnings: {
+  name: "keyword-positional-params"
+  header: "Keyword parameter should be positional"
+  description:
+    "Some parameters for builtin functions in Starlark are keyword for legacy reasons;\n"
+    "their names are not meaningful (e.g. `x`). Making them positional-only will improve\n"
+    "the readability."
+  autofix: true
+}
+
+warnings: {
+  name: "list-append"
+  header: "Prefer using `.append()` to adding a single element list"
+  description: "Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation."
+  autofix: true
+}
+
+warnings: {
+  name: "load"
+  header: "Loaded symbol is unused"
+  description:
+    "### Background\n\n"
+    "[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
+    "is used to import definitions in a BUILD file. If the definition is not used in\n"
+    "the file, the load can be safely removed. If a symbol is loaded two times, you\n"
+    "will get a warning on the second occurrence.\n\n"
+    "### How to fix it\n\n"
+    "Delete the line. When load is used to import multiple symbols, you can remove\n"
+    "the unused symbols from the list. To fix your BUILD files automatically, try\n"
+    "this command:\n\n"
+    "```console\n"
+    "$ buildozer 'fix unusedLoads' path/to/BUILD\n"
+    "```\n\n"
+    "If you want to keep the load, you can disable the warning by adding a comment\n"
+    "`# @unused`."
+  autofix: true
+}
+
+warnings: {
+  name: "load-on-top"
+  header: "Load statements should be at the top of the file"
+  description:
+    "Load statements should be first statements (with the exception of `WORKSPACE` files),\n"
+    "they can follow only comments and docstrings."
+  bazel_flag: "--incompatible_bzl_disallow_load_after_statement"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5815"
+  autofix: true
+}
+
+warnings: {
+  name: "module-docstring"
+  header: "The file has no module docstring"
+  description:
+    "`.bzl` files should have docstrings on top of them. A docstring is a string literal\n"
+    "(not a comment) which should be the first statement of the file (it may follow\n"
+    "comment lines). For example:\n\n"
+    "```python\n"
+    "\"\"\"\n"
+    "This module contains build rules for my project.\n"
+    "\"\"\"\n"
+    "\n"
+    "...\n"
+    "```"
+}
+
+warnings: {
+  name: "name-conventions"
+  header: "Name conventions"
+  description:
+    "By convention, all variables should be lower_snake_case, constant should be\n"
+    "UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`."
+}
+
+warnings: {
+  name: "native-android"
+  header: "All Android build rules should be loaded from Starlark"
+  description:
+    "The Android build rules should be loaded from Starlark.\n"
+    "The native rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8391)."
+  bazel_flag: "--incompatible_disable_native_android_rules"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8391"
+  autofix: true
+}
+
+warnings: {
+  name: "native-build"
+  header: "The `native` module shouldn't be used in BUILD files"
+  description:
+    "There's no need in using `native.` in BUILD files, its members are available\n"
+    "as global symbols there."
+  autofix: true
+}
+
+warnings: {
+  name: "native-cc"
+  header: "All C++ build rules should be loaded from Starlark"
+  description:
+    "The CC build rules should be loaded from Starlark. The native rules\n"
+    "[will be disabled](https://github.com/bazelbuild/bazel/issues/8743)."
+  bazel_flag: "--incompatible_load_cc_rules_from_bzl"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8743"
+  autofix: true
+}
+
+warnings: {
+  name: "native-java"
+  header: "All Java build rules should be loaded from Starlark"
+  description:
+    "The Java build rules should be loaded from Starlark. The native rules\n"
+    "[will be disabled](https://github.com/bazelbuild/bazel/issues/8746)."
+  bazel_flag: "--incompatible_load_java_rules_from_bzl"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8746"
+  autofix: true
+}
+
+warnings: {
+  name: "native-package"
+  header: "`native.package()` shouldn't be used in .bzl files"
+  description:
+    "It's discouraged and will be disallowed to use `native.package()` in .bzl files.\n"
+    "It can silently modify the semantics of a BUILD file and makes it hard to maintain."
+}
+
+warnings: {
+  name: "native-proto"
+  header: "All Proto build rules and symbols should be loaded from Starlark"
+  description:
+    "The Proto build rules should be loaded from Starlark. The native rules\n"
+    "[will be disabled](https://github.com/bazelbuild/bazel/issues/8922)."
+  bazel_flag: "--incompatible_load_proto_rules_from_bzl"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8922"
+  autofix: true
+}
+
+warnings: {
+  name: "native-py"
+  header: "All Python build rules should be loaded from Starlark"
+  description:
+    "The Python build rules should be loaded from Starlark. The native rules\n"
+    "[will be disabled](https://github.com/bazelbuild/bazel/issues/9006)."
+  bazel_flag: "--incompatible_load_python_rules_from_bzl"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/9006"
+  autofix: true
+}
+
+warnings: {
+  name: "no-effect"
+  header: "Expression result is not used"
+  description: "The statement has no effect. Consider removing it or storing its result in a variable."
+}
+
+warnings: {
+  name: "out-of-order-load"
+  header: "Load statements should be ordered by their labels"
+  description:
+    "Load statements should be ordered by their first argument - extension file label.\n"
+    "This makes it easier to developers to locate loads of interest and reduces chances\n"
+    "for conflicts when performing large-scale automated refactoring.\n\n"
+    "When applying automated fixes, it's highly recommended to also use\n"
+    "[`load-on-top`](#load-on-top) fixes, since otherwise the relative order\n"
+    "of a symbol load and its usage can change resulting in runtime error."
+  autofix: true
+}
+
+warnings: {
+  name: "output-group"
+  header: "`ctx.attr.dep.output_group` is deprecated"
+  description:
+    "The `output_group` field of a target is deprecated in favor of the\n"
+    "[`OutputGroupInfo` provider](https://warn.docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html)."
+  bazel_flag: "--incompatible_no_target_output_group"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/7949"
+  autofix: true
+}
+
+warnings: {
+  name: "overly-nested-depset"
+  header: "The depset is potentially overly nested"
+  description:
+    "If a depset is iteratively chained in a for loop, e.g. the following pattern is used:\n\n"
+    "```python\n"
+    "for ...:\n"
+    "    x = depset(..., transitive = [..., x, ...])\n"
+    "```\n\n"
+    "this can result in an overly nested depset with a long chain of transitive elements. Such patterns\n"
+    "can lead to performance problems, consider refactoring the code to create a flat list of transitive\n"
+    "elements and call the depset constructor just once:\n\n"
+    "```python\n"
+    "transitive = []\n"
+    "\n"
+    "for ...:\n"
+    "    transitive += ...\n"
+    "\n"
+    "x = depset(..., transitive = transitive)\n"
+    "```\n\n"
+    "Or in simple cases you can use list comprehensions instead:\n\n"
+    "```python\n"
+    "x = depset(..., transitive = [y.deps for y in ...])\n"
+    "```\n\n"
+    "For more information, read Bazel documentation about\n"
+    "[depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)\n"
+    "and\n"
+    "[reducing the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
+}
+
+warnings: {
+  name: "package-name"
+  header: "Global variable `PACKAGE_NAME` is deprecated"
+  description:
+    "The global variable `PACKAGE_NAME` is deprecated, please use\n"
+    "[`native.package_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#package_name)\n"
+    "instead."
+  bazel_flag: "--incompatible_package_name_is_a_function"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5827"
+  autofix: true
+}
+
+warnings: {
+  name: "package-on-top"
+  header: "Package declaration should be at the top of the file"
+  description:
+    "Here is a typical structure of a BUILD file:\n\n"
+    "  * `load()` statements\n"
+    "  * `package()`\n"
+    "  * calls to rules, macros\n\n"
+    "Instantiating a rule and setting the package defaults later can be very\n"
+    "confusing, and has been a source of bugs (tools and humans sometimes believe\n"
+    "package applies to everything in a BUILD file). This might become an error in\n"
+    "the future.\n\n"
+    "### What can be used before package()?\n\n"
+    "The linter allows the following to be before `package()`:\n\n"
+    "  * comments\n"
+    "  * `load()`\n"
+    "  * variable declarations\n"
+    "  * `package_group()`\n"
+    "  * `licenses()`"
+}
+
+warnings: {
+  name: "positional-args"
+  header: "Keyword arguments should be used over positional arguments"
+  description:
+    "All top level calls (except for some built-ins) should use keyword args over\n"
+    "positional arguments. Positional arguments can cause subtle errors if the order\n"
+    "is switched or if an argument is removed. Keyword args also greatly improve\n"
+    "readability.\n\n"
+    "```diff\n"
+    "- my_macro(\"foo\", \"bar\")\n"
+    "+ my_macro(name = \"foo\", env = \"bar\")\n"
+    "```\n\n"
+    "The linter allows the following functions to be called with positional arguments:\n\n"
+    "  * `load()`\n"
+    "  * `vardef()`\n"
+    "  * `export_files()`\n"
+    "  * `licenses()`\n"
+    "  * `print()`"
+}
+
+warnings: {
+  name: "print"
+  header: "`print()` is a debug function and shouldn't be submitted"
+  description:
+    "Using the `print()` function for warnings is discouraged: they are often spammy and\n"
+    "non actionable, the people who see the warning are usually not the people who can\n"
+    "fix the code to make the warning disappear, and the actual maintainers of the code\n"
+    "may never see the warning."
+}
+
+warnings: {
+  name: "provider-params"
+  header: "Calls to `provider` should specify a list of fields and a documentation"
+  description:
+    "Calls to `provider` should specify a documentation string and a list of fields:\n\n"
+    "```python\n"
+    "ServerAddressInfo = provider(\n"
+    "    \"The address of an HTTP server. Fields are host (string) and port (int).\",\n"
+    "    fields = [\"host\", \"port\"]\n"
+    ")\n"
+    "```\n\n"
+    "Fields should also be documented when needed:\n\n"
+    "```python\n"
+    "ServerAddressInfo = provider(\n"
+    "    \"The address of an HTTP server.\",\n"
+    "    fields = {\n"
+    "        \"host\": \"string, e.g. 'example.com'\",\n"
+    "        \"port\": \"int, a TCP port number\",\n"
+    "    }\n"
+    ")\n"
+    "```\n\n"
+    "Note that specifying a list of fields is a breaking change. It is an error if a\n"
+    "call to the provider uses undeclared fields. If you cannot declare the list of\n"
+    "fields, you may explicitly set it to None (and explain why in a comment).\n\n"
+    "```python\n"
+    "AllInfo = provider(\"This provider accepts any field.\", fields = None)\n"
+    "\n"
+    "NoneInfo = provider(\"This provider cannot have fields.\", fields = [])\n"
+    "```\n\n"
+    "See the [documentation for providers](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#provider)."
+}
+
+warnings: {
+  name: "redefined-variable"
+  header: "Variable has already been defined"
+  description:
+    "### Background\n\n"
+    "In .bzl files, redefining a global variable is already forbidden. This helps\n"
+    "both humans and tools reason about the code. For consistency, we want to bring\n"
+    "this restriction also to BUILD files.\n\n"
+    "### How to fix it\n\n"
+    "Rename one of the variables.\n\n"
+    "Note that the content of lists and dictionaries can still be modified. We will\n"
+    "forbid reassignment, but not every side-effect."
+}
+
+warnings: {
+  name: "repository-name"
+  header: "Global variable `REPOSITORY_NAME` is deprecated"
+  description:
+    "The global variable `REPOSITORY_NAME` is deprecated, please use\n"
+    "[`native.repository_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)\n"
+    "instead."
+  bazel_flag: "--incompatible_package_name_is_a_function"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5827"
+  autofix: true
+}
+
+warnings: {
+  name: "return-value"
+  header: "Some but not all execution paths of a function return a value"
+  description:
+    "Some but not all execution paths of a function return a value. Either there's\n"
+    "an explicit empty `return` statement, or an implicit return in the end of a\n"
+    "function. If it is intentional, make it explicit using `return None`. If you\n"
+    "know certain parts of the code cannot be reached, add the statement\n"
+    "`fail(\"unreachable\")` to them."
+}
+
+warnings: {
+  name: "rule-impl-return"
+  header: "Avoid using the legacy provider syntax"
+  description:
+    "Returning structs from rule implementation functions is\n"
+    "[deprecated](https://warn.docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),\n"
+    "consider using\n"
+    "[providers](https://warn.docs.bazel.build/versions/master/skylark/rules.html#providers)\n"
+    "or lists of providers instead."
+}
+
+warnings: {
+  name: "same-origin-load"
+  header: "Same label is used for multiple loads"
+  description:
+    "### Background\n\n"
+    "[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
+    "is used to import definitions in a BUILD file. If the same label is used for loading\n"
+    "symbols more the ones, all such loads can be merged into a single one.\n\n"
+    "### How to fix it\n\n"
+    "Merge all loads into a single one. For example,\n\n"
+    "```python\n"
+    "load(\":f.bzl\", \"s1\")\n"
+    "load(\":f.bzl\", \"s2\")\n"
+    "```\n\n"
+    "can be written more compactly as\n\n"
+    "```python\n"
+    "load(\":f.bzl\", \"s1\", \"s2\")\n"
+    "```"
+  autofix: true
+}
+
+warnings: {
+  name: "skylark-comment"
+  name: "skylark-docstring"
+  header: "\"Skylark\" is an outdated name of the language, please use \"starlark\" instead"
+  description:
+    "The configuration language for Bazel is called \"Starlark\" now, the name \"Skylark\" is\n"
+    "outdated and shouldn't be used."
+  autofix: true
+}
+
+warnings: {
+  name: "string-iteration"
+  header: "String iteration is deprecated"
+  description:
+    "Iteration over strings often leads to confusion with iteration over a sequence of strings,\n"
+    "therefore strings won't be recognized as sequences of 1-element strings (like in Python).\n"
+    "Use string indexing and `len` instead:\n\n"
+    "```python\n"
+    "my_string = \"hello world\"\n"
+    "for i in range(len(my_string)):\n"
+    "    char = my_string[i]\n"
+    "    # do something with char\n"
+    "```"
+  bazel_flag: "--incompatible_string_is_not_iterable"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5830"
+}
+
+warnings: {
+  name: "uninitialized"
+  header: "Variable may not have been initialized"
+  description:
+    "The local value can be not initialized at the time of execution. It may happen if it's\n"
+    "initialized in one of the if-else clauses but not in all of them, or in a for-loop which\n"
+    "can potentially be empty."
+}
+
+warnings: {
+  name: "unnamed-macro"
+  header: "The macro should have a keyword argument called \"name\""
+  description:
+    "By convention all macro functions should have a keyword argument called `name`\n"
+    "(even if they don't use it). This is important for tooling and automation.\n\n"
+    "A macro is a function that calls a rule (either directly or indirectly by calling other\n"
+    "macros).\n\n"
+    "If this function is a helper function that's not supposed to be used outside of its file,\n"
+    "please make it private (rename it so that the name starts with `_`), this will\n"
+    "prevent loading the function from BUILD files and suppress the warning."
+}
+
+warnings: {
+  name: "unreachable"
+  header: "The statement is unreachable"
+  description:
+    "The statement is unreachable because it follows a `return`, `break`, `continue`,\n"
+    "or `fail()` statement."
+}
+
+warnings: {
+  name: "unsorted-dict-items"
+  header: "Dictionary items should be ordered by their keys"
+  description:
+    "Dictionary items should be sorted lexicographically by their keys. This makes\n"
+    "it easier to find the item of interest and reduces chances of conflicts when\n"
+    "performing large-scale automated refactoring.\n\n"
+    "The order is affected by `NamePriority` dictionary passed using `-tables` or\n"
+    "`-add_tables` flags.\n\n"
+    "If you want to preserve the original dictionary items order, you can disable\n"
+    "the warning by adding a comment `# @unsorted-dict-items` to the dictionary\n"
+    "expression or any of its enclosing expressions (binary, if etc). For example,\n\n"
+    "```python\n"
+    "# @unsorted-dict-items\n"
+    "d = {\n"
+    "    \"b\": \"bvalue\",\n"
+    "    \"a\": \"avalue\",\n"
+    "}\n"
+    "```\n\n"
+    "will not be reported as an issue because the assignment operation that uses\n"
+    "the dictionary with unsorted items has a comment disabling this warning."
+  autofix: true
+}
+
+warnings: {
+  name: "unused-variable"
+  header: "Variable is unused"
+  description:
+    "This happens when a variable is set but not used in the file, e.g.\n\n"
+    "```python\n"
+    "x = [1, 2]\n"
+    "```\n\n"
+    "The line can often be safely removed.\n\n"
+    "If you want to keep the variable, you can disable the warning by adding a\n"
+    "comment `# @unused`.\n\n"
+    "```python\n"
+    "x = [1, 2] # @unused\n"
+    "```"
+}
