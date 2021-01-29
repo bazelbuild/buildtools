@@ -188,27 +188,6 @@ func parseFunctionDocstring(doc *build.StringExpr) docstringInfo {
 	return info
 }
 
-func getParamName(param build.Expr) string {
-	switch param := param.(type) {
-	case *build.Ident:
-		return param.Name
-	case *build.AssignExpr:
-		// keyword parameter
-		if ident, ok := param.LHS.(*build.Ident); ok {
-			return ident.Name
-		}
-	case *build.UnaryExpr:
-		// *args, **kwargs, or *
-		if ident, ok := param.X.(*build.Ident); ok {
-			return param.Op + ident.Name
-		} else if param.X == nil {
-			// An asterisk separating position and keyword-only arguments
-			return "*"
-		}
-	}
-	return ""
-}
-
 func hasReturnValues(def *build.DefStmt) bool {
 	result := false
 	build.Walk(def, func(expr build.Expr, stack []build.Expr) {
@@ -312,11 +291,11 @@ func functionDocstringArgsWarning(f *build.File) []*LinterFinding {
 		notDocumentedArguments := []string{}
 		paramNames := make(map[string]bool)
 		for _, param := range def.Params {
-			name := getParamName(param)
-			if name == "*" {
-				// Not really a parameter but a separator
+			name, op := build.GetParamName(param)
+			if name == "" {
 				continue
 			}
+			name = op + name  // *args or **kwargs
 			paramNames[name] = true
 			if _, ok := info.args[name]; !ok {
 				notDocumentedArguments = append(notDocumentedArguments, name)

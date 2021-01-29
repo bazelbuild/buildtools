@@ -52,19 +52,8 @@ type funCall struct {
 // either directly or via **kwargs.
 func acceptsNameArgument(def *build.DefStmt) bool {
 	for _, param := range def.Params {
-		switch param := param.(type) {
-		case *build.Ident:
-			if param.Name == "name" {
-				return true
-			}
-		case *build.AssignExpr:
-			if ident, ok := param.LHS.(*build.Ident); ok && ident.Name == "name" {
-				return true
-			}
-		case *build.UnaryExpr:
-			if param.Op == "**" {
-				return true
-			}
+		if name, op := build.GetParamName(param); name == "name" || op == "**" {
+  		return true
 		}
 	}
 	return false

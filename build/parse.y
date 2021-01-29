@@ -47,6 +47,7 @@ package build
 	ifstmt    *IfStmt
 	loadarg   *struct{from Ident; to Ident}
 	loadargs  []*struct{from Ident; to Ident}
+	def_header *DefStmt  // partially filled in def statement, without the body
 
 	// supporting information
 	comma     Position   // position of trailing comma in list, if present
@@ -111,6 +112,7 @@ package build
 %token	<pos>	_INT_DIV // operator //
 %token	<pos>	_BIT_LSH // bitwise operator <<
 %token	<pos>	_BIT_RSH // bitwise operator >>
+%token	<pos>	_ARROW   // functions type annotation ->
 %token	<pos>	_NOT     // keyword not
 %token	<pos>	_OR      // keyword or
 %token	<pos>	_STRING  // quoted string
@@ -129,6 +131,9 @@ package build
 %type	<expr>		parameter
 %type	<exprs>		parameters
 %type	<exprs>		parameters_opt
+%type	<expr>		parameter_type
+%type	<exprs>		parameters_type
+%type	<exprs>		parameters_type_opt
 %type	<expr>		test
 %type	<expr>		test_opt
 %type	<exprs>		tests_opt
@@ -159,6 +164,8 @@ package build
 %type	<exprs>		comments
 %type	<loadarg>	load_argument
 %type	<loadargs>	load_arguments
+%type <def_header>	def_header
+%type <def_header>	def_header_type_opt
 
 // Operator precedence.
 // Operators listed lower in the table bind tighter.
@@ -337,21 +344,35 @@ stmt:
 		}
 	}
 
-block_stmt:
-	_DEF _IDENT '(' parameters_opt ')' ':' suite
+def_header:
+	_DEF _IDENT '(' parameters_type_opt ')'
 	{
 		$$ = &DefStmt{
 			Function: Function{
 				StartPos: $1,
 				Params: $4,
-				Body: $7,
 			},
 			Name: $<tok>2,
-			ColonPos: $6,
 			ForceCompact: forceCompact($3, $4, $5),
 			ForceMultiLine: forceMultiLine($3, $4, $5),
 		}
-		$<lastStmt>$ = $<lastStmt>7
+	}
+
+def_header_type_opt:
+	def_header
+| def_header _ARROW test
+	{
+		$1.Type = $3
+		$$ = $1
+	}
+
+block_stmt:
+	def_header_type_opt ':' suite
+	{
+		$1.Function.Body = $3
+		$1.ColonPos = $2
+		$$ = $1
+		$<lastStmt>$ = $<lastStmt>3
 	}
 |	_FOR loop_vars _IN expr ':' suite
 	{
@@ -708,12 +729,32 @@ parameters_opt:
 		$$ = $1
 	}
 
+parameters_type_opt:
+	{
+		$$ = nil
+	}
+|	parameters_type comma_opt
+	{
+		$$ = $1
+	}
+
 parameters:
 	parameter
 	{
 		$$ = []Expr{$1}
 	}
 |	parameters ',' parameter
+	{
+		$$ = append($1, $3)
+	}
+
+// Parameters with optional type annotations
+parameters_type:
+	parameter_type
+	{
+		$$ = []Expr{$1}
+	}
+|	parameters_type ',' parameter_type
 	{
 		$$ = append($1, $3)
 	}
@@ -735,6 +776,27 @@ parameter:
 |	_STAR_STAR ident
 	{
 		$$ = unary($1, $<tok>1, $2)
+	}
+
+// Parameter with optional type annotation
+parameter_type:
+	parameter
+|
+	ident ':' test
+	{
+		$$ = typed($1, $3)
+	}
+|	ident ':' test '=' test
+	{
+		$$ = binary(typed($1, $3), $4, $<tok>4, $5)
+	}
+|	'*' ident ':' test
+	{
+		$$ = unary($1, $<tok>1, typed($2, $4))
+	}
+|	_STAR_STAR ident ':' test
+	{
+		$$ = unary($1, $<tok>1, typed($2, $4))
 	}
 
 expr:
@@ -1007,6 +1069,14 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 		Op:        op,
 		LineBreak: xend.Line < ystart.Line,
 		Y:         y,
+	}
+}
+
+// typed returns a TypedIdent expression
+func typed(x, y Expr) *TypedIdent {
+	return &TypedIdent{
+		Ident: x.(*Ident),
+		Type:  y,
 	}
 }
 

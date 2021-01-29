@@ -531,27 +531,6 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	return false, locallyInitialized
 }
 
-func getFunctionParams(def *build.DefStmt) []*build.Ident {
-	params := []*build.Ident{}
-	for _, node := range def.Params {
-		switch node := node.(type) {
-		case *build.Ident:
-			params = append(params, node)
-		case *build.UnaryExpr:
-			// either *args or **kwargs
-			if ident, ok := node.X.(*build.Ident); ok {
-				params = append(params, ident)
-			}
-		case *build.AssignExpr:
-			// x = value
-			if ident, ok := node.LHS.(*build.Ident); ok {
-				params = append(params, ident)
-			}
-		}
-	}
-	return params
-}
-
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
 func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
@@ -570,8 +549,10 @@ func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 
 		// Function parameters are guaranteed to be defined everywhere in the function, even if they
 		// are redefined inside the function body. They shouldn't be taken into consideration.
-		for _, ident := range getFunctionParams(def) {
-			delete(localVars, ident.Name)
+		for _, param := range def.Params {
+			if name, _ := build.GetParamName(param); name != "" {
+				delete(localVars, name)
+			}
 		}
 
 		// Search for all potentially initialized variables in the function body

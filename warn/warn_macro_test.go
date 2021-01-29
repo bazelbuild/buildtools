@@ -415,3 +415,23 @@ It is considered a macro because it calls a rule or another macro "_not_macro" o
 		},
 		scopeBzl)
 }
+
+func TestUnnamedMacroTypeAnnotation(t *testing.T) {
+	checkFindings(t, "unnamed-macro", `
+my_rule = rule()
+
+def macro(name: string):
+  my_rule(name)
+`,
+		[]string{},
+		scopeBzl)
+
+	checkFindings(t, "unnamed-macro", `
+my_rule = rule()
+
+def macro(name: string = "default"):
+  my_rule(name)
+`,
+		[]string{},
+		scopeBzl)
+}

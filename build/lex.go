@@ -483,6 +483,12 @@ func (in *input) Lex(val *yySymType) int {
 			return _STAR_STAR
 		}
 
+		if c == '-' && in.peekRune() == '>' {
+			// functions type annotation
+			in.readRune()
+			return _ARROW
+		}
+
 		if c == in.peekRune() {
 			switch c {
 			case '/':
@@ -691,6 +697,8 @@ func (in *input) order(v Expr) {
 		// nothing
 	case *Ident:
 		// nothing
+	case *TypedIdent:
+		in.order(v.Type)
 	case *BranchStmt:
 		// nothing
 	case *DotExpr:

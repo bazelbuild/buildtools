@@ -425,6 +425,22 @@ def f(foobar, *bar, **baz):
 			`:8: Argument "baz" is documented but doesn't exist in the function signature. Do you mean "**baz"?`,
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
+def f(x: int, y: str, z: bool = False, *, *bar: List[int], **baz: Mapping[str, bool]):
+  """Some function
+  
+  Args:
+    x: something
+    t: something
+  """
+  pass
+`,
+		[]string{
+			`:2: Arguments "y", "z", "*bar", "**baz" are not documented.`,
+			`:6: Argument "t" is documented but doesn't exist in the function signature.`,
+		},
+		scopeEverywhere)
 }
 
 func TestFunctionDocstringReturn(t *testing.T) {
