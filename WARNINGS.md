@@ -266,7 +266,7 @@ depending on the desired behavior.
 
 The function defined in another .bzl file has a docstring stating that it's deprecated, i.e. it
 contains a `Deprecated:` section. The convention for function docstrings is described by
-the [`function-docstring`](function-docstring) warning.
+the [`function-docstring`](#function-docstring) warning.
 
 --------------------------------------------------------------------------------
 
@@ -543,7 +543,7 @@ Delete the line. When load is used to import multiple symbols, you can remove
 the unused symbols from the list. To fix your BUILD files automatically, try
 this command:
 
-```console
+```bash
 $ buildozer 'fix unusedLoads' path/to/BUILD
 ```
 

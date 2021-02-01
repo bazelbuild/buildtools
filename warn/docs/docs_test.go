@@ -68,6 +68,6 @@ func TestFilesMatch(t *testing.T) {
 	}
 	if len(d) != 0 {
 		t.Errorf("diff(generated, checkedIn) = %v\n", string(d))
-		t.Errorf("To update the documentation, run `bazel build //warn/docs:warn_docs && cp bazel-bin/warn/docs/WARNINGS.md .`")
+		t.Errorf("To update the documentation, run `bazel build //warn/docs:warnings_docs && cp bazel-bin/warn/docs/WARNINGS.md .`")
 	}
 }
