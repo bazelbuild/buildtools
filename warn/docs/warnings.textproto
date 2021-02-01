@@ -6,7 +6,7 @@ warnings: {
   name: "attr-cfg"
   header: "`cfg = \"data\"` for attr definitions has no effect"
   description:
-    "The [Configuration](https://warn.docs.bazel.build/versions/master/skylark/rules.html#configurations)\n"
+    "The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)\n"
     "`cfg = \"data\"` is deprecated and has no effect. Consider removing it."
   bazel_flag: "--incompatible_disallow_data_transition"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6153"
@@ -25,7 +25,7 @@ warnings: {
   name: "attr-non-empty"
   header: "`non_empty` attribute for attr definitions is deprecated"
   description:
-    "The `non_empty` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
+    "The `non_empty` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
     "for attr definitions is deprecated, please use `allow_empty` with an opposite value instead."
   bazel_flag: "--incompatible_disable_deprecated_attr_params"
   autofix: true
@@ -47,7 +47,7 @@ warnings: {
   name: "attr-single-file"
   header: "`single_file` is deprecated"
   description:
-    "The `single_file` [attribute](https://warn.docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
+    "The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)\n"
     "is deprecated, please use `allow_single_file` instead."
   bazel_flag: "--incompatible_disable_deprecated_attr_params"
   autofix: true
@@ -85,7 +85,7 @@ warnings: {
   name: "constant-glob"
   header: "Glob pattern has no wildcard ('*')"
   description:
-    "[Glob function](https://warn.docs.bazel.build/versions/master/be/functions.html#glob)\n"
+    "[Glob function](https://docs.bazel.build/versions/master/be/functions.html#glob)\n"
     "is used to get a list of files from the depot. The patterns (the first argument)\n"
     "typically include a wildcard (* character). A pattern without a wildcard is\n"
     "often useless and sometimes harmful.\n\n"
@@ -115,15 +115,15 @@ warnings: {
   name: "ctx-actions"
   header: "`ctx.{action_name}` is deprecated"
   description:
-    "The following [actions](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html)\n"
+    "The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)\n"
     "are deprecated, please use the new API:\n\n"
-    "  * [`ctx.new_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)\n"
-    "  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)\n"
-    "  * [`ctx.file_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#write)\n"
-    "  * [`ctx.action(command = \"...\")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)\n"
-    "  * [`ctx.action(executable = \"...\")`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#run)\n"
-    "  * [`ctx.empty_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)\n"
-    "  * [`ctx.template_action`](https://warn.docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://warn.docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)"
+    "  * [`ctx.new_file`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)\n"
+    "  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)\n"
+    "  * [`ctx.file_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#write)\n"
+    "  * [`ctx.action(command = \"...\")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)\n"
+    "  * [`ctx.action(executable = \"...\")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run)\n"
+    "  * [`ctx.empty_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)\n"
+    "  * [`ctx.template_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)"
   bazel_flag: "--incompatible_new_actions_api"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5825"
   autofix: true
@@ -133,10 +133,10 @@ warnings: {
   name: "ctx-args"
   header: "`ctx.actions.args().add()` for multiple arguments is deprecated"
   description:
-    "It's deprecated to use the [`add`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add)\n"
+    "It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)\n"
     "method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either\n"
-    "[`add_all`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or\n"
-    "[`add_joined`](https://warn.docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),\n"
+    "[`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or\n"
+    "[`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),\n"
     "depending on the desired behavior."
   bazel_flag: "--incompatible_disallow_old_style_args_add"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5822"
@@ -156,7 +156,7 @@ warnings: {
   name: "depset-items"
   header: "Depset's \"items\" parameter is deprecated"
   description:
-    "The `items` parameter for [`depset`](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#depset)\n"
+    "The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)\n"
     "is deprecated. In it's old form it's either a list of direct elements to be\n"
     "added (use the `direct` or unnamed first parameter instead) or a depset that\n"
     "becomes a transitive element of the new depset (use the `transitive` parameter\n"
@@ -192,15 +192,15 @@ warnings: {
     "depset1 | depset2\n"
     "depset1.union(depset2)\n"
     "```\n\n"
-    "Please use the [depset](https://warn.docs.bazel.build/versions/master/skylark/lib/depset.html) constructor\n"
+    "Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor\n"
     "instead:\n\n"
     "```python\n"
     "depset(transitive = [depset1, depset2])\n"
     "```\n\n"
     "When fixing this issue, make sure you\n"
-    "[understand depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)\n"
+    "[understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)\n"
     "and try to\n"
-    "[reduce the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
+    "[reduce the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
   bazel_flag: "--incompatible_depset_union"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5817"
 }
@@ -253,7 +253,7 @@ warnings: {
   header: "The `FileType` function is deprecated"
   description:
     "The function `FileType` is deprecated. Instead of using it as an argument to the\n"
-    "[`rule` function](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#rule)\n"
+    "[`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)\n"
     "just use a list of strings."
   bazel_flag: "--incompatible_disallow_filetype"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5831"
@@ -367,7 +367,7 @@ warnings: {
   header: "Loaded symbol is unused"
   description:
     "### Background\n\n"
-    "[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
+    "[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
     "is used to import definitions in a BUILD file. If the definition is not used in\n"
     "the file, the load can be safely removed. If a symbol is loaded two times, you\n"
     "will get a warning on the second occurrence.\n\n"
@@ -514,7 +514,7 @@ warnings: {
   header: "`ctx.attr.dep.output_group` is deprecated"
   description:
     "The `output_group` field of a target is deprecated in favor of the\n"
-    "[`OutputGroupInfo` provider](https://warn.docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html)."
+    "[`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html)."
   bazel_flag: "--incompatible_no_target_output_group"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/7949"
   autofix: true
@@ -545,9 +545,9 @@ warnings: {
     "x = depset(..., transitive = [y.deps for y in ...])\n"
     "```\n\n"
     "For more information, read Bazel documentation about\n"
-    "[depsets](https://warn.docs.bazel.build/versions/master/skylark/depsets.html)\n"
+    "[depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)\n"
     "and\n"
-    "[reducing the number of calls to depset](https://warn.docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
+    "[reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
 }
 
 warnings: {
@@ -555,7 +555,7 @@ warnings: {
   header: "Global variable `PACKAGE_NAME` is deprecated"
   description:
     "The global variable `PACKAGE_NAME` is deprecated, please use\n"
-    "[`native.package_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#package_name)\n"
+    "[`native.package_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#package_name)\n"
     "instead."
   bazel_flag: "--incompatible_package_name_is_a_function"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5827"
@@ -642,7 +642,7 @@ warnings: {
     "\n"
     "NoneInfo = provider(\"This provider cannot have fields.\", fields = [])\n"
     "```\n\n"
-    "See the [documentation for providers](https://warn.docs.bazel.build/versions/master/skylark/lib/globals.html#provider)."
+    "See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider)."
 }
 
 warnings: {
@@ -664,7 +664,7 @@ warnings: {
   header: "Global variable `REPOSITORY_NAME` is deprecated"
   description:
     "The global variable `REPOSITORY_NAME` is deprecated, please use\n"
-    "[`native.repository_name()`](https://warn.docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)\n"
+    "[`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)\n"
     "instead."
   bazel_flag: "--incompatible_package_name_is_a_function"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5827"
@@ -687,9 +687,9 @@ warnings: {
   header: "Avoid using the legacy provider syntax"
   description:
     "Returning structs from rule implementation functions is\n"
-    "[deprecated](https://warn.docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),\n"
+    "[deprecated](https://docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),\n"
     "consider using\n"
-    "[providers](https://warn.docs.bazel.build/versions/master/skylark/rules.html#providers)\n"
+    "[providers](https://docs.bazel.build/versions/master/skylark/rules.html#providers)\n"
     "or lists of providers instead."
 }
 
@@ -698,7 +698,7 @@ warnings: {
   header: "Same label is used for multiple loads"
   description:
     "### Background\n\n"
-    "[load](https://warn.docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
+    "[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
     "is used to import definitions in a BUILD file. If the same label is used for loading\n"
     "symbols more the ones, all such loads can be merged into a single one.\n\n"
     "### How to fix it\n\n"
