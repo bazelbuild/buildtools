@@ -104,6 +104,8 @@ http_archive(
 
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 
+# If you use WORKSPACE.bazel, use the following line instead of the bare gazelle_dependencies():
+# gazelle_dependencies(go_repository_default_config = "@//:WORKSPACE.bazel")
 gazelle_dependencies()
 
 http_archive(
