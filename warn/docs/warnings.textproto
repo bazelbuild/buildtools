@@ -149,7 +149,7 @@ warnings: {
   description:
     "The function defined in another .bzl file has a docstring stating that it's deprecated, i.e. it\n"
     "contains a `Deprecated:` section. The convention for function docstrings is described by\n"
-    "the [`function-docstring`](function-docstring) warning."
+    "the [`function-docstring`](#function-docstring) warning."
 }
 
 warnings: {
@@ -375,7 +375,7 @@ warnings: {
     "Delete the line. When load is used to import multiple symbols, you can remove\n"
     "the unused symbols from the list. To fix your BUILD files automatically, try\n"
     "this command:\n\n"
-    "```console\n"
+    "```bash\n"
     "$ buildozer 'fix unusedLoads' path/to/BUILD\n"
     "```\n\n"
     "If you want to keep the load, you can disable the warning by adding a comment\n"
