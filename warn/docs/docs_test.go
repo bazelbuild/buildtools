@@ -30,7 +30,7 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 
 	textprotoPath := path.Join(testdata, "warn", "docs", "warnings.textproto")
-	warnings, err := getWarnings(textprotoPath)
+	warnings, err := readWarningsFromFile(textprotoPath)
 	if err != nil {
 		t.Fatalf("getWarnings(%q) = %v", textprotoPath, err)
 	}
