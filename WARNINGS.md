@@ -605,7 +605,7 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
 
 The Android build rules should be loaded from Starlark.
 
-Update: the plan for disabling native rules
+Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
 
@@ -632,7 +632,7 @@ as global symbols there.
 
 The CC build rules should be loaded from Starlark.
 
-Update: the plan for disabling native rules
+Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
 
@@ -648,7 +648,7 @@ at the moment it's not required to load Starlark rules.
 
 The Java build rules should be loaded from Starlark.
 
-Update: the plan for disabling native rules
+Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
 
@@ -675,7 +675,7 @@ It can silently modify the semantics of a BUILD file and makes it hard to mainta
 
 The Proto build rules should be loaded from Starlark.
 
-Update: the plan for disabling native rules
+Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
 
@@ -691,7 +691,7 @@ at the moment it's not required to load Starlark rules.
 
 The Python build rules should be loaded from Starlark.
 
-Update: the plan for disabling native rules
+Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
 
