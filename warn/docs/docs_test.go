@@ -52,19 +52,21 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 func TestFilesMatch(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 
-	generated, err := ioutil.ReadFile(path.Join(testdata, "warn", "docs", "WARNINGS.md"))
+	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md") 
+	generated, err := ioutil.ReadFile(generatedPath)
 	if err != nil {
-		t.Fatalf("ReadFile(%q) = %v", "warn/docs/WARNINGS.md", err)
+		t.Fatalf("ReadFile(%q) = %v", generatedPath, err)
 	}
 
-	checkedIn, err := ioutil.ReadFile(path.Join(testdata, "WARNINGS.md"))
+	checkedInPath := path.Join(testdata, "WARNINGS.md")
+	checkedIn, err := ioutil.ReadFile(checkedInPath)
 	if err != nil {
-		t.Fatalf("ReadFile(%q) = %v", "WARNINGS.md", err)
+		t.Fatalf("ReadFile(%q) = %v", checkedInPath, err)
 	}
 
 	d, err := testutils.Diff(generated, checkedIn)
 	if err != nil {
-		t.Fatalf("diff(generated, checkedIn) = %v", err)
+		t.Fatalf("diff(generated, checkedIn) returns error:", err)
 	}
 	if len(d) != 0 {
 		t.Errorf("diff(generated, checkedIn) = %v\n", string(d))
