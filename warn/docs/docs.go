@@ -27,18 +27,18 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/warn"
-	docspb "github.com/bazelbuild/buildtools/warn/docs/proto"
 	"github.com/golang/protobuf/proto"
+
+	docspb "github.com/bazelbuild/buildtools/warn/docs/proto"
 )
 
-func getWarnings(path string) (*docspb.Warnings, error) {
+func readWarningsFromFile(path string) (*docspb.Warnings, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	warnings := &docspb.Warnings{}
-	err = proto.UnmarshalText(string(content), warnings)
-	if err != nil {
+	if err := proto.UnmarshalText(string(content), warnings); err != nil {
 		return nil, err
 	}
 	return warnings, nil
@@ -178,15 +178,12 @@ func writeWarningsDocs(docs, path string) error {
 	if _, err := f.WriteString(docs); err != nil {
 		return err
 	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	return nil
+	return f.Close()
 }
 
 func main() {
 	flag.Parse()
-	warnings, err := getWarnings(flag.Arg(0))
+	warnings, err := readWarningsFromFile(flag.Arg(0))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
