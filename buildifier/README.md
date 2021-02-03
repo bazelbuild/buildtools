@@ -26,14 +26,14 @@ in a directory recursively:
 
     $ buildifier -r path/to/dir
 
-Buildifier supports the following file types: BUILD, WORKSPACE, .bzl, and
+Buildifier supports the following file types: `BUILD`, `WORKSPACE`, `.bzl`, and
 default, the latter is reserved for Starlark files buildifier doesn't know about
 (e.g. configuration files for third-party projects that use Starlark). The
 formatting rules for WORKSPACE files are the same as for BUILD files (both are
 declarative and have stricter formatting rules), and default files are formatted
 similarly to .bzl files, allowing more flexibility. Different linter warnings
 may be limited to any subset of these file types, e.g. a certain warning may be
-only relevant to Bazel files (i.e. BUILD, WORKSPACE, and .bzl) or to
+only relevant to Bazel files (i.e. `BUILD`, `WORKSPACE`, and `.bzl`) or to
 non-WORKSPACE files.
 
 Buildifier automatically detects the file type by its filename, taking into
