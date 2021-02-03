@@ -26,46 +26,55 @@ in a directory recursively:
 
     $ buildifier -r path/to/dir
 
-Buildifier automatically detects the file type (either BUILD or .bzl) by its filename. If you 
+Buildifier supports the following file types: `BUILD`, `WORKSPACE`, `.bzl`, and
+default, the latter is reserved for Starlark files buildifier doesn't know about
+(e.g. configuration files for third-party projects that use Starlark). The
+formatting rules for WORKSPACE files are the same as for BUILD files (both are
+declarative and have stricter formatting rules), and default files are formatted
+similarly to .bzl files, allowing more flexibility. Different linter warnings
+may be limited to any subset of these file types, e.g. a certain warning may be
+only relevant to Bazel files (i.e. `BUILD`, `WORKSPACE`, and `.bzl`) or to
+non-WORKSPACE files.
 
-    $ buildifier $(find . -type f \( -iname BUILD -or -iname BUILD.bazel \))
-
-Files with unknown names (e.g. `foo.bar`) will be formatted as .bzl files because the format for
-.bzl files is more flexible and less harmful.
-
-You can use Buildifier as a filter by invoking it with no arguments. In that mode it reads from
-standard input and writes the reformatted version to standard output. In this case it won't be
-able to see its name to choose the correct formatting rules, and for compatibility reasons it
-will use the BUILD format in such situations. This may be changed in the future, and to enforce
-a special format explicitly use the `--type` flag:
+Buildifier automatically detects the file type by its filename, taking into
+account optional prefixes and suffixes, e.g. `BUILD`, `BUILD.oss`, or
+`BUILD.bazel` will be detected as BUILD files, and `build_defs.bzl.oss` is a
+.bzl file. Files with unknown names (e.g. `foo.bar`) or files passed via stdin
+will be treated as default file type. To override the automatic file type
+detection use the `--type` flag explicitly:
 
     $ cat foo.bar | buildifier --type=build
-    $ cat foo.baz | buildifier --type=bzl
+    $ cat foo.bar | buildifier --type=bzl
+    $ cat foo.bar | buildifier --type=workspace
+    $ cat foo.bar | buildifier --type=default
 
 ## Linter
 
-Buildifier has an integrated linter that can point out and in some cases automatically fix various
-issues. To use it launch one of the following commands to show and to fix the issues
-correspondingly:
+Buildifier has an integrated linter that can point out and in some cases
+automatically fix various issues. To use it launch one of the following commands
+to show and to fix the issues correspondingly (note that some issues cannot be
+fixed automatically):
 
     buildifier --lint=warn path/to/file
     buildifier --lint=fix path/to/file
 
-By default the linter searches for all known issues except the following:
+By default, the linter searches for all known issues relevant for the given
+file type except those that are marked with
+"[Disabled by default](../WARNINGS.md)" in the documentation.
 
-  * [out-of-order-load](../WARNINGS.md#out-of-order-load)
-  * [unsorted-dict-items](../WARNINGS.md#unsorted-dict-items)
-
-You can specify the categories using the `--warnings` flag either by providing the categories
-explicitly:
+You can specify the categories using the `--warnings` flag either by providing
+the categories explicitly:
 
     buildifier --lint=warn --warnings=positional-args,duplicated-name
 
-or by modifying the default warnings set:
+or by modifying the default warnings set by using `+` or `-` modifiers before
+each warning category:
 
     buildifier --lint=warn --warnings=-positional-args,+unsorted-dict-items
 
-It's also possible to provide `--warnings=all` to use all supported warnings categories.
+It's also possible to provide `--warnings=all` to use all supported warnings
+categories (they will still be limited to relevant warnings for the given file
+type).
 
 See also the [full list](../WARNINGS.md) or the supported warnings.
 
