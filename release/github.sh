@@ -15,7 +15,16 @@ NAME="Release $TAG ($DATE)"
 GH_REPO="repos/bazelbuild/buildtools"
 GH_AUTH_HEADER="Authorization: token $GITHUB_ACCESS_TOKEN"
 
+BIN_DIR=`mktemp -d -p "$DIR"`
+
+bazel clean
 bazel build --config=release //buildifier:all //buildozer:all //unused_deps:all
+
+for tool in "buildifier" "buildozer" "unused_deps"; do
+  cp bazel-out/*-opt-*/bin/"$tool/$tool-linux_amd64" $BIN_DIR
+  cp bazel-out/*-opt-*/bin/"$tool/$tool-darwin_amd64" $BIN_DIR
+  cp bazel-out/*-opt-*/bin/"$tool/$tool-windows_amd64.exe" $BIN_DIR
+done;
 
 echo "Creating a draft release"
 API_JSON="{\"tag_name\": \"$TAG\", \"target_commitish\": \"master\", \"name\": \"$NAME\", \"draft\": true}"
@@ -30,9 +39,16 @@ upload_file() {
 }
 
 for tool in "buildifier" "buildozer" "unused_deps"; do
-  upload_file "bazel-bin/$tool/$tool-linux_amd64" "$tool"
-  upload_file "bazel-bin/$tool/$tool-windows_amd64.exe" "$tool.exe"
-  upload_file "bazel-bin/$tool/$tool-darwin_amd64" "$tool.mac"
+  upload_file "$BIN_DIR/$tool-linux_amd64" "$tool-linux-amd64"
+  upload_file "$BIN_DIR/$tool-darwin_amd64" "$tool-darwin-amd64"
+  upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
 done
+
+# For compatibility with Bazel CI, remove after
+# https://github.com/bazelbuild/continuous-integration/issues/1089
+# has been resolved.
+upload_file "$BIN_DIR/buildifier-linux_amd64" "buildifier"
+
+rm -rf $BIN_DIR
 
 echo "The draft release is available at $RELEASE_URL"
