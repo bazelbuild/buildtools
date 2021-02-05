@@ -46,7 +46,7 @@ done
 
 # For compatibility with Bazel CI, remove after
 # https://github.com/bazelbuild/continuous-integration/issues/1089
-# has bee resolved.
+# has been resolved.
 upload_file "$BIN_DIR/buildifier-linux_amd64" "buildifier"
 
 rm -rf $BIN_DIR
