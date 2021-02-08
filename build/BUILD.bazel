@@ -17,6 +17,7 @@ go_library(
         "rewrite.go",
         "rule.go",
         "syntax.go",
+        "utils.go",
         "walk.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/build",

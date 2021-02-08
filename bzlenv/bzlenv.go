@@ -154,20 +154,8 @@ func CollectLValues(node build.Expr) []*build.Ident {
 
 func declareParams(fct *build.DefStmt, env *Environment) {
 	for _, node := range fct.Params {
-		switch node := node.(type) {
-		case *build.Ident:
-			env.declare(node.Name, Parameter, node)
-		case *build.UnaryExpr:
-			// either *args or **kwargs
-			if ident, ok := node.X.(*build.Ident); ok {
-				env.declare(ident.Name, Parameter, node)
-			}
-		case *build.AssignExpr:
-			// x = value
-			if ident, ok := node.LHS.(*build.Ident); ok {
-				env.declare(ident.Name, Parameter, node)
-			}
-		}
+		name, _ := build.GetParamName(node)
+		env.declare(name, Parameter, node)
 	}
 }
 

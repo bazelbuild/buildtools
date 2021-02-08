@@ -600,10 +600,14 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
   * Category name: `native-android`
   * Flag in Bazel: [`--incompatible_disable_native_android_rules`](https://github.com/bazelbuild/bazel/issues/8391)
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-android`
 
 The Android build rules should be loaded from Starlark.
-The native rules [will be disabled](https://github.com/bazelbuild/bazel/issues/8391).
+
+Update: the plans for disabling native rules
+[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
+at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
@@ -623,10 +627,14 @@ as global symbols there.
   * Category name: `native-cc`
   * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-cc`
 
-The CC build rules should be loaded from Starlark. The native rules
-[will be disabled](https://github.com/bazelbuild/bazel/issues/8743).
+The CC build rules should be loaded from Starlark.
+
+Update: the plans for disabling native rules
+[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
+at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
@@ -635,10 +643,14 @@ The CC build rules should be loaded from Starlark. The native rules
   * Category name: `native-java`
   * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-java`
 
-The Java build rules should be loaded from Starlark. The native rules
-[will be disabled](https://github.com/bazelbuild/bazel/issues/8746).
+The Java build rules should be loaded from Starlark.
+
+Update: the plans for disabling native rules
+[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
+at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
@@ -658,10 +670,14 @@ It can silently modify the semantics of a BUILD file and makes it hard to mainta
   * Category name: `native-proto`
   * Flag in Bazel: [`--incompatible_load_proto_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8922)
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-proto`
 
-The Proto build rules should be loaded from Starlark. The native rules
-[will be disabled](https://github.com/bazelbuild/bazel/issues/8922).
+The Proto build rules should be loaded from Starlark.
+
+Update: the plans for disabling native rules
+[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
+at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
@@ -670,10 +686,14 @@ The Proto build rules should be loaded from Starlark. The native rules
   * Category name: `native-py`
   * Flag in Bazel: [`--incompatible_load_python_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/9006)
   * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-py`
 
-The Python build rules should be loaded from Starlark. The native rules
-[will be disabled](https://github.com/bazelbuild/bazel/issues/9006).
+The Python build rules should be loaded from Starlark.
+
+Update: the plans for disabling native rules
+[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
+at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 

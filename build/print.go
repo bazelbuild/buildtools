@@ -413,6 +413,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *Ident:
 		p.printf("%s", v.Name)
 
+	case *TypedIdent:
+		p.expr(v.Ident, precLow)
+		p.printf(": ")
+		p.expr(v.Type, precLow)
+
 	case *BranchStmt:
 		p.printf("%s", v.Token)
 
@@ -646,6 +651,10 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf("def ")
 		p.printf(v.Name)
 		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
+		if v.Type != nil {
+			p.printf(" -> ")
+			p.expr(v.Type, precLow)
+		}
 		p.printf(":")
 		p.nestedStatements(v.Body)
 

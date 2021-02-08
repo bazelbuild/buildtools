@@ -42,6 +42,7 @@ _PARENT_PACKAGE_FILES = [
     "README.md",
     "buildozer-darwin_amd64",
     "buildozer-linux_amd64",
+    "buildozer-linux_arm64",
     "buildozer-windows_amd64.exe",
 ]
 
@@ -51,7 +52,7 @@ _PARENT_PACKAGE_FILES = [
         # go_binary doesn't give a predeclared output for
         # the file in "out" so we have to construct a
         # label to reference the go_binary rule itself.
-        src = "//buildozer:%s" % s.split("_")[0],
+        src = "//buildozer:%s" % s.replace("_arm64", "-arm64").split("_amd64")[0],
         out = s,
     )
     for s in _PARENT_PACKAGE_FILES
