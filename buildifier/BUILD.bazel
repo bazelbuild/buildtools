@@ -36,6 +36,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "buildifier-linux-arm64",
+    out = "buildifier-linux_arm64",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 # Test that the buildifier binary works
 sh_test(
     name = "buildifier_integration_test",
