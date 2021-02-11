@@ -5,7 +5,7 @@ go_library(
     srcs = [
         "labels.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/labels",
+    importpath = "github.com/bazelbuild/buildtools/v4/labels",
     visibility = ["//visibility:public"],
 )
 

@@ -20,7 +20,7 @@ go_library(
         "utils.go",
         "walk.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/build",
+    importpath = "github.com/bazelbuild/buildtools/v4/build",
     visibility = ["//visibility:public"],
     deps = ["//tables:go_default_library"],
 )

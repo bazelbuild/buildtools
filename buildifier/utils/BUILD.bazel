@@ -8,7 +8,7 @@ go_library(
         "tempfile.go",
         "utils.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
+    importpath = "github.com/bazelbuild/buildtools/v4/buildifier/utils",
     visibility = ["//buildifier:__pkg__"],
     deps = [
         "//build:go_default_library",

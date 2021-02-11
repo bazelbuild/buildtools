@@ -18,7 +18,7 @@ go_library(
         "warn_operation.go",
         "warn_visibility.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/warn",
+    importpath = "github.com/bazelbuild/buildtools/v4/warn",
     visibility = ["//visibility:public"],
     deps = [
         "//build:go_default_library",

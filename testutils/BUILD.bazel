@@ -6,6 +6,6 @@ go_library(
         "diff.go",
         "find.go",
     ],
-    importpath = "github.com/bazelbuild/buildtools/testutils",
+    importpath = "github.com/bazelbuild/buildtools/v4/testutils",
     visibility = ["//visibility:public"],
 )
