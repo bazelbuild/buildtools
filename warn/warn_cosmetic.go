@@ -24,8 +24,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/edit"
 )
 
 func sameOriginLoadWarning(f *build.File) []*LinterFinding {

@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/bzlenv"
-	"github.com/bazelbuild/buildtools/edit"
-	"github.com/bazelbuild/buildtools/tables"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/bzlenv"
+	"github.com/bazelbuild/buildtools/v4/edit"
+	"github.com/bazelbuild/buildtools/v4/tables"
 )
 
 // Bazel API-specific warnings

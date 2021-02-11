@@ -23,8 +23,8 @@ import (
 	"os"
 	"sort"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/edit"
 )
 
 // LintMode is an enum representing a linter mode. Can be either "warn", "fix", or "suggest"

@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/v4/build"
 )
 
 const workspaceFile = "WORKSPACE"

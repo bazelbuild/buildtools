@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/v4/build"
 	"go.starlark.net/syntax"
 )
 

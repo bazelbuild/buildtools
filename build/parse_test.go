@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bazelbuild/buildtools/testutils"
+	"github.com/bazelbuild/buildtools/v4/testutils"
 )
 
 func TestParse(t *testing.T) {

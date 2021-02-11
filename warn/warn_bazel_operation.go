@@ -21,7 +21,7 @@ package warn
 import (
 	"fmt"
 
-	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/v4/build"
 )
 
 func depsetUnionWarning(f *build.File) []*LinterFinding {

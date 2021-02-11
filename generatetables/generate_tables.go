@@ -27,7 +27,7 @@ import (
 	"os"
 	"sort"
 
-	buildpb "github.com/bazelbuild/buildtools/build_proto"
+	buildpb "github.com/bazelbuild/buildtools/v4/build_proto"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -110,7 +110,7 @@ func main() {
 	fmt.Fprintf(f, `// Generated file, do not edit.
 package lang
 
-import buildpb "github.com/bazelbuild/buildtools/build_proto"
+import buildpb "github.com/bazelbuild/buildtools/v4/build_proto"
 
 var TypeOf = map[string]buildpb.Attribute_Discriminator{
 `)

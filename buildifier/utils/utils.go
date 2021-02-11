@@ -24,8 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/warn"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/warn"
 )
 
 func isStarlarkFile(name string) bool {

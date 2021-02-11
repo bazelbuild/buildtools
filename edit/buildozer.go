@@ -34,11 +34,11 @@ import (
 	"strconv"
 	"strings"
 
-	apipb "github.com/bazelbuild/buildtools/api_proto"
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/file"
-	"github.com/bazelbuild/buildtools/labels"
-	"github.com/bazelbuild/buildtools/wspace"
+	apipb "github.com/bazelbuild/buildtools/v4/api_proto"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/file"
+	"github.com/bazelbuild/buildtools/v4/labels"
+	"github.com/bazelbuild/buildtools/v4/wspace"
 	"github.com/golang/protobuf/proto"
 )
 

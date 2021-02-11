@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/labels"
 )
 
 // Internal constant that represents the native module
@@ -53,7 +53,7 @@ type funCall struct {
 func acceptsNameArgument(def *build.DefStmt) bool {
 	for _, param := range def.Params {
 		if name, op := build.GetParamName(param); name == "name" || op == "**" {
-  		return true
+			return true
 		}
 	}
 	return false

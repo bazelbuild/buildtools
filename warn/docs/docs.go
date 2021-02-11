@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//go:generate go install -v google.golang.org/protobuf/cmd/protoc-gen-go
+
 // Documentation generator
 package main
 
@@ -26,18 +28,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/warn"
+	"github.com/bazelbuild/buildtools/v4/warn"
 	"github.com/golang/protobuf/proto"
-
-	docspb "github.com/bazelbuild/buildtools/warn/docs/proto"
 )
 
-func readWarningsFromFile(path string) (*docspb.Warnings, error) {
+func readWarningsFromFile(path string) (*Warnings, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	warnings := &docspb.Warnings{}
+	warnings := &Warnings{}
 	if err := proto.UnmarshalText(string(content), warnings); err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func isDisabledWarning(name string) bool {
 	return true
 }
 
-func generateWarningsDocs(warnings *docspb.Warnings) string {
+func generateWarningsDocs(warnings *Warnings) string {
 	var b bytes.Buffer
 
 	b.WriteString(`# Buildifier warnings

@@ -31,12 +31,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/config"
-	depspb "github.com/bazelbuild/buildtools/deps_proto"
-	"github.com/bazelbuild/buildtools/edit"
-	eapb "github.com/bazelbuild/buildtools/extra_actions_base_proto"
-	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/config"
+	depspb "github.com/bazelbuild/buildtools/v4/deps_proto"
+	"github.com/bazelbuild/buildtools/v4/edit"
+	eapb "github.com/bazelbuild/buildtools/v4/extra_actions_base_proto"
+	"github.com/bazelbuild/buildtools/v4/labels"
 	"github.com/golang/protobuf/proto"
 )
 

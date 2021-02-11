@@ -21,8 +21,8 @@ package warn
 import (
 	"fmt"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/labels"
 )
 
 func checkDeprecatedFunction(stmt build.Expr, loadedSymbols *map[string]*build.Ident, fullLabel string) *LinterFinding {

@@ -17,8 +17,8 @@ limitations under the License.
 package warn
 
 import (
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/bzlenv"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/bzlenv"
 )
 
 // Type describes an expression type in Starlark.

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package docs;
 
+option go_package = "github.com/bazelbuild/buildtools/v4/warn/docs;main";
+
 message Warnings {
   message Warning {
     repeated string name = 1;

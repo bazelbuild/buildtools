@@ -20,9 +20,10 @@ package warn
 
 import (
 	"fmt"
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/bzlenv"
-	"github.com/bazelbuild/buildtools/edit"
+
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/bzlenv"
+	"github.com/bazelbuild/buildtools/v4/edit"
 )
 
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on

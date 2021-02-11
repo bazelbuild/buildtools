@@ -22,8 +22,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/bazelbuild/buildtools/testutils"
-	"github.com/bazelbuild/buildtools/warn"
+	"github.com/bazelbuild/buildtools/v4/testutils"
+	"github.com/bazelbuild/buildtools/v4/warn"
 )
 
 func TestAllWarningsAreDocumented(t *testing.T) {
@@ -52,7 +52,7 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 func TestFilesMatch(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 
-	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md") 
+	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md")
 	generated, err := ioutil.ReadFile(generatedPath)
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", generatedPath, err)

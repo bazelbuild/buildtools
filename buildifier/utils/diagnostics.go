@@ -19,9 +19,10 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/warn"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/warn"
 )
 
 // Diagnostics contains diagnostic information returned by formatter and linter

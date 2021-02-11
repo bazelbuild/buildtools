@@ -23,8 +23,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/v4/build"
+	"github.com/bazelbuild/buildtools/v4/labels"
 )
 
 // splitOptionsWithSpaces is a cleanup function.
