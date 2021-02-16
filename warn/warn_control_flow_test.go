@@ -422,7 +422,7 @@ load(":bar.bzl", "s1")
 foo(name = s1)`,
 		[]string{
 			":1: Loaded symbol \"s2\" is unused.",
-			":2: Symbol \"s1\" has already been loaded on line 1.",
+			":2: A different symbol \"s1\" has already been loaded on line 1.",
 		},
 		scopeEverywhere)
 
@@ -472,10 +472,10 @@ a(6)
 
 a(7)`,
 		[]string{
-			":3: Symbol \"a\" has already been loaded on line 1.",
+			":3: A different symbol \"a\" has already been loaded on line 1.",
 			":5: Symbol \"a\" has already been loaded on line 3.",
-			":7: Symbol \"a\" has already been loaded on line 5.",
-			":9: Symbol \"a\" has already been loaded on line 7.",
+			":7: A different symbol \"a\" has already been loaded on line 5.",
+			":9: A different symbol \"a\" has already been loaded on line 7.",
 			":11: Symbol \"a\" has already been loaded on line 9.",
 			":13: Symbol \"a\" has already been loaded on line 11.",
 		},
