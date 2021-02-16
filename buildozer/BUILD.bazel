@@ -66,6 +66,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "buildozer-linux-arm64",
+    out = "buildozer-linux_arm64",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 exports_files(
     [
         "README.md",

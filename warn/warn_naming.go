@@ -30,17 +30,7 @@ var ambiguousNames = map[string]bool{
 }
 
 // ambiguousNameCheck checks for the names of idents and functions
-func ambiguousNameCheck(f *build.File, expr build.Expr, findings []*LinterFinding) []*LinterFinding {
-	var name string
-	switch expr := expr.(type) {
-	case *build.Ident:
-		name = expr.Name
-	case *build.DefStmt:
-		name = expr.Name
-	default:
-		return findings
-	}
-
+func ambiguousNameCheck(expr build.Expr, name string, findings []*LinterFinding) []*LinterFinding {
 	if ambiguousNames[name] {
 		findings = append(findings,
 			makeLinterFinding(expr, `Never use 'l', 'I', or 'O' as names (they're too easily confused with 'I', 'l', or '0').`))
@@ -49,22 +39,22 @@ func ambiguousNameCheck(f *build.File, expr build.Expr, findings []*LinterFindin
 }
 
 func confusingNameWarning(f *build.File) []*LinterFinding {
-
 	var findings []*LinterFinding
 	// check for global variable names
 	for _, ident := range collectLocalVariables(f.Stmt) {
-		findings = ambiguousNameCheck(f, ident, findings)
+		findings = ambiguousNameCheck(ident, ident.Name, findings)
 	}
 
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.DefStmt:
-			findings = ambiguousNameCheck(f, expr, findings)
-			for _, param := range getFunctionParams(expr) {
-				findings = ambiguousNameCheck(f, param, findings)
+			findings = ambiguousNameCheck(expr, expr.Name, findings)
+			for _, param := range expr.Params {
+				name, _ := build.GetParamName(param)
+				findings = ambiguousNameCheck(param, name, findings)
 			}
 			for _, ident := range collectLocalVariables(expr.Body) {
-				findings = ambiguousNameCheck(f, ident, findings)
+				findings = ambiguousNameCheck(ident, ident.Name, findings)
 			}
 		case *build.Comprehension:
 			for _, clause := range expr.Clauses {
@@ -73,7 +63,7 @@ func confusingNameWarning(f *build.File) []*LinterFinding {
 					continue
 				}
 				for _, ident := range bzlenv.CollectLValues(forClause.Vars) {
-					findings = ambiguousNameCheck(f, ident, findings)
+					findings = ambiguousNameCheck(ident, ident.Name, findings)
 				}
 			}
 		}

@@ -186,6 +186,11 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 var nonDefaultWarnings = map[string]bool{
 	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
+	"native-android":      true, // disables native android rules
+	"native-cc":           true, // disables native cc rules
+	"native-java":         true, // disables native java rules
+	"native-proto":        true, // disables native proto rules
+	"native-py":           true, // disables native python rules
 }
 
 // fileWarningWrapper is a wrapper that converts a file warning function to a generic function.

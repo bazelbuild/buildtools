@@ -229,7 +229,7 @@ def bar():
     pass
     return 2
 
-[f() for i in range(3)] # top-level comprehension is okay
+[f() for i in rang(3)] # top-level comprehension is okay
 `,
 		[]string{},
 		scopeEverywhere)
@@ -827,5 +827,17 @@ def foo(x):
 		[]string{},
 		scopeEverywhere)
 
+	checkFindings(t, "uninitialized", `
+def foo(x: int, y: int = 2):
+  if bar:
+    x = 1
+    y = 2
+    z = 3
 
+  print(x + y + z)
+`,
+		[]string{
+			":7: Variable \"z\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }

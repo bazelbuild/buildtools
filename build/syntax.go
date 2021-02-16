@@ -191,6 +191,26 @@ func (x *Ident) asString() *StringExpr {
 	}
 }
 
+// An TypedIdent represents an identifier with type annotation: "foo: int".
+type TypedIdent struct {
+	Comments
+	Ident   *Ident
+	Type    Expr
+}
+
+// Span returns the start and end positions of the node
+func (x *TypedIdent) Span() (start, end Position) {
+	start, _ = x.Ident.Span()
+	_, end = x.Type.Span()
+	return start, end
+}
+
+//Copy creates and returns a non-deep copy of TypedIdent
+func (x *TypedIdent) Copy() Expr {
+	n := *x
+	return &n
+}
+
 // BranchStmt represents a `pass`, `break`, or `continue` statement.
 type BranchStmt struct {
 	Comments
@@ -719,6 +739,7 @@ type DefStmt struct {
 	ColonPos       Position // position of the ":"
 	ForceCompact   bool     // force compact (non-multiline) form when printing the arguments
 	ForceMultiLine bool     // force multiline form when printing the arguments
+	Type           Expr     // type annotation
 }
 
 // Span returns the start and end positions of the node
