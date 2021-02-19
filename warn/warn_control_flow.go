@@ -332,10 +332,13 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
+                                	loadFindings = append(loadFindings, makeLinterFinding(to,
+                                        	fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)))
+	                                continue
 				}
 
 				loadFindings = append(loadFindings, makeLinterFinding(to,
-					fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)))
+					fmt.Sprintf("A different symbol %q has already been loaded on line %d. Please use a different local name.", to.Name, origin.line)))
 				continue
 			}
 			_, ok := symbols[to.Name]
