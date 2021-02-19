@@ -1384,7 +1384,15 @@ function test_rule_print_comment() {
   in='# Hello
 cc_library(name = "a")'
   run "$in" 'print_comment' //pkg:a
-  assert_output 'Hello'
+  assert_output 'Hello  '
+}
+
+function test_rule_print_comment_with_suffix_and_after() {
+  in='# Hello Before
+cc_library(name = "a") # Hello Suffix
+# Hello After'
+  run "$in" 'print_comment' //pkg:a
+  assert_output 'Hello Before Hello Suffix Hello After'
 }
 
 function test_attribute_print_comment() {
