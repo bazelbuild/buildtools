@@ -158,8 +158,12 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	case 0: // Print rule comment.
 		env.output.Fields = []*apipb.Output_Record_Field{
 			{Value: &apipb.Output_Record_Field_Text{commentsText(env.Rule.Call.Comments.Before)}},
-			{Value: &apipb.Output_Record_Field_Text{commentsText(env.Rule.Call.Comments.Suffix)}},
-			{Value: &apipb.Output_Record_Field_Text{commentsText(env.Rule.Call.Comments.After)}},
+		}
+		if text := commentsText(env.Rule.Call.Comments.Suffix); text != "" {
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
+		}
+		if text := commentsText(env.Rule.Call.Comments.After); text != "" {
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
 		}
 	case 1: // Print attribute comment.
 		attr := env.Rule.AttrDefn(env.Args[0])
