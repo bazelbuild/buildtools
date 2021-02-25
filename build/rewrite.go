@@ -234,7 +234,7 @@ func fixLabels(f *File) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
-				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelBlacklist[callName(v)+"."+key.Name] {
+				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelDenylist[callName(v)+"."+key.Name] {
 					continue
 				}
 				if leaveAlone1(as.RHS) {
@@ -402,7 +402,7 @@ func sortStringLists(f *File) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if tables.SortableBlacklist[context] {
+				if tables.SortableDenylist[context] {
 					continue
 				}
 				if tables.IsSortableListArg[key.Name] ||

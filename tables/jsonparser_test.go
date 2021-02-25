@@ -31,10 +31,10 @@ func TestParseJSONDefinitions(t *testing.T) {
 
 	expected := Definitions{
 		IsLabelArg:               map[string]bool{"srcs": true},
-		LabelBlacklist:           map[string]bool{},
+		LabelDenylist:            map[string]bool{},
 		IsSortableListArg:        map[string]bool{"srcs": true, "visibility": true},
-		SortableBlacklist:        map[string]bool{"genrule.srcs": true},
-		SortableWhitelist:        map[string]bool{},
+		SortableDenylist:         map[string]bool{"genrule.srcs": true},
+		SortableAllowlist:        map[string]bool{},
 		NamePriority:             map[string]int{"name": -1},
 		StripLabelLeadingSlashes: true,
 	}
