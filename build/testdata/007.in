@@ -1,5 +1,5 @@
-exports_files([ "url_substring_blacklist",
-                "url_substring_blacklist_short" ])
+exports_files([ "url_substring_denylist",
+                "url_substring_denylist_short" ])
 
 package(default_visibility = [ "//foo:bar" ])
 

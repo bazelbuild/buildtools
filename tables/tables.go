@@ -22,7 +22,7 @@ package tables
 
 // IsLabelArg: a named argument to a rule call is considered to have a value
 // that can be treated as a label or list of labels if the name
-// is one of these names. There is a separate blacklist for
+// is one of these names. There is a separate denylist for
 // rule-specific exceptions.
 var IsLabelArg = map[string]bool{
 	"app_target":         true,
@@ -90,10 +90,10 @@ var IsLabelArg = map[string]bool{
 	"visibility":         true,
 }
 
-// LabelBlacklist is the list of call arguments that cannot be
+// LabelDenylist is the list of call arguments that cannot be
 // shortened, because they are not interpreted using the same
 // rules as for other labels.
-var LabelBlacklist = map[string]bool{
+var LabelDenylist = map[string]bool{
 	// Shortening this can cause visibility checks to fail.
 	"package_group.includes": true,
 }
@@ -104,7 +104,7 @@ var LabelBlacklist = map[string]bool{
 var IsListArg = map[string]bool{}
 
 // IsSortableListArg: a named argument to a rule call is considered to be a sortable list
-// if the name is one of these names. There is a separate blacklist for
+// if the name is one of these names. There is a separate denylist for
 // rule-specific exceptions.
 var IsSortableListArg = map[string]bool{
 	"cc_deps":             true,
@@ -148,8 +148,8 @@ var IsSortableListArg = map[string]bool{
 	"visibility":          true,
 }
 
-// SortableBlacklist records specific rule arguments that must not be reordered.
-var SortableBlacklist = map[string]bool{
+// SortableDenylist records specific rule arguments that must not be reordered.
+var SortableDenylist = map[string]bool{
 	"genrule.outs": true,
 	"genrule.srcs": true,
 }
@@ -272,12 +272,12 @@ var ProtoNativeSymbols = []string{
 var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
-	LabelBlacklist = blacklist
+	LabelDenylist = denylist
 	IsListArg = listArg
 	IsSortableListArg = sortableListArg
-	SortableBlacklist = sortBlacklist
+	SortableDenylist = sortDenylist
 	SortableWhitelist = sortWhitelist
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
@@ -285,12 +285,12 @@ func OverrideTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
-	for k, v := range blacklist {
-		LabelBlacklist[k] = v
+	for k, v := range denylist {
+		LabelDenylist[k] = v
 	}
 	for k, v := range listArg {
 		IsListArg[k] = v
@@ -298,8 +298,8 @@ func MergeTables(labelArg, blacklist, listArg, sortableListArg, sortBlacklist, s
 	for k, v := range sortableListArg {
 		IsSortableListArg[k] = v
 	}
-	for k, v := range sortBlacklist {
-		SortableBlacklist[k] = v
+	for k, v := range sortDenylist {
+		SortableDenylist[k] = v
 	}
 	for k, v := range sortWhitelist {
 		SortableWhitelist[k] = v
