@@ -154,9 +154,9 @@ var SortableDenylist = map[string]bool{
 	"genrule.srcs": true,
 }
 
-// SortableWhitelist records specific rule arguments that are guaranteed to be reorderable
+// SortableAllowlist records specific rule arguments that are guaranteed to be reorderable
 // (format: "rule_name.attribute_name").
-var SortableWhitelist = map[string]bool{}
+var SortableAllowlist = map[string]bool{}
 
 // NamePriority maps an argument name to its sorting priority.
 //
@@ -272,20 +272,20 @@ var ProtoNativeSymbols = []string{
 var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
 	LabelDenylist = denylist
 	IsListArg = listArg
 	IsSortableListArg = sortableListArg
 	SortableDenylist = sortDenylist
-	SortableWhitelist = sortWhitelist
+	SortableAllowlist = sortAllowlist
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortWhitelist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -301,8 +301,8 @@ func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sor
 	for k, v := range sortDenylist {
 		SortableDenylist[k] = v
 	}
-	for k, v := range sortWhitelist {
-		SortableWhitelist[k] = v
+	for k, v := range sortAllowlist {
+		SortableAllowlist[k] = v
 	}
 	for k, v := range namePriority {
 		NamePriority[k] = v

@@ -39,6 +39,6 @@ func TestParseJSONDefinitions(t *testing.T) {
 		StripLabelLeadingSlashes: true,
 	}
 	if !reflect.DeepEqual(expected, definitions) {
-		t.Errorf("ParseJSONDefinitions() = %v; want %v", definitions, expected)
+		t.Errorf("ParseJSONDefinitions(simple_tables.json) = %v; want %v", definitions, expected)
 	}
 }
