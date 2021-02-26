@@ -406,7 +406,7 @@ func sortStringLists(f *File) {
 					continue
 				}
 				if tables.IsSortableListArg[key.Name] ||
-					tables.SortableWhitelist[context] ||
+					tables.SortableAllowlist[context] ||
 					(!disabled("unsafesort") && allowedSort(context)) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
