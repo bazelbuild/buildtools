@@ -7,7 +7,7 @@ ARGS=@@ARGS@@
 buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
 
 # Use TEST_WORKSPACE to determine if the script is being ran under a test
-if [ ! -z "${TEST_WORKSPACE+x}" ]; then
+if [[ ! -z "${TEST_WORKSPACE+x}" && -z "${BUILD_WORKSPACE_DIRECTORY+x}" ]]; then
   FIND_FILE_TYPE="l"
 else
   # Change into the workspace directory if this is _not_ a test
