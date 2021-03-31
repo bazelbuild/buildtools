@@ -84,6 +84,7 @@ var rewrites = []struct {
 	{"removeParens", removeParens, scopeBuild},
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
+	{"formatTables", formatTables, scopeBoth},
 	{"listsort", sortStringLists, scopeBoth},
 	{"multiplus", fixMultilinePlus, scopeBuild},
 	{"loadsort", sortAllLoadArgs, scopeBoth},
@@ -374,6 +375,29 @@ func (x namedArgs) Less(i, j int) bool {
 		return p.name < q.name
 	}
 	return p.index < q.index
+}
+
+// Detects if a data is marked as tablular based on the tag `Buildifier: Table`
+// and sets the correct flags on the expression.
+// If the tags necessitate a sorting of the tabular data, then this takes care of inplace sorting.
+func formatTables(f *File) {
+	Walk(f, func(v Expr, stk []Expr) {
+		switch v := v.(type) {
+		// Tabular formatting is currently supported only for lists
+		case *ListExpr:
+			// set based on Rehana's condition
+			v.ForceTable = true
+
+			// Iterate within the items of the list ( tablerows)
+			for _, row := range v.List {
+				tupleRow, ok := row.(*TupleExpr)
+				if !ok {
+					continue
+				}
+				tupleRow.ForceTableRow = true
+			}
+		}
+	})
 }
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
