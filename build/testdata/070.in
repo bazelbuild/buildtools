@@ -1,2 +1,2 @@
-# buildifier: table nosort
+# buildifier: table
 manifest = [                   ("", "", ""), ("ab", "bc", "cd"),("a", "b", "c")]
