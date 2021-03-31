@@ -136,9 +136,10 @@ func tableFormat(x Expr) bool {
 	return hasComment(x, "buildifier: table")
 }
 
-// tableFormatSortBy reports whether x is marked with a comment containing
-// "buildifier: table sort <n>", case-insensitive.
-func tableFormatSortBy(x Expr) int {
+// tableSort reports whether x is marked with a comment containing
+// "buildifier: table sort <n>", case-insensitive and returns the
+// column number.
+func tableSort(x Expr) int {
 	if hasComment(x, "buildifier: table sort") {
 		return getColumnNumber(x)
 	}
@@ -404,7 +405,7 @@ func (x namedArgs) Less(i, j int) bool {
 	return p.index < q.index
 }
 
-// Detects if a data is marked as tablular based on the tag `Buildifier: Table`
+// Detects if a data is marked as tablular based on the tag `buildifier: table`
 // and sets the correct flags on the expression.
 // If the tags necessitate a sorting of the tabular data, then this takes care of inplace sorting.
 func formatTables(f *File) {
@@ -484,6 +485,10 @@ func sortStringLists(f *File) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
+			// TODO remove
+			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
+				// colNumber = tableSort(v.List[0])
+			}
 			if disabled("unsafesort") {
 				return
 			}
