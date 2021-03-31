@@ -71,7 +71,7 @@ type printer struct {
 	depth        int               // nesting depth inside ( ) [ ] { }
 	level        int               // nesting level of def-, if-else- and for-blocks
 	needsNewLine bool              // true if the next statement needs a new line before it
-	tabWriterOn  bool              // when this mode is on , use the tabwriter to write to buffer
+	tabWriterOn  bool              // when this mode is on ,use the tabwriter to write to buffer
 	tw           *tabwriter.Writer // tab writer
 }
 
@@ -616,14 +616,17 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
 
 	case *ListExpr:
-		// TODO: Check whether tabular mode is necessary.
-		p.tabWriterOn = true
-		if p.tabWriterOn {
+		if v.ForceTable {
+			p.tabWriterOn = true
 			p.tw = new(tabwriter.Writer)
 			p.tw.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
 		}
+
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
-		p.tw.Flush()
+
+		if v.ForceTable {
+			p.tw.Flush()
+		}
 
 	case *SetExpr:
 		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
@@ -633,8 +636,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.NoBrackets {
 			mode = modeSeq
 		}
-		// TODO: Set this on a criteria
-		mode = modeTable
+		if v.ForceTableRow {
+			mode = modeTable
+		}
 		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
 
 	case *DictExpr:
