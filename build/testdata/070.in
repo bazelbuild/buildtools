@@ -1,2 +1,1 @@
-# buildifier: table
-manifest = [                   ("", "", ""), ("ab", "bc", "cd"),("a", "b", "c")]
+manifest = [# buildifier: table                   ("", "", ""), ("ab", "bc", "cd"),("a", "b", "c")]
