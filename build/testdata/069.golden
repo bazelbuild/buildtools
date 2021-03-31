@@ -1,0 +1,6 @@
+# buildifier: table nosort
+manifest = [
+   ("a",  "b",  "c"),
+   ("ab", "bc", "cd"),
+   ("",   "",   "")
+]

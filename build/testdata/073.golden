@@ -1,0 +1,6 @@
+# buildifier: table nosort
+manifest = [
+   (),
+   (),
+   ()
+]
