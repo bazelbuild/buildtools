@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"text/tabwriter"
 )
 
 const (
@@ -63,18 +64,26 @@ func FormatString(x Expr) string {
 
 // A printer collects the state during printing of a file or expression.
 type printer struct {
-	fileType     FileType  // different rules can be applied to different file types.
-	bytes.Buffer           // output buffer
-	comment      []Comment // pending end-of-line comments
-	margin       int       // left margin (indent), a number of spaces
-	depth        int       // nesting depth inside ( ) [ ] { }
-	level        int       // nesting level of def-, if-else- and for-blocks
-	needsNewLine bool      // true if the next statement needs a new line before it
+	fileType     FileType          // different rules can be applied to different file types.
+	bytes.Buffer                   // output buffer
+	comment      []Comment         // pending end-of-line comments
+	margin       int               // left margin (indent), a number of spaces
+	depth        int               // nesting depth inside ( ) [ ] { }
+	level        int               // nesting level of def-, if-else- and for-blocks
+	needsNewLine bool              // true if the next statement needs a new line before it
+	tabWriterOn  bool              // when this mode is on , use the tabwriter to write to buffer
+	tw           *tabwriter.Writer // tab writer
 }
 
 // printf prints to the buffer.
 func (p *printer) printf(format string, args ...interface{}) {
-	fmt.Fprintf(p, format, args...)
+	if !p.tabWriterOn {
+		fmt.Fprintf(p, format, args...)
+	} else {
+		if p.tw != nil {
+			fmt.Fprintf(p.tw, format, args...)
+		}
+	}
 }
 
 // indent returns the position on the current line, in bytes, 0-indexed.
@@ -158,6 +167,11 @@ func (p *printer) trim() {
 
 // file formats the given file into the print buffer.
 func (p *printer) file(f *File) {
+	p.tabWriterOn = true
+	if p.tabWriterOn {
+		p.tw = new(tabwriter.Writer)
+		p.tw.Init(p, 0, 0, 4, ' ', tabwriter.StripEscape)
+	}
 	for _, com := range f.Before {
 		p.printf("%s", strings.TrimSpace(com.Token))
 		p.newline()
@@ -832,7 +846,11 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
 		for i, x := range *list {
 			if i > 0 {
-				p.printf(", ")
+				if !p.tabWriterOn {
+					p.printf(", ")
+				} else {
+					p.printf(",\t")
+				}
 			}
 			p.expr(x, precLow)
 		}
