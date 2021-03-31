@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/tables"
@@ -116,6 +117,32 @@ func hasComment(x Expr, text string) bool {
 		}
 	}
 	return false
+}
+
+// getColumnNumber reports the column number specified in the x for
+// "buildifier: table sort <n>" in comment.
+func getColumnNumber(x Expr) int {
+	for _, com := range x.Comment().Before {
+		tokens := strings.Split(strings.ToLower(com.Token), " ")
+		colNum, _ := strconv.Atoi(tokens[4])
+		return colNum
+	}
+	return -1
+}
+
+// tableFormat reports whether x is marked with a comment containing
+// "buildifier: table", case-insensitive.
+func tableFormat(x Expr) bool {
+	return hasComment(x, "buildifier: table")
+}
+
+// tableFormatSortBy reports whether x is marked with a comment containing
+// "buildifier: table sort <n>", case-insensitive.
+func tableFormatSortBy(x Expr) int {
+	if hasComment(x, "buildifier: table sort") {
+		return getColumnNumber(x)
+	}
+	return -1
 }
 
 // leaveAlone1 reports whether x is marked with a comment containing
@@ -385,16 +412,18 @@ func formatTables(f *File) {
 		switch v := v.(type) {
 		// Tabular formatting is currently supported only for lists
 		case *ListExpr:
-			// set based on Rehana's condition
-			v.ForceTable = true
+			if tableFormat(v.List[0]) {
 
-			// Iterate within the items of the list ( tablerows)
-			for _, row := range v.List {
-				tupleRow, ok := row.(*TupleExpr)
-				if !ok {
-					continue
+				v.ForceTable = true
+
+				// Iterate within the items of the list ( tablerows)
+				for _, row := range v.List {
+					tupleRow, ok := row.(*TupleExpr)
+					if !ok {
+						continue
+					}
+					tupleRow.ForceTableRow = true
 				}
-				tupleRow.ForceTableRow = true
 			}
 		}
 	})
@@ -456,6 +485,10 @@ func sortStringLists(f *File) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
+			// TODO remove
+			if tableFormatSortBy(v.List[0]) > 0 {
+				// colNumber = tableFormatSortBy(v.List[0])
+			}
 			if disabled("unsafesort") {
 				return
 			}
