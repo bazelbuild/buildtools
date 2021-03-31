@@ -167,11 +167,6 @@ func (p *printer) trim() {
 
 // file formats the given file into the print buffer.
 func (p *printer) file(f *File) {
-	p.tabWriterOn = true
-	if p.tabWriterOn {
-		p.tw = new(tabwriter.Writer)
-		p.tw.Init(p, 0, 0, 4, ' ', tabwriter.StripEscape)
-	}
 	for _, com := range f.Before {
 		p.printf("%s", strings.TrimSpace(com.Token))
 		p.newline()
@@ -621,7 +616,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
 
 	case *ListExpr:
+		// TODO: Check whether tabular mode is necessary.
+		p.tabWriterOn = true
+		if p.tabWriterOn {
+			p.tw = new(tabwriter.Writer)
+			p.tw.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
+		}
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
+		p.tw.Flush()
 
 	case *SetExpr:
 		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
@@ -631,6 +633,8 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.NoBrackets {
 			mode = modeSeq
 		}
+		// TODO: Set this on a criteria
+		mode = modeTable
 		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
 
 	case *DictExpr:
@@ -761,6 +765,7 @@ const (
 	modeSeq   // x, y
 	modeDef   // def f(x, y)
 	modeLoad  // load(a, b, c)
+	modeTable // [(a,    b,    c)]
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
@@ -843,14 +848,24 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
+	if mode == modeTable {
+		for i, x := range *list {
+			if i > 0 {
+				p.printf(",\t")
+			}
+			p.expr(x, precLow)
+		}
+		// Single-element tuple must end with comma, to mark it as a tuple.
+		if len(*list) == 1 && mode == modeTuple {
+			p.printf(",")
+		}
+		return
+	}
+
 	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
 		for i, x := range *list {
 			if i > 0 {
-				if !p.tabWriterOn {
-					p.printf(", ")
-				} else {
-					p.printf(",\t")
-				}
+				p.printf(", ")
 			}
 			p.expr(x, precLow)
 		}

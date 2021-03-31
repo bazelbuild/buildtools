@@ -194,8 +194,8 @@ func (x *Ident) asString() *StringExpr {
 // An TypedIdent represents an identifier with type annotation: "foo: int".
 type TypedIdent struct {
 	Comments
-	Ident   *Ident
-	Type    Expr
+	Ident *Ident
+	Type  Expr
 }
 
 // Span returns the start and end positions of the node
@@ -445,6 +445,7 @@ type ListExpr struct {
 	List  []Expr
 	End
 	ForceMultiLine bool // force multiline form when printing
+	ForceTable     bool // force tablular fornmatting when printing
 }
 
 // Span returns the start and end positions of the node
@@ -487,6 +488,7 @@ type TupleExpr struct {
 	End
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
+	ForceTableRow  bool // force tablular formatting when printing
 }
 
 // Span returns the start and end positions of the node
