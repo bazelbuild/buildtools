@@ -412,8 +412,7 @@ func formatTables(f *File) {
 		switch v := v.(type) {
 		// Tabular formatting is currently supported only for lists
 		case *ListExpr:
-			if tableFormat(v.List[0]) {
-
+			if len(v.List) > 0 && tableFormat(v.List[0]) {
 				v.ForceTable = true
 
 				// Iterate within the items of the list ( tablerows)
@@ -485,10 +484,6 @@ func sortStringLists(f *File) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
-			// TODO remove
-			if tableFormatSortBy(v.List[0]) > 0 {
-				// colNumber = tableFormatSortBy(v.List[0])
-			}
 			if disabled("unsafesort") {
 				return
 			}
