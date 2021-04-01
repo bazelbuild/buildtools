@@ -19,7 +19,6 @@ limitations under the License.
 package build
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -453,26 +452,25 @@ func formatTables(f *File) {
 					// This is a duplicate of a string above.
 					// Collect comments so that they're not lost.
 					comments = append(comments, tupleRow.Comment().Before...)
-					fmt.Println("RTRT", comments)
 
 					// create a map with <key, tuple> values
 					tableMap[key] = tupleRow
 				}
 
 				// sort the keys
-                                var CommentKey []Comment
-                                for i, key := range keys {
-                                        if i == 0 {
-                                                CommentKey = tableMap[key].Comment().Before[0:1]
-                                                tableMap[key].Comment().Before = tableMap[key].Comment().Before[1:]
-                                        }
-                                }
+				var CommentKey []Comment
+				for i, key := range keys {
+					if i == 0 {
+						CommentKey = tableMap[key].Comment().Before[0:1]
+						tableMap[key].Comment().Before = tableMap[key].Comment().Before[1:]
+					}
+				}
 				sort.Strings(keys)
 				// rewrite the sorted list to v.list
 				for i, key := range keys {
 					if i == 0 {
-	          				tableMap[key].Comment().Before = CommentKey
-                                        }
+						tableMap[key].Comment().Before = CommentKey
+					}
 					sortedList = append(sortedList, tableMap[key])
 				}
 				v.List = sortedList
