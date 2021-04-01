@@ -413,9 +413,9 @@ func formatTables(f *File) {
 		switch v := v.(type) {
 		// Tabular formatting is currently supported only for lists
 		case *ListExpr:
+			// Handle when "#buildifier: table" tag is set
 			if len(v.List) > 0 && tableFormat(v.List[0]) {
 				v.ForceTable = true
-
 				// Iterate within the items of the list ( tablerows)
 				for _, row := range v.List {
 					tupleRow, ok := row.(*TupleExpr)
@@ -424,6 +424,40 @@ func formatTables(f *File) {
 					}
 					tupleRow.ForceTableRow = true
 				}
+			}
+			// Handle when "#buildifier: table sort N" tag is set
+			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
+				// less than 2 rows, nothing to sort
+				if len(v.List) < 2 {
+					return
+				}
+
+				var sortedList []Expr
+				colNumber := tableSort(v.List[0])
+				keys := make([]string, 0, len(v.List))
+				tableMap := make(map[string]*TupleExpr)
+				// Iterate  over the list of tuples(tablerows)
+				for _, row := range v.List {
+					tupleRow, ok := row.(*TupleExpr)
+					if !ok {
+						continue
+					}
+					// keys are the values from tuple[colNumber position]
+					// Table column starts at 1, where list starts at 0
+					str, ok := tupleRow.List[colNumber-1].(*StringExpr)
+					key := str.Value
+					keys = append(keys, key)
+					// create a map with <key, tuple> values
+					tableMap[key] = tupleRow
+				}
+
+				// sort the keys
+				sort.Strings(keys)
+				// rewrite the sorted list to v.list
+				for _, key := range keys {
+					sortedList = append(sortedList, tableMap[key])
+				}
+				v.List = sortedList
 			}
 		}
 	})
@@ -485,10 +519,6 @@ func sortStringLists(f *File) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
-			// TODO remove
-			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
-				// colNumber = tableSort(v.List[0])
-			}
 			if disabled("unsafesort") {
 				return
 			}
