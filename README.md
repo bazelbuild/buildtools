@@ -31,7 +31,7 @@ There exists a couple of developer tools for working with Google's `bazel` build
 The binary should be built at this location: `bazel-bin/buildifier/buildifier_/buildifier`
 
 
-### Usage:
+### General Usage:
 
 Use buildifier to create standardized formatting for BUILD and .bazel src files:
 
@@ -50,12 +50,21 @@ in a directory recursively:
 
     $ buildifier -r path/to/dir
 
+### Using table formating ( Magic table ):
 To utilize the new tags being added for formating tabular data add tag in your src file above the tabular data.
 `# buildifier: table`.
 
+	$ cat sample.bzl
+	manifest =[
+      #buildifier: table
+      ("aaaaaa",     "b",     "c"),
+      ("ab",    "bc",    "cdddd"),
+      ("ab",    "bccccc",    "cd"),
+    ]
+
 Buildifier will properly format the tabular data when you run the Buildifier on your src file.
 
-	$ bazel-bin/buildifier/buildifier_/buildifier path/to/file
+	$ bazel-bin/buildifier/buildifier_/buildifier --lint=fix path/to/sample.bzl
 
 Also, to sort the table in your source file by a specific column, use tag "# buildifier: table sort <column_index>"
 
