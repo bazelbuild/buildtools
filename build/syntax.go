@@ -445,7 +445,7 @@ type ListExpr struct {
 	List  []Expr
 	End
 	ForceMultiLine bool // force multiline form when printing
-	ForceTable     bool // force tablular fornmatting when printing
+	ForceTabular   bool // force tabular formatting when printing
 }
 
 // Span returns the start and end positions of the node
@@ -488,7 +488,7 @@ type TupleExpr struct {
 	End
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
-	ForceTableRow  bool // force tablular formatting when printing
+	ForceTabular   bool // force tabular formatting when printing
 }
 
 // Span returns the start and end positions of the node

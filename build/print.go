@@ -75,14 +75,14 @@ type printer struct {
 	tw           *tabwriter.Writer // tab writer
 }
 
-// printf prints to the buffer.
+// printf prints to the buffer either directly or via TabWriter based on the mode
 func (p *printer) printf(format string, args ...interface{}) {
 	if !p.tabWriterOn {
 		fmt.Fprintf(p, format, args...)
-	} else {
-		if p.tw != nil {
-			fmt.Fprintf(p.tw, format, args...)
-		}
+		return
+	}
+	if p.tw != nil {
+		fmt.Fprintf(p.tw, format, args...)
 	}
 }
 
@@ -618,7 +618,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
 
 	case *ListExpr:
-		if v.ForceTable {
+		if v.ForceTabular {
 			p.tabWriterOn = true
 			p.tw = new(tabwriter.Writer)
 			p.tw.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
@@ -626,7 +626,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
 
-		if v.ForceTable {
+		if v.ForceTabular {
 			p.tw.Flush()
 		}
 
@@ -638,7 +638,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.NoBrackets {
 			mode = modeSeq
 		}
-		if v.ForceTableRow {
+		if v.ForceTabular {
 			mode = modeTable
 		}
 		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
