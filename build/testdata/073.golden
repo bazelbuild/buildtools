@@ -1,6 +1,6 @@
-manifest = [
-   # buildifier: table
-   (),
-   (),
-   ()
+manifest =[
+    # buildifier: table
+    (),
+    (),
+    (),
 ]

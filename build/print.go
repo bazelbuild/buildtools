@@ -383,7 +383,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf("\n")
 		}
 		// Re-indent to margin.
-		p.printf("%*s", p.margin, "")
+		if !p.tabWriterOn {
+			p.printf("%*s", p.margin, "")
+		}
 		for _, com := range before {
 			p.printf("%s", strings.TrimSpace(com.Token))
 			p.newline()

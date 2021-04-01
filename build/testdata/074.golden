@@ -1,6 +1,6 @@
-manifest = [
+manifest =[
     # buildifier: table
-    ("",                        "",     ""),
-    ("ab",                      "bc",   "cd"),
-    ("aaaaaaaaaaaaaaaaaaaa",    "b",    "c"),
+    ("",                        "",      ""),
+    ("ab",                      "bc",    "cd"),
+    ("aaaaaaaaaaaaaaaaaaaa",    "b",     "c"),
 ]
