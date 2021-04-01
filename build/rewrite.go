@@ -19,6 +19,7 @@ limitations under the License.
 package build
 
 import (
+	"fmt"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -433,6 +434,7 @@ func formatTables(f *File) {
 				}
 
 				var sortedList []Expr
+				var comments []Comment
 				colNumber := tableSort(v.List[0])
 				keys := make([]string, 0, len(v.List))
 				tableMap := make(map[string]*TupleExpr)
@@ -447,6 +449,12 @@ func formatTables(f *File) {
 					str, ok := tupleRow.List[colNumber-1].(*StringExpr)
 					key := str.Value
 					keys = append(keys, key)
+
+					// This is a duplicate of a string above.
+					// Collect comments so that they're not lost.
+					comments = append(comments, tupleRow.Comment().Before...)
+					fmt.Println("RTRT", comments)
+
 					// create a map with <key, tuple> values
 					tableMap[key] = tupleRow
 				}
@@ -454,7 +462,10 @@ func formatTables(f *File) {
 				// sort the keys
 				sort.Strings(keys)
 				// rewrite the sorted list to v.list
-				for _, key := range keys {
+				for i, key := range keys {
+					if i == 0 {
+						tableMap[key].Comment().Before = comments
+					}
 					sortedList = append(sortedList, tableMap[key])
 				}
 				v.List = sortedList
