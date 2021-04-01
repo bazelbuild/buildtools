@@ -460,12 +460,19 @@ func formatTables(f *File) {
 				}
 
 				// sort the keys
+                                var CommentKey []Comment
+                                for i, key := range keys {
+                                        if i == 0 {
+                                                CommentKey = tableMap[key].Comment().Before[0:1]
+                                                tableMap[key].Comment().Before = tableMap[key].Comment().Before[1:]
+                                        }
+                                }
 				sort.Strings(keys)
 				// rewrite the sorted list to v.list
 				for i, key := range keys {
 					if i == 0 {
-						tableMap[key].Comment().Before = comments
-					}
+	          				tableMap[key].Comment().Before = CommentKey
+                                        }
 					sortedList = append(sortedList, tableMap[key])
 				}
 				v.List = sortedList
