@@ -416,14 +416,6 @@ func formatTables(f *File) {
 			// Handle when "#buildifier: table" tag is set
 			if len(v.List) > 0 && tableFormat(v.List[0]) {
 				v.ForceTabular = true
-				// Iterate within the items of the list ( tablerows)
-				/*for _, row := range v.List {
-					tupleRow, ok := row.(*TupleExpr)
-					if !ok {
-						continue
-					}
-					tupleRow.ForceTabular = true
-				}*/
 			}
 			// Handle when "#buildifier: table sort N" tag is set
 			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
@@ -432,7 +424,6 @@ func formatTables(f *File) {
 					return
 				}
 
-				var sortedList []Expr
 				var comments []Comment
 				colNumber := tableSort(v.List[0])
 				keys := make([]string, 0, len(v.List))
@@ -458,18 +449,19 @@ func formatTables(f *File) {
 				}
 
 				// sort the keys
-				var CommentKey []Comment
+				var commentKey []Comment
 				for i, key := range keys {
 					if i == 0 {
-						CommentKey = tableMap[key].Comment().Before[0:1]
+						commentKey = tableMap[key].Comment().Before[0:1]
 						tableMap[key].Comment().Before = tableMap[key].Comment().Before[1:]
 					}
 				}
 				sort.Strings(keys)
 				// rewrite the sorted list to v.list
+				var sortedList []Expr
 				for i, key := range keys {
 					if i == 0 {
-						tableMap[key].Comment().Before = CommentKey
+						tableMap[key].Comment().Before = commentKey
 					}
 					sortedList = append(sortedList, tableMap[key])
 				}

@@ -72,7 +72,7 @@ type printer struct {
 	level        int               // nesting level of def-, if-else- and for-blocks
 	needsNewLine bool              // true if the next statement needs a new line before it
 	tabWriterOn  bool              // when this mode is on ,use the tabwriter to write to buffer
-	tw           *tabwriter.Writer // tab writer
+	tWriter      *tabwriter.Writer // tab writer
 }
 
 // printf prints to the buffer either directly or via TabWriter based on the mode
@@ -81,8 +81,8 @@ func (p *printer) printf(format string, args ...interface{}) {
 		fmt.Fprintf(p, format, args...)
 		return
 	}
-	if p.tw != nil {
-		fmt.Fprintf(p.tw, format, args...)
+	if p.tWriter != nil {
+		fmt.Fprintf(p.tWriter, format, args...)
 	}
 }
 
@@ -620,14 +620,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *ListExpr:
 		if v.ForceTabular {
 			p.tabWriterOn = true
-			p.tw = new(tabwriter.Writer)
-			p.tw.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
+			p.tWriter = new(tabwriter.Writer)
+			p.tWriter.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
 		}
 
 		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, p.tabWriterOn)
 
 		if v.ForceTabular {
-			p.tw.Flush()
+			p.tWriter.Flush()
 		}
 
 	case *SetExpr:
@@ -850,6 +850,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
+	// Tuple entries in each column must end with a tab, to table format it.
 	if mode == modeTuple && forceTabular {
 		for i, x := range *list {
 			if i > 0 {
