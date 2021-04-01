@@ -488,7 +488,6 @@ type TupleExpr struct {
 	End
 	ForceCompact   bool // force compact (non-multiline) form when printing
 	ForceMultiLine bool // force multiline form when printing
-	ForceTabular   bool // force tabular formatting when printing
 }
 
 // Span returns the start and end positions of the node

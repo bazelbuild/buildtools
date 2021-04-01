@@ -417,13 +417,13 @@ func formatTables(f *File) {
 			if len(v.List) > 0 && tableFormat(v.List[0]) {
 				v.ForceTabular = true
 				// Iterate within the items of the list ( tablerows)
-				for _, row := range v.List {
+				/*for _, row := range v.List {
 					tupleRow, ok := row.(*TupleExpr)
 					if !ok {
 						continue
 					}
 					tupleRow.ForceTabular = true
-				}
+				}*/
 			}
 			// Handle when "#buildifier: table sort N" tag is set
 			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {

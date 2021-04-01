@@ -585,12 +585,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.margin = m
 
 	case *ParenExpr:
-		p.seq("()", &v.Start, &[]Expr{v.X}, &v.End, modeParen, false, v.ForceMultiLine)
+		p.seq("()", &v.Start, &[]Expr{v.X}, &v.End, modeParen, false, v.ForceMultiLine, false)
 
 	case *CallExpr:
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
-		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine, false)
 
 	case *LoadStmt:
 		addParen(precSuffix)
@@ -615,7 +615,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 			args = append(args, arg)
 		}
-		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
+		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false, false)
 
 	case *ListExpr:
 		if v.ForceTabular {
@@ -624,31 +624,28 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.tw.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
 		}
 
-		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
+		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, p.tabWriterOn)
 
 		if v.ForceTabular {
 			p.tw.Flush()
 		}
 
 	case *SetExpr:
-		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
+		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, false)
 
 	case *TupleExpr:
 		mode := modeTuple
 		if v.NoBrackets {
 			mode = modeSeq
 		}
-		if v.ForceTabular {
-			mode = modeTable
-		}
-		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine, p.tabWriterOn)
 
 	case *DictExpr:
 		var list []Expr
 		for _, x := range v.List {
 			list = append(list, x)
 		}
-		p.seq("{}", &v.Start, &list, &v.End, modeDict, false, v.ForceMultiLine)
+		p.seq("{}", &v.Start, &list, &v.End, modeDict, false, v.ForceMultiLine, false)
 
 	case *Comprehension:
 		p.listFor(v)
@@ -671,7 +668,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	case *DefStmt:
 		p.printf("def ")
 		p.printf(v.Name)
-		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine, false)
 		if v.Type != nil {
 			p.printf(" -> ")
 			p.expr(v.Type, precLow)
@@ -771,7 +768,6 @@ const (
 	modeSeq   // x, y
 	modeDef   // def f(x, y)
 	modeLoad  // load(a, b, c)
-	modeTable // [(a,    b,    c)]
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
@@ -842,7 +838,7 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 // The mode parameter specifies the sequence mode (see above).
 // If multiLine is true, seq avoids the compact form even
 // for 0- and 1-element sequences.
-func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
+func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine, forceTabular bool) {
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
@@ -854,7 +850,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if mode == modeTable {
+	if mode == modeTuple && forceTabular {
 		for i, x := range *list {
 			if i > 0 {
 				p.printf(",\t")
