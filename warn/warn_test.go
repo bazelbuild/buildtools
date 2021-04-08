@@ -39,6 +39,10 @@ const (
 // reset it when it finishes.
 var testFileReader *FileReader
 
+// A global variable containing package name for test cases. Can be overwritten
+// but must be reset when the test finishes.
+var testPackage string = "test/package"
+
 // fileReaderRequests is used by tests to check which files have actually been requested by testFileReader
 var fileReaderRequests []string
 
@@ -60,6 +64,16 @@ func setUpFileReader(data map[string]string) (cleanup func()) {
 	}
 }
 
+func setUpTestPackage(name string) (cleanup func()) {
+	oldName := testPackage
+	testPackage = name
+
+	return func() {
+		// Tear down
+		testPackage = oldName
+	}
+}
+
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
@@ -76,11 +90,11 @@ func getFilename(fileType build.FileType) string {
 func getFileForTest(input string, fileType build.FileType) *build.File {
 	input = strings.TrimLeft(input, "\n")
 	filename := getFilename(fileType)
-	file, err := build.Parse("test/package/"+filename, []byte(input))
+	file, err := build.Parse(testPackage+"/"+filename, []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	file.Pkg = "test/package"
+	file.Pkg = testPackage
 	file.Label = filename
 	file.WorkspaceRoot = "/home/users/foo/bar"
 	return file

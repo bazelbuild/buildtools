@@ -64,7 +64,8 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 			continue
 		}
 
-		if strings.HasPrefix(path, chunks[0]) {
+		if strings.HasPrefix(path, chunks[0]) ||
+			strings.HasPrefix(strings.Replace(path, "/javatest/", "/java/", 1), chunks[0]) {
 			continue
 		}
 

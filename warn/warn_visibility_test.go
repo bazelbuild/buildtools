@@ -90,3 +90,21 @@ load("@repo//test/external:module.bzl", "baz")
 		[]string{},
 		scopeEverywhere)
 }
+
+func TestBzlVisibilityJavatest(t *testing.T) {
+	defer setUpTestPackage("foo/javatest/bar")()
+
+	checkFindings(t, "bzl-visibility", `
+load("//foo/java/bar/internal/baz:module.bzl", "foo")
+load("//foo/java/bar/private/baz:module.bzl", "bar")
+load("//foo/javatest/bar/internal/baz:module.bzl", "foo1")
+load("//foo/javatest/bar/private/baz:module.bzl", "bar1")
+
+foo()
+bar()
+foo1()
+bar1()
+`,
+		[]string{},
+		scopeEverywhere)
+}
