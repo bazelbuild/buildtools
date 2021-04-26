@@ -42,7 +42,7 @@ def buildifier_attr_factory(test_rule = False):
             doc = "Print verbose information on standard error",
         ),
         "mode": attr.string(
-            default = "fix",
+            default = "fix" if not test_rule else "diff",
             doc = "Formatting mode",
             values = ["check", "diff", "print_if_changed"] + ["fix"] if not test_rule else [],
         ),
