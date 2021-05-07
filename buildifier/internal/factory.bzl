@@ -38,6 +38,11 @@ def buildifier_attr_factory(test_rule = False):
       A dictionary of attributes relevant to the rule
     """
     attrs = {
+        "buildifier": attr.label(
+            default = "@com_github_bazelbuild_buildtools//buildifier",
+            cfg = "host",
+            executable = True,
+        ),
         "verbose": attr.bool(
             doc = "Print verbose information on standard error",
         ),
@@ -65,11 +70,6 @@ def buildifier_attr_factory(test_rule = False):
             mandatory = False,
             doc = "path to JSON file with custom table definitions which will be merged with the built-in tables",
             allow_single_file = True,
-        ),
-        "_buildifier": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier",
-            cfg = "host",
-            executable = True,
         ),
         "_runner": attr.label(
             default = "@com_github_bazelbuild_buildtools//buildifier:runner.bash.template",
@@ -154,7 +154,7 @@ def buildifier_impl_factory(ctx, test_rule = False):
     out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
-        "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable._buildifier.short_path),
+        "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
         "@@EXCLUDE_PATTERNS@@": exclude_patterns_str,
     }
     ctx.actions.expand_template(
@@ -164,7 +164,7 @@ def buildifier_impl_factory(ctx, test_rule = False):
         is_executable = True,
     )
 
-    runfiles = [ctx.executable._buildifier]
+    runfiles = [ctx.executable.buildifier]
     if test_rule:
         runfiles.extend(ctx.files.srcs)
 
