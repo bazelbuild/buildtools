@@ -196,13 +196,7 @@ func (p *printer) statements(rawStmts []Expr) {
 	}
 
 	for i, stmt := range stmts {
-		switch stmt := stmt.(type) {
-		case *CommentBlock:
-			// comments already handled
-
-		default:
-			p.expr(stmt, precLow)
-		}
+		p.expr(stmt, precLow)
 
 		// A CommentBlock is an empty statement without a body,
 		// it doesn't need an line break after the body
@@ -406,6 +400,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	switch v := v.(type) {
 	default:
 		panic(fmt.Errorf("printer: unexpected type %T", v))
+
+	case *CommentBlock:
+		// CommentBlock has no body
 
 	case *LiteralExpr:
 		p.printf("%s", v.Token)
