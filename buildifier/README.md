@@ -80,7 +80,7 @@ See also the [full list](../WARNINGS.md) or the supported warnings.
 
 ## Setup and usage via Bazel
 
-You can also invoke buildifier via the Bazel rule.
+On Linux you can also invoke buildifier via the Bazel rule.
 `WORKSPACE` file:
 ```bzl
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
