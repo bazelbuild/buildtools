@@ -252,17 +252,6 @@ func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 		}
 	}
 
-	// Allow for precisely targeting the package declaration. This
-	// helps adding new load() and license() rules
-	if name == "!package" {
-		for i, stmt := range f.Stmt {
-			if rule, ok := ExprToRule(stmt, "package"); ok {
-				return i, rule
-			}
-		}
-		return -1, nil
-	}
-
 	for i, stmt := range f.Stmt {
 		call, ok := stmt.(*build.CallExpr)
 		if !ok {
@@ -272,6 +261,14 @@ func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 		start, _ := call.X.Span()
 		if r.Name() == name || start.Line == linenum {
 			return i, r
+		}
+
+		// Allow for precisely targeting the package declaration. This
+		// helps adding new load() and license() rules
+		if name == "!package" {
+			if rule, ok := ExprToRule(stmt, "package"); ok {
+				return i, rule
+			}
 		}
 	}
 	return -1, nil
