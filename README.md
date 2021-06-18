@@ -1,77 +1,14 @@
-# Bazel
+# Buildtools for bazel
 
-Bazel is an OSS build system developed by Google.
+This repository contains developer tools for working with Google's `bazel` buildtool.
 
-# Buildifier
+* [buildifier](buildifier/README.md) For formatting BUILD, BUILD.bazel and BUCK files in a standard way
+* [buildozer](buildozer/README.md) For doing command-line operations on these files.
+* [unused_deps](unused_deps/README.md) For finding unneeded dependencies in
+[java_library](https://docs.bazel.build/versions/master/be/java.html#java_library) rules.
 
-There exists a couple of developer tools for working with Google's `bazel` buildsystem. Buildifier is one of them for formatting bazel BUILD, BUILD.bazel and BULK files with a standard convention.
-
+[![Build status](https://badge.buildkite.com/6a80fcf7909883296cada2e474286ea627994b9130aed110e2.svg)](https://buildkite.com/bazel/buildtools-postsubmit)
 
 ## Setup
 
-* Install Bazel: https://docs.bazel.build/versions/4.0.0/install.html
-* Install Go: https://golang.org/doc/install
-
-### Get the code:
-
-* Download the tar uploaded and untar it. Or,
-* Checkout the repo(https://gitlab.eng.vmware.com/rtabassum/mirrors_github_bazel-buildtools) which is forked from VMware internal gitlab mirrors repo:
-
-	$ git clone git@gitlab.eng.vmware.com:rtabassum/mirrors_github_bazel-buildtools.git
-	$ cd mirrors_github_bazel-buildtools
-
-	Checkout the branch `osborathon-magic-table`. Its pulled from the latest tag `4.0.1`
-	$ git checkout osborathon-magic-table
-
-
-### Build the tool:
-
-	$ bazel build //buildifier
-
-The binary should be built at this location: `bazel-bin/buildifier/buildifier_/buildifier`
-
-
-### General Usage:
-
-Use buildifier to create standardized formatting for BUILD and .bazel src files:
-
-    $ bazel-bin/buildifier/buildifier_/buildifier path/to/file
-
-You can also add the built binary to the PATH and directly invoke:
-
-	$ buildifier path/to/file
-
-You can also process multiple files at once:
-
-    $ buildifier path/to/file1 path/to/file2
-
-You can make buildifier automatically find all Starlark files (i.e. BUILD, WORKSPACE, .bzl)
-in a directory recursively:
-
-    $ buildifier -r path/to/dir
-
-### Using table formating ( Magic table ):
-To utilize the new tags being added for formating tabular data add tag in your src file above the tabular data.
-`# buildifier: table`.
-
-	$ cat sample.bzl
-	manifest =[
-      #buildifier: table
-      ("aaaaaa",     "b",     "c"),
-      ("ab",    "bc",    "cdddd"),
-      ("ab",    "bccccc",    "cd"),
-    ]
-
-Buildifier will properly format the tabular data when you run the Buildifier on your src file.
-
-	$ bazel-bin/buildifier/buildifier_/buildifier --lint=fix path/to/sample.bzl
-
-Also, to sort the table in your source file by a specific column, use tag "# buildifier: table sort <column_index>"
-
-
-
-## Run unittests
-
-You can run all the default unittests:
-
-$ bazel test --test_output=all //build:go_default_test
+See instructions in each tool's directory.
