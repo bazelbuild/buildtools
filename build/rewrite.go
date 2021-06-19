@@ -428,6 +428,13 @@ func formatTables(f *File) {
 				colNumber := tableSort(v.List[0])
 				keys := make([]string, 0, len(v.List))
 				tableMap := make(map[string]*TupleExpr)
+
+				// column number specified in tag is larger than the max number of columns
+				columns, ok := v.List[1].(*TupleExpr)
+				if !ok || colNumber > len(columns.List) {
+					return
+				}
+
 				// Iterate  over the list of tuples(tablerows)
 				for _, row := range v.List {
 					tupleRow, ok := row.(*TupleExpr)
@@ -440,7 +447,6 @@ func formatTables(f *File) {
 					key := str.Value
 					keys = append(keys, key)
 
-					// This is a duplicate of a string above.
 					// Collect comments so that they're not lost.
 					comments = append(comments, tupleRow.Comment().Before...)
 
