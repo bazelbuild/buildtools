@@ -427,7 +427,7 @@ func formatTables(f *File) {
 				var comments []Comment
 				colNumber := tableSort(v.List[0])
 				keys := make([]string, 0, len(v.List))
-				tableMap := make(map[string]*TupleExpr)
+				tableMap := map[string][]*TupleExpr{}
 
 				// column number specified in tag is larger than the max number of columns
 				columns, ok := v.List[1].(*TupleExpr)
@@ -450,26 +450,34 @@ func formatTables(f *File) {
 					// Collect comments so that they're not lost.
 					comments = append(comments, tupleRow.Comment().Before...)
 
-					// create a map with <key, tuple> values
-					tableMap[key] = tupleRow
+					// Create a map with <key, tuple> values
+					tableMap[key] = append(tableMap[key], tupleRow)
 				}
 
-				// sort the keys
+				// Store the comment so its not lost
 				var commentKey []Comment
 				for i, key := range keys {
 					if i == 0 {
-						commentKey = tableMap[key].Comment().Before[0:1]
-						tableMap[key].Comment().Before = tableMap[key].Comment().Before[1:]
+						commentKey = tableMap[key][0].Comment().Before[0:1]
+						tableMap[key][0].Comment().Before = tableMap[key][0].Comment().Before[1:]
 					}
 				}
+				// Sort the keys
 				sort.Strings(keys)
-				// rewrite the sorted list to v.list
+
+				// Rewrite the sorted list to v.list
 				var sortedList []Expr
+				alreadySeen := make(map[string]bool)
 				for i, key := range keys {
 					if i == 0 {
-						tableMap[key].Comment().Before = commentKey
+						tableMap[key][0].Comment().Before = commentKey
 					}
-					sortedList = append(sortedList, tableMap[key])
+					if _, ok := alreadySeen[key]; !ok {
+						for _, value := range tableMap[key] {
+							sortedList = append(sortedList, value)
+						}
+						alreadySeen[key] = true
+					}
 				}
 				v.List = sortedList
 			}
