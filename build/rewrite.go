@@ -406,83 +406,90 @@ func (x namedArgs) Less(i, j int) bool {
 }
 
 // Detects if a data is marked as tablular based on the tag `buildifier: table`
-// and sets the correct flags on the expression.
-// If the tags necessitate a sorting of the tabular data, then this takes care of inplace sorting.
+// and sets the correct flags on the expression to indentify those nodes in the AST.
 func formatTables(f *File) {
-	Walk(f, func(v Expr, stk []Expr) {
+	markTableNodes := func(v Expr, stk []Expr) {
 		switch v := v.(type) {
 		// Tabular formatting is currently supported only for lists
 		case *ListExpr:
 			// Handle when "#buildifier: table" tag is set
 			if len(v.List) > 0 && tableFormat(v.List[0]) {
 				v.ForceTabular = true
-			}
-			// Handle when "#buildifier: table sort N" tag is set
-			if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
-				// less than 2 rows, nothing to sort
-				if len(v.List) < 2 {
-					return
-				}
-
-				var comments []Comment
-				colNumber := tableSort(v.List[0])
-				keys := make([]string, 0, len(v.List))
-				tableMap := map[string][]*TupleExpr{}
-
-				// column number specified in tag is larger than the max number of columns
-				columns, ok := v.List[1].(*TupleExpr)
-				if !ok || colNumber > len(columns.List) {
-					return
-				}
-
-				// Iterate  over the list of tuples(tablerows)
-				for _, row := range v.List {
-					tupleRow, ok := row.(*TupleExpr)
-					if !ok {
-						continue
-					}
-					// keys are the values from tuple[colNumber position]
-					// Table column starts at 1, where list starts at 0
-					str, ok := tupleRow.List[colNumber-1].(*StringExpr)
-					key := str.Value
-					keys = append(keys, key)
-
-					// Collect comments so that they're not lost.
-					comments = append(comments, tupleRow.Comment().Before...)
-
-					// Create a map with <key, tuple> values
-					tableMap[key] = append(tableMap[key], tupleRow)
-				}
-
-				// Store the comment so its not lost
-				var commentKey []Comment
-				for i, key := range keys {
-					if i == 0 {
-						commentKey = tableMap[key][0].Comment().Before[0:1]
-						tableMap[key][0].Comment().Before = tableMap[key][0].Comment().Before[1:]
-					}
-				}
-				// Sort the keys
-				sort.Strings(keys)
-
-				// Rewrite the sorted list to v.list
-				var sortedList []Expr
-				alreadySeen := make(map[string]bool)
-				for i, key := range keys {
-					if i == 0 {
-						tableMap[key][0].Comment().Before = commentKey
-					}
-					if _, ok := alreadySeen[key]; !ok {
-						for _, value := range tableMap[key] {
-							sortedList = append(sortedList, value)
-						}
-						alreadySeen[key] = true
-					}
-				}
-				v.List = sortedList
+				sortTableRows(v)
 			}
 		}
-	})
+	}
+
+	Walk(f, markTableNodes)
+}
+
+// If the tags necessitate a sorting of the tabular data, then this takes care of sorting.
+// TODO : Change to in-place sorting later.
+func sortTableRows(v *ListExpr) {
+	// Handle when "#buildifier: table sort N" tag is set
+	if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
+		// less than 2 rows, nothing to sort
+		if len(v.List) < 2 {
+			return
+		}
+
+		var comments []Comment
+		colNumber := tableSort(v.List[0])
+		keys := make([]string, 0, len(v.List))
+		tableMap := map[string][]*TupleExpr{}
+
+		// column number specified in tag is larger than the max number of columns
+		columns, ok := v.List[1].(*TupleExpr)
+		if !ok || colNumber > len(columns.List) {
+			return
+		}
+
+		// Iterate  over the list of tuples(tablerows)
+		for _, row := range v.List {
+			tupleRow, ok := row.(*TupleExpr)
+			if !ok {
+				continue
+			}
+			// keys are the values from tuple[colNumber position]
+			// Table column starts at 1, where list starts at 0
+			str, ok := tupleRow.List[colNumber-1].(*StringExpr)
+			key := str.Value
+			keys = append(keys, key)
+
+			// Collect comments so that they're not lost.
+			comments = append(comments, tupleRow.Comment().Before...)
+
+			// Create a map with <key, tuple> values
+			tableMap[key] = append(tableMap[key], tupleRow)
+		}
+
+		// Store the comment so its not lost
+		var commentKey []Comment
+		for i, key := range keys {
+			if i == 0 {
+				commentKey = tableMap[key][0].Comment().Before[0:1]
+				tableMap[key][0].Comment().Before = tableMap[key][0].Comment().Before[1:]
+			}
+		}
+		// Sort the keys
+		sort.Strings(keys)
+
+		// Rewrite the sorted list to v.list
+		var sortedList []Expr
+		alreadySeen := make(map[string]bool)
+		for i, key := range keys {
+			if i == 0 {
+				tableMap[key][0].Comment().Before = commentKey
+			}
+			if _, ok := alreadySeen[key]; !ok {
+				for _, value := range tableMap[key] {
+					sortedList = append(sortedList, value)
+				}
+				alreadySeen[key] = true
+			}
+		}
+		v.List = sortedList
+	}
 }
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
