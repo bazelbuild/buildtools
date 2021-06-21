@@ -618,17 +618,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false, false)
 
 	case *ListExpr:
-		if v.ForceTabular {
-			p.tabWriterOn = true
-			p.tWriter = new(tabwriter.Writer)
-			p.tWriter.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
-		}
-
-		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, p.tabWriterOn)
-
-		if v.ForceTabular {
-			p.tWriter.Flush()
-		}
+		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, v.ForceTabular)
 
 	case *SetExpr:
 		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, false)
@@ -638,7 +628,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.NoBrackets {
 			mode = modeSeq
 		}
-		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine, p.tabWriterOn)
+
+		if !p.tabWriterOn {
+			p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine, false)
+		} else {
+			p.tabbedSeq("()", &v.Start, &v.List, &v.End)
+		}
 
 	case *DictExpr:
 		var list []Expr
@@ -842,28 +837,25 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
+
 	p.depth++
+	if forceTabular {
+		p.tabWriterOn = true
+		p.tWriter = new(tabwriter.Writer)
+		p.tWriter.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
+	}
+	defer func() {
+		if forceTabular {
+			p.tWriter.Flush()
+		}
+	}()
+
 	defer func() {
 		p.depth--
 		if mode != modeSeq {
 			p.printf("%s", brack[1:])
 		}
 	}()
-
-	// Tuple entries in each column must end with a tab, to table format it.
-	if mode == modeTuple && forceTabular {
-		for i, x := range *list {
-			if i > 0 {
-				p.printf(",\t")
-			}
-			p.expr(x, precLow)
-		}
-		// Single-element tuple must end with comma, to mark it as a tuple.
-		if len(*list) == 1 && mode == modeTuple {
-			p.printf(",")
-		}
-		return
-	}
 
 	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
 		for i, x := range *list {
@@ -915,6 +907,34 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	// in modeDef print the closing bracket on the same line
 	if mode != modeDef {
 		p.newline()
+	}
+}
+
+// Formats a list of values inside a given bracket pair (brack = "()", "[]")
+// by adding a tabspace in between, so that the tabwriter prints them out in table format.
+func (p *printer) tabbedSeq(brack string, start *Position, list *[]Expr, end *End) {
+
+	// Print starting braces
+	p.printf("%s", brack[:1])
+
+	p.depth++
+	defer func() {
+		p.depth--
+		p.printf("%s", brack[1:])
+
+	}()
+
+	// Tablerows entries in each column must end with a tab, to table format it.
+	for i, x := range *list {
+		if i > 0 {
+			p.printf(",\t")
+		}
+		p.expr(x, precLow)
+	}
+
+	// Single-element tuple must end with comma, to mark it as a tuple.
+	if len(*list) == 1 {
+		p.printf(",")
 	}
 }
 

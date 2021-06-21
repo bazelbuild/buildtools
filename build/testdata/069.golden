@@ -1,4 +1,4 @@
-manifest =[
+manifest = [
     # buildifier: table
     ("a",     "b",     "c"),
     ("ab",    "bc",    "cd"),

@@ -1,4 +1,4 @@
-manifest =[
+manifest = [
     # buildifier: table sort 1
     ("a",     "b",     "cc"),
     ("ab",    "bc",    "cd"),
