@@ -405,16 +405,28 @@ func (x namedArgs) Less(i, j int) bool {
 	return p.index < q.index
 }
 
-// Detects if a data is marked as tablular based on the tag `buildifier: table`
-// and sets the correct flags on the expression to indentify those nodes in the AST.
+// Detects if a data is marked as tablular based on the tag
+// `buildifier: table` and sets the correct flags on the expression to
+// identify those nodes in the AST.
 func formatTables(f *File) {
+
+	// Function that sets a bit on the child nodes of type (list) to indicate
+	// that they are a part of a row
+	markTableRowNodes := func(x Expr, stk2 []Expr) Expr {
+		if x, ok := x.(*TupleExpr); ok {
+			x.FormatAsTableRow = true
+		}
+		return x
+	}
+
 	markTableNodes := func(v Expr, stk []Expr) {
 		switch v := v.(type) {
 		// Tabular formatting is currently supported only for lists
 		case *ListExpr:
 			// Handle when "#buildifier: table" tag is set
 			if len(v.List) > 0 && tableFormat(v.List[0]) {
-				v.ForceTabular = true
+				v.FormatAsTable = true
+				EditChildren(v, markTableRowNodes)
 				sortTableRows(v)
 			}
 		}

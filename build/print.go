@@ -618,7 +618,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false, false)
 
 	case *ListExpr:
-		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, v.ForceTabular)
+		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, v.FormatAsTable)
 
 	case *SetExpr:
 		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine, false)
@@ -629,10 +629,10 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			mode = modeSeq
 		}
 
-		if !p.tabWriterOn {
-			p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine, false)
-		} else {
+		if v.FormatAsTableRow {
 			p.tabbedSeq("()", &v.Start, &v.List, &v.End)
+		} else {
+			p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine, false)
 		}
 
 	case *DictExpr:
