@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/edit/safe",
     visibility = ["//visibility:public"],
     deps = [
-        "//edit:go_default_library",
         "//build:go_default_library",
+        "//edit:go_default_library",
     ],
 )
