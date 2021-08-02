@@ -1,7 +1,11 @@
-// Package safebuildifier provides a Buildifier which doesn't call os.exec.
+// Package buildifier provides a Buildifier which doesn't call os.exec.
 //
 // There are some programming frameworks which consider os.exec dangerous.
-package safebuildifier
+//
+// The package is imported just for its side-effects. For example:
+// 
+// import _ "github.com/bazelbuild/buildtools/edit/safe/buildifier"
+package buildifier
 
 import (
   "github.com/bazelbuild/buildtools/build"

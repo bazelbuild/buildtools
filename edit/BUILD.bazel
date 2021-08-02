@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "buildifier.go",
+        "default_buildifier.go",
         "buildozer.go",
         "edit.go",
         "fix.go",
@@ -36,13 +36,3 @@ go_test(
     deps = ["//build:go_default_library"],
 )
 
-go_library(
-    name = "safebuildifier",
-    srcs = ["safebuildifier.go"],
-    importpath = "github.com/bazelbuild/buildtools/edit/safebuildifier",
-    visibility = ["//visibility:public"],
-    deps = [
-        ":go_default_library",
-        "//build:go_default_library",
-    ],
-)
