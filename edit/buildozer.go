@@ -27,7 +27,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -880,6 +879,27 @@ func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) 
 // in scripts are free to do so.
 var BuildFileNames = [...]string{"BUILD.bazel", "BUILD", "BUCK"}
 
+// Buildifier formats the build file using the buildifier logic.
+type Buildifier interface {
+	// Buildify formats the build file and returns the formatted contents.
+	Buildify(*Options, *build.File) ([]byte, error)
+}
+
+var buildifier Buildifier = &defaultBuildifier{}
+var buildifierRegistered = false
+
+// RegisterBuildifier replaces the default buildifier with an
+// alternative implementation.
+//
+// It may only be called once.
+func RegisterBuildifier(b Buildifier) {
+	if buildifierRegistered {
+		panic("Only one call to RegisterBuildifier is allowed.")
+	}
+	buildifier = b
+	buildifierRegistered = true
+}
+
 // rewrite parses the BUILD file for the given file, transforms the AST,
 // and write the changes back in the file (or on stdout).
 func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
@@ -986,7 +1006,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
 	f = RemoveEmptyPackage(f)
-	ndata, err := runBuildifier(opts, f)
+	ndata, err := buildifier.Buildify(opts, f)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
 	}
@@ -1015,39 +1035,6 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 // e.g. "checking out for write" from a locking source control repo.
 var EditFile = func(fi os.FileInfo, name string) error {
 	return nil
-}
-
-// runBuildifier formats the build file f.
-// Runs opts.Buildifier if it's non-empty, otherwise uses built-in formatter.
-// opts.Buildifier is useful to force consistency with other tools that call Buildifier.
-func runBuildifier(opts *Options, f *build.File) ([]byte, error) {
-	if opts.Buildifier == "" {
-		// Current AST may be not entirely correct, e.g. it may contain Ident which
-		// value is a chunk of code, like "f(x)". The AST should be printed and
-		// re-read to parse such expressions correctly.
-		contents := build.Format(f)
-		newF, err := build.ParseBuild(f.Path, []byte(contents))
-		if err != nil {
-			return nil, err
-		}
-		return build.Format(newF), nil
-	}
-
-	cmd := exec.Command(opts.Buildifier, "--type=build")
-	data := build.Format(f)
-	cmd.Stdin = bytes.NewBuffer(data)
-	stdout := bytes.NewBuffer(nil)
-	stderr := bytes.NewBuffer(nil)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	err := cmd.Run()
-	if stderr.Len() > 0 {
-		return nil, fmt.Errorf("%s", stderr.Bytes())
-	}
-	if err != nil {
-		return nil, err
-	}
-	return stdout.Bytes(), nil
 }
 
 // Given a target, whose package may contain a trailing "/...", returns all

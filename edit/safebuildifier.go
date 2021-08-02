@@ -1,0 +1,28 @@
+// Package safebuildifier provides a Buildifier which doesn't call os.exec.
+//
+// There are some programming frameworks which consider os.exec dangerous.
+package safebuildifier
+
+import (
+  "github.com/bazelbuild/buildtools/build"
+  "github.com/bazelbuild/buildtools/edit"
+)
+
+func init() {
+	edit.RegisterBuildifier(&buildifier{})
+}
+
+type buildifier struct{}
+
+// runBuildifier formats the build file f using the built-in formatter.
+func (b *buildifier) Buildify(_ *edit.Options, f *build.File) ([]byte, error) {
+	// Current AST may be not entirely correct, e.g. it may contain Ident which
+	// value is a chunk of code, like "f(x)". The AST should be printed and
+	// re-read to parse such expressions correctly.
+	contents := build.Format(f)
+	newF, err := build.ParseBuild(f.Path, []byte(contents))
+	if err != nil {
+		return nil, err
+	}
+	return build.Format(newF), nil
+}
