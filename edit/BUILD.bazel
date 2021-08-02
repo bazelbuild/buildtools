@@ -35,4 +35,3 @@ go_test(
     embed = [":go_default_library"],
     deps = ["//build:go_default_library"],
 )
-
