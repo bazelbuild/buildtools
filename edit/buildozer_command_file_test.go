@@ -26,7 +26,7 @@ import (
 func TestEmptyCommandFileContainsNoCommands(t *testing.T) {
 	reader := strings.NewReader("")
 	commandsByBuildFile := make(map[string][]commandsForTarget)
-	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile)
+	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile, []string{})
 	t.Logf("Read commands:\n%s", prettyFormat(commandsByBuildFile))
 
 	if len(commandsByBuildFile) != 0 {
@@ -132,7 +132,7 @@ func TestLongLineInCommandFileParsesAsOneCommand(t *testing.T) {
 func parseCommandFile(fileContent string, t *testing.T) []parsedCommand {
 	reader := strings.NewReader(fileContent)
 	commandsByBuildFile := make(map[string][]commandsForTarget)
-	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile)
+	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile, []string{})
 	t.Logf("Read commands:\n%s", prettyFormat(commandsByBuildFile))
 	return extractCommands(commandsByBuildFile)
 }
