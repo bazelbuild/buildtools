@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "buildozer.go",
+        "default_buildifier.go",
         "edit.go",
         "fix.go",
         "types.go",
