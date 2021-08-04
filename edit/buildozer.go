@@ -1145,7 +1145,7 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 			continue
 		}
 		args := strings.Split(line, "|")
-		if args[1] == "*" {
+		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
 			appendCommands(opts, commandsByFile, cmd)
 		} else {
