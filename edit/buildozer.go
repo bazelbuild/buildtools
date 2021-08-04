@@ -1113,7 +1113,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 	}
 }
 
-func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commandsForTarget) {
+func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commandsForTarget, labels []string) {
 	for _, fileName := range opts.CommandsFiles {
 		var reader io.Reader
 		if fileName == stdinPackageName {
@@ -1123,11 +1123,11 @@ func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commands
 			reader = rc
 			defer rc.Close()
 		}
-		appendCommandsFromReader(opts, reader, commandsByFile)
+		appendCommandsFromReader(opts, reader, commandsByFile, labels)
 	}
 }
 
-func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget) {
+func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget, labels []string) {
 	r := bufio.NewReader(reader)
 	atEOF := false
 	for !atEOF {
@@ -1145,7 +1145,12 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 			continue
 		}
 		args := strings.Split(line, "|")
-		appendCommands(opts, commandsByFile, args)
+		if args[1] == "*" {
+			cmd := append([]string{args[0]}, labels...)
+			appendCommands(opts, commandsByFile, cmd)
+		} else {
+			appendCommands(opts, commandsByFile, args)
+		}
 	}
 }
 
@@ -1193,7 +1198,7 @@ func Buildozer(opts *Options, args []string) int {
 	}
 	commandsByFile := make(map[string][]commandsForTarget)
 	if len(opts.CommandsFiles) > 0 {
-		appendCommandsFromFiles(opts, commandsByFile)
+		appendCommandsFromFiles(opts, commandsByFile, args)
 	} else {
 		if len(args) == 0 {
 			Usage()
