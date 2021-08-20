@@ -22,6 +22,7 @@ const spawn = require('child_process').spawn;
 
 function getNativeBinary() {
   const arch = {
+    'arm64' : 'arm64',
     'x64' : 'amd64',
   }[os.arch()];
   // Filter the platform based on the platforms that are build/included.
@@ -36,7 +37,7 @@ function getNativeBinary() {
     'win32' : '.exe',
   }[os.platform()];
 
-  if (arch == undefined || platform == undefined) {
+  if (arch == undefined || platform == undefined || (arch == 'arm64' && platform == 'windows')) {
     console.error(`FATAL: Your platform/architecture combination ${
         os.platform()} - ${os.arch()} is not yet supported.
     See instructions at https://github.com/bazelbuild/buildtools/blob/master/_TOOL_/README.md.`);
