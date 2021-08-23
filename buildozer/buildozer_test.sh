@@ -1853,4 +1853,33 @@ load(":baz.bzl", "baz")  # this is @unused
 foobar()'
 }
 
+function test_commands_with_targets() {
+  mkdir -p pkg1
+  mkdir -p pkg2
+
+  cat > pkg1/BUILD <<EOF
+rule(name = "r1", deps = [":bar"], compatible_with=["//env:a"])
+EOF
+  cat > pkg2/BUILD <<EOF
+rule(name = "r2", compatible_with=["//env:a"])
+EOF
+
+  cat > commands <<EOF
+remove compatible_with //env:a|*
+add deps :baz|*
+EOF
+  $buildozer --buildifier= -f commands pkg1:* pkg2:*
+  assert_equals 'rule(
+    name = "r1",
+    deps = [
+        ":bar",
+        ":baz",
+    ],
+)' pkg1
+  assert_equals 'rule(
+    name = "r2",
+    deps = [":baz"],
+)' pkg2
+}
+
 run_suite "buildozer tests"
