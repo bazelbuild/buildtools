@@ -767,3 +767,41 @@ func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD")
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD.bazel")
 }
+
+func TestIndexOfRuleByName(t *testing.T) {
+	tests := []struct {
+		query         string
+		expectedIndex int
+	}{
+		{"first", 3},
+		{"%8", 4},
+		{"!package", 2},
+		{"miss", -1},
+	}
+
+	bldText := `"""Docstring."""
+
+load(":path.bzl", "x")
+
+package(default_visibility=":public")
+
+cc_binary(name="first")
+cc_binary(name="second")
+
+`
+	bld, err := build.Parse("BUILD", []byte(bldText))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, test := range tests {
+		idx, rule := IndexOfRuleByName(bld, test.query)
+		if idx != test.expectedIndex {
+			t.Errorf("TestIndexOfRuleByName(%q) = %d; want %d", test.query, idx, test.expectedIndex)
+			continue
+		}
+		if idx != -1 && rule == nil {
+			t.Errorf("TestIndexOfRuleByName(%q); got nil rule", test.query)
+		}
+	}
+}
