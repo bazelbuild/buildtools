@@ -24,6 +24,7 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
   cp bazel-out/*-opt-*/bin/"$tool/$tool-linux_amd64" $BIN_DIR
   cp bazel-out/*-opt-*/bin/"$tool/$tool-linux_arm64" $BIN_DIR
   cp bazel-out/*-opt-*/bin/"$tool/$tool-darwin_amd64" $BIN_DIR
+  cp bazel-out/*-opt-*/bin/"$tool/$tool-darwin_arm64" $BIN_DIR
   cp bazel-out/*-opt-*/bin/"$tool/$tool-windows_amd64.exe" $BIN_DIR
 done;
 
@@ -43,6 +44,7 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
   upload_file "$BIN_DIR/$tool-linux_amd64" "$tool-linux-amd64"
   upload_file "$BIN_DIR/$tool-linux_arm64" "$tool-linux-arm64"
   upload_file "$BIN_DIR/$tool-darwin_amd64" "$tool-darwin-amd64"
+  upload_file "$BIN_DIR/$tool-darwin_arm64" "$tool-darwin-arm64"
   upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
 done
 

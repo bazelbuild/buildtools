@@ -69,6 +69,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "unused_deps-darwin-arm64",
+    out = "unused_deps-darwin_arm64",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 go_test(
     name = "jar_manifest_test",
     size = "small",

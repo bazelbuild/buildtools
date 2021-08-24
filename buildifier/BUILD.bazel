@@ -37,6 +37,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildifier-darwin-arm64",
+    out = "buildifier-darwin_arm64",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildifier-linux-arm64",
     out = "buildifier-linux_arm64",
     embed = [":go_default_library"],

@@ -21,6 +21,7 @@ genrule(
 _PARENT_PACKAGE_FILES = [
     "README.md",
     "buildifier-darwin_amd64",
+    "buildifier-darwin_arm64",
     "buildifier-linux_amd64",
     "buildifier-linux_arm64",
     "buildifier-windows_amd64.exe",
