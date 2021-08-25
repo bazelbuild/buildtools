@@ -1,0 +1,3 @@
+manifest = [
+    # buildifier: table
+                       ("", "", ""), ("ab", "bc", "cd"),("a", "b", "c")]

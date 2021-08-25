@@ -1,0 +1,4 @@
+manifest = [
+   # buildifier: table sort 2
+   ("", "", ""), ("ab", "bc", "cd"), ("a", "b", "c")
+]

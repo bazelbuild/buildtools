@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"text/tabwriter"
 )
 
 const (
@@ -63,18 +64,26 @@ func FormatString(x Expr) string {
 
 // A printer collects the state during printing of a file or expression.
 type printer struct {
-	fileType     FileType  // different rules can be applied to different file types.
-	bytes.Buffer           // output buffer
-	comment      []Comment // pending end-of-line comments
-	margin       int       // left margin (indent), a number of spaces
-	depth        int       // nesting depth inside ( ) [ ] { }
-	level        int       // nesting level of def-, if-else- and for-blocks
-	needsNewLine bool      // true if the next statement needs a new line before it
+	fileType     FileType          // different rules can be applied to different file types.
+	bytes.Buffer                   // output buffer
+	comment      []Comment         // pending end-of-line comments
+	margin       int               // left margin (indent), a number of spaces
+	depth        int               // nesting depth inside ( ) [ ] { }
+	level        int               // nesting level of def-, if-else- and for-blocks
+	needsNewLine bool              // true if the next statement needs a new line before it
+	tabWriterOn  bool              // when this mode is on ,use the tabwriter to write to buffer
+	tWriter      *tabwriter.Writer // tab writer
 }
 
-// printf prints to the buffer.
+// printf prints to the buffer either directly or via TabWriter based on the mode
 func (p *printer) printf(format string, args ...interface{}) {
-	fmt.Fprintf(p, format, args...)
+	if !p.tabWriterOn {
+		fmt.Fprintf(p, format, args...)
+		return
+	}
+	if p.tWriter != nil {
+		fmt.Fprintf(p.tWriter, format, args...)
+	}
 }
 
 // indent returns the position on the current line, in bytes, 0-indexed.
@@ -374,7 +383,9 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			p.printf("\n")
 		}
 		// Re-indent to margin.
-		p.printf("%*s", p.margin, "")
+		if !p.tabWriterOn {
+			p.printf("%*s", p.margin, "")
+		}
 		for _, com := range before {
 			p.printf("%s", strings.TrimSpace(com.Token))
 			p.newline()
@@ -607,7 +618,11 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Load, &args, &v.Rparen, modeLoad, v.ForceCompact, false)
 
 	case *ListExpr:
-		p.seq("[]", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
+		mode := modeList
+		if v.FormatAsTable {
+			mode = modeTable
+		}
+		p.seq("[]", &v.Start, &v.List, &v.End, mode, false, v.ForceMultiLine)
 
 	case *SetExpr:
 		p.seq("{}", &v.Start, &v.List, &v.End, modeList, false, v.ForceMultiLine)
@@ -617,7 +632,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		if v.NoBrackets {
 			mode = modeSeq
 		}
-		p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
+
+		if v.FormatAsTableRow {
+			p.tabbedSeq("()", &v.Start, &v.List, &v.End)
+		} else {
+			p.seq("()", &v.Start, &v.List, &v.End, mode, v.ForceCompact, v.ForceMultiLine)
+		}
 
 	case *DictExpr:
 		var list []Expr
@@ -747,6 +767,7 @@ const (
 	modeSeq   // x, y
 	modeDef   // def f(x, y)
 	modeLoad  // load(a, b, c)
+	modeTable // [(x,y)] : List that prints as a table
 )
 
 // useCompactMode reports whether a sequence should be formatted in a compact mode
@@ -762,6 +783,10 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 		return false
 	}
 
+	// Tables are always multiline
+	if mode == modeTable {
+		return false
+	}
 	// Implicit tuples are always compact
 	if mode == modeSeq {
 		return true
@@ -821,7 +846,19 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
+
 	p.depth++
+	if mode == modeTable {
+		p.tabWriterOn = true
+		p.tWriter = new(tabwriter.Writer)
+		p.tWriter.Init(p, 0, 0, 4, ' ', tabwriter.TabIndent)
+	}
+	defer func() {
+		if mode == modeTable {
+			p.tWriter.Flush()
+		}
+	}()
+
 	defer func() {
 		p.depth--
 		if mode != modeSeq {
@@ -879,6 +916,34 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	// in modeDef print the closing bracket on the same line
 	if mode != modeDef {
 		p.newline()
+	}
+}
+
+// Formats a list of values inside a given bracket pair (brack = "()", "[]")
+// by adding a tabspace in between, so that the tabwriter prints them out in table format.
+func (p *printer) tabbedSeq(brack string, start *Position, list *[]Expr, end *End) {
+
+	// Print starting braces
+	p.printf("%s", brack[:1])
+
+	p.depth++
+	defer func() {
+		p.depth--
+		p.printf("%s", brack[1:])
+
+	}()
+
+	// Tablerows entries in each column must end with a tab, to table format it.
+	for i, x := range *list {
+		if i > 0 {
+			p.printf(",\t")
+		}
+		p.expr(x, precLow)
+	}
+
+	// Single-element tuple must end with comma, to mark it as a tuple.
+	if len(*list) == 1 {
+		p.printf(",")
 	}
 }
 
