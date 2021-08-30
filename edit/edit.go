@@ -265,7 +265,7 @@ func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 
 		// Allow for precisely targeting the package declaration. This
 		// helps adding new load() and license() rules
-		if name == "!package" {
+		if name == "__pkg__" {
 			if rule, ok := ExprToRule(stmt, "package"); ok {
 				return i, rule
 			}

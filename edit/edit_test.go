@@ -775,7 +775,7 @@ func TestIndexOfRuleByName(t *testing.T) {
 	}{
 		{"first", 3},
 		{"%8", 4},
-		{"!package", 2},
+		{"__pkg__", 2},
 		{"miss", -1},
 	}
 
