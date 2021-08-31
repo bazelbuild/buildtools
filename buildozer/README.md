@@ -19,9 +19,12 @@ buildozer [OPTIONS] ['command args' | -f FILE ] label-list
 ```
 
 Here, `label-list` is a space-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1 //path/to/pkg2:rule2`. Buildozer reads commands from
-`FILE` (`-` for stdin (format: `|`-separated command line arguments to buildozer,
-excluding flags))
+`//path/to/pkg1:rule1 //path/to/pkg2:rule2`.
+
+When `-f FILE` is used, buildozer reads commands from `FILE` (`-` for stdin).
+Format: lines of `|`-separated sets of commands and labels (`command args|label|label...`).
+When the label is a single '*', then the command will be applied to all
+elements of label-list from the command line.
 
 You should specify at least one command and one target. Buildozer will execute
 all commands on all targets. Commands are executed in order, files are processed
