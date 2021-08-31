@@ -3,6 +3,7 @@ package edit
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/bazelbuild/buildtools/build"
