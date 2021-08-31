@@ -33,6 +33,10 @@ func (b *defaultBuildifier) Buildify(opts *Options, f *build.File) ([]byte, erro
 	stderr := bytes.NewBuffer(nil)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	cmd.Env = append(
+        	os.Environ(),
+	        // Custom environment variables
+	)
 	err := cmd.Run()
 	if stderr.Len() > 0 {
 		return nil, fmt.Errorf("%s", stderr.Bytes())
