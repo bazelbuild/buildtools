@@ -125,6 +125,8 @@ package build
 %token	<pos>	_UNINDENT // unindentation
 
 %type	<pos>		comma_opt
+%type	<pos>		commas
+%type	<pos>		commas_opt
 %type	<expr>		argument
 %type	<exprs>		arguments
 %type	<exprs>		arguments_opt
@@ -512,15 +514,15 @@ primary_expr:
 			Name: $<tok>3,
 		}
 	}
-|	_LOAD '(' string ',' load_arguments comma_opt ')'
+|	_LOAD '(' commas_opt string commas load_arguments commas_opt ')'
 	{
 		load := &LoadStmt{
 			Load: $1,
-			Module: $3,
-			Rparen: End{Pos: $7},
-			ForceCompact: $1.Line == $7.Line,
+			Module: $4,
+			Rparen: End{Pos: $8},
+			ForceCompact: $2.Line == $8.Line,
 		}
-		for _, arg := range $5 {
+		for _, arg := range $6 {
 			load.From = append(load.From, &arg.from)
 			load.To = append(load.To, &arg.to)
 		}
@@ -648,17 +650,17 @@ arguments_opt:
 	{
 		$$ = nil
 	}
-|	arguments comma_opt
+|	arguments commas_opt
 	{
 		$$ = $1
 	}
 
 arguments:
-	argument
+	commas_opt argument
 	{
-		$$ = []Expr{$1}
+		$$ = []Expr{$2}
 	}
-|	arguments ',' argument
+|	arguments commas argument
 	{
 		$$ = append($1, $3)
 	}
@@ -883,7 +885,7 @@ tests:
 	{
 		$$ = []Expr{$1}
 	}
-|	tests ',' test
+|	tests commas test
 	{
 		$$ = append($1, $3)
 	}
@@ -898,10 +900,11 @@ tests_opt:
 	{
 		$$, $<comma>$ = nil, Position{}
 	}
-|	tests comma_opt
+|	tests commas_opt
 	{
 		$$, $<comma>$ = $1, $2
 	}
+
 
 // comma_opt is an optional comma. If the comma is present,
 // the rule's value is the position of the comma. Otherwise
@@ -912,6 +915,26 @@ comma_opt:
 		$$ = Position{}
 	}
 |	','
+
+// commas allows us to treat multiple consecutive commas as if they are a single
+// comma token. This is a syntax error in bazel, but a common user error, so it
+// is convenient to automatically fix it.
+commas:
+  ','
+| commas ','
+  {
+    $$ = $1
+  }
+
+// commas_opt is the one-or-more comma equivalent of comma_opt, and is used
+// where trailing commas have some significance. Like commas they squash down
+// to a single comma if present to fix a common user error.
+commas_opt:
+	{
+		$$ = Position{}
+	}
+|	commas
+
 
 keyvalue:
 	test ':' test  {
@@ -927,7 +950,7 @@ keyvalues_no_comma:
 	{
 		$$ = []*KeyValueExpr{$1}
 	}
-|	keyvalues_no_comma ',' keyvalue
+|	keyvalues_no_comma commas keyvalue
 	{
 		$$ = append($1, $3)
 	}
@@ -940,7 +963,7 @@ keyvalues:
 	{
 		$$ = $1
 	}
-|	keyvalues_no_comma ','
+|	keyvalues_no_comma commas
 	{
 		$$ = $1
 	}

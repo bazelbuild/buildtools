@@ -1,0 +1,62 @@
+load(,,,
+    # A
+    ,
+    "foo.bzl",,,
+    # B
+    ,
+    "bar",,,
+)
+load(,,,":a",,,"b",,,)
+
+cc_binary(,,,
+    # A
+    ,
+    name = "bin",,,
+    # B
+    ,
+    srcs = ["bin.cc"],,,
+    # C
+    ,
+)
+cc_binary(,,,name="wibble",,,srcs=["wibble.cc"],,,)
+
+my_list = [
+    1,,,
+    # A
+    ,
+    2
+    # B
+    ,
+]
+
+my_1tuple = (
+    # A
+    1,,,
+    # B
+    ,
+)
+
+my_2tuple = (
+    # A
+    1,,,
+    # B
+    ,
+    2,,,
+    # C
+    ,
+)
+
+my_dict = {
+    'a':1,,,
+    # A
+    ,
+    'b':2,,,
+    # B
+    ,
+}
+
+func(,,,a)
+func(b,,,)
+func(c,,,d)
+func(,,,e,,,f,,,)
+
