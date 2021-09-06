@@ -61,6 +61,7 @@ _PARENT_PACKAGE_FILES = [
 
 pkg_npm(
     name = "buildozer",
+    package_name = "@bazel/buildozer",
     srcs = [
         "package.json",
     ],
