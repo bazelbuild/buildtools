@@ -41,6 +41,7 @@ _PARENT_PACKAGE_FILES = [
 
 pkg_npm(
     name = "buildifier",
+    package_name = "@bazel/buildifier",
     srcs = [
         "package.json",
     ],
