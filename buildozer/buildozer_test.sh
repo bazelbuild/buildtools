@@ -1231,6 +1231,26 @@ java_library(name = "foo")
 cc_test(name = "b")'
 }
 
+function test_new_after_package() {
+  in='
+load("/foo/bar", "x", "y", "z")
+package(default_visibility = "//visibility:public")
+
+cc_test(name = "a")
+
+cc_test(name = "b")'
+  run "$in" 'new java_library foo after __pkg__' 'pkg/BUILD'
+  assert_equals 'load("/foo/bar", "x", "y", "z")
+
+package(default_visibility = "//visibility:public")
+
+java_library(name = "foo")
+
+cc_test(name = "a")
+
+cc_test(name = "b")'
+}
+
 function test_not_enough_arguments() {
   ERROR=1 run "$one_dep" 'add foo' '//pkg:edit'
   assert_err "Too few arguments for command 'add', expected at least 2."

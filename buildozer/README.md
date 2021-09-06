@@ -87,7 +87,8 @@ Buildozer supports the following commands(`'command args'`):
   * `move <old_attr> <new_attr> <value(s)>`: Moves `value(s)` from the list `old_attr`
     to the list `new_attr`. The wildcard `*` matches all values.
   * `new <rule_kind> <rule_name> [(before|after) <relative_rule_name>]`: Add a
-    new rule at the end of the BUILD file (before/after `<relative_rule>`).
+    new rule at the end of the BUILD file (before/after `<relative_rule>`). The
+    identifier `__pkg__` can be used to position rules relative to package().
   * `print <attr(s)>`
   * `remove <attr>`: Removes attribute `attr`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
