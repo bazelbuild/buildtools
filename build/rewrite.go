@@ -288,7 +288,7 @@ func sortCallArgs(f *File) {
 		}
 		rule := callName(call)
 		if rule == "" {
-			return
+			rule = "<complex rule kind>"
 		}
 
 		// Find the tail of the argument list with named arguments.

@@ -1,0 +1,38 @@
+# Test sorting of call arguments.
+
+foo(
+    name = "t",
+    z = 1,
+    a = 0,
+)
+
+foo.bar.baz(
+    name = "x",
+    c = 0,
+    b = 1,
+    d = 2,
+    a = 3,
+)
+
+baz(
+    name = "y",
+    c = foo.bar(
+        "positional1",
+        42,
+        c = 0,
+        b = 1,
+        d = 2,
+        a = 3,
+    ),
+)
+
+foo.bar(
+    z = 1,
+    a = 2,
+).bar(
+    name = "z",
+    c = 0,
+    b = 1,
+    d = 2,
+    a = 3,
+)
