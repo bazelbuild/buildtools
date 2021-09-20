@@ -267,13 +267,10 @@ func fixLabels(f *File) {
 }
 
 // callName returns the name of the rule being called by call.
-// If the call is not to a literal rule name, callName returns "".
+// If the call is not to a literal rule name or a dot expression, callName
+// returns "".
 func callName(call *CallExpr) string {
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
-	}
-	return rule.Name
+	return (&Rule{call, ""}).Kind()
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
@@ -288,7 +285,7 @@ func sortCallArgs(f *File) {
 		}
 		rule := callName(call)
 		if rule == "" {
-			return
+			rule = "<complex rule kind>"
 		}
 
 		// Find the tail of the argument list with named arguments.
