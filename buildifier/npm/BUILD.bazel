@@ -45,6 +45,9 @@ pkg_npm(
     srcs = [
         "package.json",
     ],
+    substitutions = {
+        "0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}",
+    },
     deps = [
         "LICENSE",
         "buildifier.js",
