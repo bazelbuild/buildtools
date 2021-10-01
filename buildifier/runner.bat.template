@@ -1,0 +1,45 @@
+@echo off
+
+set ARGS=@@ARGS@@
+
+rem Remove the leading '(' and trailing ')' characters that surround the arguments
+set stripped_args=%ARGS:~1,-1%
+
+rem Unquote the arguments
+set stripped_args=%stripped_args:'=%
+
+rem Get the absolute path to the buildifier executable
+for /f "tokens=2" %%i in ('findstr /r "\<buildifier\.exe\>" MANIFEST') do (set buildifier_abs_path=%%i)
+
+powershell ^
+function Buildify($Root)^
+{^
+    $Folder = (New-Object -Com Scripting.FileSystemObject).GetFolder($Root);^
+    $Files = $Folder.Files ^| Where-Object {^
+        $_.Name -eq 'BUILD.bazel' `^
+        -or $_.Name -eq 'BUILD' `^
+        -or $_.Name -eq 'WORKSPACE' `^
+        -or $_.Name -eq 'WORKSPACE.bazel' `^
+        -or $_.Name -eq 'WORKSPACE.oss' `^
+        -or $_.Name  -clike '*.bzl' `^
+        -or $_.Name -clike '*.sky' `^
+        -or $_.Name -clike '*.BUILD' `^
+        -or $_.Name -clike 'BUILD.*.bazel' `^
+        -or $_.Name -clike 'BUILD.*.oss' `^
+        -or $_.Name -clike 'WORKSPACE.*.bazel' `^
+        -or $_.Name -clike 'WORKSPACE.*.oss'^
+    };^
+    foreach ($File in $Files)^
+    {^
+        ^& '%buildifier_abs_path%' %stripped_args% $File.Path;^
+    };^
+    foreach ($SubFolder in $Folder.Subfolders)^
+    {^
+        $CurrentItem = Get-Item $SubFolder.Path -ErrorAction SilentlyContinue;^
+        if ($CurrentItem -and !$CurrentItem.Attributes.ToString().Contains('ReparsePoint'))^
+        {^
+            Buildify($SubFolder.Path);^
+        };^
+    };^
+};^
+Buildify('%BUILD_WORKSPACE_DIRECTORY%');

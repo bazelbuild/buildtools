@@ -39,7 +39,7 @@ def buildifier_attr_factory(test_rule = False):
     """
     attrs = {
         "buildifier": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier",
+            default = "@com_github_patricevignola_buildtools//buildifier",
             cfg = "host",
             executable = True,
         ),
@@ -72,7 +72,11 @@ def buildifier_attr_factory(test_rule = False):
             allow_single_file = True,
         ),
         "_runner": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bash.template",
+            default = "@com_github_patricevignola_buildtools//buildifier:runner.bash.template",
+            allow_single_file = True,
+        ),
+        "_windows_runner": attr.label(
+            default = "@com_github_patricevignola_buildtools//buildifier:runner.bat.template",
             allow_single_file = True,
         ),
     }
@@ -151,14 +155,21 @@ def buildifier_impl_factory(ctx, test_rule = False):
         exclude_patterns = ["\\! -path %s" % shell.quote(pattern) for pattern in ctx.attr.exclude_patterns]
         exclude_patterns_str = " ".join(exclude_patterns)
 
-    out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
         "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
         "@@EXCLUDE_PATTERNS@@": exclude_patterns_str,
     }
+
+    if ctx.executable.buildifier.extension.lower() == "exe":
+        out_file = ctx.actions.declare_file(ctx.label.name + ".bat")
+        runner_template = ctx.file._windows_runner
+    else:
+        out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
+        runner_template = ctx.file._runner
+
     ctx.actions.expand_template(
-        template = ctx.file._runner,
+        template = runner_template,
         output = out_file,
         substitutions = substitutions,
         is_executable = True,
