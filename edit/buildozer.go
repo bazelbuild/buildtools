@@ -341,6 +341,8 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.ListStart.Line)}}
 		} else if str == "endline" {
 			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.End.Pos.Line)}}
+		} else if str == "path" {
+			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.File.Path}}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
 				env.Pkg, env.Rule.Name(), str)

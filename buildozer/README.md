@@ -216,6 +216,7 @@ There are some special attributes in the `print` command:
   * `rule`: the entire rule definition
   * `startline`: the line number on which the rule begins in the BUILD file
   * `endline`: the line number on which the rule ends in the BUILD file
+  * `path`: the absolute path to the BUILD file that contains the rules
 
 #### Examples
 
