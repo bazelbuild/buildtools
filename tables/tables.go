@@ -150,8 +150,9 @@ var IsSortableListArg = map[string]bool{
 
 // SortableDenylist records specific rule arguments that must not be reordered.
 var SortableDenylist = map[string]bool{
-	"genrule.outs": true,
-	"genrule.srcs": true,
+	"genrule.outs":       true,
+	"genrule.srcs":       true,
+	"cc_embed_data.srcs": true,
 }
 
 // SortableAllowlist records specific rule arguments that are guaranteed to be reorderable

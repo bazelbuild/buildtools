@@ -1,0 +1,30 @@
+# Test sortable denylists
+
+foobar(
+  srcs = [
+    'foo.in',
+    'bar.in',
+  ]
+)
+
+genrule(
+  srcs = [
+    'foo.in',
+    'bar.in',
+  ],
+  outs = [
+    'foo.in',
+    'bar.in',
+  ],
+  foobar = [
+    'foo',
+    'bar',
+  ]
+)
+
+cc_embed_data(
+  srcs = [
+    'foo.in',
+    'bar.in',
+  ]
+)
