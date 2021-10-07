@@ -48,11 +48,6 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
   upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
 done
 
-# For compatibility with Bazel CI, remove after
-# https://github.com/bazelbuild/continuous-integration/issues/1089
-# has been resolved.
-upload_file "$BIN_DIR/buildifier-linux_amd64" "buildifier"
-
 rm -rf $BIN_DIR
 
 echo "The draft release is available at $RELEASE_URL"
