@@ -5,13 +5,13 @@ buildifier:
 platforms:
   ubuntu1604:
     test_targets:
-    - "//:tests"
+    - "//..."
   ubuntu1804:
     test_targets:
-    - "//:tests"
+    - "//..."
   macos:
     test_targets:
-    - "//:tests"
+    - "//..."
   windows:
     test_flags:
     - "--enable_runfiles"
