@@ -109,6 +109,9 @@ func leaveAlone(stk []Expr, final Expr) bool {
 // hasComment reports whether x is marked with a comment that
 // after being converted to lower case, contains the specified text.
 func hasComment(x Expr, text string) bool {
+	if x == nil {
+		return false
+	}
 	for _, com := range x.Comment().Before {
 		if strings.Contains(strings.ToLower(com.Token), text) {
 			return true
