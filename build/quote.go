@@ -41,7 +41,7 @@ var unesc = [256]byte{
 
 // esc maps escape-worthy bytes to the char that should follow \.
 var esc = [256]byte{
-	//'\a': 'a',
+	'\a': 'a',
 	'\b': 'b',
 	'\f': 'f',
 	'\n': 'n',
