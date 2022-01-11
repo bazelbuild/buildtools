@@ -574,6 +574,9 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.SplitN(x, ":", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
+		}
 		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
@@ -599,6 +602,9 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.SplitN(x, ":", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
+		}
 		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)

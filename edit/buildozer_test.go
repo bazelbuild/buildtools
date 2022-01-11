@@ -413,3 +413,29 @@ func TestCmdSubstituteLoad(t *testing.T) {
 		}
 	}
 }
+
+func TestCmdDictAddSet_missingColon(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		fun  func(*Options, CmdEnvironment) (*build.File, error)
+	}{
+		{"dict_add", cmdDictAdd},
+		{"dict_set", cmdDictSet},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte("rule()"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			env := CmdEnvironment{
+				File: bld,
+				Rule: bld.RuleAt(1),
+				Args: []string{"attr", "invalid"},
+			}
+			_, err = tc.fun(NewOpts(), env)
+			if err == nil {
+				t.Error("succeeded, want error")
+			}
+		})
+	}
+}
