@@ -163,7 +163,7 @@ the output json will be indented for better readability.
 
 The output format is the following:
 
-```json
+```jsonc
 {
     "success": false,  // true if all files are formatted and generate no warnings, false otherwise
     "files": [  // list of all files processed by buildifier
