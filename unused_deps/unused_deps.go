@@ -45,6 +45,7 @@ var (
 	buildScmRevision = "redacted"
 
 	version             = flag.Bool("version", false, "Print the version of unused_deps")
+	cQuery              = flag.Bool("cquery", false, "Use 'cquery' command instead of 'query'")
 	buildTool           = flag.String("build_tool", config.DefaultBuildTool, config.BuildToolHelp)
 	extraActionFileName = flag.String("extra_action_file", "", config.ExtraActionFileNameHelp)
 	outputFileName      = flag.String("output_file", "", "used only with extra_action_file")
@@ -331,7 +332,13 @@ func main() {
 	if len(targetPatterns) == 0 {
 		targetPatterns = []string{"//..."}
 	}
-	queryCmd := append([]string{"query"}, blazeFlags...)
+	queryCmd := []string{}
+	if *cQuery {
+		queryCmd = append(queryCmd, "cquery")
+	} else {
+		queryCmd = append(queryCmd, "query")
+	}
+	queryCmd = append(queryCmd, blazeFlags...)
 	queryCmd = append(
 		queryCmd, fmt.Sprintf("kind('(kt|java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
 
@@ -372,6 +379,11 @@ func main() {
 
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
+		if *cQuery && strings.HasPrefix(label, "(") {
+			// cquery output includes the target's configuration ID.  Skip it.
+			// https://docs.bazel.build/versions/main/cquery.html#configurations
+			continue
+		}
 		_, pkg, ruleName := edit.InterpretLabel(label)
 		depsByJar := directDepParams(blazeOutputPath, inputFileName(blazeBin, pkg, ruleName, "javac_params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
