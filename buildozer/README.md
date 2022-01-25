@@ -45,6 +45,10 @@ macros.
    `//pkg:%123`.
   * Use `-` for the package name if you want to process standard input stream
    instead of a file: `-:all_tests`.
+  * Some commands take a _relative rule_, which is simply a rule without the
+    package. The absolute rule `//path/to/pkg1:rule1` would become just `rule1`.
+    Relative rules using the special macros listed above, such as `__pkg__` or
+    `%123`, are also valid.
 
 ### Options
 
