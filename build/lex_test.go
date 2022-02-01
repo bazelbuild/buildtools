@@ -48,6 +48,10 @@ func TestIsBuildFilename(t *testing.T) {
 		"workspace.bazel":     TypeWorkspace,
 		"workspace.bzl":       TypeBzl,
 		"foo.bar":             TypeDefault,
+		"MODULE.bazel":        TypeModule,
+		"module.bazel":        TypeModule,
+		"module.bzl":          TypeBzl,
+		"MODULE":              TypeDefault,
 	}
 	for name, fileType := range cases {
 		res := getFileType(name)
