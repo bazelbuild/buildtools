@@ -24,11 +24,11 @@ import (
 // ValidateInputType validates the value of --type
 func ValidateInputType(inputType *string) error {
 	switch *inputType {
-	case "build", "bzl", "workspace", "default", "auto":
+	case "build", "bzl", "workspace", "default", "module", "auto":
 		return nil
 
 	default:
-		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, auto", *inputType)
+		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, module, auto", *inputType)
 	}
 }
 
