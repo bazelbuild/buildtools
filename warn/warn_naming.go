@@ -91,7 +91,7 @@ func isUpperSnakeCase(name string) bool {
 func nameConventionsWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
-	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) {
+	build.WalkStatements(f, func(stmt build.Expr, stack []build.Expr) (err error) {
 		// looking for provider declaration statements: `xxx = provider()`
 		// note that the code won't trigger on complex assignments, such as `x, y = foo, provider()`
 		binary, ok := stmt.(*build.AssignExpr)
@@ -109,6 +109,7 @@ func nameConventionsWarning(f *build.File) []*LinterFinding {
 				makeLinterFinding(ident,
 					fmt.Sprintf(`Variable name "%s" should be lower_snake_case (for variables), UPPER_SNAKE_CASE (for constants), or UpperCamelCase ending with 'Info' (for providers).`, ident.Name)))
 		}
+		return
 	})
 
 	return findings
