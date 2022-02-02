@@ -129,8 +129,8 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 }
 
 func loadOnTopWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeWorkspace {
-		// Not applicable to WORKSPACE files
+	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule{
+		// Not applicable to WORKSPACE or MODULE files
 		return nil
 	}
 

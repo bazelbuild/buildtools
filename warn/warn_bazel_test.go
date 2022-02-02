@@ -30,7 +30,7 @@ cc_library(srcs =
 )`,
 		[]string{`:1: Glob pattern "foo.cc" has no wildcard`,
 			`:6: Glob pattern "test.cpp" has no wildcard`},
-		scopeBazel)
+		scopeBuild|scopeBzl|scopeWorkspace)
 }
 
 func TestNativeInBuildFiles(t *testing.T) {
