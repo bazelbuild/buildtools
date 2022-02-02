@@ -202,13 +202,28 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 	}
 }
 
+// StopTraversalError is a special error that tells the walker to not traverse
+// further and visit child nodes of the current node.
+type StopTraversalError struct{}
+
+func (m *StopTraversalError) Error() string {
+	return "Stop traversal"
+}
+
+
 // walkStatements is a helper function for WalkStatements
-func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr)) {
+func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr) error) {
 	if v == nil {
 		return
 	}
 
-	f(v, *stack)
+	err := f(v, *stack)
+	if err != nil {
+		if _, ok := err.(*StopTraversalError); ok {
+			return
+		}
+	}
+
 	*stack = append(*stack, v)
 
 	traverse := func(x Expr) {
@@ -241,7 +256,7 @@ func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr)) {
 }
 
 // WalkStatements traverses sub statements (not all nodes)
-func WalkStatements(v Expr, f func(x Expr, stk []Expr)) {
+func WalkStatements(v Expr, f func(x Expr, stk []Expr) error) {
 	var stack []Expr
 	walkStatements(v, &stack, f)
 }

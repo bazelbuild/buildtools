@@ -27,7 +27,7 @@ import (
 
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on
 // them and returns whether the current list of statements terminates (either by a return or fail()
-// statements on the current level in all subranches.
+// statements on the current level in all subbranches.
 func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt)) bool {
 	if len(stmts) == 0 {
 		// May occur in empty else-clauses
@@ -68,17 +68,28 @@ func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt
 func missingReturnValueWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 
-	for _, stmt := range f.Stmt {
-		function, ok := stmt.(*build.DefStmt)
-		if !ok {
-			continue
+	// Collect all def statements in the file
+	defStmts := []*build.DefStmt{}
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		if def, ok := expr.(*build.DefStmt); ok {
+			defStmts = append(defStmts, def)
 		}
+		return
+	})
 
+	for _, function := range defStmts {
 		var hasNonEmptyReturns bool
-		build.Walk(function, func(expr build.Expr, stack []build.Expr) {
+		build.WalkStatements(function, func(expr build.Expr, stack []build.Expr) (err error) {
+			if _, ok := expr.(*build.DefStmt); ok {
+				if len(stack) > 0 {
+					return &build.StopTraversalError{}
+				}
+			}
+
 			if ret, ok := expr.(*build.ReturnStmt); ok && ret.Result != nil {
 				hasNonEmptyReturns = true
 			}
+			return err
 		})
 
 		if !hasNonEmptyReturns {
@@ -138,17 +149,17 @@ func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bo
 func unreachableStatementWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 
-	for _, stmt := range f.Stmt {
-		function, ok := stmt.(*build.DefStmt)
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		def, ok := expr.(*build.DefStmt)
 		if !ok {
-			continue
+			return
 		}
-
-		findUnreachableStatements(function.Body, func(expr build.Expr) {
+		findUnreachableStatements(def.Body, func(expr build.Expr) {
 			findings = append(findings,
 				makeLinterFinding(expr, `The statement is unreachable.`))
 		})
-	}
+		return
+	})
 	return findings
 }
 
@@ -195,9 +206,9 @@ func noEffectStatementsCheck(body []build.Expr, isTopLevel, isFunc bool, finding
 func noEffectWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	findings = noEffectStatementsCheck(f.Stmt, true, false, findings)
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		// The AST should have a ExprStmt node.
-		// Since we don't have that, we match on the nodes that contain a block to get the list of statements.
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		// Docstrings are valid statements without effects. To detect them we need to
+		// analyze blocks of statements rather than single statements.
 		switch expr := expr.(type) {
 		case *build.ForStmt:
 			findings = noEffectStatementsCheck(expr.Body, false, false, findings)
@@ -207,6 +218,7 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 			findings = noEffectStatementsCheck(expr.True, false, false, findings)
 			findings = noEffectStatementsCheck(expr.False, false, false, findings)
 		}
+		return
 	})
 	return findings
 }

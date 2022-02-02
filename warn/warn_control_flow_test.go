@@ -144,6 +144,59 @@ def foobar():
   if foo:
     fail()
 `, []string{}, scopeEverywhere)
+
+	// nested functions, no errors
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    pass
+
+  return bar
+`, []string{}, scopeEverywhere)
+
+	// nested functions, missing return value in the outer function
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    pass
+
+  if bar():
+    return 42
+`, []string{
+		`:1: Some but not all execution paths of "foo" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// nested functions, missing return value in the inner function
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    if something:
+      return something
+
+  if bar():
+    return 42
+  return 43
+`, []string{
+		`:2: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// nested functions, missing return value in both
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    if something:
+      return something
+
+  if bar():
+    return 42
+`, []string{
+		`:1: Some but not all execution paths of "foo" return a value.
+The function may terminate by an implicit return in the end.`,
+		`:2: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
 }
 
 func TestUnreachableStatementWarning(t *testing.T) {
@@ -218,6 +271,17 @@ def foo():
   x() or fail("maybe")
   bar()
 `, []string{}, scopeEverywhere)
+
+	// unreacheable statement inside a nested function
+	checkFindings(t, "unreachable", `
+def foo():
+  def bar():
+    fail("die")
+    baz()
+`, []string{
+		`:4: The statement is unreachable.`,
+	}, scopeEverywhere)
+
 }
 
 func TestNoEffect(t *testing.T) {
@@ -291,6 +355,16 @@ bar -= bar
 
 `,
 		[]string{":1:", ":3:", ":4:", ":5:", ":6:"},
+		scopeEverywhere)
+
+	checkFindings(t, "no-effect", `
+def foo():
+  """Doc."""
+  def bar():
+    """Doc."""
+    foo == bar
+`,
+		[]string{":5:"},
 		scopeEverywhere)
 }
 
