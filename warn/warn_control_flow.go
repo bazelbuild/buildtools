@@ -214,7 +214,7 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 // unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
 // *build.DefStmt) and reports unused and already defined variables.
 func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*LinterFinding) []*LinterFinding {
-	if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
+	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 		// Not applicable to .bzl files, unused symbols may be loaded and used in other files.
 		return findings
 	}

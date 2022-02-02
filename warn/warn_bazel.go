@@ -35,8 +35,10 @@ var functionsWithPositionalArguments = map[string]bool{
 }
 
 func constantGlobWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeDefault {
-		// Only applicable to Bazel files
+	switch f.Type {
+	case build.TypeBuild, build.TypeWorkspace, build.TypeBzl:
+	default:
+		// Not applicable
 		return nil
 	}
 
@@ -123,7 +125,7 @@ func nativePackageWarning(f *build.File) []*LinterFinding {
 }
 
 func duplicatedNameWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeBzl || f.Type == build.TypeDefault {
+	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 		// Not applicable to .bzl files.
 		return nil
 	}
