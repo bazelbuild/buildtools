@@ -110,6 +110,21 @@ def f(x):
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring", `
+def f(x):
+   def g(x):
+      # long function
+      x += 1
+      x *= 2
+      x /= 3
+      x -= 4
+      x %= 5
+      return x
+   return g
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring", `
 def _f(x):
    # long private function
    x += 1
@@ -136,6 +151,22 @@ def f():
    pass
 `,
 		[]string{`2: The docstring for the function "f" should start with a one-line summary.`},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-header", `
+def f():
+   def g():
+      """This is a function.
+      this is the description
+      """
+      pass
+      pass
+      pass
+      pass
+      pass
+   return f
+`,
+		[]string{`3: The docstring for the function "g" should start with a one-line summary.`},
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-header", `
@@ -256,6 +287,34 @@ def f(x, y):
 			`2: Argument "y" is not documented.`,
 			`4: Prefer "Args:" to "Arguments:" when documenting function arguments.`,
 		},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
+def f():
+  def g(x, y):
+    """Short function with a docstring
+
+    Arguments:
+      x: smth
+    """
+    return x + y
+  return g
+`,
+		[]string{
+			`3: Argument "y" is not documented.`,
+			`5: Prefer "Args:" to "Arguments:" when documenting function arguments.`,
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-args", `
+def f():
+  def g(x, y):
+    """Short function with a docstring
+    """
+    return x + y
+  return g
+`,
+		[]string{},
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-args", `
@@ -487,6 +546,25 @@ def f(x):
    Args:
      x: something
    """
+   def g(y):
+      return y
+
+   pass
+   pass
+   pass
+   pass
+   pass
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-return", `
+def f(x):
+   """This is a function.
+
+   Args:
+     x: something
+   """
    pass
    pass
    pass
@@ -495,6 +573,25 @@ def f(x):
    return x
 `,
 		[]string{`2: Return value of "f" is not documented.`},
+		scopeEverywhere)
+
+	checkFindings(t, "function-docstring-return", `
+def f():
+  def g(x):
+    """This is a function.
+
+    Args:
+      x: something
+    """
+    pass
+    pass
+    pass
+    pass
+    pass
+    return x
+  return g
+`,
+		[]string{},
 		scopeEverywhere)
 
 	checkFindings(t, "function-docstring-return", `
