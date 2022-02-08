@@ -1085,4 +1085,47 @@ def foo(x: int, y: int = 2):
 			":7: Variable \"z\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x: int, y: int = 2):
+  def bar(y=x):
+    if baz:
+      x = 1
+      y = 2
+      z = 3
+
+    print(x + y + z)
+
+  if something:
+    x = bar()
+
+  return x
+`,
+		[]string{
+			":8: Variable \"x\" may not have been initialized.",
+			":8: Variable \"z\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x: int, y: int = 2):
+  if bar:
+    y, z, t = 2, 3, 4
+    w, s = 5, 6
+    r = 7
+
+  [t for t in range(5)]
+  [a for a in range(z + y)]
+  {b: c + s for b, c in [
+    d * 2 for d in range(t)
+    if d != baz(r=w)
+  ]}
+`,
+		[]string{
+			":8: Variable \"z\" may not have been initialized.",
+			":9: Variable \"s\" may not have been initialized.",
+			":10: Variable \"t\" may not have been initialized.",
+			":11: Variable \"w\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }

@@ -681,27 +681,48 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	// `callback` on every *build.Ident that's not mentioned in the map of initialized variables
 	findUninitializedIdents := func(expr build.Expr, callback func(ident *build.Ident)) {
 		// Collect lValues, they shouldn't be taken into account
-		// For example, if the expression is `a = foo(b = c)`, only `c` can be an unused variable here.
+		// For example, if the expression is `a = foo(b = c)`, only `c` can be an uninitialized variable here.
 		lValues := make(map[*build.Ident]bool)
-		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			if as, ok := expr.(*build.AssignExpr); ok {
-				for _, ident := range bzlenv.CollectLValues(as.LHS) {
+		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			switch expr := expr.(type) {
+			case *build.DefStmt:
+				// Don't traverse into nested def statements
+				return &build.StopTraversalError{}
+			case *build.AssignExpr:
+				for _, ident := range bzlenv.CollectLValues(expr.LHS) {
 					lValues[ident] = true
 				}
 			}
+			return
 		})
 
-		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			// TODO: traverse comprehensions properly
-			for _, node := range stack {
-				if _, ok := node.(*build.Comprehension); ok {
-					return
-				}
-			}
-
-			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] && !lValues[ident] {
+		// Check if the ident is really not initialized and call the callback on it.
+		callbackIfNeeded := func(ident *build.Ident) {
+			if !initialized[ident.Name] && !lValues[ident] {
 				callback(ident)
 			}
+		}
+
+		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			switch expr := expr.(type) {
+			case *build.Comprehension:
+				// Comprehension nodes are special, they have their own scope with variables
+				// that are only defined inside. Instead of traversing inside stop the
+				// traversal and call a special function to retrieve idents from the outer
+				// scope that are used inside the comprehension.
+
+				_, used := extractIdentsFromStmt(expr)
+				for ident := range used {
+					callbackIfNeeded(ident)
+				}
+
+				return &build.StopTraversalError{}
+			case *build.Ident:
+				callbackIfNeeded(expr)
+			default:
+				// Just traverse further
+			}
+			return
 		})
 	}
 
@@ -786,10 +807,10 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
 func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
-	for _, stmt := range f.Stmt {
-		def, ok := stmt.(*build.DefStmt)
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		def, ok := expr.(*build.DefStmt)
 		if !ok {
-			continue
+			return
 		}
 
 		// Get all variables defined in the function body.
@@ -812,9 +833,10 @@ func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 			// Check that the found ident represents a local variable
 			if localVars[ident.Name] {
 				findings = append(findings,
-					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name)))
+					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized. %s`, ident.Name, def.Name)))
 			}
 		})
-	}
+		return
+	})
 	return findings
 }
