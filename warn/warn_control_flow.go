@@ -421,7 +421,6 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 		case *build.LoadStmt:
 			// LoadStmt nodes store the loaded symbols as idents, even though in the
 			// source code they are strings. These idents may confuse the check,
-			// source code they are strings. These idents may confuse the check,
 			// they also shouldn't affect the warnings at all, unused loads are taken
 			// care of by another check. It's safe to just ignore them here.
 			return
