@@ -374,6 +374,7 @@ load(":f.bzl", "x")
 x = "unused"
 y = "also unused"
 z = "name"
+t = "unused by design"  # @unused
 cc_library(name = z)
 
 def f():
@@ -386,7 +387,7 @@ g() + 3
 `,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused.",
-			":7: Function \"f\" is unused."},
+			":8: Function \"f\" is unused."},
 		scopeDeclarative)
 
 	checkFindings(t, "unused-variable", `
@@ -425,6 +426,10 @@ def foo(
   c = 3
   d = (a if b else c)  # only d is unused
   e = 7
+  f = 8  # @unused
+  # @unused
+  g = 9
+
   return e + z
 
 foo()
@@ -568,6 +573,23 @@ foo()
 			":6: Variable \"f\" is unused.",
 			":8: Variable \"x\" is unused.",
 			":9: Variable \"z\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+
+  # @unused
+  def bar():
+    pass
+
+  def baz():
+    pass
+
+foo()
+`,
+		[]string{
+			":7: Function \"baz\" is unused.",
 		},
 		scopeEverywhere)
 }

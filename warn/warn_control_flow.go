@@ -234,6 +234,11 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 // Statements that contain other statements (for-loops, if-else blocks) are not
 // traversed inside.
 func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
+	// The values for `assigned` are `true` if the warning for the variable should
+	// be suppressed, and `false` otherwise.
+	// It's still important to know that the variable has been assigned in the
+	// current scope because it could shadow a variable with the same name from an
+	// outer scope.
 	assigned = make(map[*build.Ident]bool)
 	used = make(map[*build.Ident]bool)
 
@@ -262,6 +267,8 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 				return
 			}
 
+			hasUnusedComment := edit.ContainsComments(expr, "@unused")
+
 			// LHS may contain both variables that are being used and variables that
 			// are being assigned to, e.g. in the following example:
 			//     x[i][f(name='foo')], y = 1, 2
@@ -270,7 +277,7 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			// of an assign expression, so it'll erroneously collect `y` as used.
 			// After the traversal it'll need to be removed from `used`.
 			for _, lValue := range bzlenv.CollectLValues(expr.LHS) {
-				assigned[lValue] = true
+				assigned[lValue] = hasUnusedComment
 			}
 
 		case *build.ForStmt:
@@ -281,7 +288,7 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			// statements including those that are inside for-loops.
 
 			for _, lValue := range bzlenv.CollectLValues(expr.Vars) {
-				assigned[lValue] = true
+				assigned[lValue] = false
 			}
 
 			// Don't traverse inside the inner statements (but still traverse into
@@ -358,6 +365,9 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 	// Symbols that are used in the current and inner scopes
 	usedSymbols := make(map[string]bool)
 
+	// Symbols for which the warning should be suppressed
+	suppressedWarnings := make(map[string]bool)
+
 	build.WalkStatements(root, func(expr build.Expr, stack []build.Expr) (err error) {
 		switch expr := expr.(type) {
 		case *build.File:
@@ -372,6 +382,9 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// The function name is defined in the current scope
 				if _, ok := definedFunctions[expr.Name]; !ok {
 					definedFunctions[expr.Name] = expr
+				}
+				if edit.ContainsComments(expr, "@unused") {
+					suppressedWarnings[expr.Name] = true
 				}
 
 				usedSymbolsInFunction, findingsInFunction := unusedVariableCheck(f, expr)
@@ -418,9 +431,12 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			for symbol := range used {
 				usedSymbols[symbol.Name] = true
 			}
-			for symbol := range assigned {
+			for symbol, isSuppressed := range assigned {
 				if _, ok := definedSymbols[symbol.Name]; !ok {
 					definedSymbols[symbol.Name] = symbol
+					if isSuppressed {
+						suppressedWarnings[symbol.Name] = true
+					}
 				}
 			}
 		}
@@ -453,6 +469,10 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			// The variable is used either in this scope or in a nested scope
 			continue
 		}
+		if _, ok := suppressedWarnings[name]; ok {
+			// The variable is explicitly marked with @unused, ignore
+			continue
+		}
 		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
 			continue
 		}
@@ -470,6 +490,10 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			continue
 		}
 		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
+			continue
+		}
+		if _, ok := suppressedWarnings[name]; ok {
+			// The function is explicitly marked with @unused, ignore
 			continue
 		}
 		findings = append(findings,
