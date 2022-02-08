@@ -456,6 +456,10 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
 			continue
 		}
+		if name == "_" {
+			// "_" is often used for partially unpacking tuples
+			continue
+		}
 		findings = append(findings,
 			makeLinterFinding(ident, fmt.Sprintf(`Variable %q is unused. Please remove it.`, ident.Name)))
 	}

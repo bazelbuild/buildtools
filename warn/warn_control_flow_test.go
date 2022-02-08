@@ -524,18 +524,50 @@ def foo():
   a = 1
   b = 2
 
-  def bar():
-    def baz():
-      def foobar():
+  def bar(*args):
+    def baz(**kwargs):
+      def foobar(*a,
+                 **kw):
         return b
-      return foobar()
-    return baz()
+      return foobar(**kwargs)
+    return baz(*args)
   return bar()
 
 foo()
 `,
 		[]string{
 			":2: Variable \"a\" is unused.",
+			":7: Variable \"a\" is unused.",
+			":8: Variable \"kw\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = 3
+  d = 4
+  e, f = 5, 6
+
+  for x, yy in xx:
+    for (y, z, _) in yy:
+      print(a + y)
+
+  if bar:
+    print(c)
+  elif baz:
+    print(d)
+  else:
+    print(e)
+
+foo()
+`,
+		[]string{
+			":3: Variable \"b\" is unused.",
+			":6: Variable \"f\" is unused.",
+			":8: Variable \"x\" is unused.",
+			":9: Variable \"z\" is unused.",
 		},
 		scopeEverywhere)
 }
