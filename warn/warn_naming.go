@@ -18,9 +18,10 @@ package warn
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
-	"strings"
 )
 
 var ambiguousNames = map[string]bool{
