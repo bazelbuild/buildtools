@@ -303,7 +303,7 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 		case *build.Comprehension:
 			// Comprehensions introduce their own visibility scope that shadows the
 			// outer scope. Iterators that are defined and used there don't affect
-			// the usage of variables with the same name outside of the comprehension
+			// the usage of variables with the same name outside the comprehension
 			// scope.
 			scope := make(map[string]bool)
 			for _, clause := range expr.Clauses {
@@ -327,6 +327,7 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 				}
 			}
 			used[expr] = true
+
 		default:
 			// Do nothing, just traverse further
 		}

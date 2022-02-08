@@ -813,10 +813,5 @@ warnings: {
     "```python\n"
     "x = [1, 2]\n"
     "```\n\n"
-    "The line can often be safely removed.\n\n"
-    "If you want to keep the variable, you can disable the warning by adding a\n"
-    "comment `# @unused`.\n\n"
-    "```python\n"
-    "x = [1, 2] # @unused\n"
-    "```"
+    "The line can often be safely removed."
 }
