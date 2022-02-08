@@ -374,53 +374,170 @@ load(":f.bzl", "x")
 x = "unused"
 y = "also unused"
 z = "name"
-cc_library(name = z)`,
+cc_library(name = z)
+
+def f():
+  pass
+
+def g():
+  pass
+
+g() + 3
+`,
 		[]string{":2: Variable \"x\" is unused.",
-			":3: Variable \"y\" is unused."},
-		scopeBuild|scopeWorkspace)
+			":3: Variable \"y\" is unused.",
+			":7: Function \"f\" is unused."},
+		scopeDeclarative)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 b = 2
 c = 3
 d = (a if b else c)  # only d is unused
-e = 5 # @unused
-# @unused
-f = 7`,
+`,
 		[]string{":4: Variable \"d\" is unused."},
-		scopeBuild|scopeWorkspace)
+		scopeDeclarative)
+
+	checkFindings(t, "unused-variable", `
+_a = 1
+_a += 2
+_b = 3
+print(_b)
+
+def _f(): pass
+def _g(): pass
+_g()
+`,
+		[]string{
+			":1: Variable \"_a\" is unused.",
+			":6: Function \"_f\" is unused.",
+		},
+		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 
-def foo():
+def foo(
+    x,
+    y = 0,
+    z = 1):
   b = 2
   c = 3
   d = (a if b else c)  # only d is unused
-  e = 5 # @unused
-  # @unused
-  f = 7
-  g = 8
-  return g`,
-		[]string{":6: Variable \"d\" is unused."},
-		scopeBuild|scopeWorkspace)
+  e = 7
+  return e + z
+
+foo()
+`,
+		[]string{
+			":4: Variable \"x\" is unused.",
+			":5: Variable \"y\" is unused.",
+			":9: Variable \"d\" is unused.",
+		},
+		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 
-def foo(c):
+def foo(a):
   b = 2
-	return c
+  return a
 
-def bar(b):
-  c = 3
-	print(b)`,
+def foo():
+  pass
+
+def bar(c, cc):
+  d = 3
+  print(c)
+
+  def baz():
+    foo()
+    d = 4
+    return a
+
+bar()
+`,
 		[]string{
-			":1: Variable \"a\" is unused.",
 			":4: Variable \"b\" is unused.",
-			":8: Variable \"c\" is unused.",
+			":10: Variable \"cc\" is unused.",
+			":11: Variable \"d\" is unused.",
+			":14: Function \"baz\" is unused.",
+			":16: Variable \"d\" is unused.",
 		},
-		scopeBuild|scopeWorkspace)
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = 3
+
+  def bar(
+      x = a + baz(c = 4),
+      y = b):
+    pass
+
+foo()
+`,
+		[]string{
+			":4: Variable \"c\" is unused.",
+			":6: Function \"bar\" is unused.",
+			":7: Variable \"x\" is unused.",
+			":8: Variable \"y\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = [x for a in aa if a % b for x in a]
+  return c
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = [
+    a + b
+    for a in [b for b in bb if b]
+    if a
+  ]
+  return c
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+
+  def bar():
+    def baz():
+      def foobar():
+        return b
+      return foobar()
+    return baz()
+  return bar()
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {

@@ -1106,10 +1106,3 @@ x = [1, 2]
 ```
 
 The line can often be safely removed.
-
-If you want to keep the variable, you can disable the warning by adding a
-comment `# @unused`.
-
-```python
-x = [1, 2] # @unused
-```
