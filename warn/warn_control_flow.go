@@ -372,7 +372,6 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 		switch expr := expr.(type) {
 		case *build.File:
 			// File nodes don't have anything meaningful, just traverse its subnodes.
-			break
 
 		case *build.DefStmt:
 			if len(stack) > 0 {
