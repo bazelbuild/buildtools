@@ -27,13 +27,14 @@ import (
 )
 
 const (
-	scopeBuild      = build.TypeBuild
-	scopeBzl        = build.TypeBzl
-	scopeWorkspace  = build.TypeWorkspace
-	scopeDefault    = build.TypeDefault
-	scopeModule     = build.TypeModule
-	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault | scopeModule
-	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace | scopeModule
+	scopeBuild       = build.TypeBuild
+	scopeBzl         = build.TypeBzl
+	scopeWorkspace   = build.TypeWorkspace
+	scopeDefault     = build.TypeDefault
+	scopeModule      = build.TypeModule
+	scopeEverywhere  = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault | scopeModule
+	scopeBazel       = scopeBuild | scopeBzl | scopeWorkspace | scopeModule
+	scopeDeclarative = scopeBuild | scopeWorkspace | scopeModule
 )
 
 // A global FileReader object that can be used by tests. If a test redefines it it must

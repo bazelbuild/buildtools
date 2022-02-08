@@ -809,7 +809,7 @@ warnings: {
   name: "unused-variable"
   header: "Variable is unused"
   description:
-    "This happens when a variable is set but not used in the file, e.g.\n\n"
+    "This happens when a variable or function is set but not used in the file, e.g.\n\n"
     "```python\n"
     "x = [1, 2]\n"
     "```\n\n"
@@ -818,5 +818,9 @@ warnings: {
     "comment `# @unused`.\n\n"
     "```python\n"
     "x = [1, 2] # @unused\n"
+    "\n"
+    "# @unused\n"
+    "def f():\n"
+    "    pass\n"
     "```"
 }

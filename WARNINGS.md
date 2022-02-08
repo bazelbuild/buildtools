@@ -1099,7 +1099,7 @@ the dictionary with unsorted items has a comment disabling this warning.
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=unused-variable`
 
-This happens when a variable is set but not used in the file, e.g.
+This happens when a variable or function is set but not used in the file, e.g.
 
 ```python
 x = [1, 2]
@@ -1112,4 +1112,8 @@ comment `# @unused`.
 
 ```python
 x = [1, 2] # @unused
+
+# @unused
+def f():
+    pass
 ```
