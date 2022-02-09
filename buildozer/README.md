@@ -121,7 +121,7 @@ Buildozer supports the following commands(`'command args'`):
     attribute `attr`. If the key was already present, it will _not_ be overwritten
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
-  * `dict_delete <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
+  * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
   * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
     dict attribute `attr`.
 
