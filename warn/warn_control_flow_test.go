@@ -594,7 +594,7 @@ foo()
 		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
-def foo(my_iterable, _some_unused_argument, _also_unused = None, *_args, **_kwargs):
+def foo(my_iterable, arg, _some_unused_argument, _also_unused = None, *_args, **_kwargs):
 
   a, b, _c = 1, 2, 3  # ok to not use _c
   print(a)
@@ -613,6 +613,7 @@ def foo(my_iterable, _some_unused_argument, _also_unused = None, *_args, **_kwar
 foo()
 `,
 		[]string{
+			":1: Variable \"arg\" is unused.",
 			":3: Variable \"b\" is unused.",
 			":6: Variable \"_e\" is unused.",
 			":9: Variable \"g\" is unused.",
