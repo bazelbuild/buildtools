@@ -556,7 +556,7 @@ def foo():
   e, f = 5, 6
 
   for x, yy in xx:
-    for (y, z, _) in yy:
+    for (y, z, _, _t) in yy:
       print(a + y)
 
   if bar:
@@ -592,6 +592,34 @@ foo()
 			":7: Function \"baz\" is unused.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(my_iterable, arg, _some_unused_argument, _also_unused = None, *_args, **_kwargs):
+
+  a, b, _c = 1, 2, 3  # ok to not use _c
+  print(a)
+
+  _d, _e = 4, 5  # all are underscored
+  print(_d)
+
+  for f, g, _h, _ in my_iterable:  # ok to not use any underscored
+    print(f)
+
+  for _i, (_j, _k) in another_iterable:  # ok to not use any of them
+    pass
+
+  [1 for (_y, _z) in bar]
+
+foo()
+`,
+		[]string{
+			":1: Variable \"arg\" is unused.",
+			":3: Variable \"b\" is unused.",
+			":6: Variable \"_e\" is unused.",
+			":9: Variable \"g\" is unused.",
+		},
+		scopeEverywhere)
+
 }
 
 func TestRedefinedVariable(t *testing.T) {

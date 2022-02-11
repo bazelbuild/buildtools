@@ -276,8 +276,31 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			// Further traversal will ignore `name` but won't know that it's in an LHS
 			// of an assign expression, so it'll erroneously collect `y` as used.
 			// After the traversal it'll need to be removed from `used`.
+
+			// If some (but not all) variables assigned to by the statements are
+			// prefixed with an underscore, suppress the warning on them (i.e. allow
+			// them to be unused). That's a common use case for partial unpacking of
+			// tuples:
+			//
+			//     foo, _bar = my_function()  # only `foo` is needed
+			//
+			// However if all variables are underscored and unused, they should still
+			// be reported:
+			//
+			//     _foo, _bar = my_function()  # LHS can just be removed
+
+			lValues := bzlenv.CollectLValues(expr.LHS)
+			allLValuesUnderscored := true
+			for _, lValue := range lValues {
+				if !strings.HasPrefix(lValue.Name, "_") {
+					allLValuesUnderscored = false
+					break
+				}
+			}
+
 			for _, lValue := range bzlenv.CollectLValues(expr.LHS) {
-				assigned[lValue] = hasUnusedComment
+				assigned[lValue] = hasUnusedComment ||
+					(!allLValuesUnderscored && strings.HasPrefix(lValue.Name, "_"))
 			}
 
 		case *build.ForStmt:
@@ -287,8 +310,14 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			// `extractIdentsFromStmt` should be responsible for checking all
 			// statements including those that are inside for-loops.
 
+			// It's common to not use all variables (or even not use any of them)
+			// after unpacking tuples, suppress the warning an all of them that are
+			// prefixed with an underscore:
+			//
+			//     for _, (_b, c) in iterable:
+			//         print(c)
 			for _, lValue := range bzlenv.CollectLValues(expr.Vars) {
-				assigned[lValue] = false
+				assigned[lValue] = strings.HasPrefix(lValue.Name, "_")
 			}
 
 			// Don't traverse inside the inner statements (but still traverse into
@@ -400,6 +429,10 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
+					if strings.HasPrefix(ident.Name, "_") {
+						// Don't warn about function arguments if they start with "_"
+						suppressedWarnings[ident.Name] = true
+					}
 				}
 				// The default variables for the parameters are defined in the outer
 				// scope but used here.
@@ -473,10 +506,6 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			continue
 		}
 		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
-			continue
-		}
-		if name == "_" {
-			// "_" is often used for partially unpacking tuples
 			continue
 		}
 		findings = append(findings,
