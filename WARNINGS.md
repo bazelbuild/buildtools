@@ -1121,15 +1121,15 @@ def f():
 If an unused variable is used for partially unpacking tuples, just prefix
 its name with an underscore to suppress the warning:
 
-```
+```python
 x, _y = foo()
-for _, (a, _b) in iterable:```
-    print(a)
+for _, (a, _b) in iterable:
+    print(a + x)
 ```
 
 The same applies for function arguments that are not used by design:
 
-```
+```python
 def foo(a, _b, *_args):
     return bar(a)
 ```
