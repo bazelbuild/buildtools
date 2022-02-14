@@ -848,6 +848,15 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 // If multiLine is true, seq avoids the compact form even
 // for 0- and 1-element sequences.
 func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
+	args := &[]Expr{}
+	for _, x := range *list {
+		// nil arguments may be added by some linter checks, filter them out because
+		// they may cause NPE.
+		if x != nil {
+			*args = append(*args, x)
+		}
+	}
+
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
@@ -859,15 +868,15 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
-		for i, x := range *list {
+	if p.useCompactMode(start, args, end, mode, forceCompact, forceMultiLine) {
+		for i, x := range *args {
 			if i > 0 {
 				p.printf(", ")
 			}
 			p.expr(x, precLow)
 		}
 		// Single-element tuple must end with comma, to mark it as a tuple.
-		if len(*list) == 1 && mode == modeTuple {
+		if len(*args) == 1 && mode == modeTuple {
 			p.printf(",")
 		}
 		return
@@ -879,7 +888,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	}
 	p.margin += indentation
 
-	for i, x := range *list {
+	for i, x := range *args {
 		// If we are about to break the line before the first
 		// element and there are trailing end-of-line comments
 		// waiting to be printed, delay them and print them as
@@ -894,7 +903,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		p.newline()
 		p.expr(x, precLow)
 
-		if i+1 < len(*list) || needsTrailingComma(mode, x) {
+		if i+1 < len(*args) || needsTrailingComma(mode, x) {
 			p.printf(",")
 		}
 	}

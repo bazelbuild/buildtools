@@ -161,7 +161,7 @@ func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding
 		return nil
 	}
 	for _, arg := range call.List {
-		if _, ok := arg.(*build.AssignExpr); ok {
+		if _, ok := arg.(*build.AssignExpr); ok || arg == nil {
 			continue
 		}
 		return makeLinterFinding(arg, "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.")
