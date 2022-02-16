@@ -90,6 +90,10 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 		raw = true
 		quoted = quoted[1:]
 	}
+	if strings.HasPrefix(quoted, "b") {
+		raw = true
+		quoted = quoted[1:]
+	}
 
 	if len(quoted) < 2 {
 		err = fmt.Errorf("string literal too short")

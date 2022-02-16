@@ -188,7 +188,8 @@ func convExpr(e syntax.Expr) build.Expr {
 			return &build.StringExpr{
 				Value:       e.Value.(string),
 				TripleQuote: strings.HasPrefix(e.Raw, "b\"\"\""),
-				Comments:    convComments(e.Comments())}
+				Comments:    convComments(e.Comments()),
+				Token:       "b\"" + e.Value.(string) + "\""}
 		}
 	case *syntax.Ident:
 		return &build.Ident{Name: e.Name, Comments: convComments(e.Comments())}
