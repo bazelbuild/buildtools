@@ -121,10 +121,10 @@ gazelle_dependencies()
 
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
-    strip_prefix = "protobuf-3.13.0",
+    sha256 = "3bd7828aa5af4b13b99c191e8b1e884ebfa9ad371b0ce264605d347f135d2568",
+    strip_prefix = "protobuf-3.19.4",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",
+        "https://github.com/protocolbuffers/protobuf/archive/v3.19.4.tar.gz",
     ],
 )
 
