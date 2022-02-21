@@ -94,6 +94,8 @@ if debug:
 
 The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
 `cfg = "data"` is deprecated and has no effect. Consider removing it.
+The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+`cfg = "host"` is deprecated. Consider replacing it with `cfg = "exec"`.
 
 --------------------------------------------------------------------------------
 

@@ -23,7 +23,7 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-func TestAttrConfigurationWarning(t *testing.T) {
+func TestAttrDataConfigurationWarning(t *testing.T) {
 	checkFindingsAndFix(t, "attr-cfg", `
 rule(
   attrs = {
@@ -31,15 +31,35 @@ rule(
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`, `
+attr.label_list(mandatory = True, cfg = "exec")`, `
 rule(
   attrs = {
       "foo": attr.label_list(mandatory = True),
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`,
+attr.label_list(mandatory = True, cfg = "exec")`,
 		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
+		scopeBzl)
+}
+
+func TestAttrHostConfigurationWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-cfg", `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "host"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "exec"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`,
+		[]string{`:3: cfg = "host" for attr definitions should be replaced by cfg = "exec".`},
 		scopeBzl)
 }
 
