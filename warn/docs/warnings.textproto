@@ -7,7 +7,9 @@ warnings: {
   header: "`cfg = \"data\"` for attr definitions has no effect"
   description:
     "The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)\n"
-    "`cfg = \"data\"` is deprecated and has no effect. Consider removing it."
+    "`cfg = \"data\"` is deprecated and has no effect. Consider removing it.\n"
+    "The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)\n"
+    "`cfg = \"host\"` is deprecated. Consider replacing it with `cfg = \"exec\"`."
   bazel_flag: "--incompatible_disallow_data_transition"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6153"
   autofix: true
