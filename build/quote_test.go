@@ -65,6 +65,49 @@ world"""`, "hello\nworld", true},
 	},
 }
 
+var unquoteErrorTests = []struct {
+	q  string // quoted
+	s  string // unquoted, empty if unquote(s) will fail
+	ok bool   // true iff unquote(s) should succeed
+}{
+	{`"\1"`, "\u0001", true},
+	{`"\12"`, "\u000A", true},
+	{`"\123"`, "\u0053", true},
+	{`"\400"`, "", false},
+	{`"\x"`, "", false},
+	{`"\x1"`, "", false},
+	{`"\x12"`, "\u0012", true},
+	{`"\u"`, "", false},
+	{`"\u1"`, "", false},
+	{`"\u12"`, "", false},
+	{`"\u123"`, "", false},
+	{`"\u1234"`, "\u1234", true},
+	{`"\uD7FF"`, "\uD7FF", true},
+	{`"\uD800"`, "", false},
+	{`"\uDFFF"`, "", false},
+	{`"\uE000"`, "\uE000", true},
+	{`"\uFFFF"`, "\uFFFF", true},
+	{`"\u0000"`, "\u0000", true},
+	{`"\U"`, "", false},
+	{`"\U1"`, "", false},
+	{`"\U12"`, "", false},
+	{`"\U123"`, "", false},
+	{`"\U1234"`, "", false},
+	{`"\U12345"`, "", false},
+	{`"\U123456"`, "", false},
+	{`"\U1234567"`, "", false},
+	{`"\U00012345"`, "\U00012345", true},
+	{`"\U0000D7FF"`, "\uD7FF", true},
+	{`"\U0000D800"`, "", false},
+	{`"\U0000DFFF"`, "", false},
+	{`"\U0000E000"`, "\uE000", true},
+	{`"\U0000FFFF"`, "\uFFFF", true},
+	{`"\U00000000"`, "\u0000", true},
+	{`"\U0010FFFF"`, "\U0010FFFF", true},
+	{`"\U00110000"`, "", false},
+	{`"\UFFFFFFFF"`, "", false},
+}
+
 func TestQuote(t *testing.T) {
 	for _, tt := range quoteTests {
 		if !tt.std {
@@ -83,6 +126,17 @@ func TestUnquote(t *testing.T) {
 		wantTriple := strings.HasPrefix(tt.q, `"""`) || strings.HasPrefix(tt.q, `'''`)
 		if s != tt.s || triple != wantTriple || err != nil {
 			t.Errorf("unquote(%s) = %#q, %v, %v want %#q, %v, nil", tt.q, s, triple, err, tt.s, wantTriple)
+		}
+	}
+}
+
+func TestUnquoteErrors(t *testing.T) {
+	for _, tt := range unquoteErrorTests {
+		s, triple, err := Unquote(tt.q)
+		if tt.ok && (s != tt.s || err != nil) {
+			t.Errorf("Unquote(%s) = %#q, %v, %v want %#q, %v, nil", tt.q, s, triple, err, tt.s, triple)
+		} else if !tt.ok && err == nil {
+			t.Errorf("Unquote(%s) = %#q, %v, %v want %#q, %v, non-nil", tt.q, s, triple, err, tt.s, triple)
 		}
 	}
 }
