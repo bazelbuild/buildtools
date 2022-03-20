@@ -394,10 +394,10 @@ def f(x, y, z = None, *args, **kwargs):
    """This is a function.
 
    Args:
-    x: x
+    x (Map[string, int]): x
     y (deprecated, mutable): y
     z: z
-    *args: the args
+    *args (List<string>): the args
     **kwargs: the kwargs
    """
    pass

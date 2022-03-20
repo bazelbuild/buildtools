@@ -103,7 +103,7 @@ func countLeadingSpaces(s string) int {
 	return spaces
 }
 
-var argRegex = regexp.MustCompile(`^ *(\*?\*?\w*)( *\([\w\ ,]+\))?:`)
+var argRegex = regexp.MustCompile(`^ *(\*?\*?\w*)( *\([\w\ ,<>\[\]]+\))?:`)
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
 // the parsed information about the function, its arguments and its return value.
@@ -307,7 +307,7 @@ func functionDocstringArgsWarning(f *build.File) []*LinterFinding {
 			if name == "" {
 				continue
 			}
-			name = op + name  // *args or **kwargs
+			name = op + name // *args or **kwargs
 			paramNames[name] = true
 			if _, ok := info.args[name]; !ok {
 				notDocumentedArguments = append(notDocumentedArguments, name)
