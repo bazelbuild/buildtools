@@ -307,7 +307,7 @@ func functionDocstringArgsWarning(f *build.File) []*LinterFinding {
 			if name == "" {
 				continue
 			}
-			name = op + name // *args or **kwargs
+			name = op + name  // *args or **kwargs
 			paramNames[name] = true
 			if _, ok := info.args[name]; !ok {
 				notDocumentedArguments = append(notDocumentedArguments, name)
