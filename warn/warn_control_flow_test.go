@@ -375,6 +375,7 @@ x = "unused"
 y = "also unused"
 z = "name"
 t = "unused by design"  # @unused
+_foo, _bar = pair  #@unused
 cc_library(name = z)
 
 def f():
@@ -387,7 +388,7 @@ g() + 3
 `,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused.",
-			":8: Function \"f\" is unused."},
+			":9: Function \"f\" is unused."},
 		scopeDeclarative)
 
 	checkFindings(t, "unused-variable", `
@@ -620,6 +621,23 @@ foo()
 		},
 		scopeEverywhere)
 
+	checkFindings(t, "unused-variable", `
+def foo(
+    x,
+    _y,
+    z,  # @unused
+    t = 42,  #@unused
+    *args,  # @unused
+    **kwargs,  ### also @unused
+):
+  pass
+
+foo()
+`,
+		[]string{
+			":2: Variable \"x\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
