@@ -1116,7 +1116,10 @@ comment `# @unused`.
 x = [1, 2] # @unused
 
 # @unused
-def f():
+def f(
+        x,
+        y,  # @unused
+):
     pass
 ```
 
@@ -1134,4 +1137,12 @@ The same applies for function arguments that are not used by design:
 ```python
 def foo(a, _b, *_args):
     return bar(a)
+```
+
+If a tuple is unpacked not in a for-loop and all variables are unused,
+it'll still trigger a warning, even if all variables are underscored:
+
+```python
+_a, _b = pair
+_unused = 3
 ```

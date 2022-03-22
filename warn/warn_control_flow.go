@@ -429,8 +429,9 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
-					if strings.HasPrefix(ident.Name, "_") {
+					if strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
 						// Don't warn about function arguments if they start with "_"
+						// or explicitly marked with @unused
 						suppressedWarnings[ident.Name] = true
 					}
 				}
