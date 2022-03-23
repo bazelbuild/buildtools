@@ -1174,4 +1174,18 @@ def foo(x: int, y: int = 2):
 			":11: Variable \"w\" may not have been initialized.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  x = 1
+  for y, z in t:
+      print(y, z)
+
+  def bar(x, y, s = z):
+    pass
+`,
+		[]string{
+			":6: Variable \"z\" may not have been initialized.",
+		},
+		scopeEverywhere)
 }

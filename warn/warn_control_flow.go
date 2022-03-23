@@ -715,6 +715,14 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
 			switch expr := expr.(type) {
 			case *build.DefStmt:
+				// Function arguments can't be uninitialized, even if they share the same
+				// name with a variable that's not initialized for some execution path
+				// in an outer scope.
+				for _, param := range expr.Params {
+					if ident, _ := build.GetParamIdent(param); ident != nil {
+						lValues[ident] = true
+					}
+				}
 				// Don't traverse into nested def statements
 				return &build.StopTraversalError{}
 			case *build.AssignExpr:
@@ -862,7 +870,7 @@ func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 			// Check that the found ident represents a local variable
 			if localVars[ident.Name] {
 				findings = append(findings,
-					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized. %s`, ident.Name, def.Name)))
+					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name)))
 			}
 		})
 		return
