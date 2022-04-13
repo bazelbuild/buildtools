@@ -56,7 +56,7 @@ type Options struct {
 	Quiet             bool      // suppress informational messages.
 	EditVariables     bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
-	IsPrintingJson    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
+	IsPrintingJSON    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
 	OutWriter         io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
 	ErrWriter         io.Writer // where to write error output (`os.Stderr` will be used if not specified)
 }
@@ -1288,7 +1288,7 @@ func Buildozer(opts *Options, args []string) int {
 			log.Fatal("marshaling error: ", err)
 		}
 		fmt.Fprintf(opts.OutWriter, "%s", data)
-	} else if opts.IsPrintingJson {
+	} else if opts.IsPrintingJSON {
 		marshaler := jsonpb.Marshaler{}
 		if err := marshaler.Marshal(opts.OutWriter, &apipb.Output{Records: records}); err != nil {
 			log.Fatal("json marshaling error: ", err)
