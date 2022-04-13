@@ -14,13 +14,20 @@ function set_up() {
 # Runs buildozer, including saving the log and error messages, by sending the
 # BUILD file contents ($1) to STDIN.
 function run() {
+  options=(--buildifier=)
+  while [[ "$1" == --* ]]; 
+  do
+    options+=("$1")
+    shift
+  done
+
   input="$1"
   shift
   mkdir -p "$PKG"
 
   pwd
   echo "$input" > "$PKG/BUILD"
-  run_with_current_workspace "$buildozer --buildifier=" "$@"
+  run_with_current_workspace "$buildozer ${options[*]}" "$@"
 }
 
 # Runs buildozer, including saving the log and error messages.

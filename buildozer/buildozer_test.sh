@@ -1055,6 +1055,13 @@ java_library(name = "b")'
   assert_output '//pkg:b java_library'
 }
 
+function test_print_label_json() {
+  in='package()
+java_library(name = "b")'
+  run --output_json "$in" 'print label kind' '//pkg:*'
+  assert_output '{"records":[{"fields":[{"text":"//pkg:b"},{"text":"java_library"}]}]}'
+}
+
 function test_print_label_ellipsis() {
   mkdir -p "ellipsis_test/foo/bar"
   echo 'java_library(name = "test")' > "ellipsis_test/BUILD"
