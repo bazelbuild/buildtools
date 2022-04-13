@@ -103,7 +103,7 @@ func countLeadingSpaces(s string) int {
 	return spaces
 }
 
-var argRegex = regexp.MustCompile(`^ *(\*?\*?\w*)( *\([\w\ ,]+\))?:`)
+var argRegex = regexp.MustCompile(`^ *(\*?\*?\w*)( *\([\w\ ,<>\[\]]+\))?:`)
 
 // parseFunctionDocstring parses a function docstring and returns a docstringInfo object containing
 // the parsed information about the function, its arguments and its return value.

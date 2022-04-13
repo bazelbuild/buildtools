@@ -429,8 +429,9 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
-					if strings.HasPrefix(ident.Name, "_") {
+					if strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
 						// Don't warn about function arguments if they start with "_"
+						// or explicitly marked with @unused
 						suppressedWarnings[ident.Name] = true
 					}
 				}
@@ -577,6 +578,7 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 	})
 
 	symbols := edit.UsedSymbols(f)
+	types := edit.UsedTypes(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
 		originalLoad, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
@@ -619,6 +621,10 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 				continue
 			}
 			_, ok := symbols[to.Name]
+			if !ok {
+				// Fallback to verify if the symbol is used as a type.
+				_, ok = types[to.Name]
+			}
 			if !ok && !edit.ContainsComments(originalLoad, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
 				// The loaded symbol is not used and is not protected by a special "@unused" comment
 				load.To = append(load.To[:i], load.To[i+1:]...)
@@ -714,6 +720,14 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
 			switch expr := expr.(type) {
 			case *build.DefStmt:
+				// Function arguments can't be uninitialized, even if they share the same
+				// name with a variable that's not initialized for some execution path
+				// in an outer scope.
+				for _, param := range expr.Params {
+					if ident, _ := build.GetParamIdent(param); ident != nil {
+						lValues[ident] = true
+					}
+				}
 				// Don't traverse into nested def statements
 				return &build.StopTraversalError{}
 			case *build.AssignExpr:
@@ -861,7 +875,7 @@ func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 			// Check that the found ident represents a local variable
 			if localVars[ident.Name] {
 				findings = append(findings,
-					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized. %s`, ident.Name, def.Name)))
+					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name)))
 			}
 		})
 		return

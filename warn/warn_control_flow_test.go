@@ -375,6 +375,7 @@ x = "unused"
 y = "also unused"
 z = "name"
 t = "unused by design"  # @unused
+_foo, _bar = pair  #@unused
 cc_library(name = z)
 
 def f():
@@ -387,7 +388,7 @@ g() + 3
 `,
 		[]string{":2: Variable \"x\" is unused.",
 			":3: Variable \"y\" is unused.",
-			":8: Function \"f\" is unused."},
+			":9: Function \"f\" is unused."},
 		scopeDeclarative)
 
 	checkFindings(t, "unused-variable", `
@@ -620,6 +621,23 @@ foo()
 		},
 		scopeEverywhere)
 
+	checkFindings(t, "unused-variable", `
+def foo(
+    x,
+    _y,
+    z,  # @unused
+    t = 42,  #@unused
+    *args,  # @unused
+    **kwargs,  ### also @unused
+):
+  pass
+
+foo()
+`,
+		[]string{
+			":2: Variable \"x\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -786,6 +804,58 @@ load(":f.bzl", "x")
 x = "unused"`, `
 x = "unused"`,
 		[]string{":1: Loaded symbol \"x\" is unused."},
+		scopeEverywhere)
+
+	checkFindings(t, "load", `
+load(
+  ":f.bzl",
+   "s1",
+)
+
+def test(x: s1):
+  pass
+`,
+		[]string{},
+		scopeEverywhere)
+	checkFindings(t, "load", `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`,
+		[]string{},
+		scopeEverywhere)
+	checkFindingsAndFix(t, "load", `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+load(
+  ":s.bzl",
+  "s3",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`, `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`,
+		[]string{
+			":9: Loaded symbol \"s3\" is unused.",
+		},
 		scopeEverywhere)
 }
 
@@ -1154,6 +1224,20 @@ def foo(x: int, y: int = 2):
 			":9: Variable \"s\" may not have been initialized.",
 			":10: Variable \"t\" may not have been initialized.",
 			":11: Variable \"w\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  x = 1
+  for y, z in t:
+      print(y, z)
+
+  def bar(x, y, s = z):
+    pass
+`,
+		[]string{
+			":6: Variable \"z\" may not have been initialized.",
 		},
 		scopeEverywhere)
 }
