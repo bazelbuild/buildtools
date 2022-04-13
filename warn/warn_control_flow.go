@@ -20,6 +20,8 @@ package warn
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 	"github.com/bazelbuild/buildtools/edit"
@@ -27,7 +29,7 @@ import (
 
 // findReturnsWithoutValue searches for return statements without a value, calls `callback` on
 // them and returns whether the current list of statements terminates (either by a return or fail()
-// statements on the current level in all subranches.
+// statements on the current level in all subbranches.
 func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt)) bool {
 	if len(stmts) == 0 {
 		// May occur in empty else-clauses
@@ -68,17 +70,28 @@ func findReturnsWithoutValue(stmts []build.Expr, callback func(*build.ReturnStmt
 func missingReturnValueWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 
-	for _, stmt := range f.Stmt {
-		function, ok := stmt.(*build.DefStmt)
-		if !ok {
-			continue
+	// Collect all def statements in the file
+	defStmts := []*build.DefStmt{}
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		if def, ok := expr.(*build.DefStmt); ok {
+			defStmts = append(defStmts, def)
 		}
+		return
+	})
 
+	for _, function := range defStmts {
 		var hasNonEmptyReturns bool
-		build.Walk(function, func(expr build.Expr, stack []build.Expr) {
+		build.WalkStatements(function, func(expr build.Expr, stack []build.Expr) (err error) {
+			if _, ok := expr.(*build.DefStmt); ok {
+				if len(stack) > 0 {
+					return &build.StopTraversalError{}
+				}
+			}
+
 			if ret, ok := expr.(*build.ReturnStmt); ok && ret.Result != nil {
 				hasNonEmptyReturns = true
 			}
+			return err
 		})
 
 		if !hasNonEmptyReturns {
@@ -138,17 +151,17 @@ func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bo
 func unreachableStatementWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 
-	for _, stmt := range f.Stmt {
-		function, ok := stmt.(*build.DefStmt)
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		def, ok := expr.(*build.DefStmt)
 		if !ok {
-			continue
+			return
 		}
-
-		findUnreachableStatements(function.Body, func(expr build.Expr) {
+		findUnreachableStatements(def.Body, func(expr build.Expr) {
 			findings = append(findings,
 				makeLinterFinding(expr, `The statement is unreachable.`))
 		})
-	}
+		return
+	})
 	return findings
 }
 
@@ -195,9 +208,9 @@ func noEffectStatementsCheck(body []build.Expr, isTopLevel, isFunc bool, finding
 func noEffectWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	findings = noEffectStatementsCheck(f.Stmt, true, false, findings)
-	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
-		// The AST should have a ExprStmt node.
-		// Since we don't have that, we match on the nodes that contain a block to get the list of statements.
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		// Docstrings are valid statements without effects. To detect them we need to
+		// analyze blocks of statements rather than single statements.
 		switch expr := expr.(type) {
 		case *build.ForStmt:
 			findings = noEffectStatementsCheck(expr.Body, false, false, findings)
@@ -207,56 +220,321 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 			findings = noEffectStatementsCheck(expr.True, false, false, findings)
 			findings = noEffectStatementsCheck(expr.False, false, false, findings)
 		}
+		return
 	})
 	return findings
 }
 
-// unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
-// *build.DefStmt) and reports unused and already defined variables.
-func unusedVariableCheck(f *build.File, stmts []build.Expr, findings []*LinterFinding) []*LinterFinding {
-	if f.Type == build.TypeDefault || f.Type == build.TypeBzl {
-		// Not applicable to .bzl files, unused symbols may be loaded and used in other files.
-		return findings
+// extractIdentsFromStmt returns all idents from the an AST node representing a
+// single statement that are either defined outside the node and used inside,
+// or defined inside the node and can be used outside.
+// Examples of idents that don't fall into either of the categories:
+//   * Named arguments of function calls: `foo` in `f(foo = "bar")`
+//   * Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+// Statements that contain other statements (for-loops, if-else blocks) are not
+// traversed inside.
+func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
+	// The values for `assigned` are `true` if the warning for the variable should
+	// be suppressed, and `false` otherwise.
+	// It's still important to know that the variable has been assigned in the
+	// current scope because it could shadow a variable with the same name from an
+	// outer scope.
+	assigned = make(map[*build.Ident]bool)
+	used = make(map[*build.Ident]bool)
+
+	// Local scopes for comprehensions
+	scopes := make(map[build.Expr]map[string]bool)
+
+	// Nodes that are excluded from traversal
+	blockedNodes := make(map[build.Expr]bool)
+
+	build.WalkInterruptable(stmt, func(node build.Expr, stack []build.Expr) (err error) {
+		// Check if the current node has been blocked
+		if _, ok := blockedNodes[node]; ok {
+			return &build.StopTraversalError{}
+		}
+
+		switch expr := node.(type) {
+		case *build.AssignExpr:
+			// If it's a top-level assign expression, extract LValues from LHS
+			// Otherwise just ignore the LHS, it must be a keyword argument of a
+			// function call.
+			if node != stmt {
+				// The assignment expression is not the statement itself but its child,
+				// that means it's a keyword argument for a function call. Its LHS
+				// should be ignored.
+				blockedNodes[expr.LHS] = true
+				return
+			}
+
+			hasUnusedComment := edit.ContainsComments(expr, "@unused")
+
+			// LHS may contain both variables that are being used and variables that
+			// are being assigned to, e.g. in the following example:
+			//     x[i][f(name='foo')], y = 1, 2
+			// `x`, `i`, `f` are used, `y` is assigned, `name` should be ignored.
+			// Further traversal will ignore `name` but won't know that it's in an LHS
+			// of an assign expression, so it'll erroneously collect `y` as used.
+			// After the traversal it'll need to be removed from `used`.
+
+			// If some (but not all) variables assigned to by the statements are
+			// prefixed with an underscore, suppress the warning on them (i.e. allow
+			// them to be unused). That's a common use case for partial unpacking of
+			// tuples:
+			//
+			//     foo, _bar = my_function()  # only `foo` is needed
+			//
+			// However if all variables are underscored and unused, they should still
+			// be reported:
+			//
+			//     _foo, _bar = my_function()  # LHS can just be removed
+
+			lValues := bzlenv.CollectLValues(expr.LHS)
+			allLValuesUnderscored := true
+			for _, lValue := range lValues {
+				if !strings.HasPrefix(lValue.Name, "_") {
+					allLValuesUnderscored = false
+					break
+				}
+			}
+
+			for _, lValue := range bzlenv.CollectLValues(expr.LHS) {
+				assigned[lValue] = hasUnusedComment ||
+					(!allLValuesUnderscored && strings.HasPrefix(lValue.Name, "_"))
+			}
+
+		case *build.ForStmt:
+			// Like AssignExpr, ForStmt too have an analogue of LHS and RHS.
+			// Unlike AssignExpr, in this function they may appear only in the root of
+			// traversal and shouldn't be traversed inside (the caller of
+			// `extractIdentsFromStmt` should be responsible for checking all
+			// statements including those that are inside for-loops.
+
+			// It's common to not use all variables (or even not use any of them)
+			// after unpacking tuples, suppress the warning an all of them that are
+			// prefixed with an underscore:
+			//
+			//     for _, (_b, c) in iterable:
+			//         print(c)
+			for _, lValue := range bzlenv.CollectLValues(expr.Vars) {
+				assigned[lValue] = strings.HasPrefix(lValue.Name, "_")
+			}
+
+			// Don't traverse inside the inner statements (but still traverse into
+			// the expressions in `Vars` an `X`).
+			for _, substmt := range expr.Body {
+				blockedNodes[substmt] = true
+			}
+
+		case *build.IfStmt:
+			// Nothing special, just don't traverse the inner statements (like with
+			// ForStmt nodes).
+			for _, substmt := range expr.True {
+				blockedNodes[substmt] = true
+			}
+			for _, substmt := range expr.False {
+				blockedNodes[substmt] = true
+			}
+
+		case *build.Comprehension:
+			// Comprehensions introduce their own visibility scope that shadows the
+			// outer scope. Iterators that are defined and used there don't affect
+			// the usage of variables with the same name outside the comprehension
+			// scope.
+			scope := make(map[string]bool)
+			for _, clause := range expr.Clauses {
+				forClause, ok := clause.(*build.ForClause)
+				if !ok {
+					// if-clause
+					continue
+				}
+				for _, lValue := range bzlenv.CollectLValues(forClause.Vars) {
+					scope[lValue.Name] = true
+				}
+			}
+			scopes[expr] = scope
+		case *build.Ident:
+			// If the identifier is defined in an intermediate scope, ignore it.
+			for _, node := range stack {
+				if scope, ok := scopes[node]; ok {
+					if _, ok := scope[expr.Name]; ok {
+						return
+					}
+				}
+			}
+			used[expr] = true
+
+		default:
+			// Do nothing, just traverse further
+		}
+		return
+	})
+
+	for ident := range assigned {
+		// If the same ident (not the same variable but the same AST node) is
+		// registered as both "assigned" and "used", it means it was in fact just
+		// assigned, remove it from "used".
+		delete(used, ident)
 	}
+	return assigned, used
+}
+
+// unusedVariableCheck checks for unused variables inside a given node `stmt` (either *build.File or
+// *build.DefStmt) and variables that are used in the current scope or subscopes,
+// but not defined here.
+func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*LinterFinding) {
+	findings := []*LinterFinding{}
+
+	// Symbols that are defined in the current scope
+	definedSymbols := make(map[string]*build.Ident)
+
+	// Functions that are defined in the current scope
+	definedFunctions := make(map[string]*build.DefStmt)
+
+	// Symbols that are used in the current and inner scopes
 	usedSymbols := make(map[string]bool)
 
-	for _, stmt := range stmts {
-		for key := range edit.UsedSymbols(stmt) {
-			usedSymbols[key] = true
+	// Symbols for which the warning should be suppressed
+	suppressedWarnings := make(map[string]bool)
+
+	build.WalkStatements(root, func(expr build.Expr, stack []build.Expr) (err error) {
+		switch expr := expr.(type) {
+		case *build.File:
+			// File nodes don't have anything meaningful, just traverse its subnodes.
+
+		case *build.DefStmt:
+			if len(stack) > 0 {
+				// Nested def statement. Don't traverse inside, instead call
+				// unusedVariableCheck recursively to handle nested scopes properly.
+
+				// The function name is defined in the current scope
+				if _, ok := definedFunctions[expr.Name]; !ok {
+					definedFunctions[expr.Name] = expr
+				}
+				if edit.ContainsComments(expr, "@unused") {
+					suppressedWarnings[expr.Name] = true
+				}
+
+				usedSymbolsInFunction, findingsInFunction := unusedVariableCheck(f, expr)
+				findings = append(findings, findingsInFunction...)
+				for symbol := range usedSymbolsInFunction {
+					usedSymbols[symbol] = true
+				}
+				return &build.StopTraversalError{}
+			}
+
+			// The function is a root for the current scope.
+			// Collect its parameters as defined in the current scope.
+			for _, param := range expr.Params {
+				// Function parameters are defined in the current scope.
+				if ident, _ := build.GetParamIdent(param); ident != nil {
+					definedSymbols[ident.Name] = ident
+					if strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
+						// Don't warn about function arguments if they start with "_"
+						// or explicitly marked with @unused
+						suppressedWarnings[ident.Name] = true
+					}
+				}
+				// The default variables for the parameters are defined in the outer
+				// scope but used here.
+				assign, ok := param.(*build.AssignExpr)
+				if !ok {
+					continue
+				}
+
+				// RHS is not a statement, but similar traversal rules should be applied
+				// to it. E.g. it may have a comprehension node with its inner scope or
+				// a function call with a keyword parameter.
+				_, used := extractIdentsFromStmt(assign.RHS)
+				for ident := range used {
+					usedSymbols[ident.Name] = true
+				}
+			}
+
+		case *build.LoadStmt:
+			// LoadStmt nodes store the loaded symbols as idents, even though in the
+			// source code they are strings. These idents may confuse the check,
+			// they also shouldn't affect the warnings at all, unused loads are taken
+			// care of by another check. It's safe to just ignore them here.
+			return
+
+		default:
+			assigned, used := extractIdentsFromStmt(expr)
+
+			for symbol := range used {
+				usedSymbols[symbol.Name] = true
+			}
+			for symbol, isSuppressed := range assigned {
+				if _, ok := definedSymbols[symbol.Name]; !ok {
+					definedSymbols[symbol.Name] = symbol
+					if isSuppressed {
+						suppressedWarnings[symbol.Name] = true
+					}
+				}
+			}
 		}
+		return
+	})
+
+	// If a variable is defined in an outer scope but also in this scope, it
+	// shadows the outer variable. If it's used in the current scope, it doesn't
+	// make the variable with the same name from an outer scope also used.
+	// Collect variables that are used in the current or inner scopes but are not
+	// defined in the current scope.
+	usedSymbolsFromOuterScope := make(map[string]bool)
+	for symbol := range usedSymbols {
+		if _, ok := definedSymbols[symbol]; ok {
+			continue
+		}
+		if _, ok := definedFunctions[symbol]; ok {
+			continue
+		}
+		usedSymbolsFromOuterScope[symbol] = true
 	}
 
-	for _, s := range stmts {
-		if defStmt, ok := s.(*build.DefStmt); ok {
-			findings = unusedVariableCheck(f, defStmt.Body, findings)
-			continue
-		}
+	// Top-level variables defined in .bzl or generic Starlark files
+	// can be imported from elsewhere, even if not used in the current file.
+	// Do not warn on exportable variables.
+	ignoreTopLevel := (f.Type == build.TypeBzl || f.Type == build.TypeDefault) && root == f
 
-		// look for all assignments in the scope
-		as, ok := s.(*build.AssignExpr)
-		if !ok {
+	for name, ident := range definedSymbols {
+		if _, ok := usedSymbols[name]; ok {
+			// The variable is used either in this scope or in a nested scope
 			continue
 		}
-		left, ok := as.LHS.(*build.Ident)
-		if !ok {
+		if _, ok := suppressedWarnings[name]; ok {
+			// The variable is explicitly marked with @unused, ignore
 			continue
 		}
-		if usedSymbols[left.Name] {
-			continue
-		}
-		if edit.ContainsComments(s, "@unused") {
-			// To disable the warning, put a comment that contains '@unused'
+		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
 			continue
 		}
 		findings = append(findings,
-			makeLinterFinding(as.LHS, fmt.Sprintf(`Variable %q is unused. Please remove it.
-To disable the warning, add '@unused' in a comment.`, left.Name)))
+			makeLinterFinding(ident, fmt.Sprintf(`Variable %q is unused. Please remove it.`, ident.Name)))
 	}
-	return findings
+
+	for name, def := range definedFunctions {
+		if _, ok := usedSymbols[name]; ok {
+			// The function is used either in this scope or in a nested scope
+			continue
+		}
+		if ignoreTopLevel && !strings.HasPrefix(name, "_") {
+			continue
+		}
+		if _, ok := suppressedWarnings[name]; ok {
+			// The function is explicitly marked with @unused, ignore
+			continue
+		}
+		findings = append(findings,
+			makeLinterFinding(def, fmt.Sprintf(`Function %q is unused. Please remove it.`, def.Name)))
+	}
+
+	return usedSymbolsFromOuterScope, findings
 }
 
 func unusedVariableWarning(f *build.File) []*LinterFinding {
-	return unusedVariableCheck(f, f.Stmt, []*LinterFinding{})
+	_, findings := unusedVariableCheck(f, f)
+	return findings
 }
 
 func redefinedVariableWarning(f *build.File) []*LinterFinding {
@@ -300,6 +578,7 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 	})
 
 	symbols := edit.UsedSymbols(f)
+	types := edit.UsedTypes(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
 		originalLoad, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
@@ -332,9 +611,9 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 					load.To = append(load.To[:i], load.To[i+1:]...)
 					load.From = append(load.From[:i], load.From[i+1:]...)
 					i--
-                                	loadFindings = append(loadFindings, makeLinterFinding(to,
-                                        	fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)))
-	                                continue
+					loadFindings = append(loadFindings, makeLinterFinding(to,
+						fmt.Sprintf("Symbol %q has already been loaded on line %d. Please remove it.", to.Name, origin.line)))
+					continue
 				}
 
 				loadFindings = append(loadFindings, makeLinterFinding(to,
@@ -342,6 +621,10 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 				continue
 			}
 			_, ok := symbols[to.Name]
+			if !ok {
+				// Fallback to verify if the symbol is used as a type.
+				_, ok = types[to.Name]
+			}
 			if !ok && !edit.ContainsComments(originalLoad, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
 				// The loaded symbol is not used and is not protected by a special "@unused" comment
 				load.To = append(load.To[:i], load.To[i+1:]...)
@@ -432,27 +715,56 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 	// `callback` on every *build.Ident that's not mentioned in the map of initialized variables
 	findUninitializedIdents := func(expr build.Expr, callback func(ident *build.Ident)) {
 		// Collect lValues, they shouldn't be taken into account
-		// For example, if the expression is `a = foo(b = c)`, only `c` can be an unused variable here.
+		// For example, if the expression is `a = foo(b = c)`, only `c` can be an uninitialized variable here.
 		lValues := make(map[*build.Ident]bool)
-		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			if as, ok := expr.(*build.AssignExpr); ok {
-				for _, ident := range bzlenv.CollectLValues(as.LHS) {
+		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			switch expr := expr.(type) {
+			case *build.DefStmt:
+				// Function arguments can't be uninitialized, even if they share the same
+				// name with a variable that's not initialized for some execution path
+				// in an outer scope.
+				for _, param := range expr.Params {
+					if ident, _ := build.GetParamIdent(param); ident != nil {
+						lValues[ident] = true
+					}
+				}
+				// Don't traverse into nested def statements
+				return &build.StopTraversalError{}
+			case *build.AssignExpr:
+				for _, ident := range bzlenv.CollectLValues(expr.LHS) {
 					lValues[ident] = true
 				}
 			}
+			return
 		})
 
-		build.Walk(expr, func(expr build.Expr, stack []build.Expr) {
-			// TODO: traverse comprehensions properly
-			for _, node := range stack {
-				if _, ok := node.(*build.Comprehension); ok {
-					return
-				}
-			}
-
-			if ident, ok := expr.(*build.Ident); ok && !initialized[ident.Name] && !lValues[ident] {
+		// Check if the ident is really not initialized and call the callback on it.
+		callbackIfNeeded := func(ident *build.Ident) {
+			if !initialized[ident.Name] && !lValues[ident] {
 				callback(ident)
 			}
+		}
+
+		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			switch expr := expr.(type) {
+			case *build.Comprehension:
+				// Comprehension nodes are special, they have their own scope with variables
+				// that are only defined inside. Instead of traversing inside stop the
+				// traversal and call a special function to retrieve idents from the outer
+				// scope that are used inside the comprehension.
+
+				_, used := extractIdentsFromStmt(expr)
+				for ident := range used {
+					callbackIfNeeded(ident)
+				}
+
+				return &build.StopTraversalError{}
+			case *build.Ident:
+				callbackIfNeeded(expr)
+			default:
+				// Just traverse further
+			}
+			return
 		})
 	}
 
@@ -537,10 +849,10 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 // uninitializedVariableWarning warns about usages of values that may not have been initialized.
 func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
-	for _, stmt := range f.Stmt {
-		def, ok := stmt.(*build.DefStmt)
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
+		def, ok := expr.(*build.DefStmt)
 		if !ok {
-			continue
+			return
 		}
 
 		// Get all variables defined in the function body.
@@ -566,6 +878,7 @@ func uninitializedVariableWarning(f *build.File) []*LinterFinding {
 					makeLinterFinding(ident, fmt.Sprintf(`Variable "%s" may not have been initialized.`, ident.Name)))
 			}
 		})
-	}
+		return
+	})
 	return findings
 }

@@ -39,7 +39,7 @@ def buildifier_attr_factory(test_rule = False):
     """
     attrs = {
         "buildifier": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier",
+            default = "//buildifier",
             cfg = "host",
             executable = True,
         ),
@@ -72,7 +72,7 @@ def buildifier_attr_factory(test_rule = False):
             allow_single_file = True,
         ),
         "_runner": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bash.template",
+            default = "//buildifier:runner.bash.template",
             allow_single_file = True,
         ),
     }

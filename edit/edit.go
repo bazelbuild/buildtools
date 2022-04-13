@@ -968,6 +968,31 @@ func UsedSymbols(stmt build.Expr) map[string]bool {
 	return symbols
 }
 
+// UsedTypes returns the set of types used in the BUILD file (variables, function names).
+func UsedTypes(stmt build.Expr) map[string]bool {
+	symbols := make(map[string]bool)
+	build.Walk(stmt, func(expr build.Expr, stack []build.Expr) {
+		// Don't traverse inside load statements
+		if len(stack) > 0 {
+			if _, ok := stack[len(stack)-1].(*build.LoadStmt); ok {
+				return
+			}
+		}
+		// Types can only be found in method declarations and
+		switch expr := expr.(type) {
+		case *build.TypedIdent:
+			for _, t := range build.GetTypes(expr) {
+				symbols[t] = true
+			}
+		case *build.DefStmt:
+			for _, t := range build.GetTypes(expr) {
+				symbols[t] = true
+			}
+		}
+	})
+	return symbols
+}
+
 // NewLoad creates a new LoadStmt node
 func NewLoad(location string, from, to []string) *build.LoadStmt {
 	load := &build.LoadStmt{

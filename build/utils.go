@@ -18,22 +18,64 @@ package build
 
 // GetParamName extracts the param name from an item of function params.
 func GetParamName(param Expr) (name, op string) {
+	ident, op := GetParamIdent(param)
+	if ident == nil {
+		return "", ""
+	}
+	return ident.Name, op
+}
+
+// GetParamIdent extracts the param identifier from an item of function params.
+func GetParamIdent(param Expr) (ident *Ident, op string) {
 	switch param := param.(type) {
 	case *Ident:
-		return param.Name, ""
+		return param, ""
 	case *TypedIdent:
-		return param.Ident.Name, ""
+		return param.Ident, ""
 	case *AssignExpr:
 		// keyword parameter
-		return GetParamName(param.LHS)
+		return GetParamIdent(param.LHS)
 	case *UnaryExpr:
 		// *args, **kwargs, or *
 		if param.X == nil {
 			// An asterisk separating position and keyword-only arguments
 			break
 		}
-		name, _ := GetParamName(param.X)
-		return name, param.Op
+		ident, _ := GetParamIdent(param.X)
+		return ident, param.Op
 	}
-	return "", ""
+	return nil, ""
+}
+
+// GetTypes returns the list of types defined by the a given expression.
+// Examples:
+//
+// List[tuple[bool, int]] should return [List, Tuple, bool, int]
+// str should return str
+func GetTypes(t Expr) []string {
+	switch t := t.(type) {
+	case *TypedIdent:
+		return GetTypes(t.Type)
+	case *Ident:
+		return []string{t.Name}
+	case *DefStmt:
+		ret := GetTypes(t.Type)
+		params := make([]string, 0)
+		for _, p := range t.Params {
+			params = append(params, GetTypes(p)...)
+		}
+		return append(ret, params...)
+	case *IndexExpr:
+		left := GetTypes(t.X)
+		right := GetTypes(t.Y)
+		return append(left, right...)
+	case *DotExpr:
+		// Special handling for skylark-rust interpreter, types are referred to by a `.type` suffix
+		if t.Name == "type" {
+			return GetTypes(t.X)
+		}
+		return []string{}
+	default:
+		return []string{}
+	}
 }

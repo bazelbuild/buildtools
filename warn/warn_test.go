@@ -27,12 +27,14 @@ import (
 )
 
 const (
-	scopeBuild      = build.TypeBuild
-	scopeBzl        = build.TypeBzl
-	scopeWorkspace  = build.TypeWorkspace
-	scopeDefault    = build.TypeDefault
-	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault
-	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
+	scopeBuild       = build.TypeBuild
+	scopeBzl         = build.TypeBzl
+	scopeWorkspace   = build.TypeWorkspace
+	scopeDefault     = build.TypeDefault
+	scopeModule      = build.TypeModule
+	scopeEverywhere  = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault | scopeModule
+	scopeBazel       = scopeBuild | scopeBzl | scopeWorkspace | scopeModule
+	scopeDeclarative = scopeBuild | scopeWorkspace | scopeModule
 )
 
 // A global FileReader object that can be used by tests. If a test redefines it it must
@@ -82,6 +84,8 @@ func getFilename(fileType build.FileType) string {
 		return "WORKSPACE"
 	case build.TypeBzl:
 		return "test_file.bzl"
+	case build.TypeModule:
+		return "MODULE.bazel"
 	default:
 		return "test_file.strlrk"
 	}
@@ -182,6 +186,7 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 		build.TypeBuild,
 		build.TypeWorkspace,
 		build.TypeBzl,
+		build.TypeModule,
 	}
 
 	for _, fileType := range fileTypes {

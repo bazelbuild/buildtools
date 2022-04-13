@@ -144,7 +144,7 @@ func depsetIterationWarning(f *build.File) []*LinterFinding {
 
 func overlyNestedDepsetWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
-	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) {
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
 		// Are we inside a for-loop?
 		isForLoop := false
 		for _, e := range stack {
@@ -189,6 +189,7 @@ func overlyNestedDepsetWarning(f *build.File) []*LinterFinding {
 				return
 			}
 		}
+		return
 	})
 	return findings
 }

@@ -38,6 +38,7 @@ import (
 	"github.com/bazelbuild/buildtools/file"
 	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -55,6 +56,7 @@ type Options struct {
 	Quiet             bool      // suppress informational messages.
 	EditVariables     bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	IsPrintingJson    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
 	OutWriter         io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
 	ErrWriter         io.Writer // where to write error output (`os.Stderr` will be used if not specified)
 }
@@ -897,8 +899,10 @@ type Buildifier interface {
 	Buildify(*Options, *build.File) ([]byte, error)
 }
 
-var buildifier Buildifier = &defaultBuildifier{}
-var buildifierRegistered = false
+var (
+	buildifier           Buildifier = &defaultBuildifier{}
+	buildifierRegistered            = false
+)
 
 // RegisterBuildifier replaces the default buildifier with an
 // alternative implementation.
@@ -981,7 +985,6 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 			errs = append(errs, cerr)
 			if !opts.KeepGoing {
 				return &rewriteResult{file: name, errs: errs, records: records}
-
 			}
 		}
 		targets = filterRules(opts, targets)
@@ -1285,6 +1288,12 @@ func Buildozer(opts *Options, args []string) int {
 			log.Fatal("marshaling error: ", err)
 		}
 		fmt.Fprintf(opts.OutWriter, "%s", data)
+	} else if opts.IsPrintingJson {
+		marshaler := jsonpb.Marshaler{}
+		if err := marshaler.Marshal(opts.OutWriter, &apipb.Output{Records: records}); err != nil {
+			log.Fatal("json marshaling error: ", err)
+		}
+		fmt.Fprintln(opts.OutWriter)
 	} else {
 		for _, record := range records {
 			printRecord(opts.OutWriter, record)

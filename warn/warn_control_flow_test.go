@@ -144,6 +144,59 @@ def foobar():
   if foo:
     fail()
 `, []string{}, scopeEverywhere)
+
+	// nested functions, no errors
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    pass
+
+  return bar
+`, []string{}, scopeEverywhere)
+
+	// nested functions, missing return value in the outer function
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    pass
+
+  if bar():
+    return 42
+`, []string{
+		`:1: Some but not all execution paths of "foo" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// nested functions, missing return value in the inner function
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    if something:
+      return something
+
+  if bar():
+    return 42
+  return 43
+`, []string{
+		`:2: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
+
+	// nested functions, missing return value in both
+	checkFindings(t, "return-value", `
+def foo():
+  def bar():
+    if something:
+      return something
+
+  if bar():
+    return 42
+`, []string{
+		`:1: Some but not all execution paths of "foo" return a value.
+The function may terminate by an implicit return in the end.`,
+		`:2: Some but not all execution paths of "bar" return a value.
+The function may terminate by an implicit return in the end.`,
+	}, scopeEverywhere)
 }
 
 func TestUnreachableStatementWarning(t *testing.T) {
@@ -218,6 +271,17 @@ def foo():
   x() or fail("maybe")
   bar()
 `, []string{}, scopeEverywhere)
+
+	// unreacheable statement inside a nested function
+	checkFindings(t, "unreachable", `
+def foo():
+  def bar():
+    fail("die")
+    baz()
+`, []string{
+		`:4: The statement is unreachable.`,
+	}, scopeEverywhere)
+
 }
 
 func TestNoEffect(t *testing.T) {
@@ -292,6 +356,16 @@ bar -= bar
 `,
 		[]string{":1:", ":3:", ":4:", ":5:", ":6:"},
 		scopeEverywhere)
+
+	checkFindings(t, "no-effect", `
+def foo():
+  """Doc."""
+  def bar():
+    """Doc."""
+    foo == bar
+`,
+		[]string{":5:"},
+		scopeEverywhere)
 }
 
 func TestWarnUnusedVariable(t *testing.T) {
@@ -300,53 +374,270 @@ load(":f.bzl", "x")
 x = "unused"
 y = "also unused"
 z = "name"
-cc_library(name = z)`,
+t = "unused by design"  # @unused
+_foo, _bar = pair  #@unused
+cc_library(name = z)
+
+def f():
+  pass
+
+def g():
+  pass
+
+g() + 3
+`,
 		[]string{":2: Variable \"x\" is unused.",
-			":3: Variable \"y\" is unused."},
-		scopeBuild|scopeWorkspace)
+			":3: Variable \"y\" is unused.",
+			":9: Function \"f\" is unused."},
+		scopeDeclarative)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 b = 2
 c = 3
 d = (a if b else c)  # only d is unused
-e = 5 # @unused
-# @unused
-f = 7`,
+`,
 		[]string{":4: Variable \"d\" is unused."},
-		scopeBuild|scopeWorkspace)
+		scopeDeclarative)
+
+	checkFindings(t, "unused-variable", `
+_a = 1
+_a += 2
+_b = 3
+print(_b)
+
+def _f(): pass
+def _g(): pass
+_g()
+`,
+		[]string{
+			":1: Variable \"_a\" is unused.",
+			":6: Function \"_f\" is unused.",
+		},
+		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 
-def foo():
+def foo(
+    x,
+    y = 0,
+    z = 1):
   b = 2
   c = 3
   d = (a if b else c)  # only d is unused
-  e = 5 # @unused
+  e = 7
+  f = 8  # @unused
   # @unused
-  f = 7
-  g = 8
-  return g`,
-		[]string{":6: Variable \"d\" is unused."},
-		scopeBuild|scopeWorkspace)
+  g = 9
+
+  return e + z
+
+foo()
+`,
+		[]string{
+			":4: Variable \"x\" is unused.",
+			":5: Variable \"y\" is unused.",
+			":9: Variable \"d\" is unused.",
+		},
+		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
 a = 1
 
-def foo(c):
+def foo(a):
   b = 2
-	return c
+  return a
 
-def bar(b):
-  c = 3
-	print(b)`,
+def foo():
+  pass
+
+def bar(c, cc):
+  d = 3
+  print(c)
+
+  def baz():
+    foo()
+    d = 4
+    return a
+
+bar()
+`,
 		[]string{
-			":1: Variable \"a\" is unused.",
 			":4: Variable \"b\" is unused.",
-			":8: Variable \"c\" is unused.",
+			":10: Variable \"cc\" is unused.",
+			":11: Variable \"d\" is unused.",
+			":14: Function \"baz\" is unused.",
+			":16: Variable \"d\" is unused.",
 		},
-		scopeBuild|scopeWorkspace)
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = 3
+
+  def bar(
+      x = a + baz(c = 4),
+      y = b):
+    pass
+
+foo()
+`,
+		[]string{
+			":4: Variable \"c\" is unused.",
+			":6: Function \"bar\" is unused.",
+			":7: Variable \"x\" is unused.",
+			":8: Variable \"y\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = [x for a in aa if a % b for x in a]
+  return c
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = [
+    a + b
+    for a in [b for b in bb if b]
+    if a
+  ]
+  return c
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+
+  def bar(*args):
+    def baz(**kwargs):
+      def foobar(*a,
+                 **kw):
+        return b
+      return foobar(**kwargs)
+    return baz(*args)
+  return bar()
+
+foo()
+`,
+		[]string{
+			":2: Variable \"a\" is unused.",
+			":7: Variable \"a\" is unused.",
+			":8: Variable \"kw\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+  a = 1
+  b = 2
+  c = 3
+  d = 4
+  e, f = 5, 6
+
+  for x, yy in xx:
+    for (y, z, _, _t) in yy:
+      print(a + y)
+
+  if bar:
+    print(c)
+  elif baz:
+    print(d)
+  else:
+    print(e)
+
+foo()
+`,
+		[]string{
+			":3: Variable \"b\" is unused.",
+			":6: Variable \"f\" is unused.",
+			":8: Variable \"x\" is unused.",
+			":9: Variable \"z\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo():
+
+  # @unused
+  def bar():
+    pass
+
+  def baz():
+    pass
+
+foo()
+`,
+		[]string{
+			":7: Function \"baz\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(my_iterable, arg, _some_unused_argument, _also_unused = None, *_args, **_kwargs):
+
+  a, b, _c = 1, 2, 3  # ok to not use _c
+  print(a)
+
+  _d, _e = 4, 5  # all are underscored
+  print(_d)
+
+  for f, g, _h, _ in my_iterable:  # ok to not use any underscored
+    print(f)
+
+  for _i, (_j, _k) in another_iterable:  # ok to not use any of them
+    pass
+
+  [1 for (_y, _z) in bar]
+
+foo()
+`,
+		[]string{
+			":1: Variable \"arg\" is unused.",
+			":3: Variable \"b\" is unused.",
+			":6: Variable \"_e\" is unused.",
+			":9: Variable \"g\" is unused.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(
+    x,
+    _y,
+    z,  # @unused
+    t = 42,  #@unused
+    *args,  # @unused
+    **kwargs,  ### also @unused
+):
+  pass
+
+foo()
+`,
+		[]string{
+			":2: Variable \"x\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -513,6 +804,58 @@ load(":f.bzl", "x")
 x = "unused"`, `
 x = "unused"`,
 		[]string{":1: Loaded symbol \"x\" is unused."},
+		scopeEverywhere)
+
+	checkFindings(t, "load", `
+load(
+  ":f.bzl",
+   "s1",
+)
+
+def test(x: s1):
+  pass
+`,
+		[]string{},
+		scopeEverywhere)
+	checkFindings(t, "load", `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`,
+		[]string{},
+		scopeEverywhere)
+	checkFindingsAndFix(t, "load", `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+load(
+  ":s.bzl",
+  "s3",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`, `
+load(
+  ":f.bzl",
+  "s1",
+  "s2",
+)
+
+def test(x: s1) -> List[s2]:
+  pass
+`,
+		[]string{
+			":9: Loaded symbol \"s3\" is unused.",
+		},
 		scopeEverywhere)
 }
 
@@ -838,6 +1181,63 @@ def foo(x: int, y: int = 2):
 `,
 		[]string{
 			":7: Variable \"z\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x: int, y: int = 2):
+  def bar(y=x):
+    if baz:
+      x = 1
+      y = 2
+      z = 3
+
+    print(x + y + z)
+
+  if something:
+    x = bar()
+
+  return x
+`,
+		[]string{
+			":8: Variable \"x\" may not have been initialized.",
+			":8: Variable \"z\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo(x: int, y: int = 2):
+  if bar:
+    y, z, t = 2, 3, 4
+    w, s = 5, 6
+    r = 7
+
+  [t for t in range(5)]
+  [a for a in range(z + y)]
+  {b: c + s for b, c in [
+    d * 2 for d in range(t)
+    if d != baz(r=w)
+  ]}
+`,
+		[]string{
+			":8: Variable \"z\" may not have been initialized.",
+			":9: Variable \"s\" may not have been initialized.",
+			":10: Variable \"t\" may not have been initialized.",
+			":11: Variable \"w\" may not have been initialized.",
+		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  x = 1
+  for y, z in t:
+      print(y, z)
+
+  def bar(x, y, s = z):
+    pass
+`,
+		[]string{
+			":6: Variable \"z\" may not have been initialized.",
 		},
 		scopeEverywhere)
 }

@@ -330,7 +330,7 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 
 	var findings []*LinterFinding
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
-		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...)
+		// Find nodes that match the following pattern: attr.xxxx(..., cfg = "data", ...) and attr.xxxx(..., cfg = "host", ...)
 		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
 			return
@@ -348,15 +348,34 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 			return
 		}
 		value, ok := (param.RHS).(*build.StringExpr)
-		if !ok || value.Value != "data" {
+		if !ok {
 			return
 		}
-		newCall := *call
-		newCall.List = append(newCall.List[:i], newCall.List[i+1:]...)
 
-		findings = append(findings,
-			makeLinterFinding(param, `cfg = "data" for attr definitions has no effect and should be removed.`,
-				LinterReplacement{expr, &newCall}))
+		newCall := *call
+		switch value.Value {
+		case "data":
+			newCall.List = append(newCall.List[:i], newCall.List[i+1:]...)
+			findings = append(findings,
+				makeLinterFinding(param, `cfg = "data" for attr definitions has no effect and should be removed.`,
+					LinterReplacement{expr, &newCall}))
+
+		case "host": {
+			newCall.List = append([]build.Expr{}, newCall.List...)
+			newParam := newCall.List[i].Copy().(*build.AssignExpr)
+			newRHS := newParam.RHS.Copy().(*build.StringExpr)
+			newRHS.Value = "exec"
+			newParam.RHS = newRHS
+			newCall.List[i] = newParam
+			findings = append(findings,
+				makeLinterFinding(param, `cfg = "host" for attr definitions should be replaced by cfg = "exec".`,
+					LinterReplacement{expr, &newCall}))
+			}
+
+		default:
+			// value not matched.
+			return
+		}
 	})
 	return findings
 }

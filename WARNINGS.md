@@ -94,6 +94,8 @@ if debug:
 
 The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
 `cfg = "data"` is deprecated and has no effect. Consider removing it.
+The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+`cfg = "host"` is deprecated. Consider replacing it with `cfg = "exec"`.
 
 --------------------------------------------------------------------------------
 
@@ -1099,7 +1101,7 @@ the dictionary with unsorted items has a comment disabling this warning.
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=unused-variable`
 
-This happens when a variable is set but not used in the file, e.g.
+This happens when a variable or function is set but not used in the file, e.g.
 
 ```python
 x = [1, 2]
@@ -1112,4 +1114,35 @@ comment `# @unused`.
 
 ```python
 x = [1, 2] # @unused
+
+# @unused
+def f(
+        x,
+        y,  # @unused
+):
+    pass
+```
+
+If an unused variable is used for partially unpacking tuples, just prefix
+its name with an underscore to suppress the warning:
+
+```python
+x, _y = foo()
+for _, (a, _b) in iterable:
+    print(a + x)
+```
+
+The same applies for function arguments that are not used by design:
+
+```python
+def foo(a, _b, *_args):
+    return bar(a)
+```
+
+If a tuple is unpacked not in a for-loop and all variables are unused,
+it'll still trigger a warning, even if all variables are underscored:
+
+```python
+_a, _b = pair
+_unused = 3
 ```
