@@ -578,6 +578,7 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 	})
 
 	symbols := edit.UsedSymbols(f)
+	types := edit.UsedTypes(f)
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
 		originalLoad, ok := f.Stmt[stmtIndex].(*build.LoadStmt)
 		if !ok {
@@ -620,6 +621,10 @@ func unusedLoadWarning(f *build.File) []*LinterFinding {
 				continue
 			}
 			_, ok := symbols[to.Name]
+			if !ok {
+				// Fallback to verify if the symbol is used as a type.
+				_, ok = types[to.Name]
+			}
 			if !ok && !edit.ContainsComments(originalLoad, "@unused") && !edit.ContainsComments(to, "@unused") && !edit.ContainsComments(from, "@unused") {
 				// The loaded symbol is not used and is not protected by a special "@unused" comment
 				load.To = append(load.To[:i], load.To[i+1:]...)
