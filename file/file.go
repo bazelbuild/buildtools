@@ -24,8 +24,10 @@ import (
 	"os"
 )
 
-// ReadFile is like ioutil.ReadFile.
-func ReadFile(name string) ([]byte, os.FileInfo, error) {
+var ReadFile = readFile
+
+// readFile is like ioutil.ReadFile.
+func readFile(name string) ([]byte, os.FileInfo, error) {
 	fi, err := os.Stat(name)
 	if err != nil {
 		return nil, nil, err
