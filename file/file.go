@@ -24,6 +24,8 @@ import (
 	"os"
 )
 
+// This variable can be updated from the caller to change the API
+// for reading a file.
 var ReadFile = readFile
 
 // readFile is like ioutil.ReadFile.
