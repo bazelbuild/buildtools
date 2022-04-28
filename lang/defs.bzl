@@ -22,7 +22,7 @@ generate_tables = rule(
             default = "//generatetables",
             executable = True,
             allow_single_file = True,
-            cfg = "host",
+            cfg = "exec",
         ),
     },
 )

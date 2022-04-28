@@ -40,7 +40,7 @@ def buildifier_attr_factory(test_rule = False):
     attrs = {
         "buildifier": attr.label(
             default = "//buildifier",
-            cfg = "host",
+            cfg = "exec",
             executable = True,
         ),
         "verbose": attr.bool(
