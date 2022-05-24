@@ -19,9 +19,11 @@ _buildifier = rule(
 
 def buildifier(name = None, tags = [], **kwargs):
     """
-    Wrapper for the _buildifier rule. Adds 'manual' to the tags.
+    Wrapper for the _buildifier rule. Adds 'manual' to the tags and ensures windows compatibility.
 
     Args:
+      name: The name to be used for the rule
+      tags: The tags to be used for the rule
       **kwargs: all parameters for _buildifier
     """
 
