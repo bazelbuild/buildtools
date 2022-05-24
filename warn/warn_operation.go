@@ -99,10 +99,14 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 func integerDivisionWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
+	types := detectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.BinaryExpr:
 			if expr.Op != "/" {
+				return
+			}
+			if types[expr.X] != Int || types[expr.Y] != Int {
 				return
 			}
 			newBinary := *expr
@@ -113,6 +117,9 @@ func integerDivisionWarning(f *build.File) []*LinterFinding {
 
 		case *build.AssignExpr:
 			if expr.Op != "/=" {
+				return
+			}
+			if types[expr.LHS] != Int || types[expr.RHS] != Int {
 				return
 			}
 			newAssign := *expr

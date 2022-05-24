@@ -113,7 +113,8 @@ fi
 cat > test_dir/to_fix.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"b": 2, "a": 1}
 attr.foo(bar, cfg = "data")
 EOF
@@ -121,7 +122,8 @@ EOF
 cat > test_dir/fixed_golden.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b // c
+b()
+a = 1 // 2
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
@@ -129,7 +131,8 @@ EOF
 cat > test_dir/fixed_golden_all.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b // c
+b()
+a = 1 // 2
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
@@ -137,7 +140,8 @@ EOF
 cat > test_dir/fixed_golden_dict_cfg.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
@@ -145,7 +149,8 @@ EOF
 cat > test_dir/fixed_golden_cfg.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
@@ -157,9 +162,9 @@ EOF
 
 error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
 error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
-error_integer="test_dir/to_fix_tmp.bzl:3: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
-error_dict="test_dir/to_fix_tmp.bzl:4: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
-error_cfg="test_dir/to_fix_tmp.bzl:5: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
+error_integer="test_dir/to_fix_tmp.bzl:4: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
+error_dict="test_dir/to_fix_tmp.bzl:5: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
+error_cfg="test_dir/to_fix_tmp.bzl:6: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
 
 test_lint () {
   ret=0
@@ -258,11 +263,11 @@ cat > golden/json_report_golden <<EOF
                 },
                 {
                     "start": {
-                        "line": 3,
+                        "line": 4,
                         "column": 5
                     },
                     "end": {
-                        "line": 3,
+                        "line": 4,
                         "column": 10
                     },
                     "category": "integer-division",
@@ -272,11 +277,11 @@ cat > golden/json_report_golden <<EOF
                 },
                 {
                     "start": {
-                        "line": 5,
+                        "line": 6,
                         "column": 15
                     },
                     "end": {
-                        "line": 5,
+                        "line": 6,
                         "column": 27
                     },
                     "category": "attr-cfg",
