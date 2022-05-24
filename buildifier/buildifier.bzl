@@ -17,7 +17,7 @@ _buildifier = rule(
     executable = True,
 )
 
-def buildifier(name=None, tags=[], **kwargs):
+def buildifier(name = None, tags = [], **kwargs):
     """
     Wrapper for the _buildifier rule. Adds 'manual' to the tags.
 
@@ -28,13 +28,13 @@ def buildifier(name=None, tags=[], **kwargs):
     if "manual" not in tags:
         tags = tags + ["manual"]
 
-    _buildifier(name="{}.sh".format(name), tags=tags, **kwargs)
+    _buildifier(name = "{}.sh".format(name), tags = tags, **kwargs)
 
     native.sh_binary(
         name = name,
         srcs = ["{}.sh".format(name)],
         data = [":{}.sh".format(name)],
-        tags=tags,
+        tags = tags,
     )
 
 def _buildifier_test_impl(ctx):
