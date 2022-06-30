@@ -5,18 +5,6 @@ This module contains factory methods for simple rule and implementation generati
 load("@bazel_skylib//lib:shell.bzl", "shell")
 
 # buildifier: disable=print
-def _value_deprecation(ctx, attr, value):
-    """
-    Prints a deprecation message related to a specific value for an attr.
-
-    Args:
-      ctx:      The execution context
-      attr:     A String representing the attribute name
-      value:    The deprecated value
-    """
-    print("DEPRECATION NOTICE: value '%s' for attribute '%s' will be removed in the future. Migrate '%s' to buildifier_test." % (value, attr, ctx.label))
-
-# buildifier: disable=print
 def _attr_deprecation(ctx, attr):
     """
     Prints an attribute deprecation message.
@@ -116,9 +104,6 @@ def buildifier_impl_factory(ctx, test_rule = False):
     Returns:
       A DefaultInfo provider
     """
-
-    if not test_rule and ctx.attr.mode in ["check", "diff", "print_if_changed"]:
-        _value_deprecation(ctx, "mode", ctx.attr.mode)
 
     args = [
         "-mode=%s" % ctx.attr.mode,
