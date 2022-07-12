@@ -32,8 +32,12 @@ import (
 var DisableRewrites []string
 
 // disabled reports whether the named rewrite is disabled.
-func disabled(name string) bool {
-	for _, x := range DisableRewrites {
+func disabled(w *Rewriter, name string) bool {
+	var disabledRewrites = DisableRewrites
+	if w.DisableRewrites != nil {
+		disabledRewrites = *w.DisableRewrites
+	}
+	for _, x := range disabledRewrites {
 		if name == x {
 			return true
 		}
@@ -54,13 +58,33 @@ func allowedSort(name string) bool {
 	return false
 }
 
-// Rewrite applies the high-level Buildifier rewrites to f, modifying it in place.
+// Rewrites controls the rewrites to be applied.
+//
+// If non-nil, the rewrites with the specified names will be run. If
+// nil, a default set of rewrites will be used that is determined by
+// the type (BUILD vs default starlark) of the file being rewritten.
+type Rewriter struct {
+	DisableRewrites                 *[]string
+	IsLabelArg                      *map[string]bool
+	LabelDenyList                   *map[string]bool
+	IsSortableListArg               *map[string]bool
+	SortableDenylist                *map[string]bool
+	SortableAllowlist               *map[string]bool
+	NamePriority                    *map[string]int
+	StripLabelLeadingSlashes        *bool
+	ShortenAbsoluteLabelsToRelative *bool
+}
+
 func Rewrite(f *File) {
+	var rewriter = &Rewriter{}
+	rewriter.Rewrite(f)
+}
+
+func (w *Rewriter) Rewrite(f *File) {
 	for _, r := range rewrites {
-		if !disabled(r.name) {
-			if f.Type&r.scope != 0 {
-				r.fn(f)
-			}
+		// f.Type&r.scope is a bitwise comparison
+		if !disabled(w, r.name) && (f.Type&r.scope != 0) || (w.DisableRewrites != nil && !disabled(w, r.name)) {
+			r.fn(f, w)
 		}
 	}
 }
@@ -78,7 +102,7 @@ const (
 // before sorting lists of strings.
 var rewrites = []struct {
 	name  string
-	fn    func(*File)
+	fn    func(*File, *Rewriter)
 	scope FileType
 }{
 	{"removeParens", removeParens, scopeBuild},
@@ -146,8 +170,7 @@ func keepSorted(x Expr) bool {
 // Second, it removes redundant target qualifiers, turning labels like
 // "//third_party/m4:m4" into "//third_party/m4" as well as ones like
 // "@foo//:foo" into "@foo".
-//
-func fixLabels(f *File) {
+func fixLabels(f *File, w *Rewriter) {
 	joinLabel := func(p *Expr) {
 		add, ok := (*p).(*BinaryExpr)
 		if !ok || add.Op != "+" {
@@ -178,7 +201,11 @@ func fixLabels(f *File) {
 	}
 
 	labelPrefix := "//"
-	if tables.StripLabelLeadingSlashes {
+	var stripLabelLeadingSlashes bool = tables.StripLabelLeadingSlashes
+	if w.StripLabelLeadingSlashes != nil {
+		stripLabelLeadingSlashes = *w.StripLabelLeadingSlashes
+	}
+	if stripLabelLeadingSlashes {
 		labelPrefix = ""
 	}
 	// labelRE matches label strings, e.g. @r//x/y/z:abc
@@ -191,13 +218,16 @@ func fixLabels(f *File) {
 			return
 		}
 
-		if tables.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
+		if stripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
 			if filepath.Dir(f.Path) == "." || !strings.HasPrefix(str.Value, "//:") {
 				str.Value = str.Value[2:]
 			}
 		}
-
-		if tables.ShortenAbsoluteLabelsToRelative {
+		var shortenAbsoluteLabelsToRelative bool = tables.ShortenAbsoluteLabelsToRelative
+		if w.ShortenAbsoluteLabelsToRelative != nil {
+			shortenAbsoluteLabelsToRelative = *w.ShortenAbsoluteLabelsToRelative
+		}
+		if shortenAbsoluteLabelsToRelative {
 			thisPackage := labelPrefix + filepath.Dir(f.Path)
 			// filepath.Dir on Windows uses backslashes as separators, while labels always have slashes.
 			if filepath.Separator != '/' {
@@ -237,7 +267,15 @@ func fixLabels(f *File) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
-				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelDenylist[callName(v)+"."+key.Name] {
+				var isLabelArg map[string]bool = tables.IsLabelArg
+				var labelDenylist map[string]bool = tables.LabelDenylist
+				if w.IsLabelArg != nil {
+					isLabelArg = *w.IsLabelArg
+				}
+				if w.LabelDenyList != nil {
+					labelDenylist = *w.LabelDenyList
+				}
+				if !ok || !isLabelArg[key.Name] || labelDenylist[callName(v)+"."+key.Name] {
 					continue
 				}
 				if leaveAlone1(as.RHS) {
@@ -277,7 +315,8 @@ func callName(call *CallExpr) string {
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
-func sortCallArgs(f *File) {
+func sortCallArgs(f *File, w *Rewriter) {
+
 	Walk(f, func(v Expr, stk []Expr) {
 		call, ok := v.(*CallExpr)
 		if !ok {
@@ -301,7 +340,7 @@ func sortCallArgs(f *File) {
 		var args namedArgs
 		for i, x := range call.List[start:] {
 			name := argName(x)
-			args = append(args, namedArg{ruleNamePriority(rule, name), name, i, x})
+			args = append(args, namedArg{ruleNamePriority(w, rule, name), name, i, x})
 		}
 
 		// Sort the list and put the args back in the new order.
@@ -318,12 +357,17 @@ func sortCallArgs(f *File) {
 // ruleNamePriority maps a rule argument name to its sorting priority.
 // It could use the auto-generated per-rule tables but for now it just
 // falls back to the original list.
-func ruleNamePriority(rule, arg string) int {
+func ruleNamePriority(w *Rewriter, rule, arg string) int {
 	ruleArg := rule + "." + arg
-	if val, ok := tables.NamePriority[ruleArg]; ok {
+	var namePriority map[string]int = tables.NamePriority
+	if w.NamePriority != nil {
+		namePriority = *w.NamePriority
+	}
+	if val, ok := namePriority[ruleArg]; ok {
 		return val
 	}
-	return tables.NamePriority[arg]
+	return namePriority[arg]
+
 	/*
 		list := ruleArgOrder[rule]
 		if len(list) == 0 {
@@ -377,7 +421,7 @@ func (x namedArgs) Less(i, j int) bool {
 }
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
-func sortStringLists(f *File) {
+func sortStringLists(f *File, w *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		switch v := v.(type) {
 		case *CallExpr:
@@ -389,6 +433,18 @@ func sortStringLists(f *File) {
 				return
 			}
 			rule := callName(v)
+			var sortDenyList map[string]bool = tables.SortableDenylist
+			var isSortableListArg map[string]bool = tables.IsSortableListArg
+			var sortableAllowList map[string]bool = tables.SortableAllowlist
+			if w.SortableDenylist != nil {
+				sortDenyList = *w.SortableDenylist
+			}
+			if w.IsSortableListArg != nil {
+				isSortableListArg = *w.IsSortableListArg
+			}
+			if w.SortableAllowlist != nil {
+				sortableAllowList = *w.SortableAllowlist
+			}
 			for _, arg := range v.List {
 				if leaveAlone1(arg) {
 					continue
@@ -402,12 +458,12 @@ func sortStringLists(f *File) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if tables.SortableDenylist[context] {
+				if sortDenyList[context] {
 					continue
 				}
-				if tables.IsSortableListArg[key.Name] ||
-					tables.SortableAllowlist[context] ||
-					(!disabled("unsafesort") && allowedSort(context)) {
+				if isSortableListArg[key.Name] ||
+					sortableAllowList[context] ||
+					(!disabled(w, "unsafesort") && allowedSort(context)) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
 					} else {
@@ -416,7 +472,7 @@ func sortStringLists(f *File) {
 				}
 			}
 		case *AssignExpr:
-			if disabled("unsafesort") {
+			if disabled(w, "unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
@@ -424,7 +480,7 @@ func sortStringLists(f *File) {
 				SortStringList(v.RHS)
 			}
 		case *KeyValueExpr:
-			if disabled("unsafesort") {
+			if disabled(w, "unsafesort") {
 				return
 			}
 			// "keep sorted" before key: list also forces sorting of list.
@@ -432,7 +488,7 @@ func sortStringLists(f *File) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
-			if disabled("unsafesort") {
+			if disabled(w, "unsafesort") {
 				return
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
@@ -657,6 +713,7 @@ func (x byStringExpr) Less(i, j int) bool {
 //	call(...)
 //
 // into
+//
 //	... + [
 //		...
 //	]
@@ -666,7 +723,7 @@ func (x byStringExpr) Less(i, j int) bool {
 //	)
 //
 // which typically works better with our aggressively compact formatting.
-func fixMultilinePlus(f *File) {
+func fixMultilinePlus(f *File, _ *Rewriter) {
 
 	// List manipulation helpers.
 	// As a special case, we treat f([...]) as a list, mainly
@@ -806,7 +863,7 @@ func fixMultilinePlus(f *File) {
 }
 
 // sortAllLoadArgs sorts all load arguments in the file
-func sortAllLoadArgs(f *File) {
+func sortAllLoadArgs(f *File, _ *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		if load, ok := v.(*LoadStmt); ok {
 			SortLoadArgs(load)
@@ -876,7 +933,7 @@ func SortLoadArgs(load *LoadStmt) bool {
 }
 
 // formatDocstrings fixes the indentation and trailing whitespace of docstrings
-func formatDocstrings(f *File) {
+func formatDocstrings(f *File, _ *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		def, ok := v.(*DefStmt)
 		if !ok || len(def.Body) == 0 {
@@ -950,7 +1007,7 @@ func argumentType(expr Expr) int {
 
 // reorderArguments fixes the order of arguments of a function call
 // (positional, named, *args, **kwargs)
-func reorderArguments(f *File) {
+func reorderArguments(f *File, _ *Rewriter) {
 	Walk(f, func(expr Expr, stack []Expr) {
 		call, ok := expr.(*CallExpr)
 		if !ok {
@@ -972,7 +1029,7 @@ func reorderArguments(f *File) {
 
 // editOctals inserts 'o' into octal numbers to make it more obvious they are octal
 // 0123 -> 0o123
-func editOctals(f *File) {
+func editOctals(f *File, _ *Rewriter) {
 	Walk(f, func(expr Expr, stack []Expr) {
 		l, ok := expr.(*LiteralExpr)
 		if !ok {
@@ -985,7 +1042,7 @@ func editOctals(f *File) {
 }
 
 // removeParens removes trivial parens
-func removeParens(f *File) {
+func removeParens(f *File, _ *Rewriter) {
 	var simplify func(expr Expr, stack []Expr) Expr
 	simplify = func(expr Expr, stack []Expr) Expr {
 		// Look for parenthesized expressions, ignoring those with
