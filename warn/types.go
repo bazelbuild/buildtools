@@ -55,6 +55,7 @@ func (t Type) String() string {
 		"none",
 		"string",
 		"list",
+		"float",
 	}[t]
 }
 
@@ -98,6 +99,14 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		case *build.CallExpr:
 			if ident, ok := (node.X).(*build.Ident); ok {
 				switch ident.Name {
+				case "bool":
+					nodeType = Bool
+				case "int":
+					nodeType = Int
+				case "float":
+					nodeType = Float
+				case "str":
+					nodeType = String
 				case "depset":
 					nodeType = Depset
 				case "dict":
