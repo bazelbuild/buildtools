@@ -35,11 +35,11 @@ var formattedBytes, _ = ioutil.ReadFile(formattedFilePath)
 var formattedFile, _ = ParseDefault(formattedFilePath, formattedBytes)
 
 var name map[string]int = map[string]int{"name": -99}
-var disableNames []string = []string{"none"}
+var rewriteSet map[string]struct{} = map[string]struct{}{"callsort": {}}
 
 var rewriter = Rewriter{
-	DisableRewrites: &disableNames,
-	NamePriority:    &name,
+	RewriteSet:   &rewriteSet,
+	NamePriority: name,
 }
 
 func TestRewriterRegular(t *testing.T) {

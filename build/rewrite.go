@@ -33,11 +33,7 @@ var DisableRewrites []string
 
 // disabled reports whether the named rewrite is disabled.
 func disabled(w *Rewriter, name string) bool {
-	var disabledRewrites = DisableRewrites
-	if w.DisableRewrites != nil {
-		disabledRewrites = *w.DisableRewrites
-	}
-	for _, x := range disabledRewrites {
+	for _, x := range DisableRewrites {
 		if name == x {
 			return true
 		}
@@ -64,29 +60,47 @@ func allowedSort(name string) bool {
 // nil, a default set of rewrites will be used that is determined by
 // the type (BUILD vs default starlark) of the file being rewritten.
 type Rewriter struct {
-	DisableRewrites                 *[]string
-	IsLabelArg                      *map[string]bool
-	LabelDenyList                   *map[string]bool
-	IsSortableListArg               *map[string]bool
-	SortableDenylist                *map[string]bool
-	SortableAllowlist               *map[string]bool
-	NamePriority                    *map[string]int
-	StripLabelLeadingSlashes        *bool
-	ShortenAbsoluteLabelsToRelative *bool
+	RewriteSet                      *map[string]struct{}
+	IsLabelArg                      map[string]bool
+	LabelDenyList                   map[string]bool
+	IsSortableListArg               map[string]bool
+	SortableDenylist                map[string]bool
+	SortableAllowlist               map[string]bool
+	NamePriority                    map[string]int
+	StripLabelLeadingSlashes        bool
+	ShortenAbsoluteLabelsToRelative bool
 }
 
 func Rewrite(f *File) {
-	var rewriter = &Rewriter{}
+	var rewriter = &Rewriter{
+		IsLabelArg:                      tables.IsLabelArg,
+		LabelDenyList:                   tables.LabelDenylist,
+		IsSortableListArg:               tables.IsSortableListArg,
+		SortableDenylist:                tables.SortableDenylist,
+		SortableAllowlist:               tables.SortableAllowlist,
+		NamePriority:                    tables.NamePriority,
+		StripLabelLeadingSlashes:        tables.StripLabelLeadingSlashes,
+		ShortenAbsoluteLabelsToRelative: tables.ShortenAbsoluteLabelsToRelative,
+	}
 	rewriter.Rewrite(f)
 }
 
 func (w *Rewriter) Rewrite(f *File) {
 	for _, r := range rewrites {
-		// f.Type&r.scope is a bitwise comparison
-		if !disabled(w, r.name) && (f.Type&r.scope != 0) || (w.DisableRewrites != nil && !disabled(w, r.name)) {
+		// f.Type&r.scope is a bitwise comparison. Because starlark files result in a scope that will
+		// not be changed by rewrites, we have included another check looking on the right side.
+		if !disabled(w, r.name) && (f.Type&r.scope != 0) || (w.RewriteSet != nil && rewriteSetContains(w, r.name)) {
 			r.fn(f, w)
 		}
 	}
+}
+
+func rewriteSetContains(w *Rewriter, name string) bool {
+	var rewriteSet map[string]struct{} = *w.RewriteSet
+	if _, ok := rewriteSet[name]; ok {
+		return true
+	}
+	return false
 }
 
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
@@ -201,11 +215,7 @@ func fixLabels(f *File, w *Rewriter) {
 	}
 
 	labelPrefix := "//"
-	var stripLabelLeadingSlashes bool = tables.StripLabelLeadingSlashes
-	if w.StripLabelLeadingSlashes != nil {
-		stripLabelLeadingSlashes = *w.StripLabelLeadingSlashes
-	}
-	if stripLabelLeadingSlashes {
+	if w.StripLabelLeadingSlashes {
 		labelPrefix = ""
 	}
 	// labelRE matches label strings, e.g. @r//x/y/z:abc
@@ -218,16 +228,12 @@ func fixLabels(f *File, w *Rewriter) {
 			return
 		}
 
-		if stripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
+		if w.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
 			if filepath.Dir(f.Path) == "." || !strings.HasPrefix(str.Value, "//:") {
 				str.Value = str.Value[2:]
 			}
 		}
-		var shortenAbsoluteLabelsToRelative bool = tables.ShortenAbsoluteLabelsToRelative
-		if w.ShortenAbsoluteLabelsToRelative != nil {
-			shortenAbsoluteLabelsToRelative = *w.ShortenAbsoluteLabelsToRelative
-		}
-		if shortenAbsoluteLabelsToRelative {
+		if w.ShortenAbsoluteLabelsToRelative {
 			thisPackage := labelPrefix + filepath.Dir(f.Path)
 			// filepath.Dir on Windows uses backslashes as separators, while labels always have slashes.
 			if filepath.Separator != '/' {
@@ -267,15 +273,7 @@ func fixLabels(f *File, w *Rewriter) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
-				var isLabelArg map[string]bool = tables.IsLabelArg
-				var labelDenylist map[string]bool = tables.LabelDenylist
-				if w.IsLabelArg != nil {
-					isLabelArg = *w.IsLabelArg
-				}
-				if w.LabelDenyList != nil {
-					labelDenylist = *w.LabelDenyList
-				}
-				if !ok || !isLabelArg[key.Name] || labelDenylist[callName(v)+"."+key.Name] {
+				if !ok || !w.IsLabelArg[key.Name] || w.LabelDenyList[callName(v)+"."+key.Name] {
 					continue
 				}
 				if leaveAlone1(as.RHS) {
@@ -359,14 +357,10 @@ func sortCallArgs(f *File, w *Rewriter) {
 // falls back to the original list.
 func ruleNamePriority(w *Rewriter, rule, arg string) int {
 	ruleArg := rule + "." + arg
-	var namePriority map[string]int = tables.NamePriority
-	if w.NamePriority != nil {
-		namePriority = *w.NamePriority
-	}
-	if val, ok := namePriority[ruleArg]; ok {
+	if val, ok := w.NamePriority[ruleArg]; ok {
 		return val
 	}
-	return namePriority[arg]
+	return w.NamePriority[arg]
 
 	/*
 		list := ruleArgOrder[rule]
@@ -437,13 +431,13 @@ func sortStringLists(f *File, w *Rewriter) {
 			var isSortableListArg map[string]bool = tables.IsSortableListArg
 			var sortableAllowList map[string]bool = tables.SortableAllowlist
 			if w.SortableDenylist != nil {
-				sortDenyList = *w.SortableDenylist
+				sortDenyList = w.SortableDenylist
 			}
 			if w.IsSortableListArg != nil {
-				isSortableListArg = *w.IsSortableListArg
+				isSortableListArg = w.IsSortableListArg
 			}
 			if w.SortableAllowlist != nil {
-				sortableAllowList = *w.SortableAllowlist
+				sortableAllowList = w.SortableAllowlist
 			}
 			for _, arg := range v.List {
 				if leaveAlone1(arg) {
