@@ -35,10 +35,10 @@ var formattedBytes, _ = ioutil.ReadFile(formattedFilePath)
 var formattedFile, _ = ParseDefault(formattedFilePath, formattedBytes)
 
 var name map[string]int = map[string]int{"name": -99}
-var rewriteSet map[string]struct{} = map[string]struct{}{"callsort": {}}
+var rewriteSet []string = []string{"callsort"}
 
 var rewriter = Rewriter{
-	RewriteSet:   &rewriteSet,
+	RewriteSet:   rewriteSet,
 	NamePriority: name,
 }
 

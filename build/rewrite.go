@@ -32,7 +32,7 @@ import (
 var DisableRewrites []string
 
 // disabled reports whether the named rewrite is disabled.
-func disabled(w *Rewriter, name string) bool {
+func disabled(name string) bool {
 	for _, x := range DisableRewrites {
 		if name == x {
 			return true
@@ -60,7 +60,7 @@ func allowedSort(name string) bool {
 // nil, a default set of rewrites will be used that is determined by
 // the type (BUILD vs default starlark) of the file being rewritten.
 type Rewriter struct {
-	RewriteSet                      *map[string]struct{}
+	RewriteSet                      []string
 	IsLabelArg                      map[string]bool
 	LabelDenyList                   map[string]bool
 	IsSortableListArg               map[string]bool
@@ -89,16 +89,18 @@ func (w *Rewriter) Rewrite(f *File) {
 	for _, r := range rewrites {
 		// f.Type&r.scope is a bitwise comparison. Because starlark files result in a scope that will
 		// not be changed by rewrites, we have included another check looking on the right side.
-		if !disabled(w, r.name) && (f.Type&r.scope != 0) || (w.RewriteSet != nil && rewriteSetContains(w, r.name)) {
+		// If we have an empty rewrite set, we do not want any rewrites to happen.
+		if (!disabled(r.name) && (f.Type&r.scope != 0) && w.RewriteSet == nil) || (w.RewriteSet != nil && rewriteSetContains(w, r.name)) {
 			r.fn(f, w)
 		}
 	}
 }
 
 func rewriteSetContains(w *Rewriter, name string) bool {
-	var rewriteSet map[string]struct{} = *w.RewriteSet
-	if _, ok := rewriteSet[name]; ok {
-		return true
+	for _, value := range w.RewriteSet {
+		if value == name {
+			return true
+		}
 	}
 	return false
 }
@@ -427,18 +429,6 @@ func sortStringLists(f *File, w *Rewriter) {
 				return
 			}
 			rule := callName(v)
-			var sortDenyList map[string]bool = tables.SortableDenylist
-			var isSortableListArg map[string]bool = tables.IsSortableListArg
-			var sortableAllowList map[string]bool = tables.SortableAllowlist
-			if w.SortableDenylist != nil {
-				sortDenyList = w.SortableDenylist
-			}
-			if w.IsSortableListArg != nil {
-				isSortableListArg = w.IsSortableListArg
-			}
-			if w.SortableAllowlist != nil {
-				sortableAllowList = w.SortableAllowlist
-			}
 			for _, arg := range v.List {
 				if leaveAlone1(arg) {
 					continue
@@ -452,12 +442,12 @@ func sortStringLists(f *File, w *Rewriter) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if sortDenyList[context] {
+				if w.SortableDenylist[context] {
 					continue
 				}
-				if isSortableListArg[key.Name] ||
-					sortableAllowList[context] ||
-					(!disabled(w, "unsafesort") && allowedSort(context)) {
+				if w.IsSortableListArg[key.Name] ||
+					w.SortableAllowlist[context] ||
+					(!disabled("unsafesort") && allowedSort(context)) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
 					} else {
@@ -466,7 +456,7 @@ func sortStringLists(f *File, w *Rewriter) {
 				}
 			}
 		case *AssignExpr:
-			if disabled(w, "unsafesort") {
+			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
@@ -474,7 +464,7 @@ func sortStringLists(f *File, w *Rewriter) {
 				SortStringList(v.RHS)
 			}
 		case *KeyValueExpr:
-			if disabled(w, "unsafesort") {
+			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" before key: list also forces sorting of list.
@@ -482,7 +472,7 @@ func sortStringLists(f *File, w *Rewriter) {
 				SortStringList(v.Value)
 			}
 		case *ListExpr:
-			if disabled(w, "unsafesort") {
+			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
