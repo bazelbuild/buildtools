@@ -212,6 +212,15 @@ func (r *Rule) AttrKeys() []string {
 	return keys
 }
 
+// AttrMap returns the map of attribute keys to values.
+func (r *Rule) AttrMap() map[string]Expr {
+	m := make(map[string]Expr)
+	for _, key := range r.AttrKeys() {
+		m[key] = r.Attr(key)
+	}
+	return m
+}
+
 // AttrDefn returns the AssignExpr defining the rule's attribute with the given key.
 // If the rule has no such attribute, AttrDefn returns nil.
 func (r *Rule) AttrDefn(key string) *AssignExpr {
