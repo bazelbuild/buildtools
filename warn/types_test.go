@@ -61,8 +61,15 @@ func checkTypes(t *testing.T, input, output string) {
 
 func TestTypes(t *testing.T) {
 	checkTypes(t, `
+b = True
+b2 = bool("hello")
+i = 3
+i2 = int(1.2)
+f = 1.2
+f2 = float(3)
 s = "string"
 s2 = s
+s3 = str(42)
 d = {}
 d2 = {foo: bar}
 d3 = dict(**foo)
@@ -70,8 +77,15 @@ d4 = {k: v for k, v in foo}
 dep = depset(items=[s, d])
 foo = bar
 `, `
+b = bool:<True>
+b2 = bool:<bool(string:<"hello">)>
+i = int:<3>
+i2 = int:<int(float:<1.2>)>
+f = float:<1.2>
+f2 = float:<float(int:<3>)>
 s = string:<"string">
 s2 = string:<s>
+s3 = string:<str(int:<42>)>
 d = dict:<{}>
 d2 = dict:<{foo: bar}>
 d3 = dict:<dict(**foo)>
