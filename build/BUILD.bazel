@@ -22,7 +22,9 @@ go_library(
     ],
     importpath = "github.com/bazelbuild/buildtools/build",
     visibility = ["//visibility:public"],
-    deps = ["//tables:go_default_library"],
+    deps = [
+        "//tables:go_default_library",
+    ],
 )
 
 go_test(
@@ -34,6 +36,7 @@ go_test(
         "parse_test.go",
         "print_test.go",
         "quote_test.go",
+        "rewrite_test.go",
         "rule_test.go",
         "walk_test.go",
     ],
@@ -43,6 +46,8 @@ go_test(
         # this test ensures it doesn't get stale.
         "parse.y.baz.go",
         "parse.y.go",
+        "rewrite_test_files/original_formatted.star",
+        "rewrite_test_files/original.star",
     ],
     embed = [":go_default_library"],
     deps = [
