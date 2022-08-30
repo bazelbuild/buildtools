@@ -21,9 +21,9 @@ import "testing"
 func TestIntegerDivision(t *testing.T) {
 	checkFindingsAndFix(t, "integer-division", `
 a = 1
-b = 2
+b = int(2.3)
 c = 1.0
-d = 2.0
+d = float(2)
 
 e = a / b
 f = a / c
@@ -36,9 +36,9 @@ c /= a
 c /= d
 `, `
 a = 1
-b = 2
+b = int(2.3)
 c = 1.0
-d = 2.0
+d = float(2)
 
 e = a // b
 f = a / c
