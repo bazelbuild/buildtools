@@ -54,7 +54,7 @@ func allowedSort(name string) bool {
 	return false
 }
 
-// Rewrites controls the rewrites to be applied.
+// Rewriter controls the rewrites to be applied.
 //
 // If non-nil, the rewrites with the specified names will be run. If
 // nil, a default set of rewrites will be used that is determined by
@@ -85,6 +85,7 @@ func Rewrite(f *File) {
 	rewriter.Rewrite(f)
 }
 
+// Rewrite applies the rewrites to a file
 func (w *Rewriter) Rewrite(f *File) {
 	for _, r := range rewrites {
 		// f.Type&r.scope is a bitwise comparison. Because starlark files result in a scope that will

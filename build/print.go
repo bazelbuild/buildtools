@@ -44,7 +44,7 @@ func Format(f *File) []byte {
 	return FormatWithoutRewriting(f)
 }
 
-// Format rewites the file with custom rewriter and returns the formatted form of it
+// FormatWithRewriter rewites the file with custom rewriter and returns the formatted form of it
 func FormatWithRewriter(w *Rewriter, f *File) []byte {
 	w.Rewrite(f)
 	return FormatWithoutRewriting(f)
