@@ -379,8 +379,23 @@ func attrKeysForPattern(rule *build.Rule, pattern string) []string {
 
 func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if len(env.Args) == 1 { // Remove the attribute
-		if env.Rule.DelAttr(env.Args[0]) != nil {
-			return env.File, nil
+		if env.Args[0] == "*" {
+			didDelete := false
+			for _, attr := range env.Rule.AttrKeys() {
+				if attr == "name" {
+					continue
+				}
+				if env.Rule.DelAttr(attr) != nil {
+					didDelete = true
+				}
+			}
+			if didDelete {
+				return env.File, nil
+			}
+		} else {
+			if env.Rule.DelAttr(env.Args[0]) != nil {
+				return env.File, nil
+			}
 		}
 	} else { // Remove values in the attribute.
 		fixed := false

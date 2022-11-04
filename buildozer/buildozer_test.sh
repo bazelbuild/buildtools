@@ -229,6 +229,18 @@ function test_remove_last_dep() {
   assert_equals 'go_library(name = "edit")'
 }
 
+function test_remove_all_attrs() {
+  run "$one_dep" 'remove *' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_all_attrs_none() {
+  ERROR=3 run "$no_deps" 'remove *' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+)'
+}
+
 function test_remove_dep() {
   run "$two_deps" 'remove deps //buildifier:build' '//pkg:edit'
   assert_equals 'go_library(
