@@ -90,7 +90,8 @@ Buildozer supports the following commands(`'command args'`):
     new rule at the end of the BUILD file (before/after `<relative_rule>`). The
     identifier `__pkg__` can be used to position rules relative to package().
   * `print <attr(s)>`
-  * `remove <attr>`: Removes attribute `attr`.
+  * `remove <attr>`: Removes attribute `attr`. The wildcard `*` matches all
+    attributes except `name`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
     wildcard `*` matches all attributes. Lists containing none of the `value(s)` are
     not modified.
