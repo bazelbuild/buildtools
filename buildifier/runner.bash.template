@@ -2,6 +2,7 @@
 
 BUILDIFIER_SHORT_PATH=@@BUILDIFIER_SHORT_PATH@@
 ARGS=@@ARGS@@
+WORKSPACE="@@WORKSPACE@@"
 
 # Get the absolute path to the buildifier executable
 buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
@@ -9,6 +10,15 @@ buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
 # Use TEST_WORKSPACE to determine if the script is being ran under a test
 if [[ ! -z "${TEST_WORKSPACE+x}" && -z "${BUILD_WORKSPACE_DIRECTORY+x}" ]]; then
   FIND_FILE_TYPE="l"
+  # If WORKSPACE was provided, then the script is being run under a test in no_sandbox mode
+  # cd to the directory containing the WORKSPACE file
+  if [[ ! -z "${WORKSPACE+x}" ]]; then
+    FIND_FILE_TYPE="f"
+    WORKSPACE_PATH="$(dirname "$(realpath ${WORKSPACE})")"
+    if ! cd "$WORKSPACE_PATH" ; then
+      echo "Unable to change to workspace (WORKSPACE_PATH: ${WORKSPACE_PATH})"
+    fi
+  fi
 else
   # Change into the workspace directory if this is _not_ a test
   if ! cd "$BUILD_WORKSPACE_DIRECTORY"; then
