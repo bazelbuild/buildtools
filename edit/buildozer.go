@@ -417,6 +417,46 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return nil, nil
 }
 
+func cmdRemoveIfEqual(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+	expr := getAttrValueExpr(attr, args, env)
+	cmp, err := func() (func(build.Expr) bool, error) {
+		switch input := expr.(type) {
+		case *build.StringExpr:
+			return func(attr build.Expr) bool {
+				if val, ok := attr.(*build.StringExpr); ok {
+					return labels.Equal(val.Value, input.Value, env.Pkg)
+				}
+				return false
+			}, nil
+		case *build.Ident:
+			return func(attr build.Expr) bool {
+				switch val := attr.(type) {
+				case *build.StringExpr:
+					return labels.Equal(val.Value, input.Name, env.Pkg)
+				case *build.Ident:
+					return val.Name == input.Name
+				default:
+					return false
+				}
+			}, nil
+		default:
+			return nil, fmt.Errorf("unsupported expression type %T", input)
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range attrKeysForPattern(env.Rule, attr) {
+		if cmp(env.Rule.Attr(key)) {
+			env.Rule.DelAttr(key)
+		}
+	}
+	return env.File, nil
+}
+
 func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	switch len(env.Args) {
 	case 0: // Remove comment attached to rule
@@ -735,6 +775,7 @@ var AllCommands = map[string]CommandInfo{
 	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
 	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
 	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
+	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, -1, "<attr> <value>"},
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
