@@ -17,10 +17,12 @@ limitations under the License.
 package edit
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestMovePackageDeclarationToTheTop(t *testing.T) {
@@ -72,21 +74,55 @@ foo()`,
 		},
 	}
 
-	for _, tst := range tests {
-		bld, err := build.Parse("BUILD", []byte(tst.input))
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-		if result := movePackageDeclarationToTheTop(bld); result != tst.shouldMove {
-			t.Errorf("TestMovePackageDeclarationToTheTop: expected %v, got %v", tst.shouldMove, result)
-		}
+	for i, tst := range tests {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tst.input))
+			if err != nil {
+				t.Fatalf("Failed to parse %s; %v", tst.input, err)
+			}
+			if result := movePackageDeclarationToTheTop(bld); result != tst.shouldMove {
+				t.Errorf("TestMovePackageDeclarationToTheTop: expected %v, got %v", tst.shouldMove, result)
+			}
 
-		got := strings.TrimSpace(string(build.Format(bld)))
-		want := strings.TrimSpace(tst.expected)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			want := strings.TrimSpace(tst.expected)
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("TestMovePackageDeclarationToTheTop: (-want +got): %s", diff)
+			}
+		})
+	}
+}
 
-		if got != want {
-			t.Errorf("TestMovePackageDeclarationToTheTop: got:\n%s\nexpected:\n%s", got, want)
-		}
+// Test cases for the full fix process.
+func TestFixAll(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name: "no empty package",
+			input: `load(":path.bzl", "x")
+
+x()
+`,
+			want: `load(":path.bzl", "x")
+
+x()
+`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.input))
+			if err != nil {
+				t.Fatalf("Failed to parse %s; %v", tc.input, err)
+			}
+			FixFile(bld, "//who/cares", []string{})
+			if diff := cmp.Diff(tc.want, string(build.Format(bld))); diff != "" {
+				t.Errorf("%s: (-want +got): %s", tc.name, diff)
+			}
+		})
 	}
 }
