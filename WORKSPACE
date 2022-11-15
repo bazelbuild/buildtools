@@ -37,7 +37,6 @@ go_repository(
     version = "v0.0.0-20200203144150-6677ee5c7211",
 )
 
-
 http_archive(
     name = "com_google_protobuf",
     sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
