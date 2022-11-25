@@ -18,6 +18,7 @@ Warning categories supported by buildifier's linter:
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
+  * [`dict-method-named-arg`](#dict-method-named-arg)
   * [`duplicated-name`](#duplicated-name)
   * [`filetype`](#filetype)
   * [`function-docstring`](#function-docstring)
@@ -367,6 +368,22 @@ d = dict(d1)  # If you don't want `d1` to be mutated
 d.update(d2)
 d.update(d3)
 ```
+
+--------------------------------------------------------------------------------
+
+## <a name="dict-method-named-arg"></a>Dict methods do not have a named argument `default`
+
+  * Category name: `dict-method-named-arg`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=dict-method-named-arg`
+
+Dict methods `get`, `pop` and `setdefault` do not accept a named argument
+called `default`. Due to a bug, Bazel currently accepts that named argument.
+It is better to use a positional argument instead:```diff
+- mydict.get(5, default = 0)
++ mydict.get(5, 0)
+```
+
 
 --------------------------------------------------------------------------------
 

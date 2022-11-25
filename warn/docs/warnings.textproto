@@ -1,6 +1,6 @@
 # proto-file: warn/docs/docs.proto
 # proto-message: Warnings
-# After modifying this file, run `bazel build //warn/docs:warn_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
+# After modifying this file, run `bazel build //warn/docs:warnings_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
 
 warnings: {
   name: "attr-cfg"
@@ -231,6 +231,19 @@ warnings: {
     "```"
   bazel_flag: "--incompatible_disallow_dict_plus"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6461"
+}
+
+warnings: {
+  name: "dict-method-named-arg"
+  header: "Dict methods do not have a named argument `default`"
+  description:
+    "Dict methods `get`, `pop` and `setdefault` do not accept a named argument\n"
+    "called `default`. Due to a bug, Bazel currently accepts that named argument.\n"
+    "It is better to use a positional argument instead:"
+    "```diff\n"
+    "- mydict.get(5, default = 0)\n"
+    "+ mydict.get(5, 0)\n"
+    "```\n"
 }
 
 warnings: {
