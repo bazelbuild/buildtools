@@ -479,7 +479,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
   * [Suppress the warning](#suppress): `# buildifier: disable=http-archive`
 
 Native `http_archive` function is removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

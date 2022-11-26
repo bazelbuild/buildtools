@@ -309,7 +309,7 @@ warnings: {
   header: "Function `git_repository` is not global anymore"
   description:
     "Native `git_repository` and `new_git_repository` functions are removed.\n"
-    "Please use the Starlark versions instead:\n\n"
+    "Please use the Starlark version instead:\n\n"
     "```python\n"
     "load(\"@bazel_tools//tools/build_defs/repo:git.bzl\", \"git_repository\")\n"
     "```"
@@ -323,7 +323,7 @@ warnings: {
   header: "Function `http_archive` is not global anymore"
   description:
     "Native `http_archive` function is removed.\n"
-    "Please use the Starlark versions instead:\n\n"
+    "Please use the Starlark version instead:\n\n"
     "```python\n"
     "load(\"@bazel_tools//tools/build_defs/repo:http.bzl\", \"http_archive\")\n"
     "```"

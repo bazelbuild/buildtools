@@ -83,7 +83,7 @@ new_local_repository(
     name = "c",
     build_file = "c.BUILD",
 )
-git_repository(
+new_git_repository(
     name = "d",
     build_file = "d.BUILD",
 )
@@ -107,6 +107,7 @@ new_http_archive(
 		"a": filepath.Join(tmp, "a.BUILD"),
 		"b": filepath.Join(tmp, "b.BUILD"),
 		"c": filepath.Join(tmp, "c.BUILD"),
+		"d": filepath.Join(tmp, "d.BUILD"),
 		"f": filepath.Join(tmp, "third_party/f.BUILD"),
 	}
 	if !reflect.DeepEqual(files, expected) {
