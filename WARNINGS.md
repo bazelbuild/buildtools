@@ -463,10 +463,10 @@ the function returns a value, it should be described.
   * [Suppress the warning](#suppress): `# buildifier: disable=git-repository`
 
 Native `git_repository` and `new_git_repository` functions are removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 ```
 
 --------------------------------------------------------------------------------

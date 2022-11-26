@@ -71,7 +71,7 @@ func TestFindRepoBuildfiles(t *testing.T) {
 	}
 	defer os.RemoveAll(tmp)
 	workspace := []byte(`
-new_git_repository(
+git_repository(
     name = "a",
     build_file = "a.BUILD",
 )
@@ -87,7 +87,7 @@ git_repository(
     name = "d",
     build_file = "d.BUILD",
 )
-new_git_repository(
+git_repository(
     name = "e",
     build_file_content = "n/a",
 )

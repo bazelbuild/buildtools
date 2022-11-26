@@ -328,11 +328,10 @@ def macro():
 
 def macro():
     git_repository(foo, bar)
-    new_git_repository(foo, bar)
 `, `
 """My file"""
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 def macro():
     git_repository(foo, bar)
@@ -355,7 +354,7 @@ def macro():
 `, `
 """My file"""
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 def macro():
     git_repository(foo, bar)
