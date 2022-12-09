@@ -19,7 +19,10 @@ buildozer [OPTIONS] ['command args' | -f FILE ] label-list
 ```
 
 Here, `label-list` is a space-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1 //path/to/pkg2:rule2`.
+`//path/to/pkg1:rule1 relative/path/to/pkg2:rule2`. In addition to the Bazel
+label syntax for specifying a package, Buildozer also allows the package part to
+refer to a BUILD-like file, for example `//WORKSPACE:all` or
+`toolchains/BUILD.tpl:host_toolchain`.
 
 When `-f FILE` is used, buildozer reads commands from `FILE` (`-` for stdin).
 Format: lines of `|`-separated sets of commands and labels (`command args|label|label...`).

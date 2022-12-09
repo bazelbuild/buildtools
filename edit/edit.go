@@ -73,13 +73,20 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
+		pkgPath := filepath.Join(rootDir, pkg)
+		if isFile(pkgPath) {
+			// allow operation on other files like WORKSPACE
+			buildFile = pkgPath
+			pkg = filepath.Dir(pkg)
+			return
+		}
 		for _, buildFileName := range BuildFileNames {
-			buildFile = filepath.Join(rootDir, pkg, buildFileName)
+			buildFile = filepath.Join(pkgPath, buildFileName)
 			if isFile(buildFile) {
 				return
 			}
 		}
-		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
+		buildFile = filepath.Join(pkgPath, defaultBuildFileName)
 		return
 	}
 	if isFile(pkg) {
