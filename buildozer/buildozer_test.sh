@@ -456,6 +456,27 @@ function test_remove_if_equal_label() {
   assert_equals 'go_library(name = "edit")'
 }
 
+function test_remove_if_equal_label_does_not_match() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  ERROR=3 run "$in" 'remove_if_equal shared_library :global' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+}
+
+function test_remove_if_equal_label_full_path() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'remove_if_equal shared_library //pkg:local' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
 function test_remove_if_equal_ident() {
   in='go_library(
     name = "edit",
@@ -465,6 +486,18 @@ function test_remove_if_equal_ident() {
   assert_equals 'go_library(name = "edit")'
 }
 
+function test_remove_if_equal_ident_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = True,
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag False' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = True,
+)'
+}
+
 function test_remove_if_equal_string() {
   in='go_library(
     name = "edit",
@@ -472,6 +505,18 @@ function test_remove_if_equal_string() {
 )'
   run "$in" 'remove_if_equal flag True' '//pkg:edit'
   assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_string_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = "False",
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = "False",
+)'
 }
 
 function test_remove_if_equal_string_attr_string() {
