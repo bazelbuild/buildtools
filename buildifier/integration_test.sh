@@ -49,9 +49,9 @@ mkdir test_dir/workspace  # name of a starlark file, but a directory
 mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
 cat > test_dir/MODULE.bazel <<'EOF'
-module(name='my-module',version='1.0')
+module(name='my-module',version='1.0',compatibility_level=1)
 bazel_dep(name='rules_cc',version='0.0.1')
-bazel_dep(name='protobuf',version='3.19.0')
+bazel_dep(name='protobuf',repo_name='com_google_protobuf',version='3.19.0')
 bazel_dep(
     name='rules_go',
     version='0.37.0',
@@ -142,14 +142,15 @@ cat > golden/MODULE.bazel.golden <<EOF
 module(
     name = "my-module",
     version = "1.0",
+    compatibility_level = 1,
 )
 
 bazel_dep(name = "rules_cc", version = "0.0.1")
-bazel_dep(name = "protobuf", version = "3.19.0")
+bazel_dep(name = "protobuf", version = "3.19.0", repo_name = "com_google_protobuf")
 bazel_dep(
     name = "rules_go",
-    repo_name = "io_bazel_rules_go",
     version = "0.37.0",
+    repo_name = "io_bazel_rules_go",
 )
 
 go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
