@@ -73,17 +73,38 @@ go_deps  =  use_extension("//:extensions.bzl",  "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 use_repo(
     go_deps,
-    "com_github_bazelbuild_buildtools",
-    "com_github_bmatcuk_doublestar_v4",
     "com_github_fsnotify_fsnotify",
+    "com_github_fsnotify_fsnotify",
+    "com_github_bmatcuk_doublestar_v4",
+    "com_github_bazelbuild_buildtools",
     "com_github_google_go_cmp",
     "com_github_pelletier_go_toml",
-    "com_github_pmezard_go_difflib",
     "org_golang_x_mod",
+    "com_github_pmezard_go_difflib",
+    # Separated by comment.
     "org_golang_x_sync",
     "org_golang_x_tools",
     # Used internally by the go_deps module extension.
     "bazel_gazelle_go_repository_directives",
+    c = "a",
+    b = "b",
+    a = "c",
+)
+# do not sort
+use_repo(go_deps, "b", "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "b",
+    "a",
 )
 EOF
 
@@ -139,9 +160,9 @@ use_repo(go_sdk, "go_default_sdk")
 non_module_deps = use_extension("//internal/bzlmod:non_module_deps.bzl", "non_module_deps")
 use_repo(
     non_module_deps,
-    "bazel_gazelle_go_repository_tools",
-    "bazel_gazelle_go_repository_config",
     "bazel_gazelle_go_repository_cache",
+    "bazel_gazelle_go_repository_config",
+    "bazel_gazelle_go_repository_tools",
 )
 
 rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl", "non_module_dependencies")
@@ -158,10 +179,29 @@ use_repo(
     "com_github_pelletier_go_toml",
     "com_github_pmezard_go_difflib",
     "org_golang_x_mod",
+    # Separated by comment.
     "org_golang_x_sync",
     "org_golang_x_tools",
     # Used internally by the go_deps module extension.
     "bazel_gazelle_go_repository_directives",
+    a = "c",
+    b = "b",
+    c = "a",
+)
+
+# do not sort
+use_repo(go_deps, "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "a",
 )
 EOF
 
