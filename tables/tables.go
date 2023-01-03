@@ -166,6 +166,8 @@ var SortableAllowlist = map[string]bool{}
 // derived from the order used in the Build Encyclopedia.
 var NamePriority = map[string]int{
 	"name":              -99,
+	"bazel_dep.version": -98, // for MODULE.bazel
+	"module.version":    -98, // for MODULE.bazel
 	"gwt_name":          -98,
 	"package_name":      -97,
 	"visible_node_name": -96, // for boq_initial_css_modules and boq_jswire_test_suite
