@@ -150,3 +150,21 @@ x.append(foo(
 		},
 		scopeEverywhere)
 }
+
+func TestDictMethodNamedArg(t *testing.T) {
+	checkFindings(t, "dict-method-named-arg", `
+d = dict()
+d.get("a", "b")
+[].get("a", default = "b")
+
+d.get("a", default = "b") # warning
+d.pop("a", default = "b") # warning
+{}.setdefault("a", default = "b") # warning
+`,
+		[]string{
+			`:5: Named argument "default" not allowed`,
+			`:6: Named argument "default" not allowed`,
+			`:7: Named argument "default" not allowed`,
+		},
+		scopeEverywhere)
+}
