@@ -30,7 +30,7 @@ func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "Dictionary concatenation is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.BinaryExpr:
@@ -60,7 +60,7 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "String iteration is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.ForStmt:
@@ -99,7 +99,7 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 func integerDivisionWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.BinaryExpr:
