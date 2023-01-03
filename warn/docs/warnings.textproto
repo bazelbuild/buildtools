@@ -239,11 +239,11 @@ warnings: {
   description:
     "Dict methods `get`, `pop` and `setdefault` do not accept a named argument\n"
     "called `default`. Due to a bug, Bazel currently accepts that named argument.\n"
-    "It is better to use a positional argument instead:"
+    "It is better to use a positional argument instead:\n\n"
     "```diff\n"
     "- mydict.get(5, default = 0)\n"
     "+ mydict.get(5, 0)\n"
-    "```\n"
+    "```"
 }
 
 warnings: {
