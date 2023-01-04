@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 const (
@@ -260,6 +262,9 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 	} else if p.fileType == TypeModule && isBazelDep(s1) && isBazelDep(s2) {
 		// bazel_dep statements in MODULE files should be compressed
 		return true
+	} else if p.fileType == TypeModule && isBazelDepWithOverride(s1, s2) {
+		// Do not separate an override from the bazel_dep it overrides.
+		return true
 	} else if p.fileType == TypeModule && useSameModuleExtensionProxy(s1, s2) {
 		// Keep statements together that use the same module extension:
 		//
@@ -299,6 +304,50 @@ func isBazelDep(x Expr) bool {
 		return true
 	}
 	return false
+}
+
+func isModuleOverride(x Expr) bool {
+	call, ok := x.(*CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.X.(*Ident)
+	if !ok {
+		return false
+	}
+	return tables.IsModuleOverride[ident.Name]
+}
+
+func getKeywordArgument(call *CallExpr, param string) Expr {
+	for _, arg := range call.List {
+		kwarg, ok := arg.(*AssignExpr)
+		if !ok {
+			continue
+		}
+		ident, ok := kwarg.LHS.(*Ident)
+		if !ok {
+			continue
+		}
+		if ident.Name == param {
+			return kwarg.RHS
+		}
+	}
+	return nil
+}
+
+func isBazelDepWithOverride(x, y Expr) bool {
+	if !isBazelDep(x) || !isModuleOverride(y) {
+		return false
+	}
+	bazelDepName, ok := getKeywordArgument(x.(*CallExpr), "name").(*StringExpr)
+	if !ok {
+		return false
+	}
+	overrideModuleName, ok := getKeywordArgument(y.(*CallExpr), "module_name").(*StringExpr)
+	if !ok {
+		return false
+	}
+	return bazelDepName.Value == overrideModuleName.Value
 }
 
 func useSameModuleExtensionProxy(x, y Expr) bool {
