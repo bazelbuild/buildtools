@@ -104,9 +104,10 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
 	// If no default_visibility is given, it is implicitly private.
 	defaultVisibility := []string{"//visibility:private"}
-	pkgDecl := ExistingPackageDeclaration(f)
-	if pkgDecl != nil {
-		defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+	if pkgDecl := ExistingPackageDeclaration(f); pkgDecl != nil {
+		if pkgDecl.Attr("default_visibility") != nil {
+			defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+		}
 	}
 
 	visibility := r.AttrStrings("visibility")
@@ -130,11 +131,11 @@ func removeTestOnly(f *build.File, r *build.Rule, pkg string) bool {
 
 	def := strings.HasSuffix(r.Kind(), "_test") || r.Kind() == "test_suite"
 	if !def {
-		if pkgDecl != nil && pkgDecl.Attr("default_testonly") == nil {
+		if pkgDecl == nil || pkgDecl.Attr("default_testonly") == nil {
 			def = strings.HasPrefix(pkg, "javatests/")
-		} else if pkgDecl != nil && pkgDecl.AttrLiteral("default_testonly") == "1" {
+		} else if pkgDecl.AttrLiteral("default_testonly") == "1" {
 			def = true
-		} else if pkgDecl != nil && pkgDecl.AttrLiteral("default_testonly") != "0" {
+		} else if pkgDecl.AttrLiteral("default_testonly") != "0" {
 			// Non-literal value: it's not safe to do a change.
 			return false
 		}
@@ -477,7 +478,7 @@ var AllRuleFixes = []struct {
 	{"genruleRenameDepsTools", genruleRenameDepsTools,
 		"'deps' attribute in genrule has been renamed 'tools'"},
 	{"genruleFixHeuristicLabels", genruleFixHeuristicLabels,
-		"$(location) should be called explicitely"},
+		"$(location) should be called explicitly"},
 	{"sortExportsFiles", sortExportsFiles,
 		"Files in exports_files should be sorted"},
 	{"varref", removeVarref,
