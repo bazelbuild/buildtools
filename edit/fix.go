@@ -478,7 +478,7 @@ var AllRuleFixes = []struct {
 	{"genruleRenameDepsTools", genruleRenameDepsTools,
 		"'deps' attribute in genrule has been renamed 'tools'"},
 	{"genruleFixHeuristicLabels", genruleFixHeuristicLabels,
-		"$(location) should be called explicitely"},
+		"$(location) should be called explicitly"},
 	{"sortExportsFiles", sortExportsFiles,
 		"Files in exports_files should be sorted"},
 	{"varref", removeVarref,
