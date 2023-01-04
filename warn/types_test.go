@@ -32,7 +32,7 @@ func checkTypes(t *testing.T, input, output string) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	types := detectTypes(f)
+	types := DetectTypes(f)
 
 	var edit func(expr build.Expr, stack []build.Expr) build.Expr
 	edit = func(expr build.Expr, stack []build.Expr) build.Expr {

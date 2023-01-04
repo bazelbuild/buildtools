@@ -48,7 +48,69 @@ echo -e "not valid +" > test_dir/foo.bar
 mkdir test_dir/workspace  # name of a starlark file, but a directory
 mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
-echo -e "module(name='my-module',version='1.0')\nbazel_dep(name='rules_cc',version='0.0.1')\nbazel_dep(name='protobuf',version='3.19.0')" > test_dir/MODULE.bazel
+cat > test_dir/MODULE.bazel <<'EOF'
+module(name='my-module',version='1.0',compatibility_level=1)
+bazel_dep(name='rules_cc',version='0.0.1')
+bazel_dep(name='protobuf',repo_name='com_google_protobuf',version='3.19.0')
+bazel_dep(
+    name='rules_go',
+    version='0.37.0',
+    repo_name='io_bazel_rules_go',
+)
+go_sdk=use_extension("@io_bazel_rules_go//go:extensions.bzl","go_sdk")
+# Known to exist since it is instantiated by rules_go itself.
+use_repo(go_sdk,"go_default_sdk")
+non_module_deps = use_extension("//internal/bzlmod:non_module_deps.bzl","non_module_deps")
+use_repo(
+    non_module_deps,
+    "bazel_gazelle_go_repository_tools",
+    "bazel_gazelle_go_repository_config",
+    "bazel_gazelle_go_repository_cache",
+)
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl","non_module_dependencies")
+use_repo(rules_go_non_module_deps,"go_googleapis")
+go_deps  =  use_extension("//:extensions.bzl",  "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(
+    go_deps,
+    "com_github_fsnotify_fsnotify",
+    "com_github_fsnotify_fsnotify",
+    "com_github_bmatcuk_doublestar_v4",
+    "com_github_bazelbuild_buildtools",
+    "com_github_google_go_cmp",
+    "com_github_pelletier_go_toml",
+    "org_golang_x_mod",
+    "com_github_pmezard_go_difflib",
+    # Separated by comment.
+    "org_golang_x_sync",
+    "org_golang_x_tools",
+    # Used internally by the go_deps module extension.
+    "bazel_gazelle_go_repository_directives",
+    c = "a",
+    b = "b",
+    a = "c",
+)
+bazel_dep(name="foo",version="1.0")
+git_override(module_name="foo",remote="foo.git",commit="1234567890")
+bazel_dep(name="bar",version="1.0")
+archive_override(module_name="not_bar",integrity="sha256-1234567890")
+# do not sort
+use_repo(go_deps, "b", "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "b",
+    "a",
+)
+EOF
 
 cp test_dir/foo.bar golden/foo.bar
 cp test_dir/subdir/build golden/build
@@ -84,10 +146,82 @@ cat > golden/MODULE.bazel.golden <<EOF
 module(
     name = "my-module",
     version = "1.0",
+    compatibility_level = 1,
 )
 
 bazel_dep(name = "rules_cc", version = "0.0.1")
-bazel_dep(name = "protobuf", version = "3.19.0")
+bazel_dep(name = "protobuf", version = "3.19.0", repo_name = "com_google_protobuf")
+bazel_dep(
+    name = "rules_go",
+    version = "0.37.0",
+    repo_name = "io_bazel_rules_go",
+)
+
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
+
+# Known to exist since it is instantiated by rules_go itself.
+use_repo(go_sdk, "go_default_sdk")
+
+non_module_deps = use_extension("//internal/bzlmod:non_module_deps.bzl", "non_module_deps")
+use_repo(
+    non_module_deps,
+    "bazel_gazelle_go_repository_cache",
+    "bazel_gazelle_go_repository_config",
+    "bazel_gazelle_go_repository_tools",
+)
+
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl", "non_module_dependencies")
+use_repo(rules_go_non_module_deps, "go_googleapis")
+
+go_deps = use_extension("//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(
+    go_deps,
+    "com_github_bazelbuild_buildtools",
+    "com_github_bmatcuk_doublestar_v4",
+    "com_github_fsnotify_fsnotify",
+    "com_github_google_go_cmp",
+    "com_github_pelletier_go_toml",
+    "com_github_pmezard_go_difflib",
+    "org_golang_x_mod",
+    # Separated by comment.
+    "org_golang_x_sync",
+    "org_golang_x_tools",
+    # Used internally by the go_deps module extension.
+    "bazel_gazelle_go_repository_directives",
+    a = "c",
+    b = "b",
+    c = "a",
+)
+
+bazel_dep(name = "foo", version = "1.0")
+git_override(
+    module_name = "foo",
+    commit = "1234567890",
+    remote = "foo.git",
+)
+
+bazel_dep(name = "bar", version = "1.0")
+
+archive_override(
+    module_name = "not_bar",
+    integrity = "sha256-1234567890",
+)
+
+# do not sort
+use_repo(go_deps, "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "a",
+)
 EOF
 
 diff test_dir/BUILD golden/BUILD.golden

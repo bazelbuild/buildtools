@@ -229,8 +229,9 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 // single statement that are either defined outside the node and used inside,
 // or defined inside the node and can be used outside.
 // Examples of idents that don't fall into either of the categories:
-//   * Named arguments of function calls: `foo` in `f(foo = "bar")`
-//   * Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//   - Named arguments of function calls: `foo` in `f(foo = "bar")`
+//   - Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//
 // Statements that contain other statements (for-loops, if-else blocks) are not
 // traversed inside.
 func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
@@ -541,7 +542,7 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
 		as, ok := s.(*build.AssignExpr)
