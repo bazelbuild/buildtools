@@ -90,6 +90,10 @@ use_repo(
     b = "b",
     a = "c",
 )
+bazel_dep(name="foo",version="1.0")
+git_override(module_name="foo",remote="foo.git",commit="1234567890")
+bazel_dep(name="bar",version="1.0")
+archive_override(module_name="not_bar",integrity="sha256-1234567890")
 # do not sort
 use_repo(go_deps, "b", "b", "a")
 use_repo(
@@ -188,6 +192,20 @@ use_repo(
     a = "c",
     b = "b",
     c = "a",
+)
+
+bazel_dep(name = "foo", version = "1.0")
+git_override(
+    module_name = "foo",
+    commit = "1234567890",
+    remote = "foo.git",
+)
+
+bazel_dep(name = "bar", version = "1.0")
+
+archive_override(
+    module_name = "not_bar",
+    integrity = "sha256-1234567890",
 )
 
 # do not sort
