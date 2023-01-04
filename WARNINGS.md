@@ -18,6 +18,7 @@ Warning categories supported by buildifier's linter:
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
+  * [`dict-method-named-arg`](#dict-method-named-arg)
   * [`duplicated-name`](#duplicated-name)
   * [`filetype`](#filetype)
   * [`function-docstring`](#function-docstring)
@@ -370,6 +371,23 @@ d.update(d3)
 
 --------------------------------------------------------------------------------
 
+## <a name="dict-method-named-arg"></a>Dict methods do not have a named argument `default`
+
+  * Category name: `dict-method-named-arg`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=dict-method-named-arg`
+
+Dict methods `get`, `pop` and `setdefault` do not accept a named argument
+called `default`. Due to a bug, Bazel currently accepts that named argument.
+It is better to use a positional argument instead:
+
+```diff
+- mydict.get(5, default = 0)
++ mydict.get(5, 0)
+```
+
+--------------------------------------------------------------------------------
+
 ## <a name="duplicated-name"></a>A rule with name `foo` was already found on line
 
   * Category name: `duplicated-name`
@@ -463,10 +481,10 @@ the function returns a value, it should be described.
   * [Suppress the warning](#suppress): `# buildifier: disable=git-repository`
 
 Native `git_repository` and `new_git_repository` functions are removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 ```
 
 --------------------------------------------------------------------------------
@@ -479,7 +497,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
   * [Suppress the warning](#suppress): `# buildifier: disable=http-archive`
 
 Native `http_archive` function is removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

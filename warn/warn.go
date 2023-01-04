@@ -130,6 +130,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"depset-items":              depsetItemsWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
+	"dict-method-named-arg":     dictMethodNamedArgWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
 	"duplicated-name":           duplicatedNameWarning,
 	"filetype":                  fileTypeWarning,

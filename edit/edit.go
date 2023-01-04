@@ -21,6 +21,7 @@ package edit
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -73,19 +74,26 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
+		pkgPath := filepath.Join(rootDir, filepath.FromSlash(pkg))
+		if isFile(pkgPath) {
+			// allow operation on other files like WORKSPACE
+			buildFile = pkgPath
+			pkg = path.Dir(pkg)
+			return
+		}
 		for _, buildFileName := range BuildFileNames {
-			buildFile = filepath.Join(rootDir, pkg, buildFileName)
+			buildFile = filepath.Join(pkgPath, buildFileName)
 			if isFile(buildFile) {
 				return
 			}
 		}
-		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
+		buildFile = filepath.Join(pkgPath, defaultBuildFileName)
 		return
 	}
-	if isFile(pkg) {
+	if isFile(filepath.FromSlash(pkg)) {
 		// allow operation on other files like WORKSPACE
 		buildFile = pkg
-		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
+		pkg = filepath.Join(relativePath, filepath.FromSlash(path.Dir(pkg)))
 		return
 	}
 
@@ -101,7 +109,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		buildFile = filepath.Join(pkg, defaultBuildFileName)
 	}
 
-	pkg = filepath.Join(relativePath, pkg)
+	pkg = filepath.Join(relativePath, filepath.FromSlash(pkg))
 	return
 }
 
@@ -167,21 +175,30 @@ func PackageDeclaration(f *build.File) *build.Rule {
 }
 
 // RemoveEmptyPackage removes empty package declarations from the file, i.e.:
-//    package()
+//
+//	package()
+//
 // This might appear because of a buildozer transformation (e.g. when removing a package
 // attribute). Removing it is required for the file to be valid.
 func RemoveEmptyPackage(f *build.File) *build.File {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
-		if call, ok := stmt.(*build.CallExpr); ok {
-			functionName, ok := call.X.(*build.Ident)
-			if ok && functionName.Name == "package" && len(call.List) == 0 {
-				continue
-			}
+		if isEmptyPackage(stmt) {
+			continue
 		}
 		all = append(all, stmt)
 	}
 	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+}
+
+func isEmptyPackage(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		functionName, ok := call.X.(*build.Ident)
+		if ok && functionName.Name == "package" && len(call.List) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // InsertAfter inserts an expression after index i.
@@ -1071,7 +1088,7 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 
 // InsertLoad inserts a load statement at the top of the list of statements.
 // The load statement is constructed using a string location and two slices of from- and to-symbols.
-// The function panics if the slices aren't of the same lentgh. Symbols that are already loaded
+// The function panics if the slices aren't of the same length. Symbols that are already loaded
 // from the given filepath are ignored. If stmts already contains a load for the
 // location in arguments, appends the symbols to load to it.
 func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
@@ -1091,7 +1108,27 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isString := stmt.(*build.StringExpr)
 		isDocString := isString && i == 0
-		if isComment || isDocString || added {
+
+		// We add synthetic package() calls when called with :__pkg__ labels.
+		// We strip them out later when saving the fixed file because they're
+		// not valid.
+		// Pretend they're not there and skip past them while we look for
+		// possible workspace calls.
+		isSyntheticPackage := isEmptyPackage(stmt)
+
+		// If we're editing a WORKSPACE file, bazel requires that the workspace
+		// declaration must be the very first expression in the WORKSPACE file,
+		// before any loads.
+		isWorkspaceCall := false
+		if callExpr, isCallExpr := stmt.(*build.CallExpr); isCallExpr {
+			if functionIdent, isIdent := callExpr.X.(*build.Ident); isIdent {
+				if functionIdent.Name == "workspace" {
+					isWorkspaceCall = true
+				}
+			}
+		}
+
+		if isComment || isDocString || isSyntheticPackage || isWorkspaceCall || added {
 			all = append(all, stmt)
 			continue
 		}
