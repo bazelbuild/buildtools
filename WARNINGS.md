@@ -379,11 +379,12 @@ d.update(d3)
 
 Dict methods `get`, `pop` and `setdefault` do not accept a named argument
 called `default`. Due to a bug, Bazel currently accepts that named argument.
-It is better to use a positional argument instead:```diff
+It is better to use a positional argument instead:
+
+```diff
 - mydict.get(5, default = 0)
 + mydict.get(5, 0)
 ```
-
 
 --------------------------------------------------------------------------------
 
