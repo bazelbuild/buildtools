@@ -638,6 +638,19 @@ foo()
 			":2: Variable \"x\" is unused.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(
+    name,
+    x):
+  pass
+
+foo()
+`,
+		[]string{
+			":3: Variable \"x\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
