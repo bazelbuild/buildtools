@@ -21,6 +21,7 @@ package edit
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -73,19 +74,26 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
+		pkgPath := filepath.Join(rootDir, filepath.FromSlash(pkg))
+		if isFile(pkgPath) {
+			// allow operation on other files like WORKSPACE
+			buildFile = pkgPath
+			pkg = path.Dir(pkg)
+			return
+		}
 		for _, buildFileName := range BuildFileNames {
-			buildFile = filepath.Join(rootDir, pkg, buildFileName)
+			buildFile = filepath.Join(pkgPath, buildFileName)
 			if isFile(buildFile) {
 				return
 			}
 		}
-		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
+		buildFile = filepath.Join(pkgPath, defaultBuildFileName)
 		return
 	}
-	if isFile(pkg) {
+	if isFile(filepath.FromSlash(pkg)) {
 		// allow operation on other files like WORKSPACE
 		buildFile = pkg
-		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
+		pkg = filepath.Join(relativePath, filepath.FromSlash(path.Dir(pkg)))
 		return
 	}
 
@@ -101,7 +109,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		buildFile = filepath.Join(pkg, defaultBuildFileName)
 	}
 
-	pkg = filepath.Join(relativePath, pkg)
+	pkg = filepath.Join(relativePath, filepath.FromSlash(pkg))
 	return
 }
 
