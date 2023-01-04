@@ -104,9 +104,10 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
 	// If no default_visibility is given, it is implicitly private.
 	defaultVisibility := []string{"//visibility:private"}
-	pkgDecl := ExistingPackageDeclaration(f)
-	if pkgDecl != nil {
-		defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+	if pkgDecl := ExistingPackageDeclaration(f); pkgDecl != nil {
+		if pkgDecl.Attr("default_visibility") != nil {
+			defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+		}
 	}
 
 	visibility := r.AttrStrings("visibility")
@@ -130,7 +131,7 @@ func removeTestOnly(f *build.File, r *build.Rule, pkg string) bool {
 
 	def := strings.HasSuffix(r.Kind(), "_test") || r.Kind() == "test_suite"
 	if !def {
-		if pkgDecl != nil && pkgDecl.Attr("default_testonly") == nil {
+		if pkgDecl == nil || pkgDecl.Attr("default_testonly") == nil {
 			def = strings.HasPrefix(pkg, "javatests/")
 		} else if pkgDecl != nil && pkgDecl.AttrLiteral("default_testonly") == "1" {
 			def = true
