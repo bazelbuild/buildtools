@@ -1694,6 +1694,19 @@ in='# Just comments
 load("/foo/bar", "x", "y", "z")'
 }
 
+function test_new_load_after_workspace() {
+in='# A comment
+
+workspace(name = "blah")'
+
+  run "$in" 'new_load /foo/bar x y z' pkg/BUILD
+  assert_equals '# A comment
+
+workspace(name = "blah")
+
+load("/foo/bar", "x", "y", "z")'
+}
+
 function test_new_load_existing() {
 in='load("/foo/bar", "y")
 '
