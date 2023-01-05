@@ -34,5 +34,8 @@ go_test(
         "fix_test.go",
     ],
     embed = [":go_default_library"],
-    deps = ["//build:go_default_library"],
+    deps = [
+        "//build:go_default_library",
+        "@com_github_google_go_cmp//cmp",
+    ],
 )

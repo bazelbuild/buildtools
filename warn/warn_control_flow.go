@@ -229,8 +229,9 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 // single statement that are either defined outside the node and used inside,
 // or defined inside the node and can be used outside.
 // Examples of idents that don't fall into either of the categories:
-//   * Named arguments of function calls: `foo` in `f(foo = "bar")`
-//   * Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//   - Named arguments of function calls: `foo` in `f(foo = "bar")`
+//   - Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//
 // Statements that contain other statements (for-loops, if-else blocks) are not
 // traversed inside.
 func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
@@ -429,9 +430,12 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
-					if strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
+					if ident.Name == "name" || strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
 						// Don't warn about function arguments if they start with "_"
-						// or explicitly marked with @unused
+						// or explicitly marked with @unused.
+						// Also don't warn about unused "name" arguments, it could be a
+						// macro where such argument is encouraged (by `unnamed-macro`)
+						// even if not used.
 						suppressedWarnings[ident.Name] = true
 					}
 				}
@@ -541,7 +545,7 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
 		as, ok := s.(*build.AssignExpr)

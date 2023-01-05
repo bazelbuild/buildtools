@@ -360,16 +360,17 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 				makeLinterFinding(param, `cfg = "data" for attr definitions has no effect and should be removed.`,
 					LinterReplacement{expr, &newCall}))
 
-		case "host": {
-			newCall.List = append([]build.Expr{}, newCall.List...)
-			newParam := newCall.List[i].Copy().(*build.AssignExpr)
-			newRHS := newParam.RHS.Copy().(*build.StringExpr)
-			newRHS.Value = "exec"
-			newParam.RHS = newRHS
-			newCall.List[i] = newParam
-			findings = append(findings,
-				makeLinterFinding(param, `cfg = "host" for attr definitions should be replaced by cfg = "exec".`,
-					LinterReplacement{expr, &newCall}))
+		case "host":
+			{
+				newCall.List = append([]build.Expr{}, newCall.List...)
+				newParam := newCall.List[i].Copy().(*build.AssignExpr)
+				newRHS := newParam.RHS.Copy().(*build.StringExpr)
+				newRHS.Value = "exec"
+				newParam.RHS = newRHS
+				newCall.List[i] = newParam
+				findings = append(findings,
+					makeLinterFinding(param, `cfg = "host" for attr definitions should be replaced by cfg = "exec".`,
+						LinterReplacement{expr, &newCall}))
 			}
 
 		default:
@@ -383,7 +384,7 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 func depsetItemsWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
@@ -721,7 +722,7 @@ func contextArgsAPIWarning(f *build.File) []*LinterFinding {
 	}
 
 	var findings []*LinterFinding
-	types := detectTypes(f)
+	types := DetectTypes(f)
 
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Search for `<ctx.actions.args>.add()` nodes
