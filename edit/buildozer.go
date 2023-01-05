@@ -417,6 +417,28 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return nil, nil
 }
 
+func cmdRemoveIfEqual(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	val := env.Args[1]
+
+	var equal bool
+	switch input := env.Rule.Attr(attr).(type) {
+	case *build.StringExpr:
+		equal = labels.Equal(input.Value, val, env.Pkg)
+	case *build.Ident:
+		equal = input.Name == val
+	default:
+		return nil, nil
+	}
+
+	if !equal {
+		return nil, nil
+	}
+
+	env.Rule.DelAttr(attr)
+	return env.File, nil
+}
+
 func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	switch len(env.Args) {
 	case 0: // Remove comment attached to rule
@@ -735,6 +757,7 @@ var AllCommands = map[string]CommandInfo{
 	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
 	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
 	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
+	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},

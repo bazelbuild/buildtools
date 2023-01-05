@@ -447,6 +447,87 @@ function test_remove_package_attribute() {
   [ $(wc -c < "$root/pkg/BUILD") -eq 0 ] || fail "Expected empty file"
 }
 
+function test_remove_if_equal_label() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'remove_if_equal shared_library :local' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_label_does_not_match() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  ERROR=3 run "$in" 'remove_if_equal shared_library :global' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+}
+
+function test_remove_if_equal_label_full_path() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'remove_if_equal shared_library //pkg:local' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_ident() {
+  in='go_library(
+    name = "edit",
+    flag = True,
+)'
+  run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_ident_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = True,
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag False' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = True,
+)'
+}
+
+function test_remove_if_equal_string() {
+  in='go_library(
+    name = "edit",
+    flag = "True",
+)'
+  run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_string_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = "False",
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = "False",
+)'
+}
+
+function test_remove_if_equal_string_attr_string() {
+  in='go_library(
+    name = "edit",
+    toolchain = "something",
+)'
+  run "$in" 'remove_if_equal toolchain something' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
 function test_move_last_dep() {
   run "$one_dep" 'move deps runtime_deps //buildifier:build' '//pkg:edit'
   assert_equals 'go_library(

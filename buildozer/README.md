@@ -100,6 +100,8 @@ Buildozer supports the following commands(`'command args'`):
     not modified.
   * `remove_comment <attr>? <value>?`: Removes the comment attached to the rule,
     an attribute, or a specific value in a list.
+  * `remove_if_equal <attr> <value>`: Removes the attribute `attr` if its value
+    is equal to `value`.
   * `rename <old_attr> <new_attr>`: Rename the `old_attr` to `new_attr` which must
     not yet exist.
   * `replace <attr> <old_value> <new_value>`: Replaces `old_value` with `new_value`
