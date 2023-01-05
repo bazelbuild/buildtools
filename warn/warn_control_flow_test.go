@@ -645,10 +645,19 @@ def foo(
     x):
   pass
 
+
+def bar(
+    name = "",
+    y = 3):
+  pass
+
+
 foo()
+bar()
 `,
 		[]string{
 			":3: Variable \"x\" is unused.",
+			":9: Variable \"y\" is unused.",
 		},
 		scopeEverywhere)
 }
