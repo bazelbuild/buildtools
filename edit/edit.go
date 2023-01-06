@@ -171,7 +171,7 @@ func PackageDeclaration(f *build.File) *build.Rule {
 		}
 		break
 	}
-	all := []build.Expr{}
+	var all []build.Expr
 	all = append(all, f.Stmt[:insertAfter+1]...)
 	all = append(all, call)
 	all = append(all, f.Stmt[insertAfter+1:]...)
@@ -1142,7 +1142,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		break
 	}
 
-	all := []build.Expr{}
+	var all []build.Expr
 	all = append(all, stmts[:insertAfter+1]...)
 	all = append(all, load)
 	all = append(all, stmts[insertAfter+1:]...)
