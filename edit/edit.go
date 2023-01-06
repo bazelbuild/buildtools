@@ -151,26 +151,32 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	if pkg := ExistingPackageDeclaration(f); pkg != nil {
 		return pkg
 	}
-	all := []build.Expr{}
-	added := false
+	insertAfter := -1
 	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
-	for _, stmt := range f.Stmt {
+	for i, stmt := range f.Stmt {
 		switch stmt.(type) {
 		case *build.CommentBlock, *build.LoadStmt, *build.StringExpr:
 			// Skip docstring, comments, and load statements to
 			// find a place to insert the package declaration.
-		default:
-			if !added {
-				all = append(all, call)
-				added = true
+			insertAfter = i
+			continue
+		case *build.CallExpr:
+			// Skip `workspace()` calls which have to be the very first statements
+			// of workspace files
+			if isWorkspaceCall(stmt) {
+				insertAfter = i
+				continue
 			}
+		default:
 		}
-		all = append(all, stmt)
+		break
 	}
-	if !added { // In case the file is empty.
-		all = append(all, call)
-	}
+	var all []build.Expr
+	all = append(all, f.Stmt[:insertAfter+1]...)
+	all = append(all, call)
+	all = append(all, f.Stmt[insertAfter+1:]...)
 	f.Stmt = all
+
 	return &build.Rule{call, ""}
 }
 
@@ -195,6 +201,15 @@ func isEmptyPackage(expr build.Expr) bool {
 	if call, ok := expr.(*build.CallExpr); ok {
 		functionName, ok := call.X.(*build.Ident)
 		if ok && functionName.Name == "package" && len(call.List) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func isWorkspaceCall(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		if ident, ok := call.X.(*build.Ident); ok && ident.Name == "workspace" {
 			return true
 		}
 	}
@@ -1102,8 +1117,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 
 	load := NewLoad(location, from, to)
 
-	var all []build.Expr
-	added := false
+	insertAfter := -1
 	for i, stmt := range stmts {
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isString := stmt.(*build.StringExpr)
@@ -1114,32 +1128,26 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		// not valid.
 		// Pretend they're not there and skip past them while we look for
 		// possible workspace calls.
-		isSyntheticPackage := isEmptyPackage(stmt)
+		//isSyntheticPackage := isEmptyPackage(stmt)
 
 		// If we're editing a WORKSPACE file, bazel requires that the workspace
 		// declaration must be the very first expression in the WORKSPACE file,
 		// before any loads.
-		isWorkspaceCall := false
-		if callExpr, isCallExpr := stmt.(*build.CallExpr); isCallExpr {
-			if functionIdent, isIdent := callExpr.X.(*build.Ident); isIdent {
-				if functionIdent.Name == "workspace" {
-					isWorkspaceCall = true
-				}
-			}
-		}
+		isWorkspaceCallStmt := isWorkspaceCall(stmt)
 
-		if isComment || isDocString || isSyntheticPackage || isWorkspaceCall || added {
-			all = append(all, stmt)
+		if isComment || isDocString || isWorkspaceCallStmt {
+			insertAfter = i
 			continue
 		}
-		all = append(all, load)
-		all = append(all, stmt)
-		added = true
+		break
 	}
-	if !added { // Empty file or just comments.
-		all = append(all, load)
-	}
+
+	var all []build.Expr
+	all = append(all, stmts[:insertAfter+1]...)
+	all = append(all, load)
+	all = append(all, stmts[insertAfter+1:]...)
 	return all
+
 }
 
 // ReplaceLoad removes load statements for passed to-symbols and replaces them with a new
