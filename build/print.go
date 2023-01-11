@@ -259,8 +259,9 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 	} else if isLoad(s1) || isLoad(s2) {
 		// Load statements should be separated from anything else
 		return false
-	} else if p.fileType == TypeModule && isBazelDep(s1) && isBazelDep(s2) {
-		// bazel_dep statements in MODULE files should be compressed
+	} else if p.fileType == TypeModule && areBazelDepsOfSameType(s1, s2) {
+		// bazel_dep statements in MODULE files should be compressed if they are both dev deps or
+		// both non-dev deps.
 		return true
 	} else if p.fileType == TypeModule && isBazelDepWithOverride(s1, s2) {
 		// Do not separate an override from the bazel_dep it overrides.
@@ -295,6 +296,17 @@ func isLoad(x Expr) bool {
 	return ok
 }
 
+// areBazelDepsOfSameType reports whether x and y are bazel_dep statements that
+// are both dev dependencies or both regular dependencies.
+func areBazelDepsOfSameType(x, y Expr) bool {
+	if !isBazelDep(x) || !isBazelDep(y) {
+		return false
+	}
+	isXDevDep := getKeywordBoolArgument(x.(*CallExpr), "dev_dependency", false)
+	isYDevDep := getKeywordBoolArgument(y.(*CallExpr), "dev_dependency", false)
+	return isXDevDep == isYDevDep
+}
+
 func isBazelDep(x Expr) bool {
 	call, ok := x.(*CallExpr)
 	if !ok {
@@ -316,6 +328,19 @@ func isModuleOverride(x Expr) bool {
 		return false
 	}
 	return tables.IsModuleOverride[ident.Name]
+}
+
+func getKeywordBoolArgument(call *CallExpr, keyword string, defaultValue bool) bool {
+	arg := getKeywordArgument(call, keyword)
+	if arg == nil {
+		return defaultValue
+	}
+	ident, ok := arg.(*Ident)
+	if !ok {
+		// Assume that the specified more complex value does not evaluate to the default.
+		return !defaultValue
+	}
+	return ident.Name == "True"
 }
 
 func getKeywordArgument(call *CallExpr, param string) Expr {

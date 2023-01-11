@@ -110,6 +110,12 @@ use_repo(
     "b",
     "a",
 )
+
+bazel_dep(name='prod_dep',version='3.19.0')
+bazel_dep(name='other_prod_dep',version='3.19.0',dev_dependency=False)
+bazel_dep(name='dev_dep',version='3.19.0',dev_dependency=True)
+bazel_dep(name = "weird_dep", version = "3.19.0", dev_dependency = "True" == "True")
+bazel_dep(name='yet_another_prod_dep',version='3.19.0')
 EOF
 
 cp test_dir/foo.bar golden/foo.bar
@@ -222,6 +228,14 @@ use_repo(
     "b",
     "a",
 )
+
+bazel_dep(name = "prod_dep", version = "3.19.0")
+bazel_dep(name = "other_prod_dep", version = "3.19.0", dev_dependency = False)
+
+bazel_dep(name = "dev_dep", version = "3.19.0", dev_dependency = True)
+bazel_dep(name = "weird_dep", version = "3.19.0", dev_dependency = "True" == "True")
+
+bazel_dep(name = "yet_another_prod_dep", version = "3.19.0")
 EOF
 
 diff test_dir/BUILD golden/BUILD.golden
