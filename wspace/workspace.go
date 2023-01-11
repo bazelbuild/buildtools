@@ -29,6 +29,20 @@ import (
 const workspaceFile = "WORKSPACE"
 const buildFile = "BUILD"
 
+// IsRegularFile returns true if the path refers to a regular file after
+// following symlinks.
+func IsRegularFile(path string) bool {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.Mode().IsRegular()
+}
+
 func isFile(fi os.FileInfo) bool {
 	return fi.Mode()&os.ModeType == 0
 }
@@ -65,7 +79,7 @@ func FindWorkspaceRoot(rootDir string) (root string, rest string) {
 	if err != nil {
 		return "", ""
 	}
-	if root, err = find(wd, repoRootFiles); err != nil {
+	if root, err = Find(wd, repoRootFiles); err != nil {
 		return "", ""
 	}
 	if len(wd) == len(root) {
@@ -74,9 +88,9 @@ func FindWorkspaceRoot(rootDir string) (root string, rest string) {
 	return root, wd[len(root)+1:]
 }
 
-// find searches from the given dir and up for the file that satisfies a condition of `rootFiles`
+// Find searches from the given dir and up for the file that satisfies a condition of `rootFiles`
 // returning the directory containing it, or an error if none found in the tree.
-func find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, error) {
+func Find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, error) {
 	if dir == "" || dir == "/" || dir == "." || (len(dir) == 3 && strings.HasSuffix(dir, ":\\")) {
 		return "", os.ErrNotExist
 	}
@@ -87,7 +101,7 @@ func find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, erro
 			return "", err
 		}
 	}
-	return find(filepath.Dir(dir), rootFiles)
+	return Find(filepath.Dir(dir), rootFiles)
 }
 
 // FindRepoBuildFiles parses the WORKSPACE to find BUILD files for non-Bazel
@@ -143,11 +157,11 @@ func relPath(base, target string) (string, error) {
 // Returns empty strings if no WORKSPACE file is found.
 func SplitFilePath(filename string) (workspaceRoot, pkg, label string) {
 	dir := filepath.Dir(filename)
-	workspaceRoot, err := find(dir, repoRootFiles)
+	workspaceRoot, err := Find(dir, repoRootFiles)
 	if err != nil {
 		return "", "", ""
 	}
-	packageRoot, err := find(dir, packageRootFiles)
+	packageRoot, err := Find(dir, packageRootFiles)
 	if err != nil || !strings.HasPrefix(packageRoot, workspaceRoot) {
 		// No BUILD file or it's outside of the workspace. Shouldn't happen,
 		// but assume it's in the workspace root.
