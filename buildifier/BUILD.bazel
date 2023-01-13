@@ -83,6 +83,7 @@ go_library(
     },
     deps = [
         "//build:go_default_library",
+        "//buildifier/config:go_default_library",
         "//buildifier/utils:go_default_library",
         "//differ:go_default_library",
         "//tables:go_default_library",

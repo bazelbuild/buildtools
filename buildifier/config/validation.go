@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package config
 
 import (
 	"fmt"
 	"strings"
 )
 
-// ValidateInputType validates the value of --type
-func ValidateInputType(inputType *string) error {
+// validateInputType validates the value of --type
+func validateInputType(inputType *string) error {
 	switch *inputType {
 	case "build", "bzl", "workspace", "default", "module", "auto":
 		return nil
@@ -32,8 +32,8 @@ func ValidateInputType(inputType *string) error {
 	}
 }
 
-// ValidateFormat validates the value of --format
-func ValidateFormat(format, mode *string) error {
+// validateFormat validates the value of --format
+func validateFormat(format, mode *string) error {
 	switch *format {
 	case "":
 		return nil
@@ -59,8 +59,8 @@ func isRecognizedMode(validModes []string, mode string) bool {
 	return false
 }
 
-// ValidateModes validates flags --mode, --lint, and -d
-func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) error {
+// validateModes validates flags --mode, --lint, and -d
+func validateModes(mode, lint *string, dflag *bool) error {
 	if *dflag {
 		if *mode != "" {
 			return fmt.Errorf("cannot specify both -d and -mode flags")
@@ -70,7 +70,6 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 
 	// Check mode.
 	validModes := []string{"check", "diff", "fix", "print_if_changed"}
-	validModes = append(validModes, additionalModes...)
 
 	if *mode == "" {
 		*mode = "fix"
@@ -98,8 +97,8 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 	return nil
 }
 
-// ValidateWarnings validates the value of the --warnings flag
-func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
+// validateWarnings validates the value of the --warnings flag
+func validateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
 
 	// Check lint warnings
 	var warningsList []string
