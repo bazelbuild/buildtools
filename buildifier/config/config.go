@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config provides configuration objects for buildifier
 package config
 
 import (
@@ -83,7 +84,7 @@ type Config struct {
 	Lint string `json:"lint,omitempty"`
 	// Warnings is a comma-separated list of warning identifiers used in the lint mode or "all"
 	Warnings string `json:"warnings,omitempty"`
-	// WarningsList is the a list of of warnings (alternative to comma-separated warnings string)
+	// WarningsList is a list of warnings (alternative to comma-separated warnings string)
 	WarningsList []string `json:"warningsList,omitempty"`
 	// Recursive instructs buildifier to find starlark files recursively
 	Recursive bool `json:"recursive,omitempty"`
@@ -238,7 +239,7 @@ func (i *ArrayFlags) Set(value string) error {
 	return nil
 }
 
-// Example creates an sample configuration file for the -config=example flag.
+// Example creates a sample configuration file for the -config=example flag.
 func Example() *Config {
 	c := New()
 	c.InputType = "auto"
