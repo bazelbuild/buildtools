@@ -11,10 +11,24 @@ buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
 if [[ ! -z "${TEST_WORKSPACE+x}" && -z "${BUILD_WORKSPACE_DIRECTORY+x}" ]]; then
   FIND_FILE_TYPE="l"
   # If WORKSPACE was provided, then the script is being run under a test in no_sandbox mode
-  # cd to the directory containing the WORKSPACE file
   if [[ ! -z "${WORKSPACE+x}" ]]; then
     FIND_FILE_TYPE="f"
-    WORKSPACE_PATH="$(dirname "$(realpath ${WORKSPACE})")"
+
+    # resolve the WORKSPACE symlink
+    # use `realpath` if available and `readlink` otherwise (typically macOS)
+    if command -v realpath &> /dev/null; then
+        WORKSPACE_LINK="$(realpath ${WORKSPACE})"
+    elif command -v readlink &> /dev/null; then
+        WORKSPACE_LINK="$(readlink ${WORKSPACE})"
+    else
+        echo "Unable to resolve symlink (WORKSPACE: ${WORKSPACE})"
+        exit 1
+    fi
+
+    # Find the directory containing the WORKSPACE file
+    WORKSPACE_PATH="$(dirname "$WORKSPACE_LINK")"
+
+    # Change the working directory to the WORKSPACE parent
     if ! cd "$WORKSPACE_PATH" ; then
       echo "Unable to change to workspace (WORKSPACE_PATH: ${WORKSPACE_PATH})"
     fi
