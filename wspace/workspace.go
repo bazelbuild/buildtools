@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
@@ -94,7 +95,16 @@ func Find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, erro
 	if dir == "" || dir == "/" || dir == "." || (len(dir) == 3 && strings.HasSuffix(dir, ":\\")) {
 		return "", os.ErrNotExist
 	}
-	for repoRootFile, fiFunc := range rootFiles {
+
+	// Sort the files to make the function deterministic
+	rootFilesSorted := make([]string, 0, len(rootFiles))
+	for file := range rootFiles {
+		rootFilesSorted = append(rootFilesSorted, file)
+	}
+	sort.Strings(rootFilesSorted)
+
+	for _, repoRootFile := range rootFilesSorted {
+		fiFunc := rootFiles[repoRootFile]
 		if fi, err := os.Stat(filepath.Join(dir, repoRootFile)); err == nil && fiFunc(fi) {
 			return dir, nil
 		} else if err != nil && !os.IsNotExist(err) {
@@ -106,7 +116,8 @@ func Find(dir string, rootFiles map[string]func(os.FileInfo) bool) (string, erro
 
 // FindRepoBuildFiles parses the WORKSPACE to find BUILD files for non-Bazel
 // external repositories, specifically those defined by one of these rules:
-//   git_repository(), new_local_repository(), new_http_archive()
+//
+//	git_repository(), new_local_repository(), new_http_archive()
 func FindRepoBuildFiles(root string) (map[string]string, error) {
 	ws := filepath.Join(root, workspaceFile)
 	kinds := []string{
