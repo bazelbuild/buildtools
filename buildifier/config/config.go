@@ -171,15 +171,15 @@ func (c *Config) FlagSet(name string, errorHandling flag.ErrorHandling) *flag.Fl
 // set.  It computes the final set of warnings used for linting.  The tables
 // package is configured as a side-effect.
 func (c *Config) Validate(args []string) error {
-	if err := validateInputType(&c.InputType); err != nil {
+	if err := ValidateInputType(&c.InputType); err != nil {
 		return err
 	}
 
-	if err := validateFormat(&c.Format, &c.Mode); err != nil {
+	if err := ValidateFormat(&c.Format, &c.Mode); err != nil {
 		return err
 	}
 
-	if err := validateModes(&c.Mode, &c.Lint, &c.DiffMode); err != nil {
+	if err := ValidateModes(&c.Mode, &c.Lint, &c.DiffMode); err != nil {
 		return err
 	}
 
@@ -206,7 +206,7 @@ func (c *Config) Validate(args []string) error {
 		warningsList = append(warningsList, c.Warnings)
 	}
 	warnings := strings.Join(warningsList, ",")
-	lintWarnings, err := validateWarnings(&warnings, &warn.AllWarnings, &warn.DefaultWarnings)
+	lintWarnings, err := ValidateWarnings(&warnings, &warn.AllWarnings, &warn.DefaultWarnings)
 	if err != nil {
 		return err // TODO(pcj) return nil?
 	}
