@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config provides configuration objects for buildifier
 package config
 
 import (
@@ -83,7 +84,7 @@ type Config struct {
 	Lint string `json:"lint,omitempty"`
 	// Warnings is a comma-separated list of warning identifiers used in the lint mode or "all"
 	Warnings string `json:"warnings,omitempty"`
-	// WarningsList is the a list of of warnings (alternative to comma-separated warnings string)
+	// WarningsList is a list of warnings (alternative to comma-separated warnings string)
 	WarningsList []string `json:"warningsList,omitempty"`
 	// Recursive instructs buildifier to find starlark files recursively
 	Recursive bool `json:"recursive,omitempty"`
@@ -170,15 +171,15 @@ func (c *Config) FlagSet(name string, errorHandling flag.ErrorHandling) *flag.Fl
 // set.  It computes the final set of warnings used for linting.  The tables
 // package is configured as a side-effect.
 func (c *Config) Validate(args []string) error {
-	if err := validateInputType(&c.InputType); err != nil {
+	if err := ValidateInputType(&c.InputType); err != nil {
 		return err
 	}
 
-	if err := validateFormat(&c.Format, &c.Mode); err != nil {
+	if err := ValidateFormat(&c.Format, &c.Mode); err != nil {
 		return err
 	}
 
-	if err := validateModes(&c.Mode, &c.Lint, &c.DiffMode); err != nil {
+	if err := ValidateModes(&c.Mode, &c.Lint, &c.DiffMode); err != nil {
 		return err
 	}
 
@@ -205,7 +206,7 @@ func (c *Config) Validate(args []string) error {
 		warningsList = append(warningsList, c.Warnings)
 	}
 	warnings := strings.Join(warningsList, ",")
-	lintWarnings, err := validateWarnings(&warnings, &warn.AllWarnings, &warn.DefaultWarnings)
+	lintWarnings, err := ValidateWarnings(&warnings, &warn.AllWarnings, &warn.DefaultWarnings)
 	if err != nil {
 		return err // TODO(pcj) return nil?
 	}
@@ -238,7 +239,7 @@ func (i *ArrayFlags) Set(value string) error {
 	return nil
 }
 
-// Example creates an sample configuration file for the -config=example flag.
+// Example creates a sample configuration file for the -config=example flag.
 func Example() *Config {
 	c := New()
 	c.InputType = "auto"
