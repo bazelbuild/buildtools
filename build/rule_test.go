@@ -175,6 +175,25 @@ func TestRulesDoubleNested(t *testing.T) {
 	compare(t, f.Rules("java_library"), []*Rule{doubleNestedRule})
 }
 
+func TestRuleNamed(t *testing.T) {
+	tests := []struct {
+		name        string
+		rules       []Expr
+		want        *Rule
+		description string
+	}{
+		{"", []Expr{simpleCall}, nil, "Empty name matches no rules."},
+		{"x", []Expr{simpleCall}, simpleRule, "Find single rule by name."},
+		{"does_not_exist", []Expr{simpleCall}, nil, "Returns nil when no rules have specified name."},
+		{"foo.bar.baz", []Expr{simpleCall, structCall}, nil, "Returns nil when multiple rules have specified name."},
+	}
+	for _, tst := range tests {
+		f := &File{Stmt: tst.rules}
+
+		compare(t, f.RuleNamed(tst.name), tst.want)
+	}
+}
+
 func TestImplicitName(t *testing.T) {
 	tests := []struct {
 		path        string

@@ -45,7 +45,7 @@ echo -e "$INPUT" > test_dir/subdir/build  # lowercase, should be ignored by -r
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
 echo -e "$INPUT" > test2.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
-echo -e '{ "type": "build" }' > test_dir/.buildifier.test.json # demonstrate config file works by overridding input type to format a bzl file as a BUILD file.
+echo -e '{ "type": "build" }' > test_dir/.buildifier.test.json # demonstrate config file works by overriding input type to format a bzl file as a BUILD file.
 mkdir test_dir/workspace  # name of a starlark file, but a directory
 mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
