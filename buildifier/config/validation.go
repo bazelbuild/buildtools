@@ -21,8 +21,8 @@ import (
 	"strings"
 )
 
-// validateInputType validates the value of --type
-func validateInputType(inputType *string) error {
+// ValidateInputType validates the value of --type
+func ValidateInputType(inputType *string) error {
 	switch *inputType {
 	case "build", "bzl", "workspace", "default", "module", "auto":
 		return nil
@@ -32,8 +32,8 @@ func validateInputType(inputType *string) error {
 	}
 }
 
-// validateFormat validates the value of --format
-func validateFormat(format, mode *string) error {
+// ValidateFormat validates the value of --format
+func ValidateFormat(format, mode *string) error {
 	switch *format {
 	case "":
 		return nil
@@ -59,8 +59,8 @@ func isRecognizedMode(validModes []string, mode string) bool {
 	return false
 }
 
-// validateModes validates flags --mode, --lint, and -d
-func validateModes(mode, lint *string, dflag *bool) error {
+// ValidateModes validates flags --mode, --lint, and -d
+func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) error {
 	if *dflag {
 		if *mode != "" {
 			return fmt.Errorf("cannot specify both -d and -mode flags")
@@ -70,6 +70,7 @@ func validateModes(mode, lint *string, dflag *bool) error {
 
 	// Check mode.
 	validModes := []string{"check", "diff", "fix", "print_if_changed"}
+	validModes = append(validModes, additionalModes...)
 
 	if *mode == "" {
 		*mode = "fix"
@@ -97,8 +98,8 @@ func validateModes(mode, lint *string, dflag *bool) error {
 	return nil
 }
 
-// validateWarnings validates the value of the --warnings flag
-func validateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
+// ValidateWarnings validates the value of the --warnings flag
+func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
 
 	// Check lint warnings
 	var warningsList []string
