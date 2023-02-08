@@ -1007,7 +1007,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	for _, commands := range commandsForFile.commands {
 		target := commands.target
 		commands := commands.commands
-		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
+		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
@@ -1093,7 +1093,7 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
 func targetExpressionToBuildFiles(rootDir string, target string) []string {
-	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+	file, _, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
 		if file, err = filepath.Abs(file); err != nil {

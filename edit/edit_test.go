@@ -756,7 +756,7 @@ func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName strin
 		{tmp, "//a/b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
 		{tmp, "//a/b:b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
 	} {
-		buildFile, pkg, rule := InterpretLabelForWorkspaceLocation(tc.inputRoot, tc.inputTarget)
+		buildFile, _, pkg, rule := InterpretLabelForWorkspaceLocation(tc.inputRoot, tc.inputTarget)
 		if buildFile != tc.expectedBuildFile || pkg != tc.expectedPkg || rule != tc.expectedRule {
 			t.Errorf("InterpretLabelForWorkspaceLocation(%q, %q) = %q, %q, %q; want %q, %q, %q", tc.inputRoot, tc.inputTarget, buildFile, pkg, rule, tc.expectedBuildFile, tc.expectedPkg, tc.expectedRule)
 		}

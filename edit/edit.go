@@ -41,9 +41,9 @@ var (
 // InterpretLabelForWorkspaceLocation returns the name of the BUILD file to
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
-func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile string, pkg string, rule string) {
+func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, pkg, rule string) {
 	label := labels.Parse(target)
-	repo := label.Repository
+	repo = label.Repository
 	pkg = label.Package
 	rule = label.Target
 	rootDir, relativePath := wspace.FindWorkspaceRoot(root)
@@ -51,7 +51,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		files, err := wspace.FindRepoBuildFiles(rootDir)
 		if err == nil {
 			if buildFile, ok := files[repo]; ok {
-				return buildFile, pkg, rule
+				return buildFile, repo, pkg, rule
 			}
 		}
 		// TODO(rodrigoq): report error for other repos
@@ -100,7 +100,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 // InterpretLabel returns the name of the BUILD file to edit, the full
 // package name, and the rule. It uses the pwd for resolving workspace file paths.
-func InterpretLabel(target string) (buildFile string, pkg string, rule string) {
+func InterpretLabel(target string) (buildFile string, repo string, pkg string, rule string) {
 	return InterpretLabelForWorkspaceLocation("", target)
 }
 
