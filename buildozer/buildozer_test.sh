@@ -1970,6 +1970,14 @@ load(":bar.bzl", "bar")  # bar
 load(":qux.bzl", "qux")
 # after
 
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
 foobar()' 'fix unusedLoads' 'pkg/BUILD'
   assert_equals '# TODO: refactor
 
@@ -1982,6 +1990,12 @@ load(":baz.bzl", "baz")  # this is @unused
 
 # before
 # after
+
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
+foobar()
 
 foobar()'
 }
