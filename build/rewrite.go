@@ -132,6 +132,7 @@ var rewrites = []struct {
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
+	{"reorderpackageafterloadbeforerules", reorderPackageAfterLoadBeforeRules, TypeBuild},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -1095,4 +1096,47 @@ func removeParens(f *File, _ *Rewriter) {
 	}
 
 	Edit(f, simplify)
+}
+
+// reorderPackageAfterLoadBeforeRules ensures a Package() only occurs after the last load().
+//
+// Note that this reordering is best effort and there may be already-invalid
+// BUILD.bazel file configurations (such as a load() after a rule) that result
+// in still-invalid output.
+//
+// Also note that we do not manipulate the Position{} structs within existing
+// expressions; only the order of statements in *File is modified. This should
+// be fine for printing (the only current usecase within this package), but
+// may cause confusion for future alternative usages of this Rewrite logic.
+func reorderPackageAfterLoadBeforeRules(f *File, _ *Rewriter) {
+	var lastLoadIndex, packageFuncIndex int
+	var packageFunc *CallExpr
+	for idx, s := range f.Stmt {
+		switch s := s.(type) {
+		case *LoadStmt:
+			lastLoadIndex = idx
+		case *CallExpr:
+			if x, ok := s.X.(*Ident); ok && x.Name == "package" {
+				packageFunc = s
+				packageFuncIndex = idx
+			}
+		}
+	}
+
+	if packageFunc == nil {
+		// no reordering necessary
+		return
+	}
+
+	// to get the package func after the last load, shift everything
+	// after the last load, up until the package func to make room.
+	//
+	// fun fact, the terminal condition on this loop can actually be
+	// > or >= and still result in correct output because the final
+	// packageFunc insertion would overright the final iteration
+	// in the latter case.
+	for i := packageFuncIndex - 1; i >= lastLoadIndex; i-- {
+		f.Stmt[i+1] = f.Stmt[i]
+	}
+	f.Stmt[lastLoadIndex+1] = packageFunc
 }
