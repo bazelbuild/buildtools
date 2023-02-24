@@ -7,9 +7,9 @@ load("//keep.bzl", "library_keep") # keep
 
 load("//bar.bzl", "library_y")
 
-package(default_visibility="//:__subpackages__")
-
 # gazelle:directive
+
+package(default_visibility="//:__subpackages__")
 
 library_x(
 	name = "default_name"
