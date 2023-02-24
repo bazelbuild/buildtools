@@ -40,7 +40,10 @@ go_test(
         "rule_test.go",
         "walk_test.go",
     ],
-    data = glob(["testdata/*", "rewrite_test_files/*"]) + [
+    data = glob([
+        "testdata/*",
+        "rewrite_test_files/*",
+    ]) + [
         # parse.y.go is checked in to satisfy the Go community
         # https://github.com/bazelbuild/buildtools/issues/14
         # this test ensures it doesn't get stale.
