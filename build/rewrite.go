@@ -1109,7 +1109,8 @@ func removeParens(f *File, _ *Rewriter) {
 // be fine for printing (the only current usecase within this package), but
 // may cause confusion for future alternative usages of this Rewrite logic.
 func reorderPackageAfterLoadBeforeRules(f *File, _ *Rewriter) {
-	var lastLoadIndex, packageFuncIndex int
+	lastLoadIndex := -1
+	packageFuncIndex := -1
 	var packageFunc *CallExpr
 	for idx, s := range f.Stmt {
 		switch s := s.(type) {
@@ -1123,7 +1124,7 @@ func reorderPackageAfterLoadBeforeRules(f *File, _ *Rewriter) {
 		}
 	}
 
-	if packageFunc == nil {
+	if lastLoadIndex == -1 || packageFuncIndex == -1 {
 		// no reordering necessary
 		return
 	}

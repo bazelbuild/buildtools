@@ -123,7 +123,7 @@ func TestBUILDFileOrderingRewriter(t *testing.T) {
 	modifiedPrinter.file(modifiedFile)
 
 	// Assert that bytes to be written is same as formmatted bytes and different from original
-	if bytes.Equal(formattedPrinter.Bytes(), modifiedPrinter.Bytes()) {
+	if !bytes.Equal(formattedPrinter.Bytes(), modifiedPrinter.Bytes()) {
 		t.Errorf("Formatted Printer should equal Modified Printer\n\n\nmodified:\n%s\n\nformatted:\n%s\n\n",
 			modifiedPrinter.String(),
 			formattedPrinter.String(),
