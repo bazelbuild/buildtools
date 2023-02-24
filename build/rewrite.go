@@ -1109,22 +1109,27 @@ func removeParens(f *File, _ *Rewriter) {
 // be fine for printing (the only current usecase within this package), but
 // may cause confusion for future alternative usages of this Rewrite logic.
 func reorderPackageAfterLoadBeforeRules(f *File, _ *Rewriter) {
-	lastLoadIndex := -1
+	insertIndex := -1
+	insertIndexLocked := false
 	packageFuncIndex := -1
 	var packageFunc *CallExpr
 	for idx, s := range f.Stmt {
 		switch s := s.(type) {
-		case *LoadStmt:
-			lastLoadIndex = idx
+		case *LoadStmt, *CommentBlock, *StringExpr:
+			if !insertIndexLocked {
+				insertIndex = idx
+			}
+			continue
 		case *CallExpr:
 			if x, ok := s.X.(*Ident); ok && x.Name == "package" {
 				packageFunc = s
 				packageFuncIndex = idx
 			}
 		}
+		insertIndexLocked = true
 	}
 
-	if lastLoadIndex == -1 || packageFuncIndex == -1 {
+	if insertIndex == -1 || packageFuncIndex == -1 {
 		// no reordering necessary
 		return
 	}
@@ -1136,8 +1141,8 @@ func reorderPackageAfterLoadBeforeRules(f *File, _ *Rewriter) {
 	// > or >= and still result in correct output because the final
 	// packageFunc insertion would overright the final iteration
 	// in the latter case.
-	for i := packageFuncIndex - 1; i >= lastLoadIndex; i-- {
+	for i := packageFuncIndex - 1; i > insertIndex; i-- {
 		f.Stmt[i+1] = f.Stmt[i]
 	}
-	f.Stmt[lastLoadIndex+1] = packageFunc
+	f.Stmt[insertIndex+1] = packageFunc
 }
