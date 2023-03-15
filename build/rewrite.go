@@ -453,7 +453,7 @@ func sortStringLists(f *File, w *Rewriter) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
 					} else {
-						SortStringList(as.RHS)
+						FindAndSortStringLists(as.RHS)
 					}
 				}
 			}
@@ -463,7 +463,7 @@ func sortStringLists(f *File, w *Rewriter) {
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
 			if keepSorted(v) {
-				SortStringList(v.RHS)
+				FindAndSortStringLists(v.RHS)
 			}
 		case *KeyValueExpr:
 			if disabled("unsafesort") {
@@ -471,7 +471,7 @@ func sortStringLists(f *File, w *Rewriter) {
 			}
 			// "keep sorted" before key: list also forces sorting of list.
 			if keepSorted(v) {
-				SortStringList(v.Value)
+				FindAndSortStringLists(v.Value)
 			}
 		case *ListExpr:
 			if disabled("unsafesort") {
@@ -479,7 +479,7 @@ func sortStringLists(f *File, w *Rewriter) {
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
 			if len(v.List) > 0 && (keepSorted(v) || keepSorted(v.List[0])) {
-				SortStringList(v)
+				FindAndSortStringLists(v)
 			}
 		}
 	})
@@ -558,6 +558,37 @@ func SortStringList(x Expr) {
 	}
 
 	list.List = sortStringExprs(list.List)
+}
+
+// FindAndSortStringLists finds and sorts string lists recursively within
+// the given statement. It doesn't sort all string lists it can find, but only
+// top-level lists, lists that are parts of concatenated expressions and lists
+// within select statements.
+func FindAndSortStringLists(x Expr) {
+	switch x := x.(type) {
+	case *ListExpr:
+		SortStringList(x)
+	case *BinaryExpr:
+		if x.Op != "+" {
+			return
+		}
+		FindAndSortStringLists(x.X)
+		FindAndSortStringLists(x.Y)
+	case *CallExpr:
+		if ident, ok := x.X.(*Ident); !ok || ident.Name != "select" {
+			return
+		}
+		if len(x.List) == 0 {
+			return
+		}
+		dict, ok := x.List[0].(*DictExpr)
+		if !ok {
+			return
+		}
+		for _, kv := range dict.List {
+			FindAndSortStringLists(kv.Value)
+		}
+	}
 }
 
 func sortStringExprs(list []Expr) []Expr {
