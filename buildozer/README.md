@@ -19,7 +19,10 @@ buildozer [OPTIONS] ['command args' | -f FILE ] label-list
 ```
 
 Here, `label-list` is a space-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1 //path/to/pkg2:rule2`.
+`//path/to/pkg1:rule1 relative/path/to/pkg2:rule2`. In addition to the Bazel
+label syntax for specifying a package, Buildozer also allows the package part to
+refer to a BUILD-like file, for example `//WORKSPACE:all` or
+`toolchains/BUILD.tpl:host_toolchain`.
 
 When `-f FILE` is used, buildozer reads commands from `FILE` (`-` for stdin).
 Format: lines of `|`-separated sets of commands and labels (`command args|label|label...`).
@@ -90,12 +93,15 @@ Buildozer supports the following commands(`'command args'`):
     new rule at the end of the BUILD file (before/after `<relative_rule>`). The
     identifier `__pkg__` can be used to position rules relative to package().
   * `print <attr(s)>`
-  * `remove <attr>`: Removes attribute `attr`.
+  * `remove <attr>`: Removes attribute `attr`. The wildcard `*` matches all
+    attributes except `name`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
     wildcard `*` matches all attributes. Lists containing none of the `value(s)` are
     not modified.
   * `remove_comment <attr>? <value>?`: Removes the comment attached to the rule,
     an attribute, or a specific value in a list.
+  * `remove_if_equal <attr> <value>`: Removes the attribute `attr` if its value
+    is equal to `value`.
   * `rename <old_attr> <new_attr>`: Rename the `old_attr` to `new_attr` which must
     not yet exist.
   * `replace <attr> <old_value> <new_value>`: Replaces `old_value` with `new_value`

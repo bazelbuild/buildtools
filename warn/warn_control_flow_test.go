@@ -638,6 +638,28 @@ foo()
 			":2: Variable \"x\" is unused.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(
+    name,
+    x):
+  pass
+
+
+def bar(
+    name = "",
+    y = 3):
+  pass
+
+
+foo()
+bar()
+`,
+		[]string{
+			":3: Variable \"x\" is unused.",
+			":9: Variable \"y\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
@@ -1239,5 +1261,16 @@ def foo():
 		[]string{
 			":6: Variable \"z\" may not have been initialized.",
 		},
+		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  for bar in baz:
+    pass
+
+  y = [baz.get(bar) for bar in bars]
+  x = lambda bar: baz.get(bar)
+`,
+		[]string{},
 		scopeEverywhere)
 }

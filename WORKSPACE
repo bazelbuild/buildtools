@@ -46,6 +46,12 @@ http_archive(
     ],
 )
 
+go_repository(
+    name = "com_github_google_go_cmp",
+    importpath = "github.com/google/go-cmp",
+    tag = "v0.5.9",
+)
+
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()

@@ -71,7 +71,7 @@ func TestFindRepoBuildfiles(t *testing.T) {
 	}
 	defer os.RemoveAll(tmp)
 	workspace := []byte(`
-new_git_repository(
+git_repository(
     name = "a",
     build_file = "a.BUILD",
 )
@@ -83,11 +83,11 @@ new_local_repository(
     name = "c",
     build_file = "c.BUILD",
 )
-git_repository(
+new_git_repository(
     name = "d",
     build_file = "d.BUILD",
 )
-new_git_repository(
+git_repository(
     name = "e",
     build_file_content = "n/a",
 )
@@ -107,6 +107,7 @@ new_http_archive(
 		"a": filepath.Join(tmp, "a.BUILD"),
 		"b": filepath.Join(tmp, "b.BUILD"),
 		"c": filepath.Join(tmp, "c.BUILD"),
+		"d": filepath.Join(tmp, "d.BUILD"),
 		"f": filepath.Join(tmp, "third_party/f.BUILD"),
 	}
 	if !reflect.DeepEqual(files, expected) {

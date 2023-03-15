@@ -4,8 +4,8 @@ load("//build:build_defs.bzl", "go_proto_checkedin_test")
 
 # gazelle:exclude build.gen.pb.go
 
-# build.proto is copied from Bazel 0.22.0
-# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
+# build.proto is copied from Bazel 6.0.0
+# https://github.com/bazelbuild/bazel/blob/6.0.0/src/main/protobuf/build.proto
 
 go_proto_checkedin_test(
     src = "build.gen.pb.go",

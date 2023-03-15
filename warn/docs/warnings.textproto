@@ -1,6 +1,6 @@
 # proto-file: warn/docs/docs.proto
 # proto-message: Warnings
-# After modifying this file, run `bazel build //warn/docs:warn_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
+# After modifying this file, run `bazel build //warn/docs:warnings_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
 
 warnings: {
   name: "attr-cfg"
@@ -234,6 +234,19 @@ warnings: {
 }
 
 warnings: {
+  name: "dict-method-named-arg"
+  header: "Dict methods do not have a named argument `default`"
+  description:
+    "Dict methods `get`, `pop` and `setdefault` do not accept a named argument\n"
+    "called `default`. Due to a bug, Bazel currently accepts that named argument.\n"
+    "It is better to use a positional argument instead:\n\n"
+    "```diff\n"
+    "- mydict.get(5, default = 0)\n"
+    "+ mydict.get(5, 0)\n"
+    "```"
+}
+
+warnings: {
   name: "duplicated-name"
   header: "A rule with name `foo` was already found on line"
   description:
@@ -309,9 +322,9 @@ warnings: {
   header: "Function `git_repository` is not global anymore"
   description:
     "Native `git_repository` and `new_git_repository` functions are removed.\n"
-    "Please use the Starlark versions instead:\n\n"
+    "Please use the Starlark version instead:\n\n"
     "```python\n"
-    "load(\"@bazel_tools//tools/build_defs/repo:git.bzl\", \"git_repository\", \"new_git_repository\")\n"
+    "load(\"@bazel_tools//tools/build_defs/repo:git.bzl\", \"git_repository\")\n"
     "```"
   bazel_flag: "--incompatible_remove_native_git_repository"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/6569"
@@ -323,7 +336,7 @@ warnings: {
   header: "Function `http_archive` is not global anymore"
   description:
     "Native `http_archive` function is removed.\n"
-    "Please use the Starlark versions instead:\n\n"
+    "Please use the Starlark version instead:\n\n"
     "```python\n"
     "load(\"@bazel_tools//tools/build_defs/repo:http.bzl\", \"http_archive\")\n"
     "```"
