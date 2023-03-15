@@ -560,7 +560,7 @@ func SortStringList(x Expr) {
 	list.List = sortStringExprs(list.List)
 }
 
-// FindAndSortStringLists finds and sorts string lists recursively withing
+// FindAndSortStringLists finds and sorts string lists recursively within
 // the given statement. It doesn't sort all string lists it can find, but only
 // top-level lists, lists that are parts of concatenated expressions and lists
 // within select statements.
