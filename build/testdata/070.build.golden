@@ -4,8 +4,8 @@ foo(
         "aaa",
         "bbb",
     ] + CONSTANT + [
-        "ccc",
-        "ddd",
+        "//ccc",
+        "//ddd",
     ],
     data = [
         "iii",
@@ -23,8 +23,8 @@ foo(
     }),
     deps = select({
         "bar": [
-            "eee",
-            "ggg",
+            "//eee",
+            "//ggg",
         ],
     }) + [
         "fff",
