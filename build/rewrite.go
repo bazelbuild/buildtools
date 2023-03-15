@@ -124,8 +124,10 @@ func hasComment(x Expr, text string) bool {
 func getColumnNumber(x Expr) int {
 	for _, com := range x.Comment().Before {
 		tokens := strings.Split(strings.ToLower(com.Token), " ")
-		colNum, _ := strconv.Atoi(tokens[4])
-		return colNum
+		colNum, err := strconv.Atoi(tokens[4])
+                if err == nil && colNum > 0 {
+          	   return colNum
+                }
 	}
 	return -1
 }
@@ -439,14 +441,14 @@ func formatTables(f *File) {
 // TODO : Change to in-place sorting later.
 func sortTableRows(v *ListExpr) {
 	// Handle when "#buildifier: table sort N" tag is set
-	if len(v.List) > 0 && tableSort(v.List[0]) > 0 {
+	colNumber := tableSort(v.List[0])
+	if len(v.List) > 0 && colNumber > 0 {
 		// less than 2 rows, nothing to sort
 		if len(v.List) < 2 {
 			return
 		}
 
 		var comments []Comment
-		colNumber := tableSort(v.List[0])
 		keys := make([]string, 0, len(v.List))
 		tableMap := map[string][]*TupleExpr{}
 
@@ -502,7 +504,8 @@ func sortTableRows(v *ListExpr) {
 		}
 		v.List = sortedList
 	}
-}
+ }
+
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
 func sortStringLists(f *File) {
