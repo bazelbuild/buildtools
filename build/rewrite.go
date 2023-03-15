@@ -448,8 +448,8 @@ func sortStringLists(f *File, w *Rewriter) {
 					continue
 				}
 				if w.IsSortableListArg[key.Name] ||
-						w.SortableAllowlist[context] ||
-						(!disabled("unsafesort") && allowedSort(context)) {
+					w.SortableAllowlist[context] ||
+					(!disabled("unsafesort") && allowedSort(context)) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
 					} else {
