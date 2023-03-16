@@ -428,6 +428,10 @@ func (x namedArgs) Less(i, j int) bool {
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
 func sortStringLists(f *File, w *Rewriter) {
+	sortStringList := func(x *Expr) {
+		SortStringList(*x)
+	}
+
 	Walk(f, func(e Expr, stk []Expr) {
 		switch v := e.(type) {
 		case *CallExpr:
@@ -456,8 +460,8 @@ func sortStringLists(f *File, w *Rewriter) {
 					continue
 				}
 				if w.IsSortableListArg[key.Name] ||
-					w.SortableAllowlist[context] ||
-					(!disabled("unsafesort") && allowedSort(context)) {
+						w.SortableAllowlist[context] ||
+						(!disabled("unsafesort") && allowedSort(context)) {
 					if doNotSort(as) {
 						deduplicateStringList(as.RHS)
 					} else {
@@ -566,11 +570,6 @@ func SortStringList(x Expr) {
 	}
 
 	list.List = sortStringExprs(list.List)
-}
-
-// sortStringList is similar to SortStringList but takes a pointer to the Expr
-func sortStringList(x *Expr) {
-	SortStringList(*x)
 }
 
 // findAndModifyStrings finds and modifies string lists with a callback
