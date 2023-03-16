@@ -992,7 +992,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	}
 
-	f, err := build.ParseBuild(name, data)
+	f, err := build.Parse(name, data)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}

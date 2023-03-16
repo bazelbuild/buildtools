@@ -24,7 +24,7 @@ func (b *buildifier) Buildify(_ *edit.Options, f *build.File) ([]byte, error) {
 	// value is a chunk of code, like "f(x)". The AST should be printed and
 	// re-read to parse such expressions correctly.
 	contents := build.Format(f)
-	newF, err := build.ParseBuild(f.Path, []byte(contents))
+	newF, err := build.Parse(f.Path, contents)
 	if err != nil {
 		return nil, err
 	}

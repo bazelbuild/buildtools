@@ -2029,4 +2029,35 @@ EOF
 )' pkg2
 }
 
+function test_module_bazel() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+EOF
+
+  $buildozer 'delete' //MODULE.bazel:%10
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+
 run_suite "buildozer tests"
