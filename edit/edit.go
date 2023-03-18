@@ -204,6 +204,30 @@ func isWorkspaceCall(expr build.Expr) bool {
 	return false
 }
 
+func RemoveEmptyUseRepoCalls(f *build.File) *build.File {
+	if f.Type != build.TypeModule {
+		return f
+	}
+	var all []build.Expr
+	for _, stmt := range f.Stmt {
+		if isEmptyUseRepoCall(stmt) {
+			continue
+		}
+		all = append(all, stmt)
+	}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeModule}
+}
+
+func isEmptyUseRepoCall(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		functionName, ok := call.X.(*build.Ident)
+		if ok && functionName.Name == "use_repo" && len(call.List) == 1 {
+			return true
+		}
+	}
+	return false
+}
+
 // InsertAfter inserts an expression after index i.
 func InsertAfter(i int, stmt []build.Expr, expr build.Expr) []build.Expr {
 	i = i + 1 // index after the element at i
