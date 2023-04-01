@@ -23,7 +23,6 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit/bzlmod"
-	"github.com/bazelbuild/buildtools/labels"
 )
 
 const proxiesNoModuleHeader = ``
@@ -142,7 +141,7 @@ func TestProxies(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					actualProxies := bzlmod.Proxies(f, labels.Parse(extBzlFile), tc.extName, tc.dev)
+					actualProxies := bzlmod.Proxies(f, extBzlFile, tc.extName, tc.dev)
 					if !reflect.DeepEqual(actualProxies, tc.expectedProxies) {
 						t.Error("want: ", tc.expectedProxies, ", got: ", actualProxies)
 					}

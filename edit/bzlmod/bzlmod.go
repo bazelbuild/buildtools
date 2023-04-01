@@ -22,24 +22,23 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/labels"
 )
 
 // Proxies returns the names of extension proxies (i.e. the names of variables to which the result
 // of a use_extension call is assigned) for the given extension with the given value of the
 // dev_dependency attribute.
-func Proxies(f *build.File, extBzlFile labels.Label, extName string, dev bool) []string {
+func Proxies(f *build.File, rawExtBzlFile string, extName string, dev bool) []string {
 	apparentModuleName := getApparentModuleName(f)
-	canonicalizedExtBzlFile := canonicalizeLabel(extBzlFile.Format(), apparentModuleName)
+	extBzlFile := normalizeLabelString(rawExtBzlFile, apparentModuleName)
 
 	var proxies []string
 	for _, stmt := range f.Stmt {
-		proxy, bzlFileRaw, name, isDev := parseUseExtension(stmt)
+		proxy, rawBzlFile, name, isDev := parseUseExtension(stmt)
 		if proxy == "" || isDev != dev {
 			continue
 		}
-		bzlFile := canonicalizeLabel(bzlFileRaw.Format(), apparentModuleName)
-		if bzlFile == canonicalizedExtBzlFile && name == extName {
+		bzlFile := normalizeLabelString(rawBzlFile, apparentModuleName)
+		if bzlFile == extBzlFile && name == extName {
 			proxies = append(proxies, proxy)
 		}
 	}
@@ -204,22 +203,25 @@ func getApparentModuleName(f *build.File) string {
 	return apparentName
 }
 
-// canonicalizeLabel ensures that a label has the form @apparent_name//path/to:target.
-func canonicalizeLabel(rawLabel, apparentModuleName string) labels.Label {
+// normalizeLabelString converts a label string into the form @apparent_name//path/to:target.
+func normalizeLabelString(rawLabel, apparentModuleName string) string {
+	// This implements
+	// https://github.com/bazelbuild/bazel/blob/dd822392db96bb7bccdb673414a20c4b91e3dbc1/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/ModuleFileGlobals.java#L416
+	// with the assumption that the current module is the root module.
 	if strings.HasPrefix(rawLabel, "//") {
 		// Relative labels always refer to the current module.
-		return labels.Parse("@" + apparentModuleName + rawLabel)
+		return "@" + apparentModuleName + rawLabel
 	} else if strings.HasPrefix(rawLabel, "@//") {
 		// In the root module only, this syntax refer to the module. Since we are inspecting its
 		// module file as a tool, we can assume that the current module is the root module.
-		return labels.Parse("@" + apparentModuleName + rawLabel[1:])
+		return "@" + apparentModuleName + rawLabel[1:]
 	} else {
-		return labels.Parse(rawLabel)
+		return rawLabel
 	}
 }
 
 func parseUseExtension(stmt build.Expr) (
-	proxy string, bzlFile labels.Label, name string, dev bool) {
+	proxy string, bzlFile string, name string, dev bool) {
 	assign, ok := stmt.(*build.AssignExpr)
 	if !ok {
 		return
@@ -268,7 +270,7 @@ func parseUseExtension(stmt build.Expr) (
 			}
 		}
 	}
-	return assign.LHS.(*build.Ident).Name, labels.Parse(bzlFileExpr.Value), nameExpr.Value, dev
+	return assign.LHS.(*build.Ident).Name, bzlFileExpr.Value, nameExpr.Value, dev
 }
 
 func parseTag(stmt build.Expr) string {

@@ -744,7 +744,7 @@ func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
 		args = env.Args[1:]
 	}
 
-	extBzlFile := labels.Parse(args[0])
+	extBzlFile := args[0]
 	extName := args[1]
 
 	proxies := bzlmod.Proxies(env.File, extBzlFile, extName, dev)
