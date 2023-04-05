@@ -439,3 +439,94 @@ func TestCmdDictAddSet_missingColon(t *testing.T) {
 		})
 	}
 }
+
+func TestCmdSetSelect(t *testing.T) {
+	for i, tc := range []struct {
+		name      string
+		args      []string
+		buildFile string
+		expected  string
+	}{
+		{
+			name: "select_statment_doesn't_exist",
+			args: []string{
+				"args",                                   /* attr */
+				":use_ci_timeouts", "-test.timeout=123s", /* key, value */
+				":use_ci_timeouts", "-test.anotherFlag=flagValue", /* key, value */
+				"//conditions:default", "-test.timeout=789s", /* key, value */
+			},
+			buildFile: `foo(
+			name = "foo",
+)`,
+			expected: `foo(
+    name = "foo",
+    args = select({
+        ":use_ci_timeouts": [
+            "-test.timeout=123s",
+            "-test.anotherFlag=flagValue",
+        ],
+        "//conditions:default": ["-test.timeout=789s"],
+    }),
+)`},
+		{
+			name: "select_statment_exists",
+			args: []string{
+				"args",                                   /* attr */
+				":use_ci_timeouts", "-test.timeout=543s", /* key, value */
+				"//conditions:default", "-test.timeout=876s", /* key, value */
+			},
+			buildFile: `foo(
+    name = "foo",
+    args = select({
+        ":use_ci_timeouts": [
+            "-test.timeout=123s",
+            "-test.anotherFlag=flagValue",
+        ],
+        "//conditions:default": ["-test.timeout=789s"],
+    }),
+)`,
+			expected: `foo(
+    name = "foo",
+    args = select({
+        ":use_ci_timeouts": ["-test.timeout=543s"],
+        "//conditions:default": ["-test.timeout=876s"],
+    }),
+)`},
+		{
+			name: "attr_exists_but_not_select",
+			args: []string{
+				"args",                                   /* attr */
+				":use_ci_timeouts", "-test.timeout=543s", /* key, value */
+				"//conditions:default", "-test.timeout=876s", /* key, value */
+			},
+			buildFile: `foo(
+    name = "foo",
+    args = ["-test.timeout=123s"],
+)`,
+			expected: `foo(
+    name = "foo",
+    args = select({
+        ":use_ci_timeouts": ["-test.timeout=543s"],
+        "//conditions:default": ["-test.timeout=876s"],
+    }),
+)`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+			}
+			rl := bld.Rules("foo")[0]
+			env := CmdEnvironment{
+				File: bld,
+				Rule: rl,
+				Args: tc.args,
+			}
+			bld, _ = cmdSetSelect(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tc.expected {
+				t.Errorf("cmdSetSelect(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}
