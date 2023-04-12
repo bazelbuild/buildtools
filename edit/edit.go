@@ -204,6 +204,7 @@ func isWorkspaceCall(expr build.Expr) bool {
 	return false
 }
 
+// RemoveEmptyUseRepoCalls removes empty use repo declarations from the file.
 func RemoveEmptyUseRepoCalls(f *build.File) *build.File {
 	if f.Type != build.TypeModule {
 		return f
