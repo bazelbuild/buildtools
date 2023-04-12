@@ -14,9 +14,5 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["bzlmod_test.go"],
-    deps = [
-        ":go_default_library",
-        "//build:go_default_library",
-        "//labels:go_default_library",
-    ],
+    embed = [":go_default_library"],
 )

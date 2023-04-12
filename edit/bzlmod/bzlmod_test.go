@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bzlmod_test
+package bzlmod
 
 import (
 	"reflect"
@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/bazelbuild/buildtools/edit/bzlmod"
 )
 
 const proxiesNoModuleHeader = ``
@@ -141,7 +140,7 @@ func TestProxies(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					actualProxies := bzlmod.Proxies(f, extBzlFile, tc.extName, tc.dev)
+					actualProxies := Proxies(f, extBzlFile, tc.extName, tc.dev)
 					if !reflect.DeepEqual(actualProxies, tc.expectedProxies) {
 						t.Error("want: ", tc.expectedProxies, ", got: ", actualProxies)
 					}
@@ -196,7 +195,7 @@ func TestUseRepos(t *testing.T) {
 			for _, stmt := range tc.expectedStmts {
 				expectedUseRepos = append(expectedUseRepos, f.Stmt[stmt].(*build.CallExpr))
 			}
-			actualUseRepos := bzlmod.UseRepos(f, tc.proxies)
+			actualUseRepos := UseRepos(f, tc.proxies)
 			if !reflect.DeepEqual(actualUseRepos, expectedUseRepos) {
 				t.Error("want: ", expectedUseRepos, ", got: ", actualUseRepos)
 			}
@@ -250,7 +249,7 @@ use_repo(prox1)
 			if err != nil {
 				t.Fatal(err)
 			}
-			f, actualNewUseRepo := bzlmod.NewUseRepo(f, tc.proxies)
+			f, actualNewUseRepo := NewUseRepo(f, tc.proxies)
 			actualContent := string(build.Format(f))
 			if actualNewUseRepo != nil {
 				if !reflect.DeepEqual(actualNewUseRepo, f.Stmt[tc.expectedUseRepo]) {
@@ -346,7 +345,7 @@ use_repo(prox, "repo3", "repo4")
 			for _, stmt := range f.Stmt {
 				useRepos = append(useRepos, stmt.(*build.CallExpr))
 			}
-			bzlmod.AddRepoUsages(useRepos, tc.repos...)
+			AddRepoUsages(useRepos, tc.repos...)
 			actualContent := string(build.Format(f))
 			if !reflect.DeepEqual(actualContent, tc.expectedContent) {
 				t.Errorf("want:\n%q\ngot:\n%q\n", tc.expectedContent, actualContent)
@@ -426,7 +425,7 @@ use_repo(prox)
 			for _, stmt := range f.Stmt {
 				useRepos = append(useRepos, stmt.(*build.CallExpr))
 			}
-			bzlmod.RemoveRepoUsages(useRepos, tc.repos...)
+			RemoveRepoUsages(useRepos, tc.repos...)
 			actualContent := string(build.Format(f))
 			if !reflect.DeepEqual(actualContent, tc.expectedContent) {
 				t.Errorf("want:\n%q\ngot:\n%q\n", tc.expectedContent, actualContent)

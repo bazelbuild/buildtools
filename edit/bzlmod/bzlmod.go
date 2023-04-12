@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // Package bzlmod contains functions for working with MODULE.bazel files.
-
 package bzlmod
 
 import (
@@ -220,8 +219,7 @@ func normalizeLabelString(rawLabel, apparentModuleName string) string {
 	}
 }
 
-func parseUseExtension(stmt build.Expr) (
-	proxy string, bzlFile string, name string, dev bool) {
+func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name string, dev bool) {
 	assign, ok := stmt.(*build.AssignExpr)
 	if !ok {
 		return
