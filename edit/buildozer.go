@@ -1045,6 +1045,10 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
 	}
+	if f.Type == build.TypeDefault {
+		// Buildozer is unable to infer the file type, fall back to BUILD by default.
+		f.Type = build.TypeBuild
+	}
 	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 
 	vars := map[string]*build.AssignExpr{}
