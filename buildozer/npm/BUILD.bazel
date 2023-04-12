@@ -71,8 +71,8 @@ pkg_npm(
     deps = [
         "LICENSE",
         "buildozer.js",
-        "index.js",
         "index.d.ts",
+        "index.js",
     ] + _PARENT_PACKAGE_FILES,
 )
 

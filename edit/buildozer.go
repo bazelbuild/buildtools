@@ -35,6 +35,7 @@ import (
 
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/edit/bzlmod"
 	"github.com/bazelbuild/buildtools/file"
 	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
@@ -723,6 +724,50 @@ func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string)
 	return env.File, nil
 }
 
+func cmdUseRepoAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_add")
+}
+
+func cmdUseRepoRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_remove")
+}
+
+func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
+	if env.File.Type != build.TypeModule {
+		return nil, fmt.Errorf("%s: only applies to MODULE.bazel files", mode)
+	}
+
+	dev := false
+	args := env.Args
+	if env.Args[0] == "dev" {
+		dev = true
+		args = env.Args[1:]
+	}
+
+	extBzlFile := args[0]
+	extName := args[1]
+
+	proxies := bzlmod.Proxies(env.File, extBzlFile, extName, dev)
+	if len(proxies) == 0 {
+		return nil, fmt.Errorf("%s: no use_extension assignment found for extension %q defined in %q", mode, extName, extBzlFile)
+	}
+
+	useRepos := bzlmod.UseRepos(env.File, proxies)
+	if len(useRepos) == 0 {
+		var newUseRepo *build.CallExpr
+		env.File, newUseRepo = bzlmod.NewUseRepo(env.File, proxies)
+		useRepos = []*build.CallExpr{newUseRepo}
+	}
+
+	if mode == "use_repo_add" {
+		bzlmod.AddRepoUsages(useRepos, args[2:]...)
+	} else {
+		bzlmod.RemoveRepoUsages(useRepos, args[2:]...)
+	}
+
+	return env.File, nil
+}
+
 func cmdFix(opts *Options, env CmdEnvironment) (*build.File, error) {
 	// Fix the whole file
 	if env.Rule.Kind() == "package" {
@@ -769,6 +814,8 @@ var AllCommands = map[string]CommandInfo{
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "[dev] <extension .bzl file> <extension name> <repo(s)>"},
+	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "[dev] <extension .bzl file> <extension name> <repo(s)>"},
 }
 
 var readonlyCommands = map[string]bool{
@@ -857,10 +904,10 @@ func SplitOnSpaces(input string) []string {
 // parseCommands parses commands and targets they should be applied on from
 // a list of arguments.
 // Each argument can be either:
-// - a command (as defined by AllCommands) and its parameters, separated by
-//   whitespace
-// - a target all commands that are parsed during one call to parseCommands
-//   should be applied on
+//   - a command (as defined by AllCommands) and its parameters, separated by
+//     whitespace
+//   - a target all commands that are parsed during one call to parseCommands
+//     should be applied on
 func parseCommands(opts *Options, args []string) (commands []command, targets []string, err error) {
 	for _, arg := range args {
 		commandTokens := SplitOnSpaces(arg)
@@ -908,7 +955,9 @@ type rewriteResult struct {
 
 // getGlobalVariables returns the global variable assignments in the provided list of expressions.
 // That is, for each variable assignment of the form
-//   a = v
+//
+//	a = v
+//
 // vars["a"] will contain the AssignExpr whose RHS value is the assignment "a = v".
 func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) {
 	vars = make(map[string]*build.AssignExpr)
@@ -1059,6 +1108,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
 	f = RemoveEmptyPackage(f)
+	f = RemoveEmptyUseRepoCalls(f)
 	ndata, err := buildifier.Buildify(opts, f)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
