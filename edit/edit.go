@@ -100,7 +100,15 @@ func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, p
 
 // InterpretLabel returns the name of the BUILD file to edit, the full
 // package name, and the rule. It uses the pwd for resolving workspace file paths.
-func InterpretLabel(target string) (buildFile string, repo string, pkg string, rule string) {
+func InterpretLabel(target string) (buildFile string, pkg string, rule string) {
+	buildFile, _, pkg, rule = InterpretLabelForWorkspaceLocation("", target)
+	return buildFile, pkg, rule
+}
+
+// InterpretLabelWithRepo returns the name of the BUILD file to edit, repo name,
+// the full package name, and the rule. It uses the pwd for resolving workspace
+// file paths.
+func InterpretLabelWithRepo(target string) (buildFile string, repo string, pkg string, rule string) {
 	return InterpretLabelForWorkspaceLocation("", target)
 }
 
