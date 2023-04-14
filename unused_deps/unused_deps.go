@@ -264,7 +264,7 @@ func hasRuntimeComment(expr build.Expr) bool {
 // to remove that entry from the deps attribute of the rule identified by label.
 // Returns true if at least one command was printed, or false otherwise.
 func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) {
-	buildFileName, repo, pkg, ruleName := edit.InterpretLabel(label)
+	buildFileName, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
 	if repo != "" {
 		outputBase := blazeInfo(config.DefaultOutputBase)
 		buildFileName = fmt.Sprintf("%s/external/%s/%s", outputBase, repo, buildFileName)
@@ -397,7 +397,7 @@ func main() {
 			// https://docs.bazel.build/versions/main/cquery.html#configurations
 			continue
 		}
-		_, repo, pkg, ruleName := edit.InterpretLabel(label)
+		_, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
 		blazeBin := binDir
 		if repo != "" {
 			blazeBin = fmt.Sprintf("%s/external/%s", binDir, repo)

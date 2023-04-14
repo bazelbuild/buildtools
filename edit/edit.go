@@ -100,7 +100,15 @@ func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, p
 
 // InterpretLabel returns the name of the BUILD file to edit, the full
 // package name, and the rule. It uses the pwd for resolving workspace file paths.
-func InterpretLabel(target string) (buildFile string, repo string, pkg string, rule string) {
+func InterpretLabel(target string) (buildFile string, pkg string, rule string) {
+	buildFile, _, pkg, rule = InterpretLabelForWorkspaceLocation("", target)
+	return buildFile, pkg, rule
+}
+
+// InterpretLabelWithRepo returns the name of the BUILD file to edit, repo name,
+// the full package name, and the rule. It uses the pwd for resolving workspace
+// file paths.
+func InterpretLabelWithRepo(target string) (buildFile string, repo string, pkg string, rule string) {
 	return InterpretLabelForWorkspaceLocation("", target)
 }
 
@@ -195,6 +203,31 @@ func isEmptyPackage(expr build.Expr) bool {
 func isWorkspaceCall(expr build.Expr) bool {
 	if call, ok := expr.(*build.CallExpr); ok {
 		if ident, ok := call.X.(*build.Ident); ok && ident.Name == "workspace" {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveEmptyUseRepoCalls removes empty use repo declarations from the file.
+func RemoveEmptyUseRepoCalls(f *build.File) *build.File {
+	if f.Type != build.TypeModule {
+		return f
+	}
+	var all []build.Expr
+	for _, stmt := range f.Stmt {
+		if isEmptyUseRepoCall(stmt) {
+			continue
+		}
+		all = append(all, stmt)
+	}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeModule}
+}
+
+func isEmptyUseRepoCall(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		functionName, ok := call.X.(*build.Ident)
+		if ok && functionName.Name == "use_repo" && len(call.List) == 1 {
 			return true
 		}
 	}
