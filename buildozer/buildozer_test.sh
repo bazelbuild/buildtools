@@ -2059,6 +2059,20 @@ EOF
   diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
 }
 
+function test_module_bazel_new() {
+  cat > MODULE.bazel <<EOF
+bazel_dep(name = "gazelle", version = "0.30.0")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+bazel_dep(name = "gazelle", version = "0.30.0")
+bazel_dep(name = "rules_go")
+EOF
+
+  $buildozer 'new bazel_dep rules_go after gazelle' //MODULE.bazel:__pkg__
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
 function test_use_repo_add() {
   cat > MODULE.bazel <<EOF
 module(
