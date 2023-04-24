@@ -180,9 +180,6 @@ func PackageDeclaration(f *build.File) *build.Rule {
 // This might appear because of a buildozer transformation (e.g. when removing a package
 // attribute). Removing it is required for the file to be valid.
 func RemoveEmptyPackage(f *build.File) *build.File {
-	if f.Type != build.TypeBuild {
-		return f
-	}
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		if isEmptyPackage(stmt) {
@@ -190,7 +187,7 @@ func RemoveEmptyPackage(f *build.File) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: f.Type}
 }
 
 func isEmptyPackage(expr build.Expr) bool {
