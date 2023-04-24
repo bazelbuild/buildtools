@@ -119,6 +119,7 @@ Buildozer supports the following commands(`'command args'`):
   * `set_if_absent <attr> <value(s)>`: Sets the value of an attribute. If the
     attribute was already present, no action is taken.
   * `set kind <value>`: Set the target type to value.
+  * `set_select <attr> <key_1> <value_1> <key_n> <value_n>`
   * `copy <attr> <from_rule>`: Copies the value of `attr` between rules. If it
     exists in the `to_rule`, it will be overwritten.
   * `copy_no_overwrite <attr> <from_rule>`:  Copies the value of `attr` between

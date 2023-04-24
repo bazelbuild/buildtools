@@ -629,6 +629,38 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdSetSelect(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	dict := &build.DictExpr{}
+
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("no value passed for last key: %s", args[len(args)-1])
+	}
+	for i := 0; i < len(args); i += 2 {
+		key := args[i]
+		value := args[i+1]
+		var expr build.Expr
+		if IsList(attr) {
+			list := &build.ListExpr{}
+			if cur := DictionaryGet(dict, key); cur != nil {
+				list = cur.(*build.ListExpr)
+			}
+			AddValueToList(list, env.Pkg, getStringExpr(value, env.Pkg), !attributeMustNotBeSorted(env.Rule.Name(), attr))
+			expr = list
+		} else {
+			expr = getStringExpr(value, env.Pkg)
+		}
+		// Set overwrites previous values.
+		DictionarySet(dict, key, expr)
+	}
+	call := &build.CallExpr{List: []build.Expr{dict}}
+	call.X = &build.Ident{Name: "select"}
+	env.Rule.SetAttr(attr, call)
+	return env.File, nil
+}
+
 // cmdDictSet adds a key to a dict, overwriting any previous values.
 func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
@@ -808,6 +840,7 @@ var AllCommands = map[string]CommandInfo{
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
 	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
+	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
