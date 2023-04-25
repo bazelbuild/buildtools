@@ -1273,4 +1273,15 @@ def foo():
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  def bar(x):
+    print(x)
+
+  for x, y in z:
+    bar(x)
+`,
+		[]string{},
+		scopeEverywhere)
 }

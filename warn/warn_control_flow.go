@@ -712,7 +712,7 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 	return variables
 }
 
-// searchUninitializedVariables takes a list of statements (e.g. body of a block statement)
+// findUninitializedVariables takes a list of statements (e.g. body of a block statement)
 // and a map of previously initialized statements, and calls `callback` on all idents that are not
 // initialized. An ident is considered initialized if it's initialized by every possible execution
 // path (before or by `stmts`).
@@ -761,8 +761,20 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			}
 		}
 
+		walkBlockList := map[build.Expr]bool{}
 		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			if walkBlockList[expr] {
+				return &build.StopTraversalError{}
+			}
 			switch expr := expr.(type) {
+			case *build.DefStmt:
+				// The header of the DefStmt may contain uninitialized variables (e.g.
+				// default values of parameters) and should be traversed.
+				// Its body shouldn't be traversed because it has another scope and will
+				// be analyzed by another call of `findUninitializedVariables`.
+				for _, stmt := range expr.Body {
+					walkBlockList[stmt] = true
+				}
 			case *build.Comprehension, *build.LambdaExpr:
 				// Comprehension and Lambda nodes are special, they have their own scope
 				// with variables that are only defined inside.
