@@ -15,11 +15,12 @@ def run(*cmd):
 
 def main():
     tags = run("git", "describe", "--tags")
-    print("STABLE_buildVersion", tags.split("-")[0])
+    version = tags.lstrip('v')
+    print("STABLE_buildVersion", version)
 
     # rules_nodejs expects to read from volatile-status.txt
-    print("BUILD_SCM_VERSION", tags.split("-")[0])
-    
+    print("BUILD_SCM_VERSION", version)
+
     revision = run("git", "rev-parse", "HEAD")
     print("STABLE_buildScmRevision", revision)
 
