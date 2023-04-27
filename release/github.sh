@@ -8,9 +8,10 @@ then
     exit 1
 fi
 
-TAG="$(git describe --abbrev=0 --tags | sed 's/* //')"
+TAG="$(git describe --abbrev=0 --tags | sed 's/* //')"  # v1.2.3
+VERSION=$(echo $TAG | sed 's/v//')  # 1.2.3
 DATE="$(date +"%Y-%m-%d")"
-NAME="Release $TAG ($DATE)"
+NAME="Release $VERSION ($DATE)"
 
 GH_REPO="repos/bazelbuild/buildtools"
 GH_AUTH_HEADER="Authorization: token $GITHUB_ACCESS_TOKEN"
