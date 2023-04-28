@@ -277,7 +277,8 @@ bazel query --output=build //path/to/BUILD
 
 Use `buildozer -f <file>` to load a list of commands from a file. The usage is
 just like arguments on the command-line, except that arguments are separated by
-`|`. Lines that start with `#` are ignored.
+`|`. Lines that start with `#` are ignored. `|`s in commands can be escaped like
+`\|`, but double null bytes (`\x00\x00`) are not valid in command files.
 
 ```shell
 $ cat /tmp/cmds

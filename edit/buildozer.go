@@ -1290,10 +1290,10 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		if line == "" || line[0] == '#' {
 			continue
 		}
-		line = escapePipes(line)
+		line = saveEscapedPipes(line)
 		args := strings.Split(line, "|")
 		for i, arg := range args {
-			args[i] = unescapePipes(arg)
+			args[i] = replaceSavedPipes(arg)
 		}
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
@@ -1309,11 +1309,11 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 	return nil
 }
 
-func escapePipes(s string) string {
+func saveEscapedPipes(s string) string {
 	return strings.ReplaceAll(s, `\|`, "\x00\x00")
 }
 
-func unescapePipes(s string) string {
+func replaceSavedPipes(s string) string {
 	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
