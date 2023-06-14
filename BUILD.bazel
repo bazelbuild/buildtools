@@ -21,21 +21,22 @@ test_suite(
     name = "tests",
     tests = [
         "//api_proto:api.gen.pb.go_checkshtest",
-        "//build:go_default_test",
+        "//build:build_test",
         "//build_proto:build.gen.pb.go_checkshtest",
         "//buildifier:buildifier_integration_test",
         "//deps_proto:deps.gen.pb.go_checkshtest",
-        "//edit:go_default_test",
+        "//edit:edit_test",
         "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
-        "//labels:go_default_test",
+        "//labels:labels_test",
         "//lang:tables.gen.go_checkshtest",
-        "//tables:go_default_test",
-        "//warn:go_default_test",
-        "//warn/docs:go_default_test",
-        "//wspace:go_default_test",
+        "//tables:tables_test",
+        "//warn:warn_test",
+        "//warn/docs:docs_test",
+        "//wspace:wspace_test",
     ],
 )
 
+#gazelle:go_naming_convention import_alias
 gazelle(
     name = "gazelle",
     prefix = "github.com/bazelbuild/buildtools",

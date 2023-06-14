@@ -18,13 +18,19 @@ generate_tables(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "lang",
     srcs = [
         "tables.go",  # keep
     ],
     importpath = "github.com/bazelbuild/buildtools/lang",
     visibility = ["//visibility:public"],
     deps = [
-        "//build_proto:go_default_library",  # keep
+        "//build_proto",  # keep
     ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":lang",
+    visibility = ["//visibility:public"],
 )
