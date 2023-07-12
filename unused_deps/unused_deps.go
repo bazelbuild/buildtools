@@ -178,10 +178,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 			if err != nil {
 				continue
 			}
-			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
-				label = label[1:]
-			}
-			if len(label) > 2 && label[0] == '@' && label[1] == '/' {
+			if strings.HasPrefix(label, "@@") || strings.HasPrefix(label, "@/") {
 				label = label[1:]
 			}
 			depsByJar[jar] = label
