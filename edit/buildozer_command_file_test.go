@@ -129,6 +129,16 @@ func TestLongLineInCommandFileParsesAsOneCommand(t *testing.T) {
 	}
 }
 
+func TestEscapedPipesInCommandFileArentSplit(t *testing.T) {
+	commands := parseCommandFile("set srcs mytarget.go|//test-project:mytarget(\\|\\|)\n", t)
+	if len(commands) != 1 {
+		t.Error("Exactly one command should be read")
+	}
+	if commands[0].target != "//test-project:mytarget(||)" {
+		t.Error("Read command target should be for the correct target")
+	}
+}
+
 func parseCommandFile(fileContent string, t *testing.T) []parsedCommand {
 	reader := strings.NewReader(fileContent)
 	commandsByBuildFile := make(map[string][]commandsForTarget)

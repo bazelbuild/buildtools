@@ -479,6 +479,7 @@ func TestFindConfigPath(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			for k, v := range tc.env {
 				os.Setenv(k, v)
+				defer os.Unsetenv(k)
 			}
 
 			tmp, err := ioutil.TempDir("", name+"*")
