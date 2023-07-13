@@ -771,17 +771,30 @@ func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
 
 	dev := false
 	args := env.Args
-	if env.Args[0] == "dev" {
+	if env.Args[0] == "dev" && isExtensionLabel(env.Args[1]) {
 		dev = true
 		args = env.Args[1:]
 	}
 
-	extBzlFile := args[0]
-	extName := args[1]
+	var proxies []string
+	var repos []string
+	if isExtensionLabel(args[0]) {
+		extBzlFile := args[0]
+		extName := args[1]
 
-	proxies := bzlmod.Proxies(env.File, extBzlFile, extName, dev)
-	if len(proxies) == 0 {
-		return nil, fmt.Errorf("%s: no use_extension assignment found for extension %q defined in %q", mode, extName, extBzlFile)
+		proxies = bzlmod.Proxies(env.File, extBzlFile, extName, dev)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment found for extension %q defined in %q", mode, extName, extBzlFile)
+		}
+		repos = args[2:]
+	} else {
+		proxy := args[0]
+
+		proxies = bzlmod.AllProxies(env.File, proxy)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment to variable %q found", mode, proxy)
+		}
+		repos = args[1:]
 	}
 
 	useRepos := bzlmod.UseRepos(env.File, proxies)
@@ -792,12 +805,18 @@ func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
 	}
 
 	if mode == "use_repo_add" {
-		bzlmod.AddRepoUsages(useRepos, args[2:]...)
+		bzlmod.AddRepoUsages(useRepos, repos...)
 	} else {
-		bzlmod.RemoveRepoUsages(useRepos, args[2:]...)
+		bzlmod.RemoveRepoUsages(useRepos, repos...)
 	}
 
 	return env.File, nil
+}
+
+func isExtensionLabel(arg string) bool {
+	// Labels referencing extensions are either absolute or repo-absolute. Repository names are not
+	// allowed to contain "@" or "/".
+	return strings.HasPrefix(arg, "@") || strings.HasSuffix(arg, "//")
 }
 
 func cmdFix(opts *Options, env CmdEnvironment) (*build.File, error) {
@@ -847,8 +866,8 @@ var AllCommands = map[string]CommandInfo{
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
-	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "[dev] <extension .bzl file> <extension name> <repo(s)>"},
-	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "[dev] <extension .bzl file> <extension name> <repo(s)>"},
+	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
 }
 
 var readonlyCommands = map[string]bool{
