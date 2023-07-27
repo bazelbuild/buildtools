@@ -74,6 +74,7 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 	types["default_copts"] = types["copts"]
 	types["default_deprecation"] = types["deprecation"]
 	types["default_testonly"] = types["testonly"]
+	types["default_applicable_licenses"] = types["applicable_licenses"]
 	types["features"] = buildpb.Attribute_STRING_LIST
 
 	types["extra_srcs"] = types["srcs"]

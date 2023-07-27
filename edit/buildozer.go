@@ -1290,7 +1290,11 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		if line == "" || line[0] == '#' {
 			continue
 		}
+		line = saveEscapedPipes(line)
 		args := strings.Split(line, "|")
+		for i, arg := range args {
+			args[i] = replaceSavedPipes(arg)
+		}
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
 			if err := appendCommands(opts, commandsByFile, cmd); err != nil {
@@ -1303,6 +1307,14 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		}
 	}
 	return nil
+}
+
+func saveEscapedPipes(s string) string {
+	return strings.ReplaceAll(s, `\|`, "\x00\x00")
+}
+
+func replaceSavedPipes(s string) string {
+	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
 func printRecord(writer io.Writer, record *apipb.Output_Record) {

@@ -178,7 +178,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 			if err != nil {
 				continue
 			}
-			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+			if strings.HasPrefix(label, "@@") || strings.HasPrefix(label, "@/") {
 				label = label[1:]
 			}
 			depsByJar[jar] = label
@@ -288,6 +288,8 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 				if hasRuntimeComment(str) {
 					fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
 				} else {
+					// add dep's exported dependencies to label before removing dep
+					fmt.Printf("buildozer \"add deps $(%s query 'labels(exports, %s)' | tr '\\n' ' ')\" %s\n", *buildTool, str.Value, label)
 					fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
 				}
 				anyCommandPrinted = true
