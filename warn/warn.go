@@ -116,8 +116,10 @@ var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFi
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
+	"attr-applicable_licenses":  attrApplicableLicensesWarning,
 	"attr-cfg":                  attrConfigurationWarning,
 	"attr-license":              attrLicenseWarning,
+	"attr-licenses":             attrLicensesWarning,
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
