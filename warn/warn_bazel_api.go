@@ -1104,7 +1104,6 @@ func attrNameWarning(f *build.File, names []string) []*LinterFinding {
 			if !ok {
 				continue
 			}
-			fmt.Print(value.Value, "\n")
 			for _, name := range names {
 				if value.Value == name {
 					findings = append(findings, makeLinterFinding(dict,
