@@ -44,8 +44,10 @@ func ExampleExample() {
 	//   "mode": "fix",
 	//   "lint": "fix",
 	//   "warningsList": [
+	//     "attr-applicable_licenses",
 	//     "attr-cfg",
 	//     "attr-license",
+	//     "attr-licenses",
 	//     "attr-non-empty",
 	//     "attr-output-default",
 	//     "attr-single-file",
@@ -226,8 +228,10 @@ func TestValidate(t *testing.T) {
 		"type auto":             {options: "--type=auto"},
 		"type error":            {options: "--type=foo", wantErr: fmt.Errorf("unrecognized input type foo; valid types are build, bzl, workspace, default, module, auto")},
 		"warnings all": {options: "--warnings=all", wantWarnings: []string{
+			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
+			"attr-licenses",
 			"attr-non-empty",
 			"attr-output-default",
 			"attr-single-file",
@@ -289,8 +293,10 @@ func TestValidate(t *testing.T) {
 			"unused-variable",
 		}},
 		"warnings default": {options: "--warnings=default", wantWarnings: []string{
+			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
+			"attr-licenses",
 			"attr-non-empty",
 			"attr-output-default",
 			"attr-single-file",
@@ -352,8 +358,10 @@ func TestValidate(t *testing.T) {
 			"unused-variable",
 		}},
 		"warnings plus/minus": {options: "--warnings=+out-of-order-load,-print,-deprecated-function", wantWarnings: []string{
+			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
+			"attr-licenses",
 			"attr-non-empty",
 			"attr-output-default",
 			"attr-single-file",
