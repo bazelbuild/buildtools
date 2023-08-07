@@ -243,6 +243,38 @@ use_repo(prox1)
 `,
 			3,
 		},
+		{
+			`go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+
+pull = use_extension("@rules_oci//oci:pull.bzl", "go_deps")
+pull.oci_pull(name = "distroless_base")
+`,
+			[]string{"go_deps"},
+			`go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps)
+
+pull = use_extension("@rules_oci//oci:pull.bzl", "go_deps")
+pull.oci_pull(name = "distroless_base")
+`,
+			2,
+		},
+		{
+			`go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+
+pull = use_extension("@rules_oci//oci:pull.bzl", "go_deps")
+`,
+			[]string{"go_deps"},
+			`go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps)
+
+pull = use_extension("@rules_oci//oci:pull.bzl", "go_deps")
+`,
+			2,
+		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			f, err := build.ParseModule("MODULE.bazel", []byte(tc.content))

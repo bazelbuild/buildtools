@@ -289,7 +289,7 @@ func parseTag(stmt build.Expr) string {
 // lastProxyUsage returns the index of the last statement in the given file that uses one of the
 // given extension proxies (either in a use_extension assignment or tag call). If no such statement
 // exists, -1 is returned.
-func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, proxy string) {
+func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, lastProxy string) {
 	proxiesSet := make(map[string]struct{})
 	for _, p := range proxies {
 		proxiesSet[p] = struct{}{}
@@ -297,11 +297,12 @@ func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, proxy strin
 
 	lastUsage = -1
 	for i, stmt := range f.Stmt {
-		proxy, _, _, _ = parseUseExtension(stmt)
+		proxy, _, _, _ := parseUseExtension(stmt)
 		if proxy != "" {
 			_, isUsage := proxiesSet[proxy]
 			if isUsage {
 				lastUsage = i
+				lastProxy = proxy
 				continue
 			}
 		}
@@ -311,10 +312,11 @@ func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, proxy strin
 			_, isUsage := proxiesSet[proxy]
 			if isUsage {
 				lastUsage = i
+				lastProxy = proxy
 				continue
 			}
 		}
 	}
 
-	return lastUsage, proxy
+	return lastUsage, lastProxy
 }
