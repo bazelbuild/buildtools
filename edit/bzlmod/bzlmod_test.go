@@ -37,19 +37,27 @@ module(name = "name", repo_name = "repo_name")
 const proxiesBody = `
 prox1 = use_extension("@name//bzl:extensions.bzl", "ext")
 prox1.use(name = "foo")
+isolated_prox1 = use_extension("@name//bzl:extensions.bzl", "ext", dev_dependency = False, isolate = True)
+isolated_prox1.use(name = "foo")
 prox2 = use_extension("@name//bzl:extensions.bzl", "ext", dev_dependency = True)
 prox2.use(list = ["foo", "bar"])
 # some comment
 prox3 = use_extension("@repo_name//bzl:extensions.bzl", "ext")
 prox3.use(label = "@dep//:bar")
+isolated_prox2 = use_extension("@name//bzl:extensions.bzl", "ext", dev_dependency = True, isolate = True)
+isolated_prox2.use(name = "foo")
 prox4 = use_extension("@repo_name//bzl:extensions.bzl", "ext", dev_dependency = True)
 prox4.use(dict = {"foo": "bar"})
+isolated_prox3 = use_extension("@name//bzl:extensions.bzl", "ext", dev_dependency = True, isolate = True)
+isolated_prox3.use(name = "foo")
 prox5 = use_extension("@//bzl:extensions.bzl", "ext")
 prox5.use(name = "foo")
 prox6 = use_extension("@//bzl:extensions.bzl", "ext", dev_dependency = True)
 prox6.use(list = ["foo", "bar"])
 prox7 = use_extension("//bzl:extensions.bzl", "ext", dev_dependency = False)
 prox7.use(label = "@foo//:bar")
+isolated_prox4 = use_extension("@name//bzl:extensions.bzl", "ext", isolate = True)
+isolated_prox4.use(name = "foo")
 prox8 = use_extension("//bzl:extensions.bzl", "ext", dev_dependency = True)
 prox8.use(dict = {"foo": "bar"})
 prox9 = use_extension(
@@ -145,6 +153,61 @@ func TestProxies(t *testing.T) {
 						t.Error("want: ", tc.expectedProxies, ", got: ", actualProxies)
 					}
 				})
+			}
+		})
+	}
+}
+
+func TestAllProxies(t *testing.T) {
+	for i, tc := range []struct {
+		proxy           string
+		expectedProxies []string
+	}{
+		{
+			"invalid_proxy",
+			nil,
+		},
+		{
+			"isolated_prox1",
+			[]string{"isolated_prox1"},
+		},
+		{
+			"isolated_prox2",
+			[]string{"isolated_prox2"},
+		},
+		{
+			"isolated_prox3",
+			[]string{"isolated_prox3"},
+		},
+		{
+			"isolated_prox4",
+			[]string{"isolated_prox4"},
+		},
+		{
+			"prox1",
+			[]string{"prox1", "prox5", "prox7"},
+		},
+		{
+			"prox2",
+			[]string{"prox2", "prox6", "prox8"},
+		},
+		{
+			"prox9",
+			[]string{"prox9"},
+		},
+		{
+			"prox10",
+			[]string{"prox10"},
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			f, err := build.ParseModule("MODULE.bazel", []byte(proxiesModuleNameHeader+proxiesBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+			proxies := AllProxies(f, tc.proxy)
+			if !reflect.DeepEqual(proxies, tc.expectedProxies) {
+				t.Error("want: ", tc.expectedProxies, ", got: ", proxies)
 			}
 		})
 	}
