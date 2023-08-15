@@ -15,7 +15,7 @@ go install github.com/bazelbuild/buildtools/buildozer@latest
 ## Usage
 
 ```shell
-buildozer [OPTIONS] ['command args' | -f FILE ] label-list
+buildozer [OPTIONS] ['command args'... | -f FILE ] label-list
 ```
 
 Here, `label-list` is a space-separated list of Bazel labels, for example
