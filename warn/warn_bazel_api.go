@@ -1084,3 +1084,43 @@ func providerParamsWarning(f *build.File) []*LinterFinding {
 	})
 	return findings
 }
+
+
+func attrNameWarning(f *build.File, names []string) []*LinterFinding {
+	if f.Type != build.TypeBzl {
+		return nil
+	}
+
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		// Find nodes that match "attrs = {..., "license", ...}"
+		dict, ok := (*expr).(*build.DictExpr)
+		if !ok {
+			return
+		}
+		for _, item := range dict.List {
+			// include only string literal keys into consideration
+			value, ok := item.Key.(*build.StringExpr)
+			if !ok {
+				continue
+			}
+			for _, name := range names {
+				if value.Value == name {
+					findings = append(findings, makeLinterFinding(dict,
+						fmt.Sprintf(`Do not use '%s' as an attribute name.`+
+							` It may cause unexpected behavior.`, value.Value)))
+
+				}
+			}
+		}
+	})
+	return findings
+}
+
+func attrLicensesWarning(f *build.File) []*LinterFinding {
+	return attrNameWarning(f, []string{"licenses"})
+}
+
+func attrApplicableLicensesWarning(f *build.File) []*LinterFinding {
+	return attrNameWarning(f, []string{"applicable_licenses", "package_metadata"})
+}

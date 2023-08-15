@@ -248,8 +248,10 @@ cat > golden/.buildifier.example.json <<EOF
   "mode": "fix",
   "lint": "fix",
   "warningsList": [
+    "attr-applicable_licenses",
     "attr-cfg",
     "attr-license",
+    "attr-licenses",
     "attr-non-empty",
     "attr-output-default",
     "attr-single-file",

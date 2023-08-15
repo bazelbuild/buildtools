@@ -2,10 +2,13 @@
 
 Warning categories supported by buildifier's linter:
 
+  * [`attr-applicable_licenses`](#attr-applicable_licenses)
   * [`attr-cfg`](#attr-cfg)
   * [`attr-license`](#attr-license)
+  * [`attr-licenses`](#attr-licenses)
   * [`attr-non-empty`](#attr-non-empty)
   * [`attr-output-default`](#attr-output-default)
+  * [`attr-package-metadata`](#attr-package-metadata)
   * [`attr-single-file`](#attr-single-file)
   * [`build-args-kwargs`](#build-args-kwargs)
   * [`bzl-visibility`](#bzl-visibility)
@@ -86,6 +89,16 @@ if debug:
 
 --------------------------------------------------------------------------------
 
+## <a name="attr-applicable_licenses"></a>Do not use `applicable_licenses` as an attribute name.
+
+  * Category name: `attr-applicable_licenses`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-applicable_licenses`
+
+Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
+
+--------------------------------------------------------------------------------
+
 ## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
 
   * Category name: `attr-cfg`
@@ -111,6 +124,16 @@ The `attr.license()` method is almost never used and being deprecated.
 
 --------------------------------------------------------------------------------
 
+## <a name="attr-licenses"></a>Do not use `licenses` as an attribute name.
+
+  * Category name: `attr-licenses`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-licenses`
+
+Using licenses as an attribute name may cause unexpected behavior.
+
+--------------------------------------------------------------------------------
+
 ## <a name="attr-non-empty"></a>`non_empty` attribute for attr definitions is deprecated
 
   * Category name: `attr-non-empty`
@@ -133,6 +156,17 @@ for attr definitions is deprecated, please use `allow_empty` with an opposite va
 The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
 unable to exist in the same package under default behavior. Use Starlark macros to specify defaults
 for these attributes instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="attr-package-metadata"></a>Do not use `package_metadata` as an attribute name.
+
+  * Category name: `attr-package-metadata`
+  * Automatic fix: no
+  * Not supported by the latest version of Buildifier
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-package-metadata`
+
+Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
 
 --------------------------------------------------------------------------------
 
