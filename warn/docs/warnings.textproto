@@ -33,14 +33,14 @@ warnings: {
 warnings: {
   name: "attr-applicable_licenses"
   header: "Do not use `applicable_licenses` as an attribute name."
-  description: "Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future bazel releases"
+  description: "Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases."
   autofix: false
 }
 
 warnings: {
   name: "attr-package-metadata"
   header: "Do not use `package_metadata` as an attribute name."
-  description: "Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future bazel releases"
+  description: "Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases."
   autofix: false
 }
 
