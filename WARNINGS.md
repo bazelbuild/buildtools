@@ -95,7 +95,7 @@ if debug:
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-applicable_licenses`
 
-Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future bazel releases
+Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
 
 --------------------------------------------------------------------------------
 
@@ -166,7 +166,7 @@ for these attributes instead.
   * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-package-metadata`
 
-Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future bazel releases
+Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
 
 --------------------------------------------------------------------------------
 
