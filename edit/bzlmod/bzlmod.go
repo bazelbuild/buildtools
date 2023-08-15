@@ -59,9 +59,8 @@ func AllProxies(f *build.File, proxy string) []string {
 		if proxyCandidate == proxy {
 			if isIsolated {
 				return []string{proxy}
-			} else {
-				return Proxies(f, rawBzlFile, name, isDev)
 			}
+			return Proxies(f, rawBzlFile, name, isDev)
 		}
 	}
 	return nil
