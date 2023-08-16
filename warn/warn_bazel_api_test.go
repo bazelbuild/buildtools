@@ -799,3 +799,36 @@ func TestProvider(t *testing.T) {
 	checkFindings(t, "provider-params", `p = provider()`,
 		[]string{`1: Calls to 'provider' should provide a list of fields and a documentation:`}, scopeBzl)
 }
+
+func TestAttributeNameWarning(t *testing.T) {
+	checkFindings(t, "attr-licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "license": attr.string(),
+        "licenses": attr.string(),
+    },
+)
+`, []string{
+		":6: Do not use 'licenses' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
+
+	checkFindings(t, "attr-applicable_licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "applicable_licenses": attr.string(),
+        "package_metadata": attr.string(),
+    },
+)
+`, []string{
+		":6: Do not use 'applicable_licenses' as an attribute name. It may cause unexpected behavior.",
+		":6: Do not use 'package_metadata' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
+}

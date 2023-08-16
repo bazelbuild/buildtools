@@ -26,14 +26,15 @@ import (
 // Proxies returns the names of extension proxies (i.e. the names of variables to which the result
 // of a use_extension call is assigned) for the given extension with the given value of the
 // dev_dependency attribute.
+// Extension proxies created with "isolate = True" are ignored.
 func Proxies(f *build.File, rawExtBzlFile string, extName string, dev bool) []string {
 	apparentModuleName := getApparentModuleName(f)
 	extBzlFile := normalizeLabelString(rawExtBzlFile, apparentModuleName)
 
 	var proxies []string
 	for _, stmt := range f.Stmt {
-		proxy, rawBzlFile, name, isDev := parseUseExtension(stmt)
-		if proxy == "" || isDev != dev {
+		proxy, rawBzlFile, name, isDev, isIsolated := parseUseExtension(stmt)
+		if proxy == "" || isDev != dev || isIsolated {
 			continue
 		}
 		bzlFile := normalizeLabelString(rawBzlFile, apparentModuleName)
@@ -43,6 +44,26 @@ func Proxies(f *build.File, rawExtBzlFile string, extName string, dev bool) []st
 	}
 
 	return proxies
+}
+
+// AllProxies returns the names of all extension proxies (i.e. the names of variables to which the
+// result of a use_extension call is assigned) corresponding to the same extension usage as the
+// given proxy.
+// For an isolated extension usage, a list containing only the given proxy is returned.
+// For a non-isolated extension usage, the proxies of all non-isolated extension usages of the same
+// extension with the same value for the dev_dependency parameter are returned.
+// If the given proxy is not an extension proxy, nil is returned.
+func AllProxies(f *build.File, proxy string) []string {
+	for _, stmt := range f.Stmt {
+		proxyCandidate, rawBzlFile, name, isDev, isIsolated := parseUseExtension(stmt)
+		if proxyCandidate == proxy {
+			if isIsolated {
+				return []string{proxy}
+			}
+			return Proxies(f, rawBzlFile, name, isDev)
+		}
+	}
+	return nil
 }
 
 // UseRepos returns the use_repo calls that use the given proxies.
@@ -219,7 +240,7 @@ func normalizeLabelString(rawLabel, apparentModuleName string) string {
 	}
 }
 
-func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name string, dev bool) {
+func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name string, dev bool, isolate bool) {
 	assign, ok := stmt.(*build.AssignExpr)
 	if !ok {
 		return
@@ -249,26 +270,32 @@ func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name stri
 	// Check for the optional dev_dependency keyword argument.
 	if len(call.List) > 2 {
 		for _, arg := range call.List[2:] {
-			keywordArg, ok := arg.(*build.AssignExpr)
-			if !ok {
-				continue
-			}
-			argName, ok := keywordArg.LHS.(*build.Ident)
-			if !ok || argName.Name != "dev_dependency" {
-				continue
-			}
-			argValue, ok := keywordArg.RHS.(*build.Ident)
-			// We assume that any expression other than "False" evaluates to
-			// True as otherwise there would be no reason to specify the
-			// argument - MODULE.bazel files are entirely static, so every
-			// expression always evaluates to the same value.
-			if !ok || argValue.Name != "False" {
-				dev = true
-				break
-			}
+			dev = dev || parseBooleanKeywordArg(arg, "dev_dependency")
+			isolate = isolate || parseBooleanKeywordArg(arg, "isolate")
 		}
 	}
-	return assign.LHS.(*build.Ident).Name, bzlFileExpr.Value, nameExpr.Value, dev
+	return assign.LHS.(*build.Ident).Name, bzlFileExpr.Value, nameExpr.Value, dev, isolate
+}
+
+// parseBooleanKeywordArg parses a keyword argument of type bool that is assumed to default to
+// False.
+func parseBooleanKeywordArg(arg build.Expr, name string) bool {
+	keywordArg, ok := arg.(*build.AssignExpr)
+	if !ok {
+		return false
+	}
+	argName, ok := keywordArg.LHS.(*build.Ident)
+	if !ok || argName.Name != name {
+		return false
+	}
+	argValue, ok := keywordArg.RHS.(*build.Ident)
+	// We assume that any expression other than "False" evaluates to True as otherwise there would
+	// be no reason to specify the argument - MODULE.bazel files are entirely static with no
+	// external inputs, so every expression always evaluates to the same value.
+	if ok && argValue.Name == "False" {
+		return false
+	}
+	return true
 }
 
 func parseTag(stmt build.Expr) string {
@@ -297,7 +324,7 @@ func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, lastProxy s
 
 	lastUsage = -1
 	for i, stmt := range f.Stmt {
-		proxy, _, _, _ := parseUseExtension(stmt)
+		proxy, _, _, _, _ := parseUseExtension(stmt)
 		if proxy != "" {
 			_, isUsage := proxiesSet[proxy]
 			if isUsage {
