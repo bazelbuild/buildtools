@@ -180,6 +180,7 @@ var TypeOf = map[string]buildpb.Attribute_Discriminator{
 	"debug_signing_keys":	buildpb.Attribute_LABEL_LIST,
 	"debug_signing_lineage_file":	buildpb.Attribute_LABEL,
 	"default":	buildpb.Attribute_LABEL,
+	"default_applicable_licenses":	buildpb.Attribute_LABEL_LIST,
 	"default_constraint_value":	buildpb.Attribute_STRING,
 	"default_copts":	buildpb.Attribute_STRING_LIST,
 	"default_deprecation":	buildpb.Attribute_STRING,
