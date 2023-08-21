@@ -765,7 +765,6 @@ The statement has no effect. Consider removing it or storing its result in a var
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
 
 Load statements should be ordered by their first argument - extension file label.
