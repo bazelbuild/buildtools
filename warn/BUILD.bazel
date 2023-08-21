@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "warn",
     srcs = [
         "multifile.go",
         "types.go",
@@ -21,16 +21,16 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/warn",
     visibility = ["//visibility:public"],
     deps = [
-        "//build:go_default_library",
-        "//bzlenv:go_default_library",
-        "//edit:go_default_library",
-        "//labels:go_default_library",
-        "//tables:go_default_library",
+        "//build",
+        "//bzlenv",
+        "//edit",
+        "//labels",
+        "//tables",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "warn_test",
     size = "small",
     srcs = [
         "types_test.go",
@@ -47,10 +47,16 @@ go_test(
         "warn_test.go",
         "warn_visibility_test.go",
     ],
-    embed = [":go_default_library"],
+    embed = [":warn"],
     deps = [
-        "//build:go_default_library",
-        "//tables:go_default_library",
+        "//build",
+        "//tables",
         "//testutils",
     ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":warn",
+    visibility = ["//visibility:public"],
 )
