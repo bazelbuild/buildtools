@@ -354,7 +354,7 @@ func TestValidate(t *testing.T) {
 			"uninitialized",
 			"unnamed-macro",
 			"unreachable",
-			// "unsorted-dict-items",
+			"unsorted-dict-items",
 			"unused-variable",
 		}},
 		"warnings plus/minus": {options: "--warnings=+native-cc,-print,-deprecated-function", wantWarnings: []string{
@@ -418,7 +418,7 @@ func TestValidate(t *testing.T) {
 			"uninitialized",
 			"unnamed-macro",
 			"unreachable",
-			// "unsorted-dict-items",
+			"unsorted-dict-items",
 			"unused-variable",
 			"native-cc",
 		}},

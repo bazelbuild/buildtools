@@ -351,7 +351,7 @@ load("//foo/bar/internal/baz:module.bzl", "b")
 
 b()
 a = 1 // 2
-d = {"b": 2, "a": 1}
+d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
 
@@ -435,10 +435,10 @@ EOF
   diff test_dir/fix_report golden/fix_report_golden || die "$1: wrong console output for --lint=fix"
 }
 
-test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_cfg" 2
+test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_dict"$'\n'"$error_cfg" 2
 test_lint "all" "--warnings=all" "test_dir/fixed_golden_all.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_dict"$'\n'"$error_cfg" 2
 test_lint "cfg" "--warnings=attr-cfg" "test_dir/fixed_golden_cfg.bzl" "$error_cfg" 0
-test_lint "custom" "--warnings=-bzl-visibility,-integer-division,+unsorted-dict-items" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
+test_lint "custom" "--warnings=-bzl-visibility,-integer-division" "test_dir/fixed_golden_dict_cfg.bzl" "$error_docstring"$'\n'"$error_dict"$'\n'"$error_cfg" 1
 
 # Test --format=json
 
@@ -501,6 +501,20 @@ cat > golden/json_report_golden <<EOF
                     "actionable": true,
                     "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
+                },
+                {
+                    "start": {
+                        "line": 5,
+                        "column": 14
+                    },
+                    "end": {
+                        "line": 5,
+                        "column": 20
+                    },
+                    "category": "unsorted-dict-items",
+                    "actionable": true,
+                    "message": "Dictionary items are out of their lexicographical order.",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items"
                 },
                 {
                     "start": {

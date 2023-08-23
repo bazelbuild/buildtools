@@ -1119,7 +1119,6 @@ or `fail()` statement.
 
   * Category name: `unsorted-dict-items`
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=unsorted-dict-items`
 
 Dictionary items should be sorted lexicographically by their keys. This makes
