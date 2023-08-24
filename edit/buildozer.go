@@ -813,6 +813,11 @@ func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdFormat(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Force formatting by not returning a nil *build.File.
+	return env.File, nil
+}
+
 func isExtensionLabel(arg string) bool {
 	// Labels referencing extensions are either absolute or repo-absolute. Repository names are not
 	// allowed to contain "@" or "/".
@@ -868,6 +873,7 @@ var AllCommands = map[string]CommandInfo{
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
 	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
 	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":            {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{

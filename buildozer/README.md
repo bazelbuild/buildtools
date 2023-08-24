@@ -131,6 +131,8 @@ Buildozer supports the following commands(`'command args'`):
   * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
   * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
     dict attribute `attr`.
+  * `format`: Force formatting of all files, even if they were not changed by
+    other commands.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.

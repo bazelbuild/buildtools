@@ -2299,4 +2299,22 @@ EOF
   diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
 }
 
+function test_format() {
+  cat > MODULE.bazel <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+EOF
+
+  $buildozer 'format' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
 run_suite "buildozer tests"
