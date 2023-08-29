@@ -1,3 +1,4 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("//build:build_defs.bzl", "go_proto_checkedin_test")
@@ -21,5 +22,12 @@ go_proto_library(
     name = "go_default_library",
     importpath = "github.com/bazelbuild/buildtools/extra_actions_base_proto",
     proto = ":blaze_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "extra_actions_base_proto",
+    embed = [":go_default_library"],
+    importpath = "github.com/bazelbuild/buildtools/extra_actions_base_proto",
     visibility = ["//visibility:public"],
 )

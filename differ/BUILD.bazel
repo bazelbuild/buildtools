@@ -1,12 +1,18 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "differ",
     srcs = [
         "diff.go",
         "isatty_other.go",
         "isatty_windows.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/differ",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":differ",
     visibility = ["//visibility:public"],
 )
