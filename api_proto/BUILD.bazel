@@ -23,8 +23,14 @@ go_proto_library(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "api_proto",
     embed = [":api_proto_go_proto"],
     importpath = "github.com/bazelbuild/buildtools/api_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":api_proto",
     visibility = ["//visibility:public"],
 )

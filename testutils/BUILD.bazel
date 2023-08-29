@@ -9,3 +9,9 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/testutils",
     visibility = ["//visibility:public"],
 )
+
+alias(
+    name = "go_default_library",
+    actual = ":testutils",
+    visibility = ["//visibility:public"],
+)

@@ -35,6 +35,7 @@ import (
 
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/edit/bzlmod"
 	"github.com/bazelbuild/buildtools/file"
 	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
@@ -628,6 +629,38 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdSetSelect(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	dict := &build.DictExpr{}
+
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("no value passed for last key: %s", args[len(args)-1])
+	}
+	for i := 0; i < len(args); i += 2 {
+		key := args[i]
+		value := args[i+1]
+		var expr build.Expr
+		if IsList(attr) {
+			list := &build.ListExpr{}
+			if cur := DictionaryGet(dict, key); cur != nil {
+				list = cur.(*build.ListExpr)
+			}
+			AddValueToList(list, env.Pkg, getStringExpr(value, env.Pkg), !attributeMustNotBeSorted(env.Rule.Name(), attr))
+			expr = list
+		} else {
+			expr = getStringExpr(value, env.Pkg)
+		}
+		// Set overwrites previous values.
+		DictionarySet(dict, key, expr)
+	}
+	call := &build.CallExpr{List: []build.Expr{dict}}
+	call.X = &build.Ident{Name: "select"}
+	env.Rule.SetAttr(attr, call)
+	return env.File, nil
+}
+
 // cmdDictSet adds a key to a dict, overwriting any previous values.
 func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
@@ -723,6 +756,74 @@ func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string)
 	return env.File, nil
 }
 
+func cmdUseRepoAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_add")
+}
+
+func cmdUseRepoRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_remove")
+}
+
+func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
+	if env.File.Type != build.TypeModule {
+		return nil, fmt.Errorf("%s: only applies to MODULE.bazel files", mode)
+	}
+
+	dev := false
+	args := env.Args
+	if env.Args[0] == "dev" && isExtensionLabel(env.Args[1]) {
+		dev = true
+		args = env.Args[1:]
+	}
+
+	var proxies []string
+	var repos []string
+	if isExtensionLabel(args[0]) {
+		extBzlFile := args[0]
+		extName := args[1]
+
+		proxies = bzlmod.Proxies(env.File, extBzlFile, extName, dev)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment found for extension %q defined in %q", mode, extName, extBzlFile)
+		}
+		repos = args[2:]
+	} else {
+		proxy := args[0]
+
+		proxies = bzlmod.AllProxies(env.File, proxy)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment to variable %q found", mode, proxy)
+		}
+		repos = args[1:]
+	}
+
+	useRepos := bzlmod.UseRepos(env.File, proxies)
+	if len(useRepos) == 0 {
+		var newUseRepo *build.CallExpr
+		env.File, newUseRepo = bzlmod.NewUseRepo(env.File, proxies)
+		useRepos = []*build.CallExpr{newUseRepo}
+	}
+
+	if mode == "use_repo_add" {
+		bzlmod.AddRepoUsages(useRepos, repos...)
+	} else {
+		bzlmod.RemoveRepoUsages(useRepos, repos...)
+	}
+
+	return env.File, nil
+}
+
+func cmdFormat(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Force formatting by not returning a nil *build.File.
+	return env.File, nil
+}
+
+func isExtensionLabel(arg string) bool {
+	// Labels referencing extensions are either absolute or repo-absolute. Repository names are not
+	// allowed to contain "@" or "/".
+	return strings.HasPrefix(arg, "@") || strings.HasSuffix(arg, "//")
+}
+
 func cmdFix(opts *Options, env CmdEnvironment) (*build.File, error) {
 	// Fix the whole file
 	if env.Rule.Kind() == "package" {
@@ -763,12 +864,16 @@ var AllCommands = map[string]CommandInfo{
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
 	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
+	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":            {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{
@@ -857,10 +962,10 @@ func SplitOnSpaces(input string) []string {
 // parseCommands parses commands and targets they should be applied on from
 // a list of arguments.
 // Each argument can be either:
-// - a command (as defined by AllCommands) and its parameters, separated by
-//   whitespace
-// - a target all commands that are parsed during one call to parseCommands
-//   should be applied on
+//   - a command (as defined by AllCommands) and its parameters, separated by
+//     whitespace
+//   - a target all commands that are parsed during one call to parseCommands
+//     should be applied on
 func parseCommands(opts *Options, args []string) (commands []command, targets []string, err error) {
 	for _, arg := range args {
 		commandTokens := SplitOnSpaces(arg)
@@ -908,7 +1013,9 @@ type rewriteResult struct {
 
 // getGlobalVariables returns the global variable assignments in the provided list of expressions.
 // That is, for each variable assignment of the form
-//   a = v
+//
+//	a = v
+//
 // vars["a"] will contain the AssignExpr whose RHS value is the assignment "a = v".
 func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) {
 	vars = make(map[string]*build.AssignExpr)
@@ -992,9 +1099,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	}
 
-	f, err := build.ParseBuild(name, data)
+	f, err := build.Parse(name, data)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
+	}
+	if f.Type == build.TypeDefault {
+		// Buildozer is unable to infer the file type, fall back to BUILD by default.
+		f.Type = build.TypeBuild
 	}
 	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 
@@ -1007,7 +1118,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	for _, commands := range commandsForFile.commands {
 		target := commands.target
 		commands := commands.commands
-		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
+		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
@@ -1059,6 +1170,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
 	f = RemoveEmptyPackage(f)
+	f = RemoveEmptyUseRepoCalls(f)
 	ndata, err := buildifier.Buildify(opts, f)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
@@ -1093,7 +1205,7 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
 func targetExpressionToBuildFiles(rootDir string, target string) []string {
-	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+	file, _, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
 		if file, err = filepath.Abs(file); err != nil {
@@ -1203,7 +1315,11 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		if line == "" || line[0] == '#' {
 			continue
 		}
+		line = saveEscapedPipes(line)
 		args := strings.Split(line, "|")
+		for i, arg := range args {
+			args[i] = replaceSavedPipes(arg)
+		}
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
 			if err := appendCommands(opts, commandsByFile, cmd); err != nil {
@@ -1216,6 +1332,14 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		}
 	}
 	return nil
+}
+
+func saveEscapedPipes(s string) string {
+	return strings.ReplaceAll(s, `\|`, "\x00\x00")
+}
+
+func replaceSavedPipes(s string) string {
+	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
 func printRecord(writer io.Writer, record *apipb.Output_Record) {

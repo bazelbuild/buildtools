@@ -350,6 +350,9 @@ func cleanUnusedLoads(f *build.File) bool {
 	symbols := UsedSymbols(f)
 	fixed := false
 
+	// Map of symbol in this file -> modules it's loaded from
+	symbolsToModules := make(map[string][]string)
+
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
@@ -363,10 +366,19 @@ func cleanUnusedLoads(f *build.File) bool {
 			toSymbol := load.To[i]
 			if symbols[toSymbol.Name] {
 				// The symbol is actually used
+
+				// If the most recent load for this symbol was from the same file, remove it.
+				previousModules := symbolsToModules[toSymbol.Name]
+				if len(previousModules) > 0 {
+					if previousModules[len(previousModules)-1] == load.Module.Value {
+						fixed = true
+						continue
+					}
+				}
+				symbolsToModules[toSymbol.Name] = append(symbolsToModules[toSymbol.Name], load.Module.Value)
+
 				fromSymbols = append(fromSymbols, fromSymbol)
 				toSymbols = append(toSymbols, toSymbol)
-				// If the same symbol is loaded twice, we'll remove it.
-				delete(symbols, toSymbol.Name)
 			} else {
 				fixed = true
 			}

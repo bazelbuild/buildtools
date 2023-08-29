@@ -116,8 +116,10 @@ var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFi
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
+	"attr-applicable_licenses":  attrApplicableLicensesWarning,
 	"attr-cfg":                  attrConfigurationWarning,
 	"attr-license":              attrLicenseWarning,
+	"attr-licenses":             attrLicensesWarning,
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
@@ -185,7 +187,6 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
-	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
 	"native-android":      true, // disables native android rules
 	"native-cc":           true, // disables native cc rules

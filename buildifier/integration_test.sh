@@ -68,7 +68,7 @@ use_repo(
     "bazel_gazelle_go_repository_config",
     "bazel_gazelle_go_repository_cache",
 )
-rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl","non_module_dependencies")
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl","non_module_dependencies",dev_dependency=True)
 use_repo(rules_go_non_module_deps,"go_googleapis")
 go_deps  =  use_extension("//:extensions.bzl",  "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
@@ -180,7 +180,7 @@ use_repo(
     "bazel_gazelle_go_repository_tools",
 )
 
-rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl", "non_module_dependencies")
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl", "non_module_dependencies", dev_dependency = True)
 use_repo(rules_go_non_module_deps, "go_googleapis")
 
 go_deps = use_extension("//:extensions.bzl", "go_deps")
@@ -248,8 +248,10 @@ cat > golden/.buildifier.example.json <<EOF
   "mode": "fix",
   "lint": "fix",
   "warningsList": [
+    "attr-applicable_licenses",
     "attr-cfg",
     "attr-license",
+    "attr-licenses",
     "attr-non-empty",
     "attr-output-default",
     "attr-single-file",
