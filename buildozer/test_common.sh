@@ -15,7 +15,7 @@ function set_up() {
 # BUILD file contents ($1) to STDIN.
 function run() {
   options=(--buildifier=)
-  while [[ "$1" == --* ]]; 
+  while [[ "$1" == --* ]];
   do
     options+=("$1")
     shift

@@ -31,10 +31,11 @@ import (
 // It splits options strings that contain a space. This change
 // should be safe as Blaze is splitting those strings, but we will
 // eventually get rid of this misfeature.
-//   eg. it converts from:
-//     copts = ["-Dfoo -Dbar"]
-//   to:
-//     copts = ["-Dfoo", "-Dbar"]
+//
+//	eg. it converts from:
+//	  copts = ["-Dfoo -Dbar"]
+//	to:
+//	  copts = ["-Dfoo", "-Dbar"]
 func splitOptionsWithSpaces(_ *build.File, r *build.Rule, _ string) bool {
 	var attrToRewrite = []string{
 		"copts",
@@ -101,12 +102,12 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 
 // removeVisibility removes useless visibility attributes.
 func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
-	pkgDecl := PackageDeclaration(f)
-	defaultVisibility := pkgDecl.AttrStrings("default_visibility")
-
 	// If no default_visibility is given, it is implicitly private.
-	if len(defaultVisibility) == 0 {
-		defaultVisibility = []string{"//visibility:private"}
+	defaultVisibility := []string{"//visibility:private"}
+	if pkgDecl := ExistingPackageDeclaration(f); pkgDecl != nil {
+		if pkgDecl.Attr("default_visibility") != nil {
+			defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+		}
 	}
 
 	visibility := r.AttrStrings("visibility")
@@ -126,11 +127,11 @@ func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
 
 // removeTestOnly removes the useless testonly attributes.
 func removeTestOnly(f *build.File, r *build.Rule, pkg string) bool {
-	pkgDecl := PackageDeclaration(f)
+	pkgDecl := ExistingPackageDeclaration(f)
 
 	def := strings.HasSuffix(r.Kind(), "_test") || r.Kind() == "test_suite"
 	if !def {
-		if pkgDecl.Attr("default_testonly") == nil {
+		if pkgDecl == nil || pkgDecl.Attr("default_testonly") == nil {
 			def = strings.HasPrefix(pkg, "javatests/")
 		} else if pkgDecl.AttrLiteral("default_testonly") == "1" {
 			def = true
@@ -308,7 +309,8 @@ func mergeLiteralLists(_ *build.File, r *build.Rule, _ string) bool {
 
 // usePlusEqual replaces uses of extend and append with the += operator.
 // e.g. foo.extend(bar)  =>  foo += bar
-//      foo.append(bar)  =>  foo += [bar]
+//
+//	foo.append(bar)  =>  foo += [bar]
 func usePlusEqual(f *build.File) bool {
 	fixed := false
 	for i, stmt := range f.Stmt {
@@ -348,6 +350,9 @@ func cleanUnusedLoads(f *build.File) bool {
 	symbols := UsedSymbols(f)
 	fixed := false
 
+	// Map of symbol in this file -> modules it's loaded from
+	symbolsToModules := make(map[string][]string)
+
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
@@ -361,10 +366,19 @@ func cleanUnusedLoads(f *build.File) bool {
 			toSymbol := load.To[i]
 			if symbols[toSymbol.Name] {
 				// The symbol is actually used
+
+				// If the most recent load for this symbol was from the same file, remove it.
+				previousModules := symbolsToModules[toSymbol.Name]
+				if len(previousModules) > 0 {
+					if previousModules[len(previousModules)-1] == load.Module.Value {
+						fixed = true
+						continue
+					}
+				}
+				symbolsToModules[toSymbol.Name] = append(symbolsToModules[toSymbol.Name], load.Module.Value)
+
 				fromSymbols = append(fromSymbols, fromSymbol)
 				toSymbols = append(toSymbols, toSymbol)
-				// If the same symbol is loaded twice, we'll remove it.
-				delete(symbols, toSymbol.Name)
 			} else {
 				fixed = true
 			}
@@ -426,7 +440,7 @@ func movePackageDeclarationToTheTop(f *build.File) bool {
 	return true
 }
 
-// moveToPackage is an auxilliary function used by moveLicensesAndDistribs.
+// moveToPackage is an auxiliary function used by moveLicensesAndDistribs.
 // The function shouldn't appear more than once in the file (depot cleanup has
 // been done).
 func moveToPackage(f *build.File, attrname string) bool {
@@ -476,7 +490,7 @@ var AllRuleFixes = []struct {
 	{"genruleRenameDepsTools", genruleRenameDepsTools,
 		"'deps' attribute in genrule has been renamed 'tools'"},
 	{"genruleFixHeuristicLabels", genruleFixHeuristicLabels,
-		"$(location) should be called explicitely"},
+		"$(location) should be called explicitly"},
 	{"sortExportsFiles", sortExportsFiles,
 		"Files in exports_files should be sorted"},
 	{"varref", removeVarref,

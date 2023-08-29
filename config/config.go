@@ -26,6 +26,8 @@ var (
 	ExtraActionFileNameHelp = "When specified, just prints suspected unused deps."
 	// DefaultBinDir is used to query for Bazel's bazel-bin directory.
 	DefaultBinDir = "bazel-bin"
+	// DefaultOutputBase is used to query for Bazel's output base directory.
+	DefaultOutputBase = "output_base"
 	// DefaultOutputPath is used to query for Bazel's bazel-out directory.
 	DefaultOutputPath = "output_path"
 	// DefaultExtraBuildFlags is internal-only

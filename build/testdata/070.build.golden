@@ -1,0 +1,33 @@
+foo(
+    name = "foo",
+    srcs = [
+        "aaa",
+        "bbb",
+    ] + CONSTANT + [
+        "//ccc",
+        "//ddd",
+    ],
+    data = [
+        "iii",
+        "jjj",
+    ] + bar([
+        "not",
+        "sortable",
+        "arguments",
+    ]) + non_select({
+        "baz": [
+            "not",
+            "sortable",
+            "arguments",
+        ],
+    }),
+    deps = select({
+        "bar": [
+            "//eee",
+            "//ggg",
+        ],
+    }) + [
+        "fff",
+        "hhh",
+    ],
+)

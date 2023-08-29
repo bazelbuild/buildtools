@@ -20,74 +20,78 @@ limitations under the License.
 
 package tables
 
-// IsLabelArg: a named argument to a rule call is considered to have a value
-// that can be treated as a label or list of labels if the name
-// is one of these names. There is a separate denylist for
-// rule-specific exceptions.
+// IsLabelArg contains a list of named arguments to a rule call that are
+// considered to have a value that can be treated as a label or list of labels.
+// There is a separate denylist for rule-specific exceptions.
 var IsLabelArg = map[string]bool{
-	"app_target":         true,
-	"appdir":             true,
-	"base_package":       true,
-	"build_deps":         true,
-	"cc_deps":            true,
-	"ccdeps":             true,
-	"common_deps":        true,
-	"compile_deps":       true,
-	"compiler":           true,
-	"data":               true,
-	"default_visibility": true,
-	"dep":                true,
-	"deps":               true,
-	"deps_java":          true,
-	"dont_depend_on":     true,
-	"env_deps":           true,
-	"envscripts":         true,
-	"exported_deps":      true,
-	"exports":            true,
-	"externs_list":       true,
-	"files":              true,
-	"globals":            true,
-	"implementation":     true,
-	"implements":         true,
-	"includes":           true,
-	"interface":          true,
-	"jar":                true,
-	"jars":               true,
-	"javadeps":           true,
-	"lib_deps":           true,
-	"library":            true,
-	"malloc":             true,
-	"model":              true,
-	"mods":               true,
-	"module_deps":        true,
-	"module_target":      true,
-	"of":                 true,
-	"plugins":            true,
-	"proto_deps":         true,
-	"proto_target":       true,
-	"protos":             true,
-	"resource":           true,
-	"resources":          true,
-	"runtime_deps":       true,
-	"scope":              true,
-	"shared_deps":        true,
-	"similar_deps":       true,
-	"source_jar":         true,
-	"src":                true,
-	"srcs":               true,
-	"stripped_targets":   true,
-	"suites":             true,
-	"swigdeps":           true,
-	"target":             true,
-	"target_devices":     true,
-	"target_platforms":   true,
-	"template":           true,
-	"test":               true,
-	"tests":              true,
-	"tests_deps":         true,
-	"tool":               true,
-	"tools":              true,
-	"visibility":         true,
+	"app_target":          true,
+	"appdir":              true,
+	"base_package":        true,
+	"build_deps":          true,
+	"cc_deps":             true,
+	"ccdeps":              true,
+	"common_deps":         true,
+	"compile_deps":        true,
+	"compiler":            true,
+	"data":                true,
+	"default_visibility":  true,
+	"dep":                 true,
+	"deps":                true,
+	"deps_java":           true,
+	"dont_depend_on":      true,
+	"env_deps":            true,
+	"envscripts":          true,
+	"exported_deps":       true,
+	"exports":             true,
+	"externs_list":        true,
+	"files":               true,
+	"globals":             true,
+	"implementation":      true,
+	"implementation_deps": true,
+	"implements":          true,
+	"includes":            true,
+	"interface":           true,
+	"jar":                 true,
+	"jars":                true,
+	"javadeps":            true,
+	"lib_deps":            true,
+	"library":             true,
+	"malloc":              true,
+	"model":               true,
+	"mods":                true,
+	"module_deps":         true,
+	"module_target":       true,
+	"of":                  true,
+	"plugins":             true,
+	"private_deps":        true,
+	"proto_deps":          true,
+	"proto_target":        true,
+	"protos":              true,
+	"resource":            true,
+	"resources":           true,
+	"runtime_deps":        true,
+	"scope":               true,
+	"shared_deps":         true,
+	"similar_deps":        true,
+	"source_jar":          true,
+	"src":                 true,
+	"srcs":                true,
+	"stripped_targets":    true,
+	"suites":              true,
+	"swigdeps":            true,
+	"target":              true,
+	"target_devices":      true,
+	"target_platforms":    true,
+	"template":            true,
+	"test":                true,
+	"test_data":           true,
+	"test_deps":           true,
+	"test_srcs":           true,
+	"tests":               true,
+	"tests_deps":          true,
+	"tool":                true,
+	"tools":               true,
+	"visibility":          true,
 }
 
 // LabelDenylist is the list of call arguments that cannot be
@@ -103,8 +107,8 @@ var LabelDenylist = map[string]bool{
 // in lang.TypeOf.
 var IsListArg = map[string]bool{}
 
-// IsSortableListArg: a named argument to a rule call is considered to be a sortable list
-// if the name is one of these names. There is a separate denylist for
+// IsSortableListArg contains a list of named arguments to a rule call that are
+// considered to be a sortable list . There is a separate denylist for
 // rule-specific exceptions.
 var IsSortableListArg = map[string]bool{
 	"cc_deps":             true,
@@ -121,6 +125,7 @@ var IsSortableListArg = map[string]bool{
 	"filegroups":          true,
 	"files":               true,
 	"hdrs":                true,
+	"implementation_deps": true,
 	"imports":             true,
 	"includes":            true,
 	"inherits":            true,
@@ -131,6 +136,7 @@ var IsSortableListArg = map[string]bool{
 	"outs":                true,
 	"packages":            true,
 	"plugin_modules":      true,
+	"private_deps":        true,
 	"proto_deps":          true,
 	"protos":              true,
 	"pubs":                true,
@@ -142,6 +148,10 @@ var IsSortableListArg = map[string]bool{
 	"swigdeps":            true,
 	"swig_includes":       true,
 	"tags":                true,
+	"test_data":           true,
+	"test_deps":           true,
+	"test_srcs":           true,
+	"test_tags":           true,
 	"tests":               true,
 	"tools":               true,
 	"to_start_extensions": true,
@@ -165,23 +175,30 @@ var SortableAllowlist = map[string]bool{}
 // will change, perhaps swapping in a separate table for each call,
 // derived from the order used in the Build Encyclopedia.
 var NamePriority = map[string]int{
-	"name":              -99,
-	"gwt_name":          -98,
-	"package_name":      -97,
-	"visible_node_name": -96, // for boq_initial_css_modules and boq_jswire_test_suite
-	"size":              -95,
-	"timeout":           -94,
-	"testonly":          -93,
-	"src":               -92,
-	"srcdir":            -91,
-	"srcs":              -90,
-	"out":               -89,
-	"outs":              -88,
-	"hdrs":              -87,
-	"has_services":      -86, // before api versions, for proto
-	"include":           -85, // before exclude, for glob
-	"of":                -84, // for check_dependencies
-	"baseline":          -83, // for searchbox_library
+	"name":                                  -99,
+	"archive_override.module_name":          -99, // for MODULE.bazel
+	"git_override.module_name":              -99, // for MODULE.bazel
+	"local_path_override.module_name":       -99, // for MODULE.bazel
+	"multiple_version_override.module_name": -99, // for MODULE.bazel
+	"single_version_override.module_name":   -99, // for MODULE.bazel
+	"bazel_dep.version":                     -98, // for MODULE.bazel
+	"module.version":                        -98, // for MODULE.bazel
+	"gwt_name":                              -98,
+	"package_name":                          -97,
+	"visible_node_name":                     -96, // for boq_initial_css_modules and boq_jswire_test_suite
+	"size":                                  -95,
+	"timeout":                               -94,
+	"testonly":                              -93,
+	"src":                                   -92,
+	"srcdir":                                -91,
+	"srcs":                                  -90,
+	"out":                                   -89,
+	"outs":                                  -88,
+	"hdrs":                                  -87,
+	"has_services":                          -86, // before api versions, for proto
+	"include":                               -85, // before exclude, for glob
+	"of":                                    -84, // for check_dependencies
+	"baseline":                              -83, // for searchbox_library
 	// All others sort here, at 0.
 	"destdir":        1,
 	"exports":        2,
@@ -271,6 +288,15 @@ var ProtoNativeSymbols = []string{
 
 // ProtoLoadPath is the load path for the Starlark Proto Rules.
 var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
+
+// IsModuleOverride contains the names of all Bzlmod module overrides available in MODULE.bazel.
+var IsModuleOverride = map[string]bool{
+	"archive_override":          true,
+	"git_override":              true,
+	"local_path_override":       true,
+	"multiple_version_override": true,
+	"single_version_override":   true,
+}
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
 func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {

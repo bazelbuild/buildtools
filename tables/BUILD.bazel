@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "tables",
     srcs = [
         "jsonparser.go",
         "tables.go",
@@ -11,9 +11,15 @@ go_library(
 )
 
 go_test(
-    name = "go_default_test",
+    name = "tables_test",
     size = "small",
     srcs = ["jsonparser_test.go"],
     data = glob(["testdata/*"]),
-    embed = [":go_default_library"],
+    embed = [":tables"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":tables",
+    visibility = ["//visibility:public"],
 )
