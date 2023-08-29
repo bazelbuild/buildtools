@@ -360,16 +360,17 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 				makeLinterFinding(param, `cfg = "data" for attr definitions has no effect and should be removed.`,
 					LinterReplacement{expr, &newCall}))
 
-		case "host": {
-			newCall.List = append([]build.Expr{}, newCall.List...)
-			newParam := newCall.List[i].Copy().(*build.AssignExpr)
-			newRHS := newParam.RHS.Copy().(*build.StringExpr)
-			newRHS.Value = "exec"
-			newParam.RHS = newRHS
-			newCall.List[i] = newParam
-			findings = append(findings,
-				makeLinterFinding(param, `cfg = "host" for attr definitions should be replaced by cfg = "exec".`,
-					LinterReplacement{expr, &newCall}))
+		case "host":
+			{
+				newCall.List = append([]build.Expr{}, newCall.List...)
+				newParam := newCall.List[i].Copy().(*build.AssignExpr)
+				newRHS := newParam.RHS.Copy().(*build.StringExpr)
+				newRHS.Value = "exec"
+				newParam.RHS = newRHS
+				newCall.List[i] = newParam
+				findings = append(findings,
+					makeLinterFinding(param, `cfg = "host" for attr definitions should be replaced by cfg = "exec".`,
+						LinterReplacement{expr, &newCall}))
 			}
 
 		default:
@@ -383,7 +384,7 @@ func attrConfigurationWarning(f *build.File) []*LinterFinding {
 func depsetItemsWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		call, ok := (*expr).(*build.CallExpr)
 		if !ok {
@@ -721,7 +722,7 @@ func contextArgsAPIWarning(f *build.File) []*LinterFinding {
 	}
 
 	var findings []*LinterFinding
-	types := detectTypes(f)
+	types := DetectTypes(f)
 
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
 		// Search for `<ctx.actions.args>.add()` nodes
@@ -1082,4 +1083,44 @@ func providerParamsWarning(f *build.File) []*LinterFinding {
 		}
 	})
 	return findings
+}
+
+
+func attrNameWarning(f *build.File, names []string) []*LinterFinding {
+	if f.Type != build.TypeBzl {
+		return nil
+	}
+
+	var findings []*LinterFinding
+	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
+		// Find nodes that match "attrs = {..., "license", ...}"
+		dict, ok := (*expr).(*build.DictExpr)
+		if !ok {
+			return
+		}
+		for _, item := range dict.List {
+			// include only string literal keys into consideration
+			value, ok := item.Key.(*build.StringExpr)
+			if !ok {
+				continue
+			}
+			for _, name := range names {
+				if value.Value == name {
+					findings = append(findings, makeLinterFinding(dict,
+						fmt.Sprintf(`Do not use '%s' as an attribute name.`+
+							` It may cause unexpected behavior.`, value.Value)))
+
+				}
+			}
+		}
+	})
+	return findings
+}
+
+func attrLicensesWarning(f *build.File) []*LinterFinding {
+	return attrNameWarning(f, []string{"licenses"})
+}
+
+func attrApplicableLicensesWarning(f *build.File) []*LinterFinding {
+	return attrNameWarning(f, []string{"applicable_licenses", "package_metadata"})
 }

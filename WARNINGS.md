@@ -2,10 +2,13 @@
 
 Warning categories supported by buildifier's linter:
 
+  * [`attr-applicable_licenses`](#attr-applicable_licenses)
   * [`attr-cfg`](#attr-cfg)
   * [`attr-license`](#attr-license)
+  * [`attr-licenses`](#attr-licenses)
   * [`attr-non-empty`](#attr-non-empty)
   * [`attr-output-default`](#attr-output-default)
+  * [`attr-package-metadata`](#attr-package-metadata)
   * [`attr-single-file`](#attr-single-file)
   * [`build-args-kwargs`](#build-args-kwargs)
   * [`bzl-visibility`](#bzl-visibility)
@@ -18,6 +21,7 @@ Warning categories supported by buildifier's linter:
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
   * [`dict-concatenation`](#dict-concatenation)
+  * [`dict-method-named-arg`](#dict-method-named-arg)
   * [`duplicated-name`](#duplicated-name)
   * [`filetype`](#filetype)
   * [`function-docstring`](#function-docstring)
@@ -85,6 +89,16 @@ if debug:
 
 --------------------------------------------------------------------------------
 
+## <a name="attr-applicable_licenses"></a>Do not use `applicable_licenses` as an attribute name.
+
+  * Category name: `attr-applicable_licenses`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-applicable_licenses`
+
+Using `applicable_licenses` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
+
+--------------------------------------------------------------------------------
+
 ## <a name="attr-cfg"></a>`cfg = "data"` for attr definitions has no effect
 
   * Category name: `attr-cfg`
@@ -110,6 +124,16 @@ The `attr.license()` method is almost never used and being deprecated.
 
 --------------------------------------------------------------------------------
 
+## <a name="attr-licenses"></a>Do not use `licenses` as an attribute name.
+
+  * Category name: `attr-licenses`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-licenses`
+
+Using licenses as an attribute name may cause unexpected behavior.
+
+--------------------------------------------------------------------------------
+
 ## <a name="attr-non-empty"></a>`non_empty` attribute for attr definitions is deprecated
 
   * Category name: `attr-non-empty`
@@ -132,6 +156,17 @@ for attr definitions is deprecated, please use `allow_empty` with an opposite va
 The `default` parameter of `attr.output()` is bug-prone, as two targets of the same rule would be
 unable to exist in the same package under default behavior. Use Starlark macros to specify defaults
 for these attributes instead.
+
+--------------------------------------------------------------------------------
+
+## <a name="attr-package-metadata"></a>Do not use `package_metadata` as an attribute name.
+
+  * Category name: `attr-package-metadata`
+  * Automatic fix: no
+  * Not supported by the latest version of Buildifier
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-package-metadata`
+
+Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
 
 --------------------------------------------------------------------------------
 
@@ -370,6 +405,23 @@ d.update(d3)
 
 --------------------------------------------------------------------------------
 
+## <a name="dict-method-named-arg"></a>Dict methods do not have a named argument `default`
+
+  * Category name: `dict-method-named-arg`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=dict-method-named-arg`
+
+Dict methods `get`, `pop` and `setdefault` do not accept a named argument
+called `default`. Due to a bug, Bazel currently accepts that named argument.
+It is better to use a positional argument instead:
+
+```diff
+- mydict.get(5, default = 0)
++ mydict.get(5, 0)
+```
+
+--------------------------------------------------------------------------------
+
 ## <a name="duplicated-name"></a>A rule with name `foo` was already found on line
 
   * Category name: `duplicated-name`
@@ -463,10 +515,10 @@ the function returns a value, it should be described.
   * [Suppress the warning](#suppress): `# buildifier: disable=git-repository`
 
 Native `git_repository` and `new_git_repository` functions are removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 ```
 
 --------------------------------------------------------------------------------
@@ -479,7 +531,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
   * [Suppress the warning](#suppress): `# buildifier: disable=http-archive`
 
 Native `http_archive` function is removed.
-Please use the Starlark versions instead:
+Please use the Starlark version instead:
 
 ```python
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -713,7 +765,6 @@ The statement has no effect. Consider removing it or storing its result in a var
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
 
 Load statements should be ordered by their first argument - extension file label.

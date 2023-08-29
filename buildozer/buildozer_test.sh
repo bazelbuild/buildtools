@@ -229,6 +229,18 @@ function test_remove_last_dep() {
   assert_equals 'go_library(name = "edit")'
 }
 
+function test_remove_all_attrs() {
+  run "$one_dep" 'remove *' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_all_attrs_none() {
+  ERROR=3 run "$no_deps" 'remove *' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+)'
+}
+
 function test_remove_dep() {
   run "$two_deps" 'remove deps //buildifier:build' '//pkg:edit'
   assert_equals 'go_library(
@@ -433,6 +445,87 @@ function test_remove_package_attribute() {
   in='package(default_visibility = ["//visibility:public"])'
   run "$in" 'remove default_visibility' '//pkg:__pkg__'
   [ $(wc -c < "$root/pkg/BUILD") -eq 0 ] || fail "Expected empty file"
+}
+
+function test_remove_if_equal_label() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'remove_if_equal shared_library :local' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_label_does_not_match() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  ERROR=3 run "$in" 'remove_if_equal shared_library :global' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+}
+
+function test_remove_if_equal_label_full_path() {
+  in='go_library(
+    name = "edit",
+    shared_library = ":local",  # Suffix comment.
+)'
+  run "$in" 'remove_if_equal shared_library //pkg:local' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_ident() {
+  in='go_library(
+    name = "edit",
+    flag = True,
+)'
+  run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_ident_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = True,
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag False' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = True,
+)'
+}
+
+function test_remove_if_equal_string() {
+  in='go_library(
+    name = "edit",
+    flag = "True",
+)'
+  run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
+}
+
+function test_remove_if_equal_string_does_not_match() {
+  in='go_library(
+    name = "edit",
+    flag = "False",
+)'
+  ERROR=3 run "$in" 'remove_if_equal flag True' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    flag = "False",
+)'
+}
+
+function test_remove_if_equal_string_attr_string() {
+  in='go_library(
+    name = "edit",
+    toolchain = "something",
+)'
+  run "$in" 'remove_if_equal toolchain something' '//pkg:edit'
+  assert_equals 'go_library(name = "edit")'
 }
 
 function test_move_last_dep() {
@@ -1682,6 +1775,19 @@ in='# Just comments
 load("/foo/bar", "x", "y", "z")'
 }
 
+function test_new_load_after_workspace() {
+in='# A comment
+
+workspace(name = "blah")'
+
+  run "$in" 'new_load /foo/bar x y z' pkg/BUILD
+  assert_equals '# A comment
+
+workspace(name = "blah")
+
+load("/foo/bar", "x", "y", "z")'
+}
+
 function test_new_load_existing() {
 in='load("/foo/bar", "y")
 '
@@ -1864,6 +1970,14 @@ load(":bar.bzl", "bar")  # bar
 load(":qux.bzl", "qux")
 # after
 
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
 foobar()' 'fix unusedLoads' 'pkg/BUILD'
   assert_equals '# TODO: refactor
 
@@ -1876,6 +1990,12 @@ load(":baz.bzl", "baz")  # this is @unused
 
 # before
 # after
+
+foobar()
+
+load(":somewhere_else.bzl", "foobar")
+
+foobar()
 
 foobar()'
 }
@@ -1907,6 +2027,294 @@ EOF
     name = "r2",
     deps = [":baz"],
 )' pkg2
+}
+
+function test_module_bazel() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+EOF
+
+  $buildozer 'delete' //MODULE.bazel:%10
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_module_bazel_new() {
+  cat > MODULE.bazel <<EOF
+bazel_dep(name = "gazelle", version = "0.30.0")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+bazel_dep(name = "gazelle", version = "0.30.0")
+bazel_dep(name = "rules_go")
+EOF
+
+  $buildozer 'new bazel_dep rules_go after gazelle' //MODULE.bazel:__pkg__
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_use_repo_add() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo", "org_example_bar")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+EOF
+
+  $buildozer 'use_repo_add @gazelle//:extensions.bzl go_deps org_example_bar com_example_foo' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_use_repo_add_dev() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+use_repo(go_dev_deps, "org_example_bar", "org_example_foo")
+EOF
+
+  $buildozer 'use_repo_add dev @gazelle//:extensions.bzl go_deps org_example_foo org_example_bar' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_use_repo_remove() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+EOF
+
+  $buildozer 'use_repo_remove @gazelle//:extensions.bzl go_deps bar_example com_example_foo' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_use_repo_remove_dev() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+use_repo(go_dev_deps, "invalid_foo")
+use_repo(
+    go_dev_deps,
+    # group these
+    "org_example_quz",
+    "org_example_foo",
+    "org_example_bar",
+
+    # and these
+    "com_example_quz",
+    my_com_example_baz = "com_example_baz",
+    "com_example_bar",
+)
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_dev_deps.from_file(go_mod = "//:go_dev.mod")
+use_repo(
+    go_dev_deps,
+    # group these
+    "org_example_foo",
+    "org_example_quz",
+
+    # and these
+    "com_example_bar",
+    "com_example_quz",
+)
+EOF
+
+  $buildozer 'use_repo_remove dev @gazelle//:extensions.bzl go_deps com_example_baz org_example_bar invalid_foo' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_use_repo_add_isolated() {
+  cat > MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_isolated_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", isolate = True)
+go_isolated_deps.from_file(go_mod = "//:go_tool_deps.mod")
+use_repo(go_isolated_deps, "com_example_foo")
+
+go_isolated_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True, isolate = True)
+go_isolated_dev_deps.from_file(go_mod = "//:go_more_tool_deps.mod")
+use_repo(go_isolated_dev_deps, "com_example_foo")
+
+go_more_isolated_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", isolate = True)
+go_more_isolated_deps.from_file(go_mod = "//:go_more_tool_deps.mod")
+use_repo(go_more_isolated_deps, "com_example_foo")
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+
+go_isolated_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", isolate = True)
+go_isolated_deps.from_file(go_mod = "//:go_tool_deps.mod")
+use_repo(go_isolated_deps, "com_example_foo")
+
+go_isolated_dev_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True, isolate = True)
+go_isolated_dev_deps.from_file(go_mod = "//:go_more_tool_deps.mod")
+use_repo(go_isolated_dev_deps, "com_example_foo", "org_example_bar")
+
+go_more_isolated_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", isolate = True)
+go_more_isolated_deps.from_file(go_mod = "//:go_more_tool_deps.mod")
+use_repo(go_more_isolated_deps, "com_example_foo")
+EOF
+
+  $buildozer 'use_repo_add go_isolated_dev_deps org_example_bar com_example_foo' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_format() {
+  cat > MODULE.bazel <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+EOF
+
+  $buildozer 'format' //MODULE.bazel:all
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
 }
 
 run_suite "buildozer tests"

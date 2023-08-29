@@ -31,7 +31,7 @@ func depsetUnionWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, `Depsets should be joined using the "depset()" constructor.`))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.BinaryExpr:
@@ -89,7 +89,7 @@ func depsetIterationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(*expr, `Depset iteration is deprecated, use the "to_list()" method instead.`, LinterReplacement{expr, newNode}))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.ForStmt:

@@ -225,12 +225,14 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-// extractIdentsFromStmt returns all idents from the an AST node representing a
+// extractIdentsFromStmt returns all idents from an AST node representing a
 // single statement that are either defined outside the node and used inside,
 // or defined inside the node and can be used outside.
 // Examples of idents that don't fall into either of the categories:
-//   * Named arguments of function calls: `foo` in `f(foo = "bar")`
-//   * Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//   - Named arguments of function calls: `foo` in `f(foo = "bar")`
+//   - Iterators of comprehension nodes and its usages: `x` in `[f(x) for x in y]`
+//   - Lambda arguments: `x` in `lambda x: x + 1`
+//
 // Statements that contain other statements (for-loops, if-else blocks) are not
 // traversed inside.
 func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
@@ -304,7 +306,7 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			}
 
 		case *build.ForStmt:
-			// Like AssignExpr, ForStmt too have an analogue of LHS and RHS.
+			// Like AssignExpr, ForStmt too has an analogue of LHS and RHS.
 			// Unlike AssignExpr, in this function they may appear only in the root of
 			// traversal and shouldn't be traversed inside (the caller of
 			// `extractIdentsFromStmt` should be responsible for checking all
@@ -353,6 +355,17 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 				}
 			}
 			scopes[expr] = scope
+
+		case *build.LambdaExpr:
+			// Similar to Comprehension nodes
+			scope := make(map[string]bool)
+			for _, param := range expr.Params {
+				for _, lValue := range bzlenv.CollectLValues(param) {
+					scope[lValue.Name] = true
+				}
+			}
+			scopes[expr] = scope
+
 		case *build.Ident:
 			// If the identifier is defined in an intermediate scope, ignore it.
 			for _, node := range stack {
@@ -429,9 +442,12 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
-					if strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
+					if ident.Name == "name" || strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
 						// Don't warn about function arguments if they start with "_"
-						// or explicitly marked with @unused
+						// or explicitly marked with @unused.
+						// Also don't warn about unused "name" arguments, it could be a
+						// macro where such argument is encouraged (by `unnamed-macro`)
+						// even if not used.
 						suppressedWarnings[ident.Name] = true
 					}
 				}
@@ -541,7 +557,7 @@ func redefinedVariableWarning(f *build.File) []*LinterFinding {
 	findings := []*LinterFinding{}
 	definedSymbols := make(map[string]bool)
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	for _, s := range f.Stmt {
 		// look for all assignments in the scope
 		as, ok := s.(*build.AssignExpr)
@@ -696,7 +712,7 @@ func collectLocalVariables(stmts []build.Expr) []*build.Ident {
 	return variables
 }
 
-// searchUninitializedVariables takes a list of statements (e.g. body of a block statement)
+// findUninitializedVariables takes a list of statements (e.g. body of a block statement)
 // and a map of previously initialized statements, and calls `callback` on all idents that are not
 // initialized. An ident is considered initialized if it's initialized by every possible execution
 // path (before or by `stmts`).
@@ -745,13 +761,26 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 			}
 		}
 
+		walkBlockList := map[build.Expr]bool{}
 		build.WalkInterruptable(expr, func(expr build.Expr, stack []build.Expr) (err error) {
+			if walkBlockList[expr] {
+				return &build.StopTraversalError{}
+			}
 			switch expr := expr.(type) {
-			case *build.Comprehension:
-				// Comprehension nodes are special, they have their own scope with variables
-				// that are only defined inside. Instead of traversing inside stop the
-				// traversal and call a special function to retrieve idents from the outer
-				// scope that are used inside the comprehension.
+			case *build.DefStmt:
+				// The header of the DefStmt may contain uninitialized variables (e.g.
+				// default values of parameters) and should be traversed.
+				// Its body shouldn't be traversed because it has another scope and will
+				// be analyzed by another call of `findUninitializedVariables`.
+				for _, stmt := range expr.Body {
+					walkBlockList[stmt] = true
+				}
+			case *build.Comprehension, *build.LambdaExpr:
+				// Comprehension and Lambda nodes are special, they have their own scope
+				// with variables that are only defined inside.
+				// Instead of traversing inside stop the traversal and call a special
+				// function to retrieve idents from the outer scope that are used inside
+				// the comprehension.
 
 				_, used := extractIdentsFromStmt(expr)
 				for ident := range used {

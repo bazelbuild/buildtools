@@ -20,7 +20,7 @@ package edit
 
 import (
 	"fmt"
-	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -38,26 +38,12 @@ var (
 	DeleteWithComments = true
 )
 
-// isFile returns true if the path refers to a regular file after following
-// symlinks.
-func isFile(path string) bool {
-	path, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		return false
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return info.Mode().IsRegular()
-}
-
 // InterpretLabelForWorkspaceLocation returns the name of the BUILD file to
 // edit, the full package name, and the rule. It takes a workspace-rooted
 // directory to use.
-func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile string, pkg string, rule string) {
+func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, pkg, rule string) {
 	label := labels.Parse(target)
-	repo := label.Repository
+	repo = label.Repository
 	pkg = label.Package
 	rule = label.Target
 	rootDir, relativePath := wspace.FindWorkspaceRoot(root)
@@ -65,7 +51,7 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		files, err := wspace.FindRepoBuildFiles(rootDir)
 		if err == nil {
 			if buildFile, ok := files[repo]; ok {
-				return buildFile, pkg, rule
+				return buildFile, repo, pkg, rule
 			}
 		}
 		// TODO(rodrigoq): report error for other repos
@@ -73,26 +59,33 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 
 	defaultBuildFileName := "BUILD"
 	if strings.HasPrefix(target, "//") {
+		pkgPath := filepath.Join(rootDir, filepath.FromSlash(pkg))
+		if wspace.IsRegularFile(pkgPath) {
+			// allow operation on other files like WORKSPACE
+			buildFile = pkgPath
+			pkg = path.Dir(pkg)
+			return
+		}
 		for _, buildFileName := range BuildFileNames {
-			buildFile = filepath.Join(rootDir, pkg, buildFileName)
-			if isFile(buildFile) {
+			buildFile = filepath.Join(pkgPath, buildFileName)
+			if wspace.IsRegularFile(buildFile) {
 				return
 			}
 		}
-		buildFile = filepath.Join(rootDir, pkg, defaultBuildFileName)
+		buildFile = filepath.Join(pkgPath, defaultBuildFileName)
 		return
 	}
-	if isFile(pkg) {
+	if wspace.IsRegularFile(filepath.FromSlash(pkg)) {
 		// allow operation on other files like WORKSPACE
 		buildFile = pkg
-		pkg = filepath.Join(relativePath, filepath.Dir(pkg))
+		pkg = filepath.Join(relativePath, filepath.FromSlash(path.Dir(pkg)))
 		return
 	}
 
 	found := false
 	for _, buildFileName := range BuildFileNames {
 		buildFile = filepath.Join(pkg, buildFileName)
-		if isFile(buildFile) {
+		if wspace.IsRegularFile(buildFile) {
 			found = true
 			break
 		}
@@ -101,13 +94,21 @@ func InterpretLabelForWorkspaceLocation(root string, target string) (buildFile s
 		buildFile = filepath.Join(pkg, defaultBuildFileName)
 	}
 
-	pkg = filepath.Join(relativePath, pkg)
+	pkg = filepath.Join(relativePath, filepath.FromSlash(pkg))
 	return
 }
 
 // InterpretLabel returns the name of the BUILD file to edit, the full
 // package name, and the rule. It uses the pwd for resolving workspace file paths.
 func InterpretLabel(target string) (buildFile string, pkg string, rule string) {
+	buildFile, _, pkg, rule = InterpretLabelForWorkspaceLocation("", target)
+	return buildFile, pkg, rule
+}
+
+// InterpretLabelWithRepo returns the name of the BUILD file to edit, repo name,
+// the full package name, and the rule. It uses the pwd for resolving workspace
+// file paths.
+func InterpretLabelWithRepo(target string) (buildFile string, repo string, pkg string, rule string) {
 	return InterpretLabelForWorkspaceLocation("", target)
 }
 
@@ -123,7 +124,7 @@ func ExprToRule(expr build.Expr, kind string) (*build.Rule, bool) {
 	if !ok || k.Name != kind {
 		return nil, false
 	}
-	return &build.Rule{call, ""}, true
+	return &build.Rule{Call: call, ImplicitName: ""}, true
 }
 
 // ExistingPackageDeclaration returns the package declaration, or nil if there is none.
@@ -143,45 +144,94 @@ func PackageDeclaration(f *build.File) *build.Rule {
 	if pkg := ExistingPackageDeclaration(f); pkg != nil {
 		return pkg
 	}
-	all := []build.Expr{}
-	added := false
+	insertAfter := -1
 	call := &build.CallExpr{X: &build.Ident{Name: "package"}}
-	for _, stmt := range f.Stmt {
+	for i, stmt := range f.Stmt {
 		switch stmt.(type) {
 		case *build.CommentBlock, *build.LoadStmt, *build.StringExpr:
 			// Skip docstring, comments, and load statements to
 			// find a place to insert the package declaration.
-		default:
-			if !added {
-				all = append(all, call)
-				added = true
+			insertAfter = i
+			continue
+		case *build.CallExpr:
+			// Skip `workspace()` calls which have to be the very first statements
+			// of workspace files
+			if isWorkspaceCall(stmt) {
+				insertAfter = i
+				continue
 			}
+		default:
 		}
-		all = append(all, stmt)
+		break
 	}
-	if !added { // In case the file is empty.
-		all = append(all, call)
-	}
+	var all []build.Expr
+	all = append(all, f.Stmt[:insertAfter+1]...)
+	all = append(all, call)
+	all = append(all, f.Stmt[insertAfter+1:]...)
 	f.Stmt = all
-	return &build.Rule{call, ""}
+
+	return &build.Rule{Call: call, ImplicitName: ""}
 }
 
 // RemoveEmptyPackage removes empty package declarations from the file, i.e.:
-//    package()
+//
+//	package()
+//
 // This might appear because of a buildozer transformation (e.g. when removing a package
 // attribute). Removing it is required for the file to be valid.
 func RemoveEmptyPackage(f *build.File) *build.File {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
-		if call, ok := stmt.(*build.CallExpr); ok {
-			functionName, ok := call.X.(*build.Ident)
-			if ok && functionName.Name == "package" && len(call.List) == 0 {
-				continue
-			}
+		if isEmptyPackage(stmt) {
+			continue
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: f.Type}
+}
+
+func isEmptyPackage(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		functionName, ok := call.X.(*build.Ident)
+		if ok && functionName.Name == "package" && len(call.List) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func isWorkspaceCall(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		if ident, ok := call.X.(*build.Ident); ok && ident.Name == "workspace" {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveEmptyUseRepoCalls removes empty use repo declarations from the file.
+func RemoveEmptyUseRepoCalls(f *build.File) *build.File {
+	if f.Type != build.TypeModule {
+		return f
+	}
+	var all []build.Expr
+	for _, stmt := range f.Stmt {
+		if isEmptyUseRepoCall(stmt) {
+			continue
+		}
+		all = append(all, stmt)
+	}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeModule}
+}
+
+func isEmptyUseRepoCall(expr build.Expr) bool {
+	if call, ok := expr.(*build.CallExpr); ok {
+		functionName, ok := call.X.(*build.Ident)
+		if ok && functionName.Name == "use_repo" && len(call.List) == 1 {
+			return true
+		}
+	}
+	return false
 }
 
 // InsertAfter inserts an expression after index i.
@@ -298,7 +348,7 @@ func DeleteRule(f *build.File, rule *build.Rule) *build.File {
 		}
 		all = append(all, stmt)
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: f.Type}
 }
 
 // DeleteRuleByName returns the AST without the rules that have the
@@ -316,7 +366,7 @@ func DeleteRuleByName(f *build.File, name string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: f.Type}
 }
 
 // DeleteRuleByKind removes the rules of the specified kind from the AST.
@@ -334,7 +384,7 @@ func DeleteRuleByKind(f *build.File, kind string) *build.File {
 			all = append(all, stmt)
 		}
 	}
-	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: build.TypeBuild}
+	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: all, Type: f.Type}
 }
 
 // AllLists returns all the lists concatenated in an expression.
@@ -1071,7 +1121,7 @@ func appendLoad(stmts []build.Expr, location string, from, to []string) bool {
 
 // InsertLoad inserts a load statement at the top of the list of statements.
 // The load statement is constructed using a string location and two slices of from- and to-symbols.
-// The function panics if the slices aren't of the same lentgh. Symbols that are already loaded
+// The function panics if the slices aren't of the same length. Symbols that are already loaded
 // from the given filepath are ignored. If stmts already contains a load for the
 // location in arguments, appends the symbols to load to it.
 func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.Expr {
@@ -1085,24 +1135,37 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 
 	load := NewLoad(location, from, to)
 
-	var all []build.Expr
-	added := false
+	insertAfter := -1
 	for i, stmt := range stmts {
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isString := stmt.(*build.StringExpr)
 		isDocString := isString && i == 0
-		if isComment || isDocString || added {
-			all = append(all, stmt)
+
+		// We add synthetic package() calls when called with :__pkg__ labels.
+		// We strip them out later when saving the fixed file because they're
+		// not valid.
+		// Pretend they're not there and skip past them while we look for
+		// possible workspace calls.
+		//isSyntheticPackage := isEmptyPackage(stmt)
+
+		// If we're editing a WORKSPACE file, bazel requires that the workspace
+		// declaration must be the very first expression in the WORKSPACE file,
+		// before any loads.
+		isWorkspaceCallStmt := isWorkspaceCall(stmt)
+
+		if isComment || isDocString || isWorkspaceCallStmt {
+			insertAfter = i
 			continue
 		}
-		all = append(all, load)
-		all = append(all, stmt)
-		added = true
+		break
 	}
-	if !added { // Empty file or just comments.
-		all = append(all, load)
-	}
+
+	var all []build.Expr
+	all = append(all, stmts[:insertAfter+1]...)
+	all = append(all, load)
+	all = append(all, stmts[insertAfter+1:]...)
 	return all
+
 }
 
 // ReplaceLoad removes load statements for passed to-symbols and replaces them with a new
