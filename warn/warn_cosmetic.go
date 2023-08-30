@@ -21,6 +21,7 @@ package warn
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -129,7 +130,7 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 }
 
 func loadOnTopWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule{
+	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule {
 		// Not applicable to WORKSPACE or MODULE files
 		return nil
 	}
@@ -191,6 +192,15 @@ func loadOnTopWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+// comparePaths compares two strings as if they were paths (the path delimiter,
+// '/', should be treated as smallest symbol).
+func comparePaths(path1, path2 string) bool {
+	chunks1 := strings.Split(path1, "/")
+	chunks2 := strings.Split(path2, "/")
+	return slices.Compare(chunks1, chunks2)
+
+}
+
 // compareLoadLabels compares two module names
 // If one label has explicit repository path (starts with @), it goes first
 // If the packages are different, labels are sorted by package name (empty package goes first)
@@ -221,7 +231,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 
 	// in case both packages are the same, use file names to break ties
 	if package1 == package2 {
-		return filename1 < filename2
+		return comparePaths(filename1, filename2)
 	}
 
 	// in case one of the packages is empty, the empty one goes first
@@ -230,7 +240,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 	}
 
 	// both packages are non-empty and not equal, so compare them
-	return package1 < package2
+	return comparePaths(package1, package2)
 }
 
 // outOfOrderLoadWarning only sorts consequent chunks of load statements. If applied together with
