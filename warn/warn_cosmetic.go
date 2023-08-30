@@ -120,8 +120,8 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 			}
 			return []*LinterFinding{makeLinterFinding(rule.Call,
 				"Package declaration should be at the top of the file, after the load() statements, "+
-					"but before any call to a rule or a macro. "+
-					"package_group() and licenses() may be called before package().")}
+						"but before any call to a rule or a macro. "+
+						"package_group() and licenses() may be called before package().")}
 		}
 		seenRule = true
 	}
@@ -194,16 +194,23 @@ func loadOnTopWarning(f *build.File) []*LinterFinding {
 // comparePaths compares two strings as if they were paths (the path delimiter,
 // '/', should be treated as smallest symbol).
 func comparePaths(path1, path2 string) bool {
+	if path1 == path2 {
+		return false
+	}
+
 	chunks1 := strings.Split(path1, "/")
 	chunks2 := strings.Split(path2, "/")
 
-	for i := 0; i <= len(chunks1) && i <= len(chunks2); i++ {
-		if chunks1[i] != chunks2[i] {
-			return chunks1[i] < chunks2[i]
+	for i, chunk1 := range chunks1 {
+		if i >= len(chunks2) {
+			return false
+		}
+		chunk2 := chunks2[i]
+		if chunk1 != chunk2 {
+			return chunk1 < chunk2
 		}
 	}
-	return len(chunks1) < len(chunks2)
-
+	return true
 }
 
 // compareLoadLabels compares two module names
