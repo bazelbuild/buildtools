@@ -277,12 +277,18 @@ load(":a.bzl", "a")`,
 		[]string{}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo:xyz.bzl", "xyz")
-load("//foo/bar:mno.bzl", "mno")
+load("//foo-bar:xyz.bzl", "xyz")
+load("//foo/bar:baz/mno.bzl", "mno")
+load("//foo/bar-baz:mno/prs.bzl", "prs")
+load("//foo/bar-baz:mno-prs.bzl", "prs")
 `, `
-load("//foo:xyz.bzl", "xyz")
-load("//foo/bar:mno.bzl", "mno")`,
-		[]string{}, scopeEverywhere)
+load("//foo/bar:baz/mno.bzl", "mno")
+load("//foo/bar-baz:mno/prs.bzl", "prs")
+load("//foo/bar-baz:mno-prs.bzl", "prs")
+load("//foo-bar:xyz.bzl", "xyz")`,
+		[]string{
+			"2: Load statement is out of its lexicographical order.",
+		}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load("//foo:xyz.bzl", "xyz")
