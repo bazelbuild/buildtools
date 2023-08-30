@@ -1,5 +1,5 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
 load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
 
 copy_file(
