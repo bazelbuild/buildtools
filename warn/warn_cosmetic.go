@@ -21,7 +21,6 @@ package warn
 import (
 	"fmt"
 	"regexp"
-	"slices"
 	"sort"
 	"strings"
 
@@ -197,7 +196,13 @@ func loadOnTopWarning(f *build.File) []*LinterFinding {
 func comparePaths(path1, path2 string) bool {
 	chunks1 := strings.Split(path1, "/")
 	chunks2 := strings.Split(path2, "/")
-	return slices.Compare(chunks1, chunks2)
+
+	for i := 0; i <= len(chunks1) && i <= len(chunks2); i++ {
+		if chunks1[i] != chunks2[i] {
+			return chunks1[i] < chunks2[i]
+		}
+	}
+	return len(chunks1) < len(chunks2)
 
 }
 
