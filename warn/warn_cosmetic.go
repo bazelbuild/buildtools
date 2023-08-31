@@ -120,8 +120,8 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 			}
 			return []*LinterFinding{makeLinterFinding(rule.Call,
 				"Package declaration should be at the top of the file, after the load() statements, "+
-						"but before any call to a rule or a macro. "+
-						"package_group() and licenses() may be called before package().")}
+					"but before any call to a rule or a macro. "+
+					"package_group() and licenses() may be called before package().")}
 		}
 		seenRule = true
 	}
@@ -206,11 +206,17 @@ func comparePaths(path1, path2 string) bool {
 			return false
 		}
 		chunk2 := chunks2[i]
-		if chunk1 != chunk2 {
-			return chunk1 < chunk2
+		// Compare case-insensitively
+		chunk1Lower := strings.ToLower(chunk1)
+		chunk2Lower := strings.ToLower(chunk2)
+		if chunk1Lower != chunk2Lower {
+			return chunk1Lower < chunk2Lower
 		}
 	}
-	return true
+
+	// No case-insensitive difference detected. Likely the difference is just in
+	// the case of some symbols, compare case-sensitively for the determinism.
+	return path1 <= path2
 }
 
 // compareLoadLabels compares two module names
