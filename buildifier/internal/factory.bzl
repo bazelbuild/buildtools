@@ -91,6 +91,7 @@ def buildifier_attr_factory(test_rule = False):
                     ".sky",
                     "BUILD",
                     "WORKSPACE",
+                    "WORKSPACE.bzlmod",
                 ],
                 doc = "A list of labels representing the starlark files to include in the test",
             ),

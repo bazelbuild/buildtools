@@ -55,6 +55,7 @@ find . \
     -o -name WORKSPACE \
     -o -name WORKSPACE.bazel \
     -o -name WORKSPACE.oss \
+    -o -name WORKSPACE.bzlmod \
     -o -name 'WORKSPACE.*.bazel' \
     -o -name 'WORKSPACE.*.oss' \
   \) -print | xargs "$buildifier_short_path" "${ARGS[@]}"
