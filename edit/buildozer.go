@@ -170,6 +170,9 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	case 1: // Print attribute comment.
 		attr := env.Rule.AttrDefn(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		comments := append(attr.Before, attr.Suffix...)
@@ -179,6 +182,9 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	case 2: // Print comment of a specific value in a list.
 		attr := env.Rule.Attr(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		value := env.Args[1]
@@ -1353,23 +1359,17 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 			} else {
 				line[i] = value.Text
 			}
-			break
 		case *apipb.Output_Record_Field_Number:
 			line[i] = strconv.Itoa(int(value.Number))
-			break
 		case *apipb.Output_Record_Field_Error:
 			switch value.Error {
 			case apipb.Output_Record_Field_UNKNOWN:
 				line[i] = "(unknown)"
-				break
 			case apipb.Output_Record_Field_MISSING:
 				line[i] = "(missing)"
-				break
 			}
-			break
 		case *apipb.Output_Record_Field_List:
 			line[i] = fmt.Sprintf("[%s]", strings.Join(value.List.Strings, " "))
-			break
 		}
 	}
 
