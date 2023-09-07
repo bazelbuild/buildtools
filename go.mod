@@ -8,7 +8,3 @@ require (
 	go.starlark.net v0.0.0-20210223155950-e043a3d3c984
 	google.golang.org/protobuf v1.25.0
 )
-
-replace (
-    github.com/bazelbuild/buildtools => github.com/GSarathChandra/buildtools
-)
