@@ -34,6 +34,7 @@ message Output {
       enum ERROR {
         UNKNOWN = 0;
         MISSING = 1;
+        MISSING_LIST_ITEM = 2;
       }
     }
   }
