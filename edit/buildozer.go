@@ -194,6 +194,9 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		value := env.Args[1]
 		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING_LIST_ITEM}},
+			}
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
 		comments := append(expr.Comments.Before, expr.Comments.Suffix...)
