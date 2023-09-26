@@ -11,7 +11,7 @@ buildifier_short_path=$(readlink "$BUILDIFIER_SHORT_PATH")
 if [[ ! -z "${TEST_WORKSPACE+x}" && -z "${BUILD_WORKSPACE_DIRECTORY+x}" ]]; then
   FIND_FILE_TYPE="l"
   # If WORKSPACE was provided, then the script is being run under a test in no_sandbox mode
-  if [[ ! -z "${WORKSPACE+x}" ]]; then
+  if [[ ! -z "${WORKSPACE:+x}" ]]; then
     FIND_FILE_TYPE="f"
 
     # resolve the WORKSPACE symlink
@@ -52,9 +52,11 @@ find . \
     -o -name '*.BUILD' \
     -o -name 'BUILD.*.bazel' \
     -o -name 'BUILD.*.oss' \
+    -o -name MODULE.bazel \
     -o -name WORKSPACE \
     -o -name WORKSPACE.bazel \
     -o -name WORKSPACE.oss \
+    -o -name WORKSPACE.bzlmod \
     -o -name 'WORKSPACE.*.bazel' \
     -o -name 'WORKSPACE.*.oss' \
   \) -print | xargs "$buildifier_short_path" "${ARGS[@]}"
