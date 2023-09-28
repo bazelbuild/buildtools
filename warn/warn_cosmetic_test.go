@@ -118,13 +118,20 @@ func TestWarnSameOriginLoad(t *testing.T) {
 }
 
 func TestPackageOnTop(t *testing.T) {
-	checkFindings(t, "package-on-top", `
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
 my_macro(name = "foo")
 package()`,
+		`
+package()
+my_macro(name = "foo")`,
 		[]string{":2: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
-		scopeEverywhere)
+		scopeDefault|scopeBzl|scopeBuild)
 
-	checkFindings(t, "package-on-top", `
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
 # Some comments
 
 """This is a docstring"""
@@ -134,10 +141,20 @@ load(":bar.bzl", baz = "bar")
 
 package()
 
-foo(baz)
-`,
+foo(baz)`,
+		`
+# Some comments
+
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+package()
+
+foo(baz)`,
 		[]string{},
-		scopeEverywhere)
+		scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestLoadOnTop(t *testing.T) {
