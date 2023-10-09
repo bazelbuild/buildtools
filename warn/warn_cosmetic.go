@@ -114,7 +114,7 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 
 	// Find the misplaced load statements
 	misplacedPackages := make(map[int]*build.CallExpr)
-	firstStmtIndex := -1 // index of the first seen non string, comment or lead statement
+	firstStmtIndex := -1 // index of the first seen non string, comment or load statement
 	for i := 0; i < len(f.Stmt); i++ {
 		stmt := f.Stmt[i]
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
@@ -135,12 +135,15 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 		}
 		misplacedPackages[i] = rule.Call
 	}
+	offset := len(misplacedPackages)
+	if offset == 0 {
+		return nil
+	}
 
-	// Calculate a fix
+	// Calculate a fix:
 	if firstStmtIndex == -1 {
 		firstStmtIndex = 0
 	}
-	offset := len(misplacedPackages)
 	var replacements []LinterReplacement
 	for i := range f.Stmt {
 		if i < firstStmtIndex {
