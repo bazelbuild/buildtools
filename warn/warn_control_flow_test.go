@@ -1284,4 +1284,13 @@ def foo():
 `,
 		[]string{},
 		scopeEverywhere)
+
+	checkFindings(t, "uninitialized", `
+def foo():
+  [x, y] = [1, 2]
+  x = 3
+  print(x)
+`,
+		[]string{},
+		scopeEverywhere)
 }
