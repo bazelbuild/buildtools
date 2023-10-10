@@ -39,10 +39,10 @@ go_repository(
 
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
-    strip_prefix = "protobuf-3.13.0",
+    sha256 = "616bb3536ac1fff3fb1a141450fa28b875e985712170ea7f1bfe5e5fc41e2cd8",
+    strip_prefix = "protobuf-24.4",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",
+        "https://github.com/protocolbuffers/protobuf/archive/v24.4.tar.gz",
     ],
 )
 
