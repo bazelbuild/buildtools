@@ -42,7 +42,7 @@ http_archive(
     sha256 = "616bb3536ac1fff3fb1a141450fa28b875e985712170ea7f1bfe5e5fc41e2cd8",
     strip_prefix = "protobuf-24.4",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/archive/v24.2.tar.gz",
+        "https://github.com/protocolbuffers/protobuf/archive/v24.4.tar.gz",
     ],
 )
 
