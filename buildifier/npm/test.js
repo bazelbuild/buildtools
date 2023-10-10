@@ -1,6 +1,6 @@
 const dir = require('path').join(
     process.env['TEST_SRCDIR'],
-    process.env['BAZEL_WORKSPACE'],
+    process.env['JS_BINARY__WORKSPACE'],
     'buildifier/npm/buildifier');
 process.chdir(dir);
 const {stdout} = require('child_process').spawnSync(
