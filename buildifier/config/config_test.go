@@ -132,7 +132,7 @@ func ExampleFlagSet() {
 	// path: assume BUILD file has this path relative to the workspace directory ("")
 	// r: find starlark files recursively ("false")
 	// tables: path to JSON file with custom table definitions which will replace the built-in tables ("")
-	// type: Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), default (for generic Starlark files) or auto (default, based on the filename) ("auto")
+	// type: Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), module (for MODULE.bazel files), default (for generic Starlark files) or auto (default, based on the filename) ("auto")
 	// v: print verbose information to standard error ("false")
 	// version: print the version of buildifier ("false")
 	// warnings: comma-separated warnings used in the lint mode or "all" ("")

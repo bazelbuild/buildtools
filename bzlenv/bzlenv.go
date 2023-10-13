@@ -148,6 +148,10 @@ func CollectLValues(node build.Expr) []*build.Ident {
 		for _, item := range node.List {
 			result = append(result, CollectLValues(item)...)
 		}
+	case *build.ListExpr:
+		for _, item := range node.List {
+			result = append(result, CollectLValues(item)...)
+		}
 	}
 	return result
 }

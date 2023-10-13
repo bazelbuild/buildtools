@@ -39,10 +39,10 @@ go_repository(
 
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
-    strip_prefix = "protobuf-3.13.0",
+    sha256 = "616bb3536ac1fff3fb1a141450fa28b875e985712170ea7f1bfe5e5fc41e2cd8",
+    strip_prefix = "protobuf-24.4",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",
+        "https://github.com/protocolbuffers/protobuf/archive/v24.4.tar.gz",
     ],
 )
 
@@ -76,20 +76,37 @@ load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_depen
 
 buildifier_dependencies()
 
-# We don't use any nodejs but this includes a rule for publishing releases to npm
 http_archive(
-    name = "build_bazel_rules_nodejs",
-    sha256 = "8a7c981217239085f78acc9898a1f7ba99af887c1996ceb3b4504655383a2c3c",
-    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/4.0.0/rules_nodejs-4.0.0.tar.gz"],
+    name = "rules_nodejs",
+    sha256 = "162f4adfd719ba42b8a6f16030a20f434dc110c65dc608660ef7b3411c9873f9",
+    strip_prefix = "rules_nodejs-6.0.2",
+    url = "https://github.com/bazelbuild/rules_nodejs/releases/download/v6.0.2/rules_nodejs-v6.0.2.tar.gz",
 )
 
-load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories", "npm_install")
+load("@rules_nodejs//nodejs:repositories.bzl", "nodejs_register_toolchains")
 
-node_repositories(node_version = "16.7.0")
-
-# Fetch third-party dependencies for building npm packages
-npm_install(
-    name = "buildozer_npm_deps",
-    package_json = "//buildozer/npm:package.json",
-    package_lock_json = "//buildozer/npm:package-lock.json",
+nodejs_register_toolchains(
+    name = "nodejs",
+    node_version = "16.7.0",
 )
+
+http_archive(
+    name = "aspect_rules_js",
+    sha256 = "7ab9776bcca823af361577a1a2ebb9a30d2eb5b94ecc964b8be360f443f714b2",
+    strip_prefix = "rules_js-1.32.6",
+    url = "https://github.com/aspect-build/rules_js/releases/download/v1.32.6/rules_js-v1.32.6.tar.gz",
+)
+
+load("@aspect_rules_js//js:repositories.bzl", "rules_js_dependencies")
+
+rules_js_dependencies()
+
+load("@bazel_features//:deps.bzl", "bazel_features_deps")
+
+bazel_features_deps()
+
+load("@aspect_bazel_lib//lib:repositories.bzl", "register_copy_to_directory_toolchains", "register_jq_toolchains")
+
+register_jq_toolchains()
+
+register_copy_to_directory_toolchains()
