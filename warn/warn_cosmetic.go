@@ -120,9 +120,9 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isLoad := stmt.(*build.LoadStmt)
-		_, isLicense := edit.ExprToRule(stmt, "license")
+		_, isLicenses := edit.ExprToRule(stmt, "licenses")
 		_, isPackageGroup := edit.ExprToRule(stmt, "package_group")
-		if isString || isComment || isLoad || || isLicense || isPackageGroup || stmt == nil {
+		if isString || isComment || isLoad || isLicenses || isPackageGroup || stmt == nil {
 			continue
 		}
 		rule, ok := edit.ExprToRule(stmt, "package")

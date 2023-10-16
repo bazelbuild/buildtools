@@ -167,11 +167,8 @@ load(":foo.bzl", "foo")
 load(":bar.bzl", baz = "bar")
 
 package_group(name = "my_group")
-
 licenses(["my_license"])
-
 foo(baz)
-
 package()`,
 		`
 # Some comments
@@ -182,13 +179,11 @@ load(":foo.bzl", "foo")
 load(":bar.bzl", baz = "bar")
 
 package_group(name = "my_group")
-
 licenses(["my_license"])
 
 package()
-
 foo(baz)`,
-		[]string{":14: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
+		[]string{":11: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
 		scopeDefault|scopeBzl|scopeBuild)
 }
 
