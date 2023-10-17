@@ -102,7 +102,7 @@ func sameOriginLoadWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-// packageOnTopWarning hoists package statements to the top after any comments / docstrings / load statments.
+// packageOnTopWarning hoists package statements to the top after any comments / docstrings / load statements.
 // If applied together with loadOnTopWarning and/or outOfOrderLoadWarning, it should be applied after them.
 // This is currently guaranteed by sorting the warning categories names before applying them:
 // "load-on-top" < "out-of-order-load" < "package-on-top"
@@ -120,7 +120,9 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isLoad := stmt.(*build.LoadStmt)
-		if isString || isComment || isLoad || stmt == nil {
+		_, isLicenses := edit.ExprToRule(stmt, "licenses")
+		_, isPackageGroup := edit.ExprToRule(stmt, "package_group")
+		if isString || isComment || isLoad || isLicenses || isPackageGroup || stmt == nil {
 			continue
 		}
 		rule, ok := edit.ExprToRule(stmt, "package")
