@@ -185,6 +185,60 @@ package()
 foo(baz)`,
 		[]string{":11: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
 		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+VISIBILITY = baz
+
+foo()
+
+package(default_visibility = VISIBILITY)`,
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+VISIBILITY = baz
+
+foo()
+
+package(default_visibility = VISIBILITY)`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestLoadOnTop(t *testing.T) {
