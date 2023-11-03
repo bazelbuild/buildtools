@@ -212,6 +212,33 @@ foo()
 package(default_visibility = VISIBILITY)`,
 		[]string{},
 		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestLoadOnTop(t *testing.T) {
