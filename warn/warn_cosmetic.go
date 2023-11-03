@@ -117,6 +117,15 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 	firstStmtIndex := -1 // index of the first seen non string, comment or load statement
 	for i := 0; i < len(f.Stmt); i++ {
 		stmt := f.Stmt[i]
+
+		// Assign statements may define variables that are used by the package statement,
+		// e.g. visibility declarations. To avoid false positive detections and also
+		// for keeping things simple, the warning should be just suppressed if there's
+		// any assignment statement, even if it's not used by the package declaration.
+		if _, ok := stmt.(*build.AssignExpr); ok {
+			break
+		}
+
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
 		_, isLoad := stmt.(*build.LoadStmt)
@@ -171,8 +180,8 @@ func packageOnTopWarning(f *build.File) []*LinterFinding {
 	for _, load := range misplacedPackages {
 		findings = append(findings, makeLinterFinding(load,
 			"Package declaration should be at the top of the file, after the load() statements, "+
-				"but before any call to a rule or a macro. "+
-				"package_group() and licenses() may be called before package().", replacements...))
+					"but before any call to a rule or a macro. "+
+					"package_group() and licenses() may be called before package().", replacements...))
 	}
 
 	return findings
