@@ -81,6 +81,12 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 	types["extra_srcs"] = types["srcs"]
 	types["pytype_deps"] = types["deps"]
 
+	// Make sure we always have this.
+	_, ok := types["package_metadata"]
+	if ! ok {
+		types["package_metadata"] = buildpb.Attribute_LABEL_LIST
+	}
+
 	return types
 }
 

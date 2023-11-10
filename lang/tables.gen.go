@@ -326,6 +326,7 @@ var TypeOf = map[string]buildpb.Attribute_Discriminator{
 	"output_to_bindir":	buildpb.Attribute_BOOLEAN,
 	"outs":	buildpb.Attribute_STRING_LIST,
 	"package_configuration":	buildpb.Attribute_LABEL_LIST,
+	"package_metadata":	buildpb.Attribute_LABEL_LIST,
 	"packages":	buildpb.Attribute_LABEL_LIST,
 	"parents":	buildpb.Attribute_LABEL_LIST,
 	"path":	buildpb.Attribute_STRING,
