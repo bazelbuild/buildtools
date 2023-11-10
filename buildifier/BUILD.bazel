@@ -2,14 +2,14 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_binary(
     name = "buildifier",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     visibility = ["//visibility:public"],
 )
 
 go_binary(
     name = "buildifier-darwin",
     out = "buildifier-darwin_amd64",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     goarch = "amd64",
     goos = "darwin",
     pure = "on",
@@ -19,7 +19,7 @@ go_binary(
 go_binary(
     name = "buildifier-linux",
     out = "buildifier-linux_amd64",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     goarch = "amd64",
     goos = "linux",
     pure = "on",
@@ -29,7 +29,7 @@ go_binary(
 go_binary(
     name = "buildifier-windows",
     out = "buildifier-windows_amd64.exe",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     goarch = "amd64",
     goos = "windows",
     pure = "on",
@@ -39,7 +39,7 @@ go_binary(
 go_binary(
     name = "buildifier-darwin-arm64",
     out = "buildifier-darwin_arm64",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     goarch = "arm64",
     goos = "darwin",
     pure = "on",
@@ -49,7 +49,7 @@ go_binary(
 go_binary(
     name = "buildifier-linux-arm64",
     out = "buildifier-linux_arm64",
-    embed = [":go_default_library"],
+    embed = [":buildifier_lib"],
     goarch = "arm64",
     goos = "linux",
     pure = "on",
@@ -73,7 +73,7 @@ sh_test(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "buildifier_lib",
     srcs = ["buildifier.go"],
     importpath = "github.com/bazelbuild/buildtools/buildifier",
     visibility = ["//visibility:private"],
@@ -82,13 +82,11 @@ go_library(
         "main.buildScmRevision": "{STABLE_buildScmRevision}",
     },
     deps = [
-        "//build:go_default_library",
-        "//buildifier/config:go_default_library",
-        "//buildifier/utils:go_default_library",
-        "//differ:go_default_library",
-        "//tables:go_default_library",
-        "//warn:go_default_library",
-        "//wspace:go_default_library",
+        "//build",
+        "//buildifier/config",
+        "//buildifier/utils",
+        "//differ",
+        "//wspace",
     ],
 )
 

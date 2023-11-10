@@ -47,6 +47,7 @@ detection use the `--type` flag explicitly:
     $ cat foo.bar | buildifier --type=bzl
     $ cat foo.bar | buildifier --type=workspace
     $ cat foo.bar | buildifier --type=default
+    $ cat foo.bar | buildifier --type=module
 
 ## Linter
 

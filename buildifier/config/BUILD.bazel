@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "config",
     srcs = [
         "config.go",
         "validation.go",
@@ -9,14 +9,20 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/buildifier/config",
     visibility = ["//buildifier:__pkg__"],
     deps = [
-        "//tables:go_default_library",
-        "//warn:go_default_library",
-        "//wspace:go_default_library",
+        "//tables",
+        "//warn",
+        "//wspace",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "config_test",
     srcs = ["config_test.go"],
-    embed = [":go_default_library"],
+    embed = [":config"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":config",
+    visibility = ["//visibility:public"],
 )

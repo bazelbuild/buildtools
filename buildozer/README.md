@@ -15,23 +15,39 @@ go install github.com/bazelbuild/buildtools/buildozer@latest
 ## Usage
 
 ```shell
-buildozer [OPTIONS] ['command args'... | -f FILE ] label-list
+buildozer [OPTIONS] ['command arg...'...|-f FILE] [label]...
 ```
 
-Here, `label-list` is a space-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1 relative/path/to/pkg2:rule2`. In addition to the Bazel
-label syntax for specifying a package, Buildozer also allows the package part to
-refer to a BUILD-like file, for example `//WORKSPACE:all` or
+Here, `label...` is a (space-separated, possibly empty) list of Bazel labels,
+for example `//path/to/pkg1:rule1 relative/path/to/pkg2:rule2`. In addition to
+the Bazel label syntax for specifying a package, Buildozer also allows the
+package part to refer to a BUILD-like file, for example `//WORKSPACE:all` or
 `toolchains/BUILD.tpl:host_toolchain`.
 
-When `-f FILE` is used, buildozer reads commands from `FILE` (`-` for stdin).
-Format: lines of `|`-separated sets of commands and labels (`command args|label|label...`).
-When the label is a single '*', then the command will be applied to all
-elements of label-list from the command line.
+Buildozer commands are passed as single positional arguments, and thus have to
+be quoted (or otherwise escaped). Multiple commands and multiple labels can be
+passed. Buildozer will execute all commands on all targets. (So if you do not
+specify at least one command and one target, nothing will happen.) Commands are
+executed in order, files are processed in parallel.
 
-You should specify at least one command and one target. Buildozer will execute
-all commands on all targets. Commands are executed in order, files are processed
-in parallel.
+When `-f FILE` is used instead of literal commands, buildozer reads commands
+from `FILE`. `FILE` can be `-`, in which case commands are read from the
+standard input.
+
+The format of the command file is as follows: Empty lines and lines beginning
+with `#` are ignored (including leading whitespace). Non-ignored lines consist
+of `|`-separated sets of commands and labels:
+
+```shell
+command arg arg...|command arg arg...|...|label|label|...
+```
+
+(In fact, commands and labels can appear interleaved in arbitrary order.) `|`
+characters in commands can be escaped like `\|`, but double null bytes
+(`\x00\x00`) are not valid in command files. See below for special handling of
+labels to allow reading from the standard input. When a line in a command file
+uses the single label '*', then the command(s) will be applied to all elements
+of the list `label...` from the command line.
 
 ### Targets
 
@@ -46,8 +62,10 @@ macros.
   * Use percent to refer to all rules of a certain kind: `//pkg:%java_library`
   * Use percent-and-number to refer to a rule that begins at a certain line:
    `//pkg:%123`.
-  * Use `-` for the package name if you want to process standard input stream
-   instead of a file: `-:all_tests`.
+  * Use the special package name `-` to read the BUILD file from the standard
+    input instead of from a local file in the package directory: `-:all_tests`.
+    (It is presumably not useful to both use a `-` package name and use the `-f
+    -` flag to read commands from the standard input.)
 
 ### Options
 
@@ -131,6 +149,8 @@ Buildozer supports the following commands(`'command args'`):
   * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
   * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
     dict attribute `attr`.
+  * `format`: Force formatting of all files, even if they were not changed by
+    other commands.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.
@@ -144,6 +164,7 @@ A transformation can be applied to all rules of a particular kind by using
 
 The following commands only apply to `MODULE.bazel` files (e.g. the target
 `//MODULE.bazel:all`):
+
   * `use_repo_add <use_extension variable name> <repo(s)>`:
     Ensures that the given repositories are imported via `use_repo` for the
     extension for which the given top-level variable contains the return value
@@ -285,10 +306,8 @@ bazel query --output=build //path/to/BUILD
 
 ## Do multiple changes at once
 
-Use `buildozer -f <file>` to load a list of commands from a file. The usage is
-just like arguments on the command-line, except that arguments are separated by
-`|`. Lines that start with `#` are ignored. `|`s in commands can be escaped like
-`\|`, but double null bytes (`\x00\x00`) are not valid in command files.
+Use `buildozer -f <file>` to load a list of commands and labels from a file (see
+[Usage](#usage) above).
 
 ```shell
 $ cat /tmp/cmds
@@ -304,6 +323,29 @@ fixed //buildtools/buildozer/BUILD
 The list of commands will typically be generated and can be large. This is
 efficient: Commands are grouped so that each file is modified once. Files are
 processed in parallel.
+
+Alternatively, BUILD files can be read from the standard input and written to
+the standard output, by using the `-` package name:
+
+```shell
+$ cat /tmp/cmds
+add deps //base //strings|-:foo|-:bar
+
+$ cat some/path/BUILD | buildozer -f /tmp/cmds
+```
+
+This writes the result of updating the `:foo` and `:bar` targets in the input
+BUILD file to the standard output.
+
+Buildozer commands can be made executable by means of a shebang line, too:
+
+```shell
+#!/usr/bin/env -S buildozer -f
+#
+# Adds //base and //string dependencies to :foo and :bar.
+
+add deps //base //strings|-:foo|-:bar
+```
 
 ## Error code
 

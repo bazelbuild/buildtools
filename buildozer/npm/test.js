@@ -1,6 +1,6 @@
 const dir = require('path').join(
     process.env['TEST_SRCDIR'],
-    process.env['BAZEL_WORKSPACE'],
+    process.env['JS_BINARY__WORKSPACE'],
     'buildozer/npm/buildozer');
 process.chdir(dir);
 const {stderr} = require('child_process').spawnSync(

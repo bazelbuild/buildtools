@@ -159,36 +159,49 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	switch len(env.Args) {
 	case 0: // Print rule comment.
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(env.Rule.Call.Comments.Before)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(env.Rule.Call.Comments.Before)}},
 		}
 		if text := commentsText(env.Rule.Call.Comments.Suffix); text != "" {
-			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: text},
+			})
 		}
 		if text := commentsText(env.Rule.Call.Comments.After); text != "" {
-			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: text},
+			})
 		}
 	case 1: // Print attribute comment.
 		attr := env.Rule.AttrDefn(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		comments := append(attr.Before, attr.Suffix...)
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(comments)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(comments)}},
 		}
 	case 2: // Print comment of a specific value in a list.
 		attr := env.Rule.Attr(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		value := env.Args[1]
 		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING_LIST_ITEM}},
+			}
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
 		comments := append(expr.Comments.Before, expr.Comments.Suffix...)
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(comments)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(comments)}},
 		}
 	default:
 		panic("cmdPrintComment")
@@ -235,7 +248,7 @@ func cmdNew(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	call := &build.CallExpr{X: &build.Ident{Name: kind}}
-	rule := &build.Rule{call, ""}
+	rule := &build.Rule{Call: call, ImplicitName: ""}
 	rule.SetAttr("name", &build.StringExpr{Value: name})
 
 	if addAtEOF {
@@ -326,44 +339,66 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 	for i, str := range format {
 		value := env.Rule.Attr(str)
 		if str == "kind" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Kind()}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.Rule.Kind()},
+			}
 		} else if str == "name" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Name()}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.Rule.Name()},
+			}
 		} else if str == "label" {
 			if env.Rule.Name() != "" {
 				label := labels.Label{Package: env.Pkg, Target: env.Rule.Name()}
-				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{label.Format()}}
+				fields[i] = &apipb.Output_Record_Field{
+					Value: &apipb.Output_Record_Field_Text{Text: label.Format()},
+				}
 			} else {
 				return nil, nil
 			}
 		} else if str == "rule" {
 			fields[i] = &apipb.Output_Record_Field{
-				Value: &apipb.Output_Record_Field_Text{build.FormatString(env.Rule.Call)},
+				Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(env.Rule.Call)},
 			}
 		} else if str == "startline" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.ListStart.Line)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Number{Number: int32(env.Rule.Call.ListStart.Line)},
+			}
 		} else if str == "endline" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.End.Pos.Line)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Number{Number: int32(env.Rule.Call.End.Pos.Line)},
+			}
 		} else if str == "path" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.File.Path}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.File.Path},
+			}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
 				env.Pkg, env.Rule.Name(), str)
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING},
+			}
 		} else if lit, ok := value.(*build.LiteralExpr); ok {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Token}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: lit.Token},
+			}
 		} else if lit, ok := value.(*build.Ident); ok {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Name}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: lit.Name},
+			}
 		} else if string, ok := value.(*build.StringExpr); ok {
 			fields[i] = &apipb.Output_Record_Field{
-				Value:             &apipb.Output_Record_Field_Text{string.Value},
+				Value:             &apipb.Output_Record_Field_Text{Text: string.Value},
 				QuoteWhenPrinting: true,
 			}
 		} else if strList := env.Rule.AttrStrings(str); strList != nil {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}},
+			}
 		} else {
 			// Some other Expr we haven't listed above. Just print it.
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{build.FormatString(value)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(value)},
+			}
 		}
 	}
 
@@ -813,6 +848,11 @@ func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdFormat(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Force formatting by not returning a nil *build.File.
+	return env.File, nil
+}
+
 func isExtensionLabel(arg string) bool {
 	// Labels referencing extensions are either absolute or repo-absolute. Repository names are not
 	// allowed to contain "@" or "/".
@@ -868,6 +908,7 @@ var AllCommands = map[string]CommandInfo{
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
 	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
 	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":            {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{
@@ -1347,23 +1388,17 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 			} else {
 				line[i] = value.Text
 			}
-			break
 		case *apipb.Output_Record_Field_Number:
 			line[i] = strconv.Itoa(int(value.Number))
-			break
 		case *apipb.Output_Record_Field_Error:
 			switch value.Error {
 			case apipb.Output_Record_Field_UNKNOWN:
 				line[i] = "(unknown)"
-				break
 			case apipb.Output_Record_Field_MISSING:
 				line[i] = "(missing)"
-				break
 			}
-			break
 		case *apipb.Output_Record_Field_List:
 			line[i] = fmt.Sprintf("[%s]", strings.Join(value.List.Strings, " "))
-			break
 		}
 	}
 

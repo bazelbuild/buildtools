@@ -1,30 +1,11 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
-load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
 
 copy_file(
     name = "copy_LICENSE",
     src = "//:LICENSE",
     out = "LICENSE",
-)
-
-tsc(
-    name = "compile_ts",
-    outs = [
-        "index.d.ts",
-        "index.js",
-    ],
-    args = [
-        "$(execpath index.ts)",
-        "--outDir $(RULEDIR)",
-        "--target es2015",
-        "--module commonjs",
-        "--declaration",
-    ],
-    data = [
-        "index.ts",
-        "@buildozer_npm_deps//@types/node",
-    ],
 )
 
 genrule(
@@ -59,24 +40,23 @@ _PARENT_PACKAGE_FILES = [
     for s in _PARENT_PACKAGE_FILES
 ]
 
-pkg_npm(
-    name = "buildozer",
-    package_name = "@bazel/buildozer",
-    srcs = [
-        "package.json",
-    ],
-    substitutions = {
-        "0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}",
-    },
-    deps = [
-        "LICENSE",
-        "buildozer.js",
-        "index.d.ts",
-        "index.js",
-    ] + _PARENT_PACKAGE_FILES,
+stamped_package_json(
+    name = "package",
+    stamp_var = "BUILD_SCM_VERSION",
 )
 
-nodejs_test(
+npm_package(
+    name = "buildozer",
+    srcs = [
+        "LICENSE",
+        "buildozer.js",
+        "index.js",
+        ":package",
+    ] + _PARENT_PACKAGE_FILES,
+    package = "@bazel/buildozer",
+)
+
+js_test(
     name = "integration_test",
     data = [":buildozer"],
     entry_point = "test.js",

@@ -132,7 +132,7 @@ func ExampleFlagSet() {
 	// path: assume BUILD file has this path relative to the workspace directory ("")
 	// r: find starlark files recursively ("false")
 	// tables: path to JSON file with custom table definitions which will replace the built-in tables ("")
-	// type: Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), default (for generic Starlark files) or auto (default, based on the filename) ("auto")
+	// type: Input file type: build (for BUILD files), bzl (for .bzl files), workspace (for WORKSPACE files), module (for MODULE.bazel files), default (for generic Starlark files) or auto (default, based on the filename) ("auto")
 	// v: print verbose information to standard error ("false")
 	// version: print the version of buildifier ("false")
 	// warnings: comma-separated warnings used in the lint mode or "all" ("")
@@ -335,7 +335,7 @@ func TestValidate(t *testing.T) {
 			// "native-proto",
 			// "native-py",
 			"no-effect",
-			// "out-of-order-load",
+			"out-of-order-load",
 			"output-group",
 			"overly-nested-depset",
 			"package-name",
@@ -357,7 +357,7 @@ func TestValidate(t *testing.T) {
 			// "unsorted-dict-items",
 			"unused-variable",
 		}},
-		"warnings plus/minus": {options: "--warnings=+out-of-order-load,-print,-deprecated-function", wantWarnings: []string{
+		"warnings plus/minus": {options: "--warnings=+native-cc,-print,-deprecated-function", wantWarnings: []string{
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -394,12 +394,12 @@ func TestValidate(t *testing.T) {
 			"name-conventions",
 			// "native-android",
 			"native-build",
-			// "native-cc",
 			// "native-java",
 			"native-package",
 			// "native-proto",
 			// "native-py",
 			"no-effect",
+			"out-of-order-load",
 			"output-group",
 			"overly-nested-depset",
 			"package-name",
@@ -420,9 +420,9 @@ func TestValidate(t *testing.T) {
 			"unreachable",
 			// "unsorted-dict-items",
 			"unused-variable",
-			"out-of-order-load",
+			"native-cc",
 		}},
-		"warnings error": {options: "--warnings=out-of-order-load,-print,-deprecated-function", wantErr: fmt.Errorf(`warning categories with modifiers ("+" or "-") can't be mixed with raw warning categories`)},
+		"warnings error": {options: "--warnings=native-cc,-print,-deprecated-function", wantErr: fmt.Errorf(`warning categories with modifiers ("+" or "-") can't be mixed with raw warning categories`)},
 	} {
 		t.Run(name, func(t *testing.T) {
 			c := New()

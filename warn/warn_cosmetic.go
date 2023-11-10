@@ -102,34 +102,93 @@ func sameOriginLoadWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+// packageOnTopWarning hoists package statements to the top after any comments / docstrings / load statements.
+// If applied together with loadOnTopWarning and/or outOfOrderLoadWarning, it should be applied after them.
+// This is currently guaranteed by sorting the warning categories names before applying them:
+// "load-on-top" < "out-of-order-load" < "package-on-top"
 func packageOnTopWarning(f *build.File) []*LinterFinding {
-	seenRule := false
-	for _, stmt := range f.Stmt {
+	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule {
+		// Not applicable to WORKSPACE or MODULE files
+		return nil
+	}
+
+	// Find the misplaced load statements
+	misplacedPackages := make(map[int]*build.CallExpr)
+	firstStmtIndex := -1 // index of the first seen non string, comment or load statement
+	for i := 0; i < len(f.Stmt); i++ {
+		stmt := f.Stmt[i]
+
+		// Assign statements may define variables that are used by the package statement,
+		// e.g. visibility declarations. To avoid false positive detections and also
+		// for keeping things simple, the warning should be just suppressed if there's
+		// any assignment statement, even if it's not used by the package declaration.
+		if _, ok := stmt.(*build.AssignExpr); ok {
+			break
+		}
+
 		_, isString := stmt.(*build.StringExpr) // typically a docstring
 		_, isComment := stmt.(*build.CommentBlock)
-		_, isAssignExpr := stmt.(*build.AssignExpr) // e.g. variable declaration
 		_, isLoad := stmt.(*build.LoadStmt)
+		_, isLicenses := edit.ExprToRule(stmt, "licenses")
 		_, isPackageGroup := edit.ExprToRule(stmt, "package_group")
-		_, isLicense := edit.ExprToRule(stmt, "licenses")
-		if isString || isComment || isAssignExpr || isLoad || isPackageGroup || isLicense || stmt == nil {
+		if isString || isComment || isLoad || isLicenses || isPackageGroup || stmt == nil {
 			continue
 		}
-		if rule, ok := edit.ExprToRule(stmt, "package"); ok {
-			if !seenRule { // OK: package is on top of the file
-				return nil
+		rule, ok := edit.ExprToRule(stmt, "package")
+		if !ok {
+			if firstStmtIndex == -1 {
+				firstStmtIndex = i
 			}
-			return []*LinterFinding{makeLinterFinding(rule.Call,
-				"Package declaration should be at the top of the file, after the load() statements, "+
-					"but before any call to a rule or a macro. "+
-					"package_group() and licenses() may be called before package().")}
+			continue
 		}
-		seenRule = true
+		if firstStmtIndex == -1 {
+			continue
+		}
+		misplacedPackages[i] = rule.Call
 	}
-	return nil
+	offset := len(misplacedPackages)
+	if offset == 0 {
+		return nil
+	}
+
+	// Calculate a fix:
+	if firstStmtIndex == -1 {
+		firstStmtIndex = 0
+	}
+	var replacements []LinterReplacement
+	for i := range f.Stmt {
+		if i < firstStmtIndex {
+			// Docstring or comment or load in the beginning, skip
+			continue
+		} else if _, ok := misplacedPackages[i]; ok {
+			// A misplaced load statement, should be moved up to the `firstStmtIndex` position
+			replacements = append(replacements, LinterReplacement{&f.Stmt[firstStmtIndex], f.Stmt[i]})
+			firstStmtIndex++
+			offset--
+			if offset == 0 {
+				// No more statements should be moved
+				break
+			}
+		} else {
+			// An actual statement (not a docstring or a comment in the beginning), should be moved
+			// `offset` positions down.
+			replacements = append(replacements, LinterReplacement{&f.Stmt[i+offset], f.Stmt[i]})
+		}
+	}
+
+	var findings []*LinterFinding
+	for _, load := range misplacedPackages {
+		findings = append(findings, makeLinterFinding(load,
+			"Package declaration should be at the top of the file, after the load() statements, "+
+					"but before any call to a rule or a macro. "+
+					"package_group() and licenses() may be called before package().", replacements...))
+	}
+
+	return findings
 }
 
 func loadOnTopWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule{
+	if f.Type == build.TypeWorkspace || f.Type == build.TypeModule {
 		// Not applicable to WORKSPACE or MODULE files
 		return nil
 	}
@@ -191,6 +250,34 @@ func loadOnTopWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+// comparePaths compares two strings as if they were paths (the path delimiter,
+// '/', should be treated as smallest symbol).
+func comparePaths(path1, path2 string) bool {
+	if path1 == path2 {
+		return false
+	}
+
+	chunks1 := strings.Split(path1, "/")
+	chunks2 := strings.Split(path2, "/")
+
+	for i, chunk1 := range chunks1 {
+		if i >= len(chunks2) {
+			return false
+		}
+		chunk2 := chunks2[i]
+		// Compare case-insensitively
+		chunk1Lower := strings.ToLower(chunk1)
+		chunk2Lower := strings.ToLower(chunk2)
+		if chunk1Lower != chunk2Lower {
+			return chunk1Lower < chunk2Lower
+		}
+	}
+
+	// No case-insensitive difference detected. Likely the difference is just in
+	// the case of some symbols, compare case-sensitively for the determinism.
+	return path1 <= path2
+}
+
 // compareLoadLabels compares two module names
 // If one label has explicit repository path (starts with @), it goes first
 // If the packages are different, labels are sorted by package name (empty package goes first)
@@ -221,7 +308,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 
 	// in case both packages are the same, use file names to break ties
 	if package1 == package2 {
-		return filename1 < filename2
+		return comparePaths(filename1, filename2)
 	}
 
 	// in case one of the packages is empty, the empty one goes first
@@ -230,7 +317,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 	}
 
 	// both packages are non-empty and not equal, so compare them
-	return package1 < package2
+	return comparePaths(package1, package2)
 }
 
 // outOfOrderLoadWarning only sorts consequent chunks of load statements. If applied together with
