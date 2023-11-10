@@ -187,6 +187,7 @@ var TypeOf = map[string]buildpb.Attribute_Discriminator{
 	"default_hdrs_check":	buildpb.Attribute_STRING,
 	"default_ios_sdk_version":	buildpb.Attribute_STRING,
 	"default_macos_sdk_version":	buildpb.Attribute_STRING,
+	"default_package_metadata":	buildpb.Attribute_LABEL_LIST,
 	"default_properties":	buildpb.Attribute_LABEL,
 	"default_testonly":	buildpb.Attribute_BOOLEAN,
 	"default_tvos_sdk_version":	buildpb.Attribute_STRING,
