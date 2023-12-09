@@ -66,6 +66,9 @@ prox9 = use_extension(
 prox9.use(label = "@name//:bar")
 prox10 = use_extension("@dep//:extensions.bzl", "other_ext", dev_dependency = bool(1))
 prox10.use(dict = {"foo": "bar"})
+prox11 = use_extension("extension.bzl", "ext")
+prox12 = use_extension(":extension.bzl", "ext")
+prox13 = use_extension("//:extension.bzl", "ext")
 `
 
 func TestProxies(t *testing.T) {
@@ -138,6 +141,13 @@ func TestProxies(t *testing.T) {
 			"other_ext",
 			true,
 			[]string{"prox10"},
+		},
+		{
+			proxiesModuleRepoNameHeader + proxiesBody,
+			[]string{"//:extension.bzl", "@//:extension.bzl"},
+			"ext",
+			false,
+			[]string{"prox11", "prox12", "prox13"},
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
