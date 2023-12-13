@@ -55,6 +55,8 @@ func isExecutable(fi os.FileInfo) bool {
 var repoRootFiles = map[string]func(os.FileInfo) bool{
 	workspaceFile:            isFile,
 	workspaceFile + ".bazel": isFile,
+	"MODULE.bazel":           isFile,
+	"REPO.bazel":             isFile,
 	".buckconfig":            isFile,
 	"pants":                  isExecutable,
 }
