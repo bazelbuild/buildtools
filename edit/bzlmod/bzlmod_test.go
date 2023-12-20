@@ -69,6 +69,8 @@ prox10.use(dict = {"foo": "bar"})
 prox11 = use_extension("extension.bzl", "ext")
 prox12 = use_extension(":extension.bzl", "ext")
 prox13 = use_extension("//:extension.bzl", "ext")
+prox14 = use_extension("@name//:extension.bzl", "ext")
+prox15 = use_extension("@repo_name//:extension.bzl", "ext")
 `
 
 func TestProxies(t *testing.T) {
@@ -143,11 +145,18 @@ func TestProxies(t *testing.T) {
 			[]string{"prox10"},
 		},
 		{
+			proxiesModuleNameHeader + proxiesBody,
+			[]string{"//:extension.bzl", "@//:extension.bzl"},
+			"ext",
+			false,
+			[]string{"prox11", "prox12", "prox13", "prox14"},
+		},
+		{
 			proxiesModuleRepoNameHeader + proxiesBody,
 			[]string{"//:extension.bzl", "@//:extension.bzl"},
 			"ext",
 			false,
-			[]string{"prox11", "prox12", "prox13"},
+			[]string{"prox11", "prox12", "prox13", "prox15"},
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
