@@ -440,7 +440,7 @@ func movePackageDeclarationToTheTop(f *build.File) bool {
 	return true
 }
 
-// moveToPackage is an auxiliary function used by moveLicensesAndDistribs.
+// moveToPackage is an auxiliary function used by moveLicenses.
 // The function shouldn't appear more than once in the file (depot cleanup has
 // been done).
 func moveToPackage(f *build.File, attrname string) bool {
@@ -461,14 +461,12 @@ func moveToPackage(f *build.File, attrname string) bool {
 	return fixed
 }
 
-// moveLicensesAndDistribs replaces the 'licenses' and 'distribs' functions
-// with an attribute in package.
+// moveLicenses replaces the 'licenses' function with an attribute
+// in package.
 // Before:  licenses(["notice"])
 // After:   package(licenses = ["notice"])
-func moveLicensesAndDistribs(f *build.File) bool {
-	fixed1 := moveToPackage(f, "licenses")
-	fixed2 := moveToPackage(f, "distribs")
-	return fixed1 || fixed2
+func moveLicenses(f *build.File) bool {
+	return moveToPackage(f, "licenses")
 }
 
 // AllRuleFixes is a list of all Buildozer fixes that can be applied on a rule.
@@ -511,8 +509,6 @@ var FileLevelFixes = []struct {
 		"Prefer '+=' over 'extend' or 'append'"},
 	{"unusedLoads", cleanUnusedLoads,
 		"Remove unused symbols from load statements"},
-	{"moveLicensesAndDistribs", moveLicensesAndDistribs,
-		"Move licenses and distribs to the package function"},
 }
 
 // FixRule aims to fix errors in BUILD files, remove deprecated features, and
