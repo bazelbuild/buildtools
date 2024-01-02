@@ -1815,6 +1815,15 @@ in='load("/foo/bar", "x")
 load("/foo/bar", "x")'
 }
 
+function test_new_load_alias() {
+in='load("/foo/bar", "x")
+'
+
+  run "$in" 'new_load /baz/bam y=x' pkg/BUILD
+  assert_equals 'load("/baz/bam", y = "x")
+  load("/foo/bar", "x")'
+}
+
 function test_print_attribute_value_with_spaces() {
   in='cc_test(name = "a", deprecation = "one two three")'
   run "$in" 'print deprecation' '//pkg:a'
