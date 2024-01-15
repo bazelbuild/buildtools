@@ -1,4 +1,4 @@
-workspace(name = "com_github_bazelbuild_buildtools")
+workspace(name = "buildtools")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -72,7 +72,7 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
-load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
+load("//buildifier:deps.bzl", "buildifier_dependencies")
 
 buildifier_dependencies()
 

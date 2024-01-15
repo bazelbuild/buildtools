@@ -13,5 +13,3 @@ try-import %workspace%/.bazelrc.user
 # https://github.com/bazelbuild/buildtools/issues/1204
 common --noenable_bzlmod
 
-build --cxxopt=-std=c++14
-build --host_cxxopt=-std=c++14
