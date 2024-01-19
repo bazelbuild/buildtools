@@ -485,6 +485,7 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "bzl-visibility",
                     "actionable": true,
+                    "autoFixable": false,
                     "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json/to_fix.bzl\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility"
                 },
@@ -499,6 +500,7 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "integer-division",
                     "actionable": true,
+                    "autoFixable": true,
                     "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
                 },
@@ -513,6 +515,7 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "attr-cfg",
                     "actionable": true,
+                    "autoFixable": true,
                     "message": "cfg = \"data\" for attr definitions has no effect and should be removed.",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg"
                 }
