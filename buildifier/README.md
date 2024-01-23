@@ -79,7 +79,7 @@ type).
 
 See also the [full list](../WARNINGS.md) or the supported warnings.
 
-## Setup and usage via Bazel (not supported on Windows)
+## Setup and usage via Bazel
 
 You can also invoke buildifier via the Bazel rule.
 `WORKSPACE` file:
