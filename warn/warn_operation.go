@@ -30,7 +30,7 @@ func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "Dictionary concatenation is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.BinaryExpr:
@@ -52,6 +52,48 @@ func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+// Detect the patterns:
+//
+//	dict.pop(..., default = ...)
+//	dict.pop(..., default = ...)
+//	dict.setdefault(..., default = ...)
+//
+// And recommend removing the `default =` part. These functions take positional argument instead.
+func dictMethodNamedArgWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	types := DetectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+
+		var callexpr *build.CallExpr
+		var ok bool
+		if callexpr, ok = expr.(*build.CallExpr); !ok {
+			return
+		}
+		var dotexpr *build.DotExpr
+		if dotexpr, ok = callexpr.X.(*build.DotExpr); !ok || types[dotexpr.X] != Dict {
+			return
+		}
+
+		if dotexpr.Name != "pop" && dotexpr.Name != "get" && dotexpr.Name != "setdefault" {
+			return
+		}
+
+		for _, expr := range callexpr.List {
+			assignExpr, ok := expr.(*build.AssignExpr)
+			if !ok {
+				continue
+			}
+			if left, ok := assignExpr.LHS.(*build.Ident); !ok || left.Name != "default" {
+				continue
+			}
+			findings = append(findings,
+				makeLinterFinding(expr, "Named argument \"default\" not allowed, use a positional (unnamed) argument"))
+		}
+	})
+	return findings
+}
+
 func stringIterationWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
@@ -60,7 +102,7 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "String iteration is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.ForStmt:
@@ -99,10 +141,14 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 func integerDivisionWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.BinaryExpr:
 			if expr.Op != "/" {
+				return
+			}
+			if types[expr.X] != Int || types[expr.Y] != Int {
 				return
 			}
 			newBinary := *expr
@@ -113,6 +159,9 @@ func integerDivisionWarning(f *build.File) []*LinterFinding {
 
 		case *build.AssignExpr:
 			if expr.Op != "/=" {
+				return
+			}
+			if types[expr.LHS] != Int || types[expr.RHS] != Int {
 				return
 			}
 			newAssign := *expr

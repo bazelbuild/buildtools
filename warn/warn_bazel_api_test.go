@@ -23,7 +23,7 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-func TestAttrConfigurationWarning(t *testing.T) {
+func TestAttrDataConfigurationWarning(t *testing.T) {
 	checkFindingsAndFix(t, "attr-cfg", `
 rule(
   attrs = {
@@ -31,15 +31,35 @@ rule(
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`, `
+attr.label_list(mandatory = True, cfg = "exec")`, `
 rule(
   attrs = {
       "foo": attr.label_list(mandatory = True),
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`,
+attr.label_list(mandatory = True, cfg = "exec")`,
 		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
+		scopeBzl)
+}
+
+func TestAttrHostConfigurationWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-cfg", `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "host"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "exec"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`,
+		[]string{`:3: cfg = "host" for attr definitions should be replaced by cfg = "exec".`},
 		scopeBzl)
 }
 
@@ -778,4 +798,37 @@ func TestProvider(t *testing.T) {
 		[]string{`1: Calls to 'provider' should provide a list of fields:`}, scopeBzl)
 	checkFindings(t, "provider-params", `p = provider()`,
 		[]string{`1: Calls to 'provider' should provide a list of fields and a documentation:`}, scopeBzl)
+}
+
+func TestAttributeNameWarning(t *testing.T) {
+	checkFindings(t, "attr-licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "license": attr.string(),
+        "licenses": attr.string(),
+    },
+)
+`, []string{
+		":6: Do not use 'licenses' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
+
+	checkFindings(t, "attr-applicable_licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "applicable_licenses": attr.string(),
+        "package_metadata": attr.string(),
+    },
+)
+`, []string{
+		":6: Do not use 'applicable_licenses' as an attribute name. It may cause unexpected behavior.",
+		":6: Do not use 'package_metadata' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
 }

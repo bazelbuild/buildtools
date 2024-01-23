@@ -24,8 +24,12 @@ import (
 	"os"
 )
 
-// ReadFile is like ioutil.ReadFile.
-func ReadFile(name string) ([]byte, os.FileInfo, error) {
+// ReadFile can be updated from the caller to change the API
+// for reading a file.
+var ReadFile = readFile
+
+// readFile is like ioutil.ReadFile.
+func readFile(name string) ([]byte, os.FileInfo, error) {
 	fi, err := os.Stat(name)
 	if err != nil {
 		return nil, nil, err

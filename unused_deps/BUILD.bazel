@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "unused_deps_lib",
     srcs = [
         "jar_manifest.go",
         "unused_deps.go",
@@ -13,26 +13,26 @@ go_library(
         "main.buildScmRevision": "{STABLE_buildScmRevision}",
     },
     deps = [
-        "//build:go_default_library",
-        "//config:go_default_library",
-        "//deps_proto:go_default_library",
-        "//edit:go_default_library",
-        "//extra_actions_base_proto:go_default_library",
-        "//labels:go_default_library",
+        "//build",
+        "//config",
+        "//deps_proto",
+        "//edit",
+        "//extra_actions_base_proto",
+        "//labels",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
 
 go_binary(
     name = "unused_deps",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     visibility = ["//visibility:public"],
 )
 
 go_binary(
     name = "unused_deps-darwin",
     out = "unused_deps-darwin_amd64",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     goarch = "amd64",
     goos = "darwin",
     pure = "on",
@@ -42,7 +42,7 @@ go_binary(
 go_binary(
     name = "unused_deps-linux",
     out = "unused_deps-linux_amd64",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     goarch = "amd64",
     goos = "linux",
     pure = "on",
@@ -52,7 +52,7 @@ go_binary(
 go_binary(
     name = "unused_deps-windows",
     out = "unused_deps-windows_amd64.exe",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     goarch = "amd64",
     goos = "windows",
     pure = "on",
@@ -62,7 +62,7 @@ go_binary(
 go_binary(
     name = "unused_deps-linux-arm64",
     out = "unused_deps-linux_arm64",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     goarch = "arm64",
     goos = "linux",
     pure = "on",
@@ -72,7 +72,7 @@ go_binary(
 go_binary(
     name = "unused_deps-darwin-arm64",
     out = "unused_deps-darwin_arm64",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     goarch = "arm64",
     goos = "darwin",
     pure = "on",
@@ -83,11 +83,11 @@ go_test(
     name = "jar_manifest_test",
     size = "small",
     srcs = ["jar_manifest_test.go"],
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "unused_deps_test",
     srcs = ["jar_manifest_test.go"],
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
 )

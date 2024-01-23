@@ -17,6 +17,8 @@ limitations under the License.
 package warn
 
 import (
+	"regexp"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/bzlenv"
 )
@@ -37,6 +39,7 @@ const (
 	None
 	String
 	List
+	Float
 )
 
 func (t Type) String() string {
@@ -52,10 +55,17 @@ func (t Type) String() string {
 		"none",
 		"string",
 		"list",
+		"float",
 	}[t]
 }
 
-func detectTypes(f *build.File) map[build.Expr]Type {
+var intRegexp = regexp.MustCompile(`^([0-9]+|0[Xx][0-9A-Fa-f]+|0[Oo][0-7]+)$`)
+
+// DetectTypes tries to infer the type of expressions in the current file, using basic heuristics.
+//
+// Warning: the types inferred by the function might change in the future, as we update the
+// heuristics.
+func DetectTypes(f *build.File) map[build.Expr]Type {
 	variables := make(map[int]Type)
 	result := make(map[build.Expr]Type)
 
@@ -79,7 +89,11 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		case *build.ListExpr:
 			nodeType = List
 		case *build.LiteralExpr:
-			nodeType = Int
+			if intRegexp.MatchString(node.Token) {
+				nodeType = Int
+			} else {
+				nodeType = Float
+			}
 		case *build.Comprehension:
 			if node.Curly {
 				nodeType = Dict
@@ -89,6 +103,14 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 		case *build.CallExpr:
 			if ident, ok := (node.X).(*build.Ident); ok {
 				switch ident.Name {
+				case "bool":
+					nodeType = Bool
+				case "int":
+					nodeType = Int
+				case "float":
+					nodeType = Float
+				case "str":
+					nodeType = String
 				case "depset":
 					nodeType = Depset
 				case "dict":
@@ -178,9 +200,9 @@ func detectTypes(f *build.File) map[build.Expr]Type {
 // named parameters of functions. E.g. for `foo(x, y = z)` it visits `foo`, `x`, and `z`.
 // In the following example `x` in the last line shouldn't be recognised as int, but 'y' should:
 //
-//    x = 3
-//    y = 5
-//    foo(x = y)
+//	x = 3
+//	y = 5
+//	foo(x = y)
 func walkOnce(node build.Expr, env *bzlenv.Environment, fct func(e *build.Expr, env *bzlenv.Environment)) {
 	switch expr := node.(type) {
 	case *build.CallExpr:

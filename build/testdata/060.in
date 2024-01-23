@@ -38,17 +38,37 @@ strings = [
   r'''"""\foo''',
   r"""\foo""",
   r"""'''\foo""",
-  r"\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9\\n",
+  r"\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9\uABCD\uD800\uDFFF\U0000ABCD\U0000D800\U0000DFFF\U00110000\\n",
 
   # contain incorrect escape sequences
-  "\a'",
-  '\a"',
-  """\a'""",
-  '''\a"''',
-  "\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9",
+  "\c'",
+  '\c"',
+  """\c'""",
+  '''\c"''',
+  "\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9",
 
   # correct escape sequences
+  """\a\b\f\n\r\t\v\007\010\
+  """,
+  '''\a\b\f\n\r\t\v\007\010\
+  ''',
   """ aa\\bb\n \
   """,
   "\000\111\222",
+
+  # correct Unicode escape sequences
+  "\u0000",
+  "\u0042",
+  "\uABCD",
+  "\uFFFF",
+  "\u0123foo",
+  "\u01234567",
+  "\U00000000",
+  "\U00000042",
+  "\U0000ABCD",
+  "\U0000FFFF",
+  "\U0001F600",
+  "\U0010ABCD",
+  "\U0010ABCDfoo",
+  "\U0010ABCDEF0",
 ]

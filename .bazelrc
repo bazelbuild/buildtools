@@ -1,1 +1,15 @@
 build:release -c opt --stamp --workspace_status_command="$PWD/status.py"
+
+################################################################################
+# User bazel configuration
+################################################################################
+
+# Load from the local configuration file, if it exists. This needs to be the
+# *last* statement in the root configuration file, as the local configuration
+# file should be able to overwrite flags from the root configuration.
+try-import %workspace%/.bazelrc.user
+
+# TODO: migrate all dependencies from WORKSPACE to MODULE.bazel
+# https://github.com/bazelbuild/buildtools/issues/1204
+common --noenable_bzlmod
+

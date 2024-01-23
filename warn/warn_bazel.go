@@ -35,8 +35,10 @@ var functionsWithPositionalArguments = map[string]bool{
 }
 
 func constantGlobWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeDefault {
-		// Only applicable to Bazel files
+	switch f.Type {
+	case build.TypeBuild, build.TypeWorkspace, build.TypeBzl:
+	default:
+		// Not applicable
 		return nil
 	}
 
@@ -123,7 +125,7 @@ func nativePackageWarning(f *build.File) []*LinterFinding {
 }
 
 func duplicatedNameWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeBzl || f.Type == build.TypeDefault {
+	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 		// Not applicable to .bzl files.
 		return nil
 	}
@@ -159,7 +161,7 @@ func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding
 		return nil
 	}
 	for _, arg := range call.List {
-		if _, ok := arg.(*build.AssignExpr); ok {
+		if _, ok := arg.(*build.AssignExpr); ok || arg == nil {
 			continue
 		}
 		return makeLinterFinding(arg, "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.")

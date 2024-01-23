@@ -35,9 +35,11 @@ import (
 
 	apipb "github.com/bazelbuild/buildtools/api_proto"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/edit/bzlmod"
 	"github.com/bazelbuild/buildtools/file"
 	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/wspace"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -55,6 +57,7 @@ type Options struct {
 	Quiet             bool      // suppress informational messages.
 	EditVariables     bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
 	IsPrintingProto   bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	IsPrintingJSON    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
 	OutWriter         io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
 	ErrWriter         io.Writer // where to write error output (`os.Stderr` will be used if not specified)
 }
@@ -156,36 +159,49 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 	switch len(env.Args) {
 	case 0: // Print rule comment.
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(env.Rule.Call.Comments.Before)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(env.Rule.Call.Comments.Before)}},
 		}
 		if text := commentsText(env.Rule.Call.Comments.Suffix); text != "" {
-			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: text},
+			})
 		}
 		if text := commentsText(env.Rule.Call.Comments.After); text != "" {
-			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{text}})
+			env.output.Fields = append(env.output.Fields, &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: text},
+			})
 		}
 	case 1: // Print attribute comment.
 		attr := env.Rule.AttrDefn(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		comments := append(attr.Before, attr.Suffix...)
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(comments)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(comments)}},
 		}
 	case 2: // Print comment of a specific value in a list.
 		attr := env.Rule.Attr(env.Args[0])
 		if attr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}},
+			}
 			return nil, attrError()
 		}
 		value := env.Args[1]
 		expr := listOrSelectFind(attr, value, env.Pkg)
 		if expr == nil {
+			env.output.Fields = []*apipb.Output_Record_Field{
+				{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING_LIST_ITEM}},
+			}
 			return nil, fmt.Errorf("attribute \"%s\" has no value \"%s\"", env.Args[0], value)
 		}
 		comments := append(expr.Comments.Before, expr.Comments.Suffix...)
 		env.output.Fields = []*apipb.Output_Record_Field{
-			{Value: &apipb.Output_Record_Field_Text{commentsText(comments)}},
+			{Value: &apipb.Output_Record_Field_Text{Text: commentsText(comments)}},
 		}
 	default:
 		panic("cmdPrintComment")
@@ -232,7 +248,7 @@ func cmdNew(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	call := &build.CallExpr{X: &build.Ident{Name: kind}}
-	rule := &build.Rule{call, ""}
+	rule := &build.Rule{Call: call, ImplicitName: ""}
 	rule.SetAttr("name", &build.StringExpr{Value: name})
 
 	if addAtEOF {
@@ -323,42 +339,66 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 	for i, str := range format {
 		value := env.Rule.Attr(str)
 		if str == "kind" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Kind()}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.Rule.Kind()},
+			}
 		} else if str == "name" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{env.Rule.Name()}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.Rule.Name()},
+			}
 		} else if str == "label" {
 			if env.Rule.Name() != "" {
 				label := labels.Label{Package: env.Pkg, Target: env.Rule.Name()}
-				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{label.Format()}}
+				fields[i] = &apipb.Output_Record_Field{
+					Value: &apipb.Output_Record_Field_Text{Text: label.Format()},
+				}
 			} else {
 				return nil, nil
 			}
 		} else if str == "rule" {
 			fields[i] = &apipb.Output_Record_Field{
-				Value: &apipb.Output_Record_Field_Text{build.FormatString(env.Rule.Call)},
+				Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(env.Rule.Call)},
 			}
 		} else if str == "startline" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.ListStart.Line)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Number{Number: int32(env.Rule.Call.ListStart.Line)},
+			}
 		} else if str == "endline" {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{int32(env.Rule.Call.End.Pos.Line)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Number{Number: int32(env.Rule.Call.End.Pos.Line)},
+			}
+		} else if str == "path" {
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: env.File.Path},
+			}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
 				env.Pkg, env.Rule.Name(), str)
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING},
+			}
 		} else if lit, ok := value.(*build.LiteralExpr); ok {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Token}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: lit.Token},
+			}
 		} else if lit, ok := value.(*build.Ident); ok {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{lit.Name}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: lit.Name},
+			}
 		} else if string, ok := value.(*build.StringExpr); ok {
 			fields[i] = &apipb.Output_Record_Field{
-				Value:             &apipb.Output_Record_Field_Text{string.Value},
+				Value:             &apipb.Output_Record_Field_Text{Text: string.Value},
 				QuoteWhenPrinting: true,
 			}
 		} else if strList := env.Rule.AttrStrings(str); strList != nil {
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}},
+			}
 		} else {
 			// Some other Expr we haven't listed above. Just print it.
-			fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{build.FormatString(value)}}
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(value)},
+			}
 		}
 	}
 
@@ -375,8 +415,23 @@ func attrKeysForPattern(rule *build.Rule, pattern string) []string {
 
 func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if len(env.Args) == 1 { // Remove the attribute
-		if env.Rule.DelAttr(env.Args[0]) != nil {
-			return env.File, nil
+		if env.Args[0] == "*" {
+			didDelete := false
+			for _, attr := range env.Rule.AttrKeys() {
+				if attr == "name" {
+					continue
+				}
+				if env.Rule.DelAttr(attr) != nil {
+					didDelete = true
+				}
+			}
+			if didDelete {
+				return env.File, nil
+			}
+		} else {
+			if env.Rule.DelAttr(env.Args[0]) != nil {
+				return env.File, nil
+			}
 		}
 	} else { // Remove values in the attribute.
 		fixed := false
@@ -396,6 +451,28 @@ func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	}
 	return nil, nil
+}
+
+func cmdRemoveIfEqual(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	val := env.Args[1]
+
+	var equal bool
+	switch input := env.Rule.Attr(attr).(type) {
+	case *build.StringExpr:
+		equal = labels.Equal(input.Value, val, env.Pkg)
+	case *build.Ident:
+		equal = input.Name == val
+	default:
+		return nil, nil
+	}
+
+	if !equal {
+		return nil, nil
+	}
+
+	env.Rule.DelAttr(attr)
+	return env.File, nil
 }
 
 func cmdRemoveComment(opts *Options, env CmdEnvironment) (*build.File, error) {
@@ -572,6 +649,9 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.SplitN(x, ":", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
+		}
 		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
@@ -581,6 +661,38 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 		}
 	}
 	env.Rule.SetAttr(attr, dict)
+	return env.File, nil
+}
+
+func cmdSetSelect(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+
+	dict := &build.DictExpr{}
+
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("no value passed for last key: %s", args[len(args)-1])
+	}
+	for i := 0; i < len(args); i += 2 {
+		key := args[i]
+		value := args[i+1]
+		var expr build.Expr
+		if IsList(attr) {
+			list := &build.ListExpr{}
+			if cur := DictionaryGet(dict, key); cur != nil {
+				list = cur.(*build.ListExpr)
+			}
+			AddValueToList(list, env.Pkg, getStringExpr(value, env.Pkg), !attributeMustNotBeSorted(env.Rule.Name(), attr))
+			expr = list
+		} else {
+			expr = getStringExpr(value, env.Pkg)
+		}
+		// Set overwrites previous values.
+		DictionarySet(dict, key, expr)
+	}
+	call := &build.CallExpr{List: []build.Expr{dict}}
+	call.X = &build.Ident{Name: "select"}
+	env.Rule.SetAttr(attr, call)
 	return env.File, nil
 }
 
@@ -597,6 +709,9 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 
 	for _, x := range args {
 		kv := strings.SplitN(x, ":", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("no colon in dict_set argument %q found", x)
+		}
 		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)
@@ -676,6 +791,74 @@ func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string)
 	return env.File, nil
 }
 
+func cmdUseRepoAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_add")
+}
+
+func cmdUseRepoRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return cmdImplUseRepo(env, "use_repo_remove")
+}
+
+func cmdImplUseRepo(env CmdEnvironment, mode string) (*build.File, error) {
+	if env.File.Type != build.TypeModule {
+		return nil, fmt.Errorf("%s: only applies to MODULE.bazel files", mode)
+	}
+
+	dev := false
+	args := env.Args
+	if env.Args[0] == "dev" && isExtensionLabel(env.Args[1]) {
+		dev = true
+		args = env.Args[1:]
+	}
+
+	var proxies []string
+	var repos []string
+	if isExtensionLabel(args[0]) {
+		extBzlFile := args[0]
+		extName := args[1]
+
+		proxies = bzlmod.Proxies(env.File, extBzlFile, extName, dev)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment found for extension %q defined in %q", mode, extName, extBzlFile)
+		}
+		repos = args[2:]
+	} else {
+		proxy := args[0]
+
+		proxies = bzlmod.AllProxies(env.File, proxy)
+		if len(proxies) == 0 {
+			return nil, fmt.Errorf("%s: no use_extension assignment to variable %q found", mode, proxy)
+		}
+		repos = args[1:]
+	}
+
+	useRepos := bzlmod.UseRepos(env.File, proxies)
+	if len(useRepos) == 0 {
+		var newUseRepo *build.CallExpr
+		env.File, newUseRepo = bzlmod.NewUseRepo(env.File, proxies)
+		useRepos = []*build.CallExpr{newUseRepo}
+	}
+
+	if mode == "use_repo_add" {
+		bzlmod.AddRepoUsages(useRepos, repos...)
+	} else {
+		bzlmod.RemoveRepoUsages(useRepos, repos...)
+	}
+
+	return env.File, nil
+}
+
+func cmdFormat(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Force formatting by not returning a nil *build.File.
+	return env.File, nil
+}
+
+func isExtensionLabel(arg string) bool {
+	// Labels referencing extensions are either absolute or repo-absolute. Repository names are not
+	// allowed to contain "@" or "/".
+	return strings.HasPrefix(arg, "@") || strings.HasSuffix(arg, "//")
+}
+
 func cmdFix(opts *Options, env CmdEnvironment) (*build.File, error) {
 	// Fix the whole file
 	if env.Rule.Kind() == "package" {
@@ -710,17 +893,22 @@ var AllCommands = map[string]CommandInfo{
 	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
 	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
 	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
+	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
 	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
+	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
 	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":            {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{
@@ -809,13 +997,17 @@ func SplitOnSpaces(input string) []string {
 // parseCommands parses commands and targets they should be applied on from
 // a list of arguments.
 // Each argument can be either:
-// - a command (as defined by AllCommands) and its parameters, separated by
-//   whitespace
-// - a target all commands that are parsed during one call to parseCommands
-//   should be applied on
-func parseCommands(opts *Options, args []string) (commands []command, targets []string) {
+//   - a command (as defined by AllCommands) and its parameters, separated by
+//     whitespace
+//   - a target all commands that are parsed during one call to parseCommands
+//     should be applied on
+func parseCommands(opts *Options, args []string) (commands []command, targets []string, err error) {
 	for _, arg := range args {
 		commandTokens := SplitOnSpaces(arg)
+		if len(commandTokens) == 0 {
+			return nil, nil, fmt.Errorf("empty command list")
+		}
+
 		cmd, found := AllCommands[commandTokens[0]]
 		if found {
 			checkCommandUsage(opts, commandTokens[0], cmd, len(commandTokens)-1)
@@ -856,7 +1048,9 @@ type rewriteResult struct {
 
 // getGlobalVariables returns the global variable assignments in the provided list of expressions.
 // That is, for each variable assignment of the form
-//   a = v
+//
+//	a = v
+//
 // vars["a"] will contain the AssignExpr whose RHS value is the assignment "a = v".
 func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) {
 	vars = make(map[string]*build.AssignExpr)
@@ -885,8 +1079,10 @@ type Buildifier interface {
 	Buildify(*Options, *build.File) ([]byte, error)
 }
 
-var buildifier Buildifier = &defaultBuildifier{}
-var buildifierRegistered = false
+var (
+	buildifier           Buildifier = &defaultBuildifier{}
+	buildifierRegistered            = false
+)
 
 // RegisterBuildifier replaces the default buildifier with an
 // alternative implementation.
@@ -938,9 +1134,13 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		}
 	}
 
-	f, err := build.ParseBuild(name, data)
+	f, err := build.Parse(name, data)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{err}}
+	}
+	if f.Type == build.TypeDefault {
+		// Buildozer is unable to infer the file type, fall back to BUILD by default.
+		f.Type = build.TypeBuild
 	}
 	f.WorkspaceRoot, f.Pkg, f.Label = wspace.SplitFilePath(name)
 
@@ -953,7 +1153,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	for _, commands := range commandsForFile.commands {
 		target := commands.target
 		commands := commands.commands
-		_, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
+		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
@@ -969,7 +1169,6 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 			errs = append(errs, cerr)
 			if !opts.KeepGoing {
 				return &rewriteResult{file: name, errs: errs, records: records}
-
 			}
 		}
 		targets = filterRules(opts, targets)
@@ -1006,6 +1205,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
 	f = RemoveEmptyPackage(f)
+	f = RemoveEmptyUseRepoCalls(f)
 	ndata, err := buildifier.Buildify(opts, f)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
@@ -1040,7 +1240,7 @@ var EditFile = func(fi os.FileInfo, name string) error {
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
 func targetExpressionToBuildFiles(rootDir string, target string) []string {
-	file, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
+	file, _, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
 		if file, err = filepath.Abs(file); err != nil {
@@ -1090,8 +1290,11 @@ func findBuildFiles(rootDir string) []string {
 
 // appendCommands adds the given commands to be applied to each of the given targets
 // via the commandMap.
-func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) {
-	commands, targets := parseCommands(opts, args)
+func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, args []string) error {
+	commands, targets, err := parseCommands(opts, args)
+	if err != nil {
+		return err
+	}
 	for _, target := range targets {
 		for _, buildFileName := range BuildFileNames {
 			if strings.HasSuffix(target, filepath.FromSlash("/"+buildFileName)) {
@@ -1111,9 +1314,10 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 			commandMap[file] = append(commandMap[file], commandsForTarget{target, commands})
 		}
 	}
+	return nil
 }
 
-func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commandsForTarget, labels []string) {
+func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commandsForTarget, labels []string) error {
 	for _, fileName := range opts.CommandsFiles {
 		var reader io.Reader
 		if fileName == stdinPackageName {
@@ -1123,11 +1327,14 @@ func appendCommandsFromFiles(opts *Options, commandsByFile map[string][]commands
 			reader = rc
 			defer rc.Close()
 		}
-		appendCommandsFromReader(opts, reader, commandsByFile, labels)
+		if err := appendCommandsFromReader(opts, reader, commandsByFile, labels); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget, labels []string) {
+func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile map[string][]commandsForTarget, labels []string) error {
 	r := bufio.NewReader(reader)
 	atEOF := false
 	for !atEOF {
@@ -1137,21 +1344,37 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 			err = nil
 		}
 		if err != nil {
-			fmt.Fprintf(opts.ErrWriter, "Error while reading commands file: %v", err)
-			return
+			return fmt.Errorf("error while reading commands file: %v", err)
 		}
 		line = strings.TrimSpace(line)
 		if line == "" || line[0] == '#' {
 			continue
 		}
+		line = saveEscapedPipes(line)
 		args := strings.Split(line, "|")
+		for i, arg := range args {
+			args[i] = replaceSavedPipes(arg)
+		}
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
-			appendCommands(opts, commandsByFile, cmd)
+			if err := appendCommands(opts, commandsByFile, cmd); err != nil {
+				return err
+			}
 		} else {
-			appendCommands(opts, commandsByFile, args)
+			if err := appendCommands(opts, commandsByFile, args); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
+}
+
+func saveEscapedPipes(s string) string {
+	return strings.ReplaceAll(s, `\|`, "\x00\x00")
+}
+
+func replaceSavedPipes(s string) string {
+	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
 func printRecord(writer io.Writer, record *apipb.Output_Record) {
@@ -1165,23 +1388,17 @@ func printRecord(writer io.Writer, record *apipb.Output_Record) {
 			} else {
 				line[i] = value.Text
 			}
-			break
 		case *apipb.Output_Record_Field_Number:
 			line[i] = strconv.Itoa(int(value.Number))
-			break
 		case *apipb.Output_Record_Field_Error:
 			switch value.Error {
 			case apipb.Output_Record_Field_UNKNOWN:
 				line[i] = "(unknown)"
-				break
 			case apipb.Output_Record_Field_MISSING:
 				line[i] = "(missing)"
-				break
 			}
-			break
 		case *apipb.Output_Record_Field_List:
 			line[i] = fmt.Sprintf("[%s]", strings.Join(value.List.Strings, " "))
-			break
 		}
 	}
 
@@ -1198,12 +1415,18 @@ func Buildozer(opts *Options, args []string) int {
 	}
 	commandsByFile := make(map[string][]commandsForTarget)
 	if len(opts.CommandsFiles) > 0 {
-		appendCommandsFromFiles(opts, commandsByFile, args)
+		if err := appendCommandsFromFiles(opts, commandsByFile, args); err != nil {
+			fmt.Fprintf(opts.ErrWriter, "error: %s\n", err)
+			return 1
+		}
 	} else {
 		if len(args) == 0 {
 			Usage()
 		}
-		appendCommands(opts, commandsByFile, args)
+		if err := appendCommands(opts, commandsByFile, args); err != nil {
+			fmt.Fprintf(opts.ErrWriter, "error: %s\n", err)
+			return 1
+		}
 	}
 
 	numFiles := len(commandsByFile)
@@ -1256,6 +1479,12 @@ func Buildozer(opts *Options, args []string) int {
 			log.Fatal("marshaling error: ", err)
 		}
 		fmt.Fprintf(opts.OutWriter, "%s", data)
+	} else if opts.IsPrintingJSON {
+		marshaler := jsonpb.Marshaler{}
+		if err := marshaler.Marshal(opts.OutWriter, &apipb.Output{Records: records}); err != nil {
+			log.Fatal("json marshaling error: ", err)
+		}
+		fmt.Fprintln(opts.OutWriter)
 	} else {
 		for _, record := range records {
 			printRecord(opts.OutWriter, record)

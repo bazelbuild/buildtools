@@ -34,7 +34,7 @@ buildifier="$(rlocation "$buildifier")"
 buildifier2="$(rlocation "$buildifier2")"
 
 touch WORKSPACE.bazel
-rm -r test_dir || true
+[[ -d test_dir ]] && rm -r test_dir
 mkdir -p test_dir/subdir
 mkdir -p golden
 INPUT="load(':foo.bzl', 'foo'); foo(tags=['b', 'a'],srcs=['d', 'c'])"  # formatted differently in build and bzl modes
@@ -45,9 +45,79 @@ echo -e "$INPUT" > test_dir/subdir/build  # lowercase, should be ignored by -r
 echo -e "$INPUT" > test.bzl  # outside the test_dir directory
 echo -e "$INPUT" > test2.bzl  # outside the test_dir directory
 echo -e "not valid +" > test_dir/foo.bar
+echo -e '{ "type": "build" }' > test_dir/.buildifier.test.json # demonstrate config file works by overriding input type to format a bzl file as a BUILD file.
 mkdir test_dir/workspace  # name of a starlark file, but a directory
 mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
+cat > test_dir/MODULE.bazel <<'EOF'
+module(name='my-module',version='1.0',compatibility_level=1)
+bazel_dep(name='rules_cc',version='0.0.1')
+bazel_dep(name='protobuf',repo_name='com_google_protobuf',version='3.19.0')
+bazel_dep(
+    name='rules_go',
+    version='0.37.0',
+    repo_name='io_bazel_rules_go',
+)
+go_sdk=use_extension("@io_bazel_rules_go//go:extensions.bzl","go_sdk")
+# Known to exist since it is instantiated by rules_go itself.
+use_repo(go_sdk,"go_default_sdk")
+non_module_deps = use_extension("//internal/bzlmod:non_module_deps.bzl","non_module_deps")
+use_repo(
+    non_module_deps,
+    "bazel_gazelle_go_repository_tools",
+    "bazel_gazelle_go_repository_config",
+    "bazel_gazelle_go_repository_cache",
+)
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl","non_module_dependencies",dev_dependency=True)
+use_repo(rules_go_non_module_deps,"go_googleapis")
+go_deps  =  use_extension("//:extensions.bzl",  "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(
+    go_deps,
+    "com_github_fsnotify_fsnotify",
+    "com_github_fsnotify_fsnotify",
+    "com_github_bmatcuk_doublestar_v4",
+    "com_github_bazelbuild_buildtools",
+    "com_github_google_go_cmp",
+    "com_github_pelletier_go_toml",
+    "org_golang_x_mod",
+    "com_github_pmezard_go_difflib",
+    # Separated by comment.
+    "org_golang_x_sync",
+    "org_golang_x_tools",
+    # Used internally by the go_deps module extension.
+    "bazel_gazelle_go_repository_directives",
+    c = "a",
+    b = "b",
+    a = "c",
+)
+bazel_dep(name="foo",version="1.0")
+git_override(module_name="foo",remote="foo.git",commit="1234567890")
+bazel_dep(name="bar",version="1.0")
+archive_override(module_name="not_bar",integrity="sha256-1234567890")
+# do not sort
+use_repo(go_deps, "b", "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "b",
+    "a",
+)
+
+bazel_dep(name='prod_dep',version='3.19.0')
+bazel_dep(name='other_prod_dep',version='3.19.0',dev_dependency=False)
+bazel_dep(name='dev_dep',version='3.19.0',dev_dependency=True)
+bazel_dep(name = "weird_dep", version = "3.19.0", dev_dependency = "True" == "True")
+bazel_dep(name='yet_another_prod_dep',version='3.19.0')
+EOF
 
 cp test_dir/foo.bar golden/foo.bar
 cp test_dir/subdir/build golden/build
@@ -57,6 +127,8 @@ cp test_dir/.git/git.bzl golden/git.bzl
 "$buildifier" -r test_dir
 "$buildifier" test.bzl
 "$buildifier" --path=foo.bzl test2.bzl
+"$buildifier" --config=test_dir/.buildifier.test.json < test_dir/test.bzl > test_dir/test.bzl.BUILD.out
+"$buildifier" --config=example > test_dir/.buildifier.example.json
 "$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
 
 cat > golden/BUILD.golden <<EOF
@@ -73,15 +145,180 @@ foo(
     ],
 )
 EOF
+
 cat > golden/test.bzl.golden <<EOF
 load(":foo.bzl", "foo")
 
 foo(tags = ["b", "a"], srcs = ["d", "c"])
 EOF
 
+cat > golden/MODULE.bazel.golden <<EOF
+module(
+    name = "my-module",
+    version = "1.0",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "rules_cc", version = "0.0.1")
+bazel_dep(name = "protobuf", version = "3.19.0", repo_name = "com_google_protobuf")
+bazel_dep(
+    name = "rules_go",
+    version = "0.37.0",
+    repo_name = "io_bazel_rules_go",
+)
+
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
+
+# Known to exist since it is instantiated by rules_go itself.
+use_repo(go_sdk, "go_default_sdk")
+
+non_module_deps = use_extension("//internal/bzlmod:non_module_deps.bzl", "non_module_deps")
+use_repo(
+    non_module_deps,
+    "bazel_gazelle_go_repository_cache",
+    "bazel_gazelle_go_repository_config",
+    "bazel_gazelle_go_repository_tools",
+)
+
+rules_go_non_module_deps = use_extension("@io_bazel_rules_go//go/private:extensions.bzl", "non_module_dependencies", dev_dependency = True)
+use_repo(rules_go_non_module_deps, "go_googleapis")
+
+go_deps = use_extension("//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(
+    go_deps,
+    "com_github_bazelbuild_buildtools",
+    "com_github_bmatcuk_doublestar_v4",
+    "com_github_fsnotify_fsnotify",
+    "com_github_google_go_cmp",
+    "com_github_pelletier_go_toml",
+    "com_github_pmezard_go_difflib",
+    "org_golang_x_mod",
+    # Separated by comment.
+    "org_golang_x_sync",
+    "org_golang_x_tools",
+    # Used internally by the go_deps module extension.
+    "bazel_gazelle_go_repository_directives",
+    a = "c",
+    b = "b",
+    c = "a",
+)
+
+bazel_dep(name = "foo", version = "1.0")
+git_override(
+    module_name = "foo",
+    commit = "1234567890",
+    remote = "foo.git",
+)
+
+bazel_dep(name = "bar", version = "1.0")
+
+archive_override(
+    module_name = "not_bar",
+    integrity = "sha256-1234567890",
+)
+
+# do not sort
+use_repo(go_deps, "b", "a")
+use_repo(
+    # do not sort
+    go_deps,
+    "b",
+    "a",
+)
+use_repo(
+    go_deps,
+    # do not sort
+    "b",
+    "a",
+)
+
+bazel_dep(name = "prod_dep", version = "3.19.0")
+bazel_dep(name = "other_prod_dep", version = "3.19.0", dev_dependency = False)
+
+bazel_dep(name = "dev_dep", version = "3.19.0", dev_dependency = True)
+bazel_dep(name = "weird_dep", version = "3.19.0", dev_dependency = "True" == "True")
+
+bazel_dep(name = "yet_another_prod_dep", version = "3.19.0")
+EOF
+
+cat > golden/.buildifier.example.json <<EOF
+{
+  "type": "auto",
+  "mode": "fix",
+  "lint": "fix",
+  "warningsList": [
+    "attr-applicable_licenses",
+    "attr-cfg",
+    "attr-license",
+    "attr-licenses",
+    "attr-non-empty",
+    "attr-output-default",
+    "attr-single-file",
+    "build-args-kwargs",
+    "bzl-visibility",
+    "confusing-name",
+    "constant-glob",
+    "ctx-actions",
+    "ctx-args",
+    "deprecated-function",
+    "depset-items",
+    "depset-iteration",
+    "depset-union",
+    "dict-concatenation",
+    "dict-method-named-arg",
+    "duplicated-name",
+    "filetype",
+    "function-docstring",
+    "function-docstring-args",
+    "function-docstring-header",
+    "function-docstring-return",
+    "git-repository",
+    "http-archive",
+    "integer-division",
+    "keyword-positional-params",
+    "list-append",
+    "load",
+    "load-on-top",
+    "module-docstring",
+    "name-conventions",
+    "native-android",
+    "native-build",
+    "native-cc",
+    "native-java",
+    "native-package",
+    "native-proto",
+    "native-py",
+    "no-effect",
+    "out-of-order-load",
+    "output-group",
+    "overly-nested-depset",
+    "package-name",
+    "package-on-top",
+    "positional-args",
+    "print",
+    "provider-params",
+    "redefined-variable",
+    "repository-name",
+    "return-value",
+    "rule-impl-return",
+    "same-origin-load",
+    "skylark-comment",
+    "skylark-docstring",
+    "string-iteration",
+    "uninitialized",
+    "unnamed-macro",
+    "unreachable",
+    "unsorted-dict-items",
+    "unused-variable"
+  ]
+}
+EOF
+
 diff test_dir/BUILD golden/BUILD.golden
 diff test_dir/test.bzl golden/test.bzl.golden
 diff test_dir/subdir/test.bzl golden/test.bzl.golden
+diff test_dir/test.bzl.BUILD.out golden/BUILD.golden
 diff test_dir/subdir/build golden/build
 diff test_dir/foo.bar golden/foo.bar
 diff test.bzl golden/test.bzl.golden
@@ -89,6 +326,8 @@ diff test2.bzl golden/test.bzl.golden
 diff stdout golden/test.bzl.golden
 diff test_dir/test.bzl.out golden/test.bzl.golden
 diff test_dir/.git/git.bzl golden/git.bzl
+diff test_dir/MODULE.bazel golden/MODULE.bazel.golden
+diff test_dir/.buildifier.example.json golden/.buildifier.example.json
 
 # Test run on a directory without -r
 "$buildifier" test_dir || ret=$?
@@ -101,7 +340,8 @@ fi
 cat > test_dir/to_fix.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"b": 2, "a": 1}
 attr.foo(bar, cfg = "data")
 EOF
@@ -109,7 +349,8 @@ EOF
 cat > test_dir/fixed_golden.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b // c
+b()
+a = 1 // 2
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
@@ -117,7 +358,8 @@ EOF
 cat > test_dir/fixed_golden_all.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b // c
+b()
+a = 1 // 2
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
@@ -125,7 +367,8 @@ EOF
 cat > test_dir/fixed_golden_dict_cfg.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"a": 1, "b": 2}
 attr.foo(bar)
 EOF
@@ -133,7 +376,8 @@ EOF
 cat > test_dir/fixed_golden_cfg.bzl <<EOF
 load("//foo/bar/internal/baz:module.bzl", "b")
 
-a = b / c
+b()
+a = 1 / 2
 d = {"b": 2, "a": 1}
 attr.foo(bar)
 EOF
@@ -145,9 +389,9 @@ EOF
 
 error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
 error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
-error_integer="test_dir/to_fix_tmp.bzl:3: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
-error_dict="test_dir/to_fix_tmp.bzl:4: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
-error_cfg="test_dir/to_fix_tmp.bzl:5: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
+error_integer="test_dir/to_fix_tmp.bzl:4: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
+error_dict="test_dir/to_fix_tmp.bzl:5: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
+error_cfg="test_dir/to_fix_tmp.bzl:6: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
 
 test_lint () {
   ret=0
@@ -246,11 +490,11 @@ cat > golden/json_report_golden <<EOF
                 },
                 {
                     "start": {
-                        "line": 3,
+                        "line": 4,
                         "column": 5
                     },
                     "end": {
-                        "line": 3,
+                        "line": 4,
                         "column": 10
                     },
                     "category": "integer-division",
@@ -260,11 +504,11 @@ cat > golden/json_report_golden <<EOF
                 },
                 {
                     "start": {
-                        "line": 5,
+                        "line": 6,
                         "column": 15
                     },
                     "end": {
-                        "line": 5,
+                        "line": 6,
                         "column": 27
                     },
                     "category": "attr-cfg",

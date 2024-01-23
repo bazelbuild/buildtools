@@ -27,9 +27,13 @@ import (
 
 // unesc maps single-letter chars following \ to their actual values.
 var unesc = [256]byte{
+	'a':  '\a',
+	'b':  '\b',
+	'f':  '\f',
 	'n':  '\n',
 	'r':  '\r',
 	't':  '\t',
+	'v':  '\v',
 	'\\': '\\',
 	'\'': '\'',
 	'"':  '"',
@@ -37,9 +41,13 @@ var unesc = [256]byte{
 
 // esc maps escape-worthy bytes to the char that should follow \.
 var esc = [256]byte{
+	'\a': 'a',
+	'\b': 'b',
+	'\f': 'f',
 	'\n': 'n',
 	'\r': 'r',
 	'\t': 't',
+	'\v': 'v',
 	'\\': '\\',
 	'\'': '\'',
 	'"':  '"',
@@ -49,9 +57,15 @@ var esc = [256]byte{
 // in a string literal
 var escapable = [256]bool{
 	'\n': true,
+	'a':  true,
+	'b':  true,
+	'f':  true,
 	'n':  true,
 	'r':  true,
 	't':  true,
+	'u':  true,
+	'U':  true,
+	'v':  true,
 	'x':  true,
 	'\'': true,
 	'\\': true,
@@ -138,7 +152,7 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 			// Ignore the escape and the line break.
 			quoted = quoted[2:]
 
-		case 'n', 'r', 't', '\\', '\'', '"':
+		case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'', '"':
 			// One-char escape
 			buf.WriteByte(unesc[quoted[1]])
 			quoted = quoted[2:]
@@ -162,6 +176,46 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 				return
 			}
 			buf.WriteByte(byte(n))
+
+		case 'u':
+			// Unicode escape, exactly 4 digits for a 16-bit Unicode code point.
+			if len(quoted) < 6 {
+				err = fmt.Errorf(`truncated escape sequence %s`, quoted)
+				return
+			}
+			n, err1 := strconv.ParseInt(quoted[2:6], 16, 0)
+			if err1 != nil {
+				err = fmt.Errorf(`invalid escape sequence %s`, quoted[:6])
+				return
+			}
+			if n >= 0xD800 && n <= 0xDFFF {
+				err = fmt.Errorf(`invalid dangling surrogate %s`, quoted[:6])
+				return
+			}
+			buf.WriteRune(rune(n))
+			quoted = quoted[6:]
+
+		case 'U':
+			// Unicode escape, exactly 8 digits for a 16-bit Unicode code point.
+			if len(quoted) < 10 {
+				err = fmt.Errorf(`truncated escape sequence %s`, quoted)
+				return
+			}
+			n, err1 := strconv.ParseInt(quoted[2:10], 16, 0)
+			if err1 != nil {
+				err = fmt.Errorf(`invalid escape sequence %s`, quoted[:10])
+				return
+			}
+			if n >= 0xD800 && n <= 0xDFFF {
+				err = fmt.Errorf(`invalid dangling surrogate %s`, quoted[:10])
+				return
+			}
+			if n > 0x10FFFF {
+				err = fmt.Errorf(`Unicode value out of range %s`, quoted[:10])
+				return
+			}
+			buf.WriteRune(rune(n))
+			quoted = quoted[10:]
 
 		case 'x':
 			// Hexadecimal escape, exactly 2 digits.

@@ -55,6 +55,7 @@ var (
 	quiet             = flag.Bool("quiet", false, "suppress informational messages")
 	editVariables     = flag.Bool("edit-variables", false, "For attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.")
 	isPrintingProto   = flag.Bool("output_proto", false, "output serialized devtools.buildozer.Output protos instead of human-readable strings.")
+	isPrintingJSON    = flag.Bool("output_json", false, "output serialized devtools.buildozer.Output json instead of human-readable strings.")
 	tablesPath        = flag.String("tables", "", "path to JSON file with custom table definitions which will replace the built-in tables")
 	addTablesPath     = flag.String("add_tables", "", "path to JSON file with custom table definitions which will be merged with the built-in tables")
 
@@ -118,6 +119,7 @@ func main() {
 		Quiet:             *quiet,
 		EditVariables:     *editVariables,
 		IsPrintingProto:   *isPrintingProto,
+		IsPrintingJSON:    *isPrintingJSON,
 	}
 	os.Exit(edit.Buildozer(opts, flag.Args()))
 }

@@ -118,13 +118,20 @@ func TestWarnSameOriginLoad(t *testing.T) {
 }
 
 func TestPackageOnTop(t *testing.T) {
-	checkFindings(t, "package-on-top", `
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
 my_macro(name = "foo")
 package()`,
+		`
+package()
+my_macro(name = "foo")`,
 		[]string{":2: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
-		scopeEverywhere)
+		scopeDefault|scopeBzl|scopeBuild)
 
-	checkFindings(t, "package-on-top", `
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
 # Some comments
 
 """This is a docstring"""
@@ -134,10 +141,104 @@ load(":bar.bzl", baz = "bar")
 
 package()
 
-foo(baz)
-`,
+foo(baz)`,
+		`
+# Some comments
+
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+package()
+
+foo(baz)`,
 		[]string{},
-		scopeEverywhere)
+		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+# Some comments
+
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+package_group(name = "my_group")
+licenses(["my_license"])
+foo(baz)
+package()`,
+		`
+# Some comments
+
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+package_group(name = "my_group")
+licenses(["my_license"])
+
+package()
+foo(baz)`,
+		[]string{":11: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
+		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+VISIBILITY = baz
+
+foo()
+
+package(default_visibility = VISIBILITY)`,
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+VISIBILITY = baz
+
+foo()
+
+package(default_visibility = VISIBILITY)`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
+
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		`
+"""This is a docstring"""
+
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
+
+irrelevant = baz
+
+foo()
+
+package()`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestLoadOnTop(t *testing.T) {
@@ -277,12 +378,18 @@ load(":a.bzl", "a")`,
 		[]string{}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo:xyz.bzl", "xyz")
-load("//foo/bar:mno.bzl", "mno")
+load("//foo-bar:xyz.bzl", "xyz")
+load("//foo/bar:baz/mno.bzl", "mno")
+load("//foo/bar-baz:mno/prs.bzl", "prs")
+load("//foo/bar-baz:mno-prs.bzl", "prs")
 `, `
-load("//foo:xyz.bzl", "xyz")
-load("//foo/bar:mno.bzl", "mno")`,
-		[]string{}, scopeEverywhere)
+load("//foo/bar:baz/mno.bzl", "mno")
+load("//foo/bar-baz:mno/prs.bzl", "prs")
+load("//foo/bar-baz:mno-prs.bzl", "prs")
+load("//foo-bar:xyz.bzl", "xyz")`,
+		[]string{
+			"2: Load statement is out of its lexicographical order.",
+		}, scopeEverywhere)
 
 	checkFindingsAndFix(t, "out-of-order-load", `
 load("//foo:xyz.bzl", "xyz")
@@ -300,6 +407,25 @@ load("//foo:a.bzl", "a")
 load("//foo:b.bzl", "b")`,
 		[]string{
 			":2: Load statement is out of its lexicographical order.",
+		}, scopeEverywhere)
+
+	checkFindingsAndFix(t, "out-of-order-load", `
+load("//Foo:aaa.bzl", "bar1")
+load("//Foo:Bbb.bzl", "bar2")
+load("//Foo:BBB.bzl", "bar3")
+load("//bar/Baz2:bar.bzl", "bar4")
+load("//bar/baz1:bar.bzl", "bar5")
+
+`, `
+load("//bar/baz1:bar.bzl", "bar5")
+load("//bar/Baz2:bar.bzl", "bar4")
+load("//Foo:aaa.bzl", "bar1")
+load("//Foo:BBB.bzl", "bar3")
+load("//Foo:Bbb.bzl", "bar2")`,
+		[]string{
+			":3: Load statement is out of its lexicographical order.",
+			":4: Load statement is out of its lexicographical order.",
+			":5: Load statement is out of its lexicographical order.",
 		}, scopeEverywhere)
 }
 

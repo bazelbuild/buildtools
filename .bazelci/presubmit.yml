@@ -3,15 +3,21 @@ buildifier:
   version: latest
   warnings: "default"
 platforms:
-  ubuntu1604:
-    test_targets:
-    - "//:tests"
   ubuntu1804:
     test_targets:
-    - "//:tests"
+    - "//..."
+  ubuntu2004:
+    test_targets:
+    - "//..."
+  ubuntu2204:
+    test_targets:
+    - "//..."
   macos:
     test_targets:
-    - "//:tests"
+    - "//..."
+  macos_arm64:
+    test_targets:
+    - "//..."
   windows:
     test_flags:
     - "--enable_runfiles"

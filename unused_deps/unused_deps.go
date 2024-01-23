@@ -45,6 +45,7 @@ var (
 	buildScmRevision = "redacted"
 
 	version             = flag.Bool("version", false, "Print the version of unused_deps")
+	cQuery              = flag.Bool("cquery", false, "Use 'cquery' command instead of 'query'")
 	buildTool           = flag.String("build_tool", config.DefaultBuildTool, config.BuildToolHelp)
 	extraActionFileName = flag.String("extra_action_file", "", config.ExtraActionFileNameHelp)
 	outputFileName      = flag.String("output_file", "", "used only with extra_action_file")
@@ -177,7 +178,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 			if err != nil {
 				continue
 			}
-			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+			if strings.HasPrefix(label, "@@") || strings.HasPrefix(label, "@/") {
 				label = label[1:]
 			}
 			depsByJar[jar] = label
@@ -263,20 +264,35 @@ func hasRuntimeComment(expr build.Expr) bool {
 // to remove that entry from the deps attribute of the rule identified by label.
 // Returns true if at least one command was printed, or false otherwise.
 func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) {
-	buildFileName, pkg, ruleName := edit.InterpretLabel(label)
+	buildFileName, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
+	if repo != "" {
+		outputBase := blazeInfo(config.DefaultOutputBase)
+		buildFileName = fmt.Sprintf("%s/external/%s/%s", outputBase, repo, buildFileName)
+	}
+
 	depsExpr := getDepsExpr(buildFileName, ruleName)
 	for _, li := range edit.AllLists(depsExpr) {
 		for _, elem := range li.List {
 			for dep := range deps {
 				str, ok := elem.(*build.StringExpr)
-				if ok && labels.Equal(str.Value, dep, pkg) {
-					if hasRuntimeComment(str) {
-						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
-					} else {
-						fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
-					}
-					anyCommandPrinted = true
+				if !ok {
+					continue
 				}
+				buildLabel := str.Value
+				if repo != "" && buildLabel[:2] == "//" {
+					buildLabel = fmt.Sprintf("@%s%s", repo, str.Value)
+				}
+				if !labels.Equal(buildLabel, dep, pkg) {
+					continue
+				}
+				if hasRuntimeComment(str) {
+					fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
+				} else {
+					// add dep's exported dependencies to label before removing dep
+					fmt.Printf("buildozer \"add deps $(%s query 'labels(exports, %s)' | tr '\\n' ' ')\" %s\n", *buildTool, str.Value, label)
+					fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
+				}
+				anyCommandPrinted = true
 			}
 		}
 	}
@@ -331,7 +347,13 @@ func main() {
 	if len(targetPatterns) == 0 {
 		targetPatterns = []string{"//..."}
 	}
-	queryCmd := append([]string{"query"}, blazeFlags...)
+	queryCmd := []string{}
+	if *cQuery {
+		queryCmd = append(queryCmd, "cquery")
+	} else {
+		queryCmd = append(queryCmd, "query")
+	}
+	queryCmd = append(queryCmd, blazeFlags...)
 	queryCmd = append(
 		queryCmd, fmt.Sprintf("kind('(kt|java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
 
@@ -366,13 +388,22 @@ func main() {
 
 	log.Printf("running: %s %s", *buildTool, strings.Join(blazeArgs, " "))
 	cmdWithStderr(*buildTool, blazeArgs...).Run()
-	blazeBin := blazeInfo(config.DefaultBinDir)
+	binDir := blazeInfo(config.DefaultBinDir)
 	blazeOutputPath := blazeInfo(config.DefaultOutputPath)
 	fmt.Fprintf(os.Stderr, "\n") // vertical space between build output and unused_deps output
 
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
-		_, pkg, ruleName := edit.InterpretLabel(label)
+		if *cQuery && strings.HasPrefix(label, "(") {
+			// cquery output includes the target's configuration ID.  Skip it.
+			// https://docs.bazel.build/versions/main/cquery.html#configurations
+			continue
+		}
+		_, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
+		blazeBin := binDir
+		if repo != "" {
+			blazeBin = fmt.Sprintf("%s/external/%s", binDir, repo)
+		}
 		depsByJar := directDepParams(blazeOutputPath, inputFileName(blazeBin, pkg, ruleName, "javac_params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
 		// TODO(bazel-team): instead of printing, have buildifier-like modes?
