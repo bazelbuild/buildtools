@@ -31,7 +31,7 @@ die () {
 [[ "$1" =~ external/* ]] && buildozer="${{1#external/}}" || buildozer="$TEST_WORKSPACE/$1"
 buildozer="$(rlocation "$buildozer")"
 
-source $TEST_SRCDIR/com_github_bazelbuild_buildtools/buildozer/test_common.sh
+source $TEST_SRCDIR/buildtools/buildozer/test_common.sh
 
 ## TEST INPUTS
 
