@@ -65,6 +65,7 @@ type Finding struct {
 	Message     string
 	URL         string
 	Actionable  bool
+	AutoFixable bool
 	Replacement *Replacement
 }
 
@@ -81,7 +82,7 @@ func docURL(cat string) string {
 }
 
 // makeFinding creates a Finding object
-func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, fix *Replacement) *Finding {
+func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, autoFixable bool, fix *Replacement) *Finding {
 	if url == "" {
 		url = docURL(cat)
 	}
@@ -93,6 +94,7 @@ func makeFinding(f *build.File, start, end build.Position, cat, url, msg string,
 		URL:         url,
 		Message:     msg,
 		Actionable:  actionable,
+		AutoFixable: autoFixable,
 		Replacement: fix,
 	}
 }
@@ -246,7 +248,7 @@ func runWarningsFunction(category string, f *build.File, fct func(f *build.File,
 	findings := []*Finding{}
 	for _, w := range fct(f, f.Pkg, fileReader) {
 		if !DisabledWarning(f, w.Start.Line, category) {
-			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
+			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, len(w.Replacement) > 0, nil)
 			if len(w.Replacement) > 0 {
 				// An automatic fix exists
 				switch mode {
