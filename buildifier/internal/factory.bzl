@@ -79,6 +79,10 @@ def buildifier_attr_factory(test_rule = False):
             default = "//buildifier:runner.bash.template",
             allow_single_file = True,
         ),
+        "_windows_runner": attr.label(
+            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bat.template",
+            allow_single_file = True,
+        ),
     }
 
     if test_rule:
@@ -165,14 +169,23 @@ def buildifier_impl_factory(ctx, test_rule = False):
         workspace = ctx.file.workspace.path
 
     out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
+
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
         "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
         "@@EXCLUDE_PATTERNS@@": exclude_patterns_str,
         "@@WORKSPACE@@": workspace,
     }
+
+    if ctx.executable.buildifier.extension.lower() == "exe":
+        out_file = ctx.actions.declare_file(ctx.label.name + ".bat")
+        runner_template = ctx.file._windows_runner
+    else:
+        out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
+        runner_template = ctx.file._runner
+
     ctx.actions.expand_template(
-        template = ctx.file._runner,
+        template = runner_template,
         output = out_file,
         substitutions = substitutions,
         is_executable = True,
