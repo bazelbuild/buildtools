@@ -509,6 +509,8 @@ var FileLevelFixes = []struct {
 		"Prefer '+=' over 'extend' or 'append'"},
 	{"unusedLoads", cleanUnusedLoads,
 		"Remove unused symbols from load statements"},
+	{"moveLicenses", moveLicenses,
+		"Move licenses to the package function"},
 }
 
 // FixRule aims to fix errors in BUILD files, remove deprecated features, and
