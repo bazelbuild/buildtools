@@ -62,6 +62,7 @@ func runBasicTestWithRepoRootFile(t *testing.T, repoRootFile string) {
 func TestBasic(t *testing.T) {
 	runBasicTestWithRepoRootFile(t, ".buckconfig")
 	runBasicTestWithRepoRootFile(t, workspaceFile)
+	runBasicTestWithRepoRootFile(t, "MODULE.bazel")
 }
 
 func TestFindRepoBuildfiles(t *testing.T) {
