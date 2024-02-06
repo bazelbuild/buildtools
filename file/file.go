@@ -27,6 +27,12 @@ import (
 // ReadFile can be updated from the caller to change the API
 // for reading a file.
 var ReadFile = readFile
+// WriteFile can be updated from the caller to change the API
+// for writing a file.
+var WriteFile = writeFile
+// OpenReadFile can be updated from the caller to change the API
+// for opening a file.
+var OpenReadFile = openReadFile
 
 // readFile is like ioutil.ReadFile.
 func readFile(name string) ([]byte, os.FileInfo, error) {
@@ -39,13 +45,13 @@ func readFile(name string) ([]byte, os.FileInfo, error) {
 	return data, fi, err
 }
 
-// WriteFile is like ioutil.WriteFile
-func WriteFile(name string, data []byte) error {
+// writeFile is like ioutil.WriteFile.
+func writeFile(name string, data []byte) error {
 	return ioutil.WriteFile(name, data, 0644)
 }
 
-// OpenReadFile is like os.Open.
-func OpenReadFile(name string) io.ReadCloser {
+// openReadFile is like os.Open.
+func openReadFile(name string) io.ReadCloser {
 	f, err := os.Open(name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not open %s\n", name)
