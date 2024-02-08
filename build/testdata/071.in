@@ -1,0 +1,6 @@
+# buildifier: noformat
+my_list = [
+    ("",      "",      ""),
+    ("ab",    "bc",    "cd"),
+    ("a",     "b",     "c"),
+]
