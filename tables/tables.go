@@ -209,6 +209,8 @@ var NamePriority = map[string]int{
 	"alwayslink":     7,
 }
 
+var CompactConstantDefinitions = false
+
 var StripLabelLeadingSlashes = false
 
 var ShortenAbsoluteLabelsToRelative = false
