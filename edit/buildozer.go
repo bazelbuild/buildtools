@@ -563,6 +563,23 @@ func cmdSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdSetEncoded(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	args := env.Args[1:]
+	var decoded = strings.Replace(args[0], "%0A", "\n", -1)
+	decoded = strings.Replace(decoded, "%0D", "\r", -1)
+	decoded = strings.Replace(decoded, "%20", " ", -1)
+	decoded = strings.Replace(decoded, "%25", "%", -1)
+	if attr == "kind" {
+		env.Rule.SetKind(decoded)
+	} else {
+		var decodedArgs []string
+		decodedArgs = append(decodedArgs, decoded)
+		env.Rule.SetAttr(attr, getAttrValueExpr(attr, decodedArgs, env))
+	}
+	return env.File, nil
+}
+
 func cmdSetIfAbsent(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	args := env.Args[1:]
@@ -898,6 +915,7 @@ var AllCommands = map[string]CommandInfo{
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
 	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
 	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
+	"set_encoded":       {cmdSetEncoded, true, 1, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
 	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
