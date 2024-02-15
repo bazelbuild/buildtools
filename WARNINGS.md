@@ -614,6 +614,8 @@ If you want to keep the load, you can disable the warning by adding a comment
   * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=load-on-top`
 
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files (except `WORKSPACE` files).
+
 Load statements should be first statements (with the exception of `WORKSPACE` files),
 they can follow only comments and docstrings.
 
@@ -768,6 +770,8 @@ The statement has no effect. Consider removing it or storing its result in a var
   * Automatic fix: yes
   * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files.
 
 Load statements should be ordered by their first argument - extension file label.
 This makes it easier to developers to locate loads of interest and reduces chances
@@ -1020,6 +1024,8 @@ or lists of providers instead.
   * Automatic fix: yes
   * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=same-origin-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files (except `WORKSPACE` files).
 
 ### Background
 
