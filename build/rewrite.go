@@ -162,7 +162,31 @@ func hasComment(x Expr, text string) bool {
 			return true
 		}
 	}
+	for _, com := range x.Comment().After {
+		if strings.Contains(strings.ToLower(com.Token), text) {
+			return true
+		}
+	}
+	for _, com := range x.Comment().Suffix {
+		if strings.Contains(strings.ToLower(com.Token), text) {
+			return true
+		}
+	}
 	return false
+}
+
+// isCommentAnywhere checks whether there's a comment containing the given text
+// anywhere in the file.
+func isCommentAnywhere(f *File, text string) bool {
+	commentExists := false
+	WalkInterruptable(f, func(node Expr, stack []Expr) (err error) {
+		if hasComment(node, text) {
+			commentExists = true
+			return &StopTraversalError{}
+		}
+		return nil
+	})
+	return commentExists
 }
 
 // leaveAlone1 reports whether x is marked with a comment containing
@@ -932,6 +956,14 @@ func moveLoadOnTop(f *File, _ *Rewriter) {
 		// Moving load statements in Workspace files can break the semantics
 		return
 	}
+	if isCommentAnywhere(f, "disable=load-on-top") {
+		// For backward compatibility. This rewrite used to be a suppressible warning,
+		// in some cases it's hard to maintain the position of load statements (e.g.
+		// when the file is automatically generated or has automatic transformations
+		// applied to it). The rewrite checks for the comment anywhere in the file
+		// because it's hard to determine which statement is out of order.
+		return
+	}
 
 	// Find the misplaced load statements
 	misplacedLoads := make(map[int]*LoadStmt)
@@ -1003,6 +1035,11 @@ func compressSameOriginLoads(f *File, _ *Rewriter) {
 			loads[load.Module.Value] = load
 			continue
 		}
+		if hasComment(previousLoad, "disable=same-origin-load") ||
+			hasComment(load, "disable=same-origin-load") {
+			continue
+		}
+
 		// Move loaded symbols to the existing load statement
 		previousLoad.From = append(previousLoad.From, load.From...)
 		previousLoad.To = append(previousLoad.To, load.To...)
@@ -1084,6 +1121,15 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 // sortLoadStatements reorders sorts loads lexicographically by the source file,
 // but local loads have priority over loads from an absolute label
 func sortLoadStatements(f *File, _ *Rewriter) {
+	if isCommentAnywhere(f, "disable=out-of-order-load") {
+		// For backward compatibility. This rewrite used to be a suppressible warning,
+		// in some cases it's hard to maintain the position of load statements (e.g.
+		// when the file is automatically generated or has automatic transformations
+		// applied to it). The rewrite checks for the comment anywhere in the file
+		// because it's hard to determine which statement is out of order.
+		return
+	}
+
 	// Consequent chunks of load statements (i.e. without statements of other types between them)
 	var loadsChunks [][]*LoadStmt
 	lastLoadIndex := -2
