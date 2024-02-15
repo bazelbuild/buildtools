@@ -1119,7 +1119,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 }
 
 // sortLoadStatements reorders sorts loads lexicographically by the source file,
-// but local loads have priority over loads from an absolute label
+// but absolute loads have priority over local loads.
 func sortLoadStatements(f *File, _ *Rewriter) {
 	if isCommentAnywhere(f, "disable=out-of-order-load") {
 		// For backward compatibility. This rewrite used to be a suppressible warning,
