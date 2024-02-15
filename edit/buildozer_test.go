@@ -373,8 +373,8 @@ var substituteLoadsTests = []struct {
 	},
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")`,
-		`load("//build/rules/foo:defs.bzl", "foo", "foo2")
-load("@rules_bar//bar:defs.bzl", "bar")`,
+		`load("@rules_bar//bar:defs.bzl", "bar")
+load("//build/rules/foo:defs.bzl", "foo", "foo2")`,
 	},
 	{[]string{
 		":foo.bzl$", ":defs.bzl",
@@ -389,9 +389,9 @@ load("@rules_bar//bar:defs.bzl", "bar")`,
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")
 load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
-		`load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")
+		`load("@rules_bar//:defs.bzl", legacy_bar = "bar")
 load("//third_party/build_defs/rules_bar/bar:defs.bzl", "bar")
-load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
+load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")`,
 	},
 }
 

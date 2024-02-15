@@ -611,6 +611,7 @@ If you want to keep the load, you can disable the warning by adding a comment
   * Category name: `load-on-top`
   * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=load-on-top`
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
@@ -765,6 +766,7 @@ The statement has no effect. Consider removing it or storing its result in a var
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
 
 Load statements should be ordered by their first argument - extension file label.
@@ -1016,6 +1018,7 @@ or lists of providers instead.
 
   * Category name: `same-origin-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=same-origin-load`
 
 ### Background

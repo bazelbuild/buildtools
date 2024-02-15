@@ -1802,8 +1802,7 @@ load("/foo/bar", "y")
 '
 
   run "$in" 'new_load /foo/bar x y z' pkg/BUILD
-  assert_equals 'load("/foo/bar", "x")
-load("/foo/bar", "y", "z")'
+  assert_equals 'load("/foo/bar", "x", "y", "z")'
 }
 
 function test_new_load_wrong_location() {
@@ -1983,17 +1982,17 @@ foobar()' 'fix unusedLoads' 'pkg/BUILD'
 
 # begin loads
 
-load(":foobar.bzl", "foobar")  # this one is actually used
 load(":baz.bzl", "baz")  # this is @unused
+load(":foobar.bzl", "foobar")  # this one is actually used
 
 # end loads
 
 # before
 # after
 
-foobar()
-
 load(":somewhere_else.bzl", "foobar")
+
+foobar()
 
 foobar()
 
