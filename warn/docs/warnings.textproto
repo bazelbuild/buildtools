@@ -180,7 +180,7 @@ warnings: {
   header: "Depset's \"items\" parameter is deprecated"
   description:
     "The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)\n"
-    "is deprecated. In it's old form it's either a list of direct elements to be\n"
+    "is deprecated. In its old form it's either a list of direct elements to be\n"
     "added (use the `direct` or unnamed first parameter instead) or a depset that\n"
     "becomes a transitive element of the new depset (use the `transitive` parameter\n"
     "instead)."

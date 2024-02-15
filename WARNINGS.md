@@ -315,7 +315,7 @@ the [`function-docstring`](#function-docstring) warning.
   * [Suppress the warning](#suppress): `# buildifier: disable=depset-items`
 
 The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
-is deprecated. In it's old form it's either a list of direct elements to be
+is deprecated. In its old form it's either a list of direct elements to be
 added (use the `direct` or unnamed first parameter instead) or a depset that
 becomes a transitive element of the new depset (use the `transitive` parameter
 instead).
