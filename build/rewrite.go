@@ -1140,9 +1140,8 @@ func sortLoadStatements(f *File, _ *Rewriter) {
 			// load statements
 			continue
 		}
-
 		load, ok := stmt.(*LoadStmt)
-		if !ok && stmt != nil {
+		if !ok {
 			newChunk = true
 			continue
 		}
