@@ -1233,17 +1233,17 @@ type loadArgs struct {
 	modified bool
 }
 
-func (args loadArgs) Len() int {
+func (args *loadArgs) Len() int {
 	return len(args.From)
 }
 
-func (args loadArgs) Swap(i, j int) {
+func (args *loadArgs) Swap(i, j int) {
 	args.From[i], args.From[j] = args.From[j], args.From[i]
 	args.To[i], args.To[j] = args.To[j], args.To[i]
 	args.modified = true
 }
 
-func (args loadArgs) Less(i, j int) bool {
+func (args *loadArgs) Less(i, j int) bool {
 	// Arguments with equal "from" and "to" parts are prioritized
 	equalI := args.From[i].Name == args.To[i].Name
 	equalJ := args.From[j].Name == args.To[j].Name
@@ -1255,10 +1255,33 @@ func (args loadArgs) Less(i, j int) bool {
 	return args.To[i].Name < args.To[j].Name
 }
 
+// deduplicate assumes that the args are sorted and prioritize arguments that
+// are defined later (e.g. `a = "x", a = "y"` is shortened to `a = "y"`).
+func (args *loadArgs) deduplicate() {
+	var from, to []*Ident
+	for i := range args.To {
+		if len(to) > 0 && to[len(to)-1].Name == args.To[i].Name {
+			// Overwrite
+			from[len(from)-1] = args.From[i]
+			to[len(to)-1] = args.To[i]
+			args.modified = true
+		} else {
+			// Just append
+			from = append(from, args.From[i])
+			to = append(to, args.To[i])
+		}
+	}
+	args.From = from
+	args.To = to
+}
+
 // SortLoadArgs sorts a load statement arguments (lexicographically, but positional first)
 func SortLoadArgs(load *LoadStmt) bool {
 	args := loadArgs{From: load.From, To: load.To}
-	sort.Sort(args)
+	sort.Sort(&args)
+	args.deduplicate()
+	load.From = args.From
+	load.To = args.To
 	return args.modified
 }
 
