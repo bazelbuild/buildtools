@@ -1132,19 +1132,26 @@ func sortLoadStatements(f *File, _ *Rewriter) {
 
 	// Consequent chunks of load statements (i.e. without statements of other types between them)
 	var loadsChunks [][]*LoadStmt
-	lastLoadIndex := -2
+	newChunk := false // Create a new chunk for the next seen load statement
 
-	for i := 0; i < len(f.Stmt); i++ {
-		load, ok := f.Stmt[i].(*LoadStmt)
-		if !ok {
+	for i, stmt := range f.Stmt {
+		if stmt == nil {
+			// nil statements are no-op and shouldn't break consecutive chains of
+			// load statements
 			continue
 		}
-		if i-lastLoadIndex > 1 {
+
+		load, ok := stmt.(*LoadStmt)
+		if !ok && stmt != nil {
+			newChunk = true
+			continue
+		}
+		if newChunk {
 			// There's a non-load statement between this load and the previous load
 			loadsChunks = append(loadsChunks, []*LoadStmt{})
+			newChunk = false
 		}
 		loadsChunks[len(loadsChunks)-1] = append(loadsChunks[len(loadsChunks)-1], load)
-		lastLoadIndex = i
 	}
 
 	// Sort and flatten the chunks
