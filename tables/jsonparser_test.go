@@ -30,13 +30,14 @@ func TestParseJSONDefinitions(t *testing.T) {
 	}
 
 	expected := Definitions{
-		IsLabelArg:               map[string]bool{"srcs": true},
-		LabelDenylist:            map[string]bool{},
-		IsSortableListArg:        map[string]bool{"srcs": true, "visibility": true},
-		SortableDenylist:         map[string]bool{"genrule.srcs": true},
-		SortableAllowlist:        map[string]bool{},
-		NamePriority:             map[string]int{"name": -1},
-		StripLabelLeadingSlashes: true,
+		IsLabelArg:               	map[string]bool{"srcs": true},
+		LabelDenylist:            	map[string]bool{},
+		IsSortableListArg:        	map[string]bool{"srcs": true, "visibility": true},
+		SortableDenylist:         	map[string]bool{"genrule.srcs": true},
+		SortableAllowlist:        	map[string]bool{},
+		NamePriority:             	map[string]int{"name": -1},
+		CompactConstantDefinitions: true,
+		StripLabelLeadingSlashes: 	true,
 	}
 	if !reflect.DeepEqual(expected, definitions) {
 		t.Errorf("ParseJSONDefinitions(simple_tables.json) = %v; want %v", definitions, expected)

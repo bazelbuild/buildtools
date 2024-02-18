@@ -301,7 +301,7 @@ var IsModuleOverride = map[string]bool{
 }
 
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, compactConstantDefinitions, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	IsLabelArg = labelArg
 	LabelDenylist = denylist
 	IsListArg = listArg
@@ -309,12 +309,13 @@ func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, 
 	SortableDenylist = sortDenylist
 	SortableAllowlist = sortAllowlist
 	NamePriority = namePriority
+	CompactConstantDefinitions = compactConstantDefinitions
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, compactConstantDefinitions, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -336,6 +337,7 @@ func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sor
 	for k, v := range namePriority {
 		NamePriority[k] = v
 	}
+	CompactConstantDefinitions = compactConstantDefinitions || CompactConstantDefinitions
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
 }
