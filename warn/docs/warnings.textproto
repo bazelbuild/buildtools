@@ -424,7 +424,8 @@ warnings: {
   header: "Load statements should be at the top of the file"
   description:
     "Obsolete; the warning has been implemented in the formatter and the fix "
-    "is now automatically applied to all files (except `WORKSPACE` files).\n\n"
+    "is now automatically applied to all files except `WORKSPACE` files "
+    "(unless suppressed).\n\n"
     "Load statements should be first statements (with the exception of `WORKSPACE` files),\n"
     "they can follow only comments and docstrings."
   bazel_flag: "--incompatible_bzl_disallow_load_after_statement"
@@ -549,7 +550,7 @@ warnings: {
   header: "Load statements should be ordered by their labels"
   description:
     "Obsolete; the warning has been implemented in the formatter and the fix "
-    "is now automatically applied to all files.\n\n"
+    "is now automatically applied to all files (unless suppressed).\n\n"
     "Load statements should be ordered by their first argument - extension file label.\n"
     "This makes it easier to developers to locate loads of interest and reduces chances\n"
     "for conflicts when performing large-scale automated refactoring.\n\n"
@@ -748,7 +749,8 @@ warnings: {
   header: "Same label is used for multiple loads"
   description:
     "Obsolete; the warning has been implemented in the formatter and the fix "
-    "is now automatically applied to all files (except `WORKSPACE` files).\n\n"
+    "is now automatically applied to all files except `WORKSPACE` files "
+    "(unless suppressed).\n\n"
     "### Background\n\n"
     "[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)\n"
     "is used to import definitions in a BUILD file. If the same label is used for loading\n"
