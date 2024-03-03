@@ -448,7 +448,7 @@ func TestCmdSetSelect(t *testing.T) {
 		expected  string
 	}{
 		{
-			name: "select_statment_doesn't_exist",
+			name: "select_statement_doesn't_exist",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=123s", /* key, value */
@@ -469,7 +469,7 @@ func TestCmdSetSelect(t *testing.T) {
     }),
 )`},
 		{
-			name: "select_statment_exists",
+			name: "select_statement_exists",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=543s", /* key, value */
