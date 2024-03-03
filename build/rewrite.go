@@ -28,7 +28,7 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-// For debugging: flag to disable certain rewrites.
+// DisableRewrites disables certain rewrites (for debugging).
 var DisableRewrites []string
 
 // disabled reports whether the named rewrite is disabled.
@@ -41,7 +41,7 @@ func disabled(name string) bool {
 	return false
 }
 
-// For debugging: allow sorting of these lists even with sorting otherwise disabled.
+// AllowSort allows sorting of these lists even with sorting otherwise disabled (for debugging).
 var AllowSort []string
 
 // allowedSort reports whether sorting is allowed in the named context.
@@ -71,6 +71,7 @@ type Rewriter struct {
 	ShortenAbsoluteLabelsToRelative bool
 }
 
+// Rewrite applies rewrites to a file
 func Rewrite(f *File) {
 	var rewriter = &Rewriter{
 		IsLabelArg:                      tables.IsLabelArg,
