@@ -490,15 +490,58 @@ warnings: {
 }
 
 warnings: {
-  name: "native-java"
+  name: "native-java-binary"
   header: "All Java build rules should be loaded from Starlark"
-  description:
-    "The Java build rules should be loaded from Starlark.\n\n"
-    "Update: the plans for disabling native rules\n"
-    "[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),\n"
-    "at the moment it's not required to load Starlark rules."
-  bazel_flag: "--incompatible_load_java_rules_from_bzl"
-  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8746"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-import"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-library"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-package-config"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-plugin"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-runtime"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-test"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-java-toolchain"
+  header: "All Java build rules should be loaded from Starlark"
+  description: "The Java build rules should be loaded from Starlark."
   autofix: true
 }
 

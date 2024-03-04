@@ -40,7 +40,14 @@ Warning categories supported by buildifier's linter:
   * [`native-android`](#native-android)
   * [`native-build`](#native-build)
   * [`native-cc`](#native-cc)
-  * [`native-java`](#native-java)
+  * [`native-java-binary`](#native-java-binary)
+  * [`native-java-import`](#native-java-import)
+  * [`native-java-library`](#native-java-library)
+  * [`native-java-package-config`](#native-java-package-config)
+  * [`native-java-plugin`](#native-java-plugin)
+  * [`native-java-runtime`](#native-java-runtime)
+  * [`native-java-test`](#native-java-test)
+  * [`native-java-toolchain`](#native-java-toolchain)
   * [`native-package`](#native-package)
   * [`native-proto`](#native-proto)
   * [`native-py`](#native-py)
@@ -692,19 +699,91 @@ at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
-## <a name="native-java"></a>All Java build rules should be loaded from Starlark
+## <a name="native-java-binary"></a>All Java build rules should be loaded from Starlark
 
-  * Category name: `native-java`
-  * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
+  * Category name: `native-java-binary`
   * Automatic fix: yes
   * [Disabled by default](buildifier/README.md#linter)
-  * [Suppress the warning](#suppress): `# buildifier: disable=native-java`
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-binary`
 
 The Java build rules should be loaded from Starlark.
 
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+--------------------------------------------------------------------------------
+
+## <a name="native-java-import"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-import`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-import`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-library"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-library`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-library`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-package-config"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-package-config`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-package-config`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-plugin"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-plugin`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-plugin`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-runtime"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-runtime`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-runtime`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-test"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-test`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-test`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-toolchain"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-toolchain`
+  * Automatic fix: yes
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-toolchain`
+
+The Java build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 

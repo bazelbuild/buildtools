@@ -596,38 +596,38 @@ cc_import()
 		scopeBzl|scopeBuild)
 }
 
-func TestNativeJavaWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-java", `
+func TestNativeJavaRulesWarnings(t *testing.T) {
+  for category, config := range map[string][]string {
+    "native-java-binary" : []string{"java_binary", ""},
+    "native-java-import" : []string{"java_import", ""},
+    "native-java-library" : []string{"java_library", ""},
+    "native-java-package-config" : []string{"java_package_configuration", "/toolchains"},
+    "native-java-plugin" : []string{"java_plugin", ""},
+    "native-java-runtime" : []string{"java_runtime", "/toolchains"},
+    "native-java-test" : []string{"java_test", ""},
+    "native-java-toolchain" : []string{"java_toolchain", "/toolchains"},
+  } {
+    var rule = config[0]
+    var loadPath = tables.JavaRulesLoadPrefix + config[1] + ":" + rule + ".bzl"
+    checkFindingsAndFix(t, category, fmt.Sprintf(`
 """My file"""
 
 def macro():
-    java_import()
-    java_library()
-    native.java_library()
-    native.java_binary()
-
-java_test()
-`, fmt.Sprintf(`
+    native.%s()
+  `, rule), fmt.Sprintf(`
 """My file"""
 
-load(%q, "java_binary", "java_import", "java_library", "java_test")
+load(%q, "%s")
 
 def macro():
-    java_import()
-    java_library()
-    java_library()
-    java_binary()
-
-java_test()
-`, tables.JavaLoadPath),
-		[]string{
-			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:9: Function "java_test" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-		},
-		scopeBzl|scopeBuild)
+    %s()
+  `, loadPath, rule, rule),
+      []string{
+        fmt.Sprintf(`:4: Function "%s" is not global anymore and needs to be loaded from "%s".`,
+        rule, loadPath),
+      },
+      scopeBzl)
+  }
 }
 
 func TestNativePyWarning(t *testing.T) {

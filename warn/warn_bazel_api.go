@@ -695,11 +695,43 @@ func nativeCcRulesWarning(f *build.File) []*LinterFinding {
 	return NotLoadedFunctionUsageCheck(f, tables.CcNativeRules, tables.CcLoadPath)
 }
 
-func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
-	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+func nativeJavaRulesWarning(f *build.File, symbol string, loadPath string) []*LinterFinding {
+	if f.Type != build.TypeBzl {
 		return nil
 	}
-	return NotLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
+	return NotLoadedFunctionUsageCheck(f, []string{symbol}, tables.JavaRulesLoadPrefix+loadPath)
+}
+
+func nativeJavaBinaryWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_binary", ":java_binary.bzl")
+}
+
+func nativeJavaImportWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_import", ":java_import.bzl")
+}
+
+func nativeJavaLibraryWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_library", ":java_library.bzl")
+}
+
+func nativeJavaPackageConfigWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_package_configuration", "/toolchains:java_package_configuration.bzl")
+}
+
+func nativeJavaPluginWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_plugin", ":java_plugin.bzl")
+}
+
+func nativeJavaRuntimeWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_runtime", "/toolchains:java_runtime.bzl")
+}
+
+func nativeJavaTestWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_test", ":java_test.bzl")
+}
+
+func nativeJavaToolchainWarning(f *build.File) []*LinterFinding {
+	return nativeJavaRulesWarning(f, "java_toolchain", "/toolchains:java_toolchain.bzl")
 }
 
 func nativePyRulesWarning(f *build.File) []*LinterFinding {

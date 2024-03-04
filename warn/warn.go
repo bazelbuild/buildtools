@@ -154,7 +154,14 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"native-android":            nativeAndroidRulesWarning,
 	"native-build":              nativeInBuildFilesWarning,
 	"native-cc":                 nativeCcRulesWarning,
-	"native-java":               nativeJavaRulesWarning,
+	"native-java-binary":         nativeJavaBinaryWarning,
+	"native-java-import":         nativeJavaImportWarning,
+	"native-java-library":        nativeJavaLibraryWarning,
+	"native-java-package-config": nativeJavaPackageConfigWarning,
+	"native-java-plugin":         nativeJavaPluginWarning,
+	"native-java-runtime":        nativeJavaRuntimeWarning,
+	"native-java-test":           nativeJavaTestWarning,
+	"native-java-toolchain":      nativeJavaToolchainWarning,
 	"native-package":            nativePackageWarning,
 	"native-proto":              nativeProtoRulesWarning,
 	"native-py":                 nativePyRulesWarning,
@@ -192,7 +199,14 @@ var nonDefaultWarnings = map[string]bool{
 	"unsorted-dict-items": true, // dict items should be sorted
 	"native-android":      true, // disables native android rules
 	"native-cc":           true, // disables native cc rules
-	"native-java":         true, // disables native java rules
+	"native-java-binary":         true, // disables native java_binary rule
+	"native-java-import":         true, // disables native java_import rule
+	"native-java-library":        true, // disables native java_library rule
+	"native-java-package-config": true, // disables native java_package_configuration rule
+	"native-java-plugin":         true, // disables native java_plugin rule
+	"native-java-runtime":        true, // disables native java_runtime rule
+	"native-java-test":           true, // disables native java_test rule
+	"native-java-toolchain":      true, // disables native java_toolchain rule
 	"native-proto":        true, // disables native proto rules
 	"native-py":           true, // disables native python rules
 }
