@@ -1961,6 +1961,18 @@ function test_set_glob_srcs() {
 )'
 }
 
+function test_set_multiple_glob_srcs() {
+  # Note that the inner tokens are not sorted.
+  run "$no_deps" 'set srcs glob(["*.go", "*.cgo"])' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    srcs = glob([
+        "*.go",
+        "*.cgo",
+    ]),
+)'
+}
+
 function test_fix_unused_load() {
   run 'load(":a.bzl", "a")
 # TODO: refactor
