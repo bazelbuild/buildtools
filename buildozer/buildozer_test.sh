@@ -1953,6 +1953,14 @@ function test_set_config_string() {
 )'
 }
 
+function test_set_glob_srcs() {
+  run "$no_deps" 'set srcs glob(["*.go"])' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    srcs = glob(["*.go"]),
+)'
+}
+
 function test_fix_unused_load() {
   run 'load(":a.bzl", "a")
 # TODO: refactor

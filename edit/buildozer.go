@@ -585,7 +585,10 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
-	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
+	case IsList(attr) && len(args) == 1 && strings.HasPrefix(args[0], "glob("):
+		// Single-value glob
+		return &build.Ident{Name: args[0]}
+	case IsList(attr):
 		var list []build.Expr
 		for _, arg := range args {
 			list = append(list, getStringExpr(arg, env.Pkg))
