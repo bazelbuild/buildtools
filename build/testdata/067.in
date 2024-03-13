@@ -1,7 +1,7 @@
 load(,,,
     # A
     ,
-    "foo.bzl",,,
+    ":foo.bzl",,,
     # B
     ,
     "bar",,,

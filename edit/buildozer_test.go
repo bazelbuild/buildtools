@@ -373,8 +373,8 @@ var substituteLoadsTests = []struct {
 	},
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")`,
-		`load("//build/rules/foo:defs.bzl", "foo", "foo2")
-load("@rules_bar//bar:defs.bzl", "bar")`,
+		`load("@rules_bar//bar:defs.bzl", "bar")
+load("//build/rules/foo:defs.bzl", "foo", "foo2")`,
 	},
 	{[]string{
 		":foo.bzl$", ":defs.bzl",
@@ -389,9 +389,9 @@ load("@rules_bar//bar:defs.bzl", "bar")`,
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")
 load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
-		`load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")
+		`load("@rules_bar//:defs.bzl", legacy_bar = "bar")
 load("//third_party/build_defs/rules_bar/bar:defs.bzl", "bar")
-load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
+load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")`,
 	},
 }
 
@@ -448,7 +448,7 @@ func TestCmdSetSelect(t *testing.T) {
 		expected  string
 	}{
 		{
-			name: "select_statment_doesn't_exist",
+			name: "select_statement_doesn't_exist",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=123s", /* key, value */
@@ -469,7 +469,7 @@ func TestCmdSetSelect(t *testing.T) {
     }),
 )`},
 		{
-			name: "select_statment_exists",
+			name: "select_statement_exists",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=543s", /* key, value */
