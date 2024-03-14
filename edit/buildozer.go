@@ -546,7 +546,7 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 			continue
 		}
 		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
-			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}, env))
+			env.Rule.SetAttr(key, getStringExpr(newValue, env.Pkg))
 		}
 	}
 	return env.File, nil
