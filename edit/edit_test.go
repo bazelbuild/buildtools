@@ -565,38 +565,64 @@ func TestResolveAttr(t *testing.T) {
 
 func TestListSubstitute(t *testing.T) {
 	tests := []struct {
-		desc, input, oldPattern, newTemplate, want string
+		desc, input, oldPattern, newTemplate, excludePattern, want string
 	}{
 		{
-			desc:        "no_match",
-			input:       `["abc"]`,
-			oldPattern:  `!!`,
-			newTemplate: `xx`,
-			want:        `["abc"]`,
+			desc:           "test_exclude_pattern_matches_nothing",
+			input:          `["a^"]`,
+			oldPattern:     `.*`,
+			newTemplate:    `xx`,
+			excludePattern: `a^`,
+			want:           `["xx"]`,
 		}, {
-			desc:        "full_match",
-			input:       `["abc"]`,
-			oldPattern:  `.*`,
-			newTemplate: `xx`,
-			want:        `["xx"]`,
+			desc:           "no_match",
+			input:          `["abc"]`,
+			oldPattern:     `!!`,
+			newTemplate:    `xx`,
+			excludePattern: `a^`,
+			want:           `["abc"]`,
 		}, {
-			desc:        "partial_match",
-			input:       `["abcde"]`,
-			oldPattern:  `bcd`,
-			newTemplate: `xyz`,
-			want:        `["axyze"]`,
+			desc:           "full_match",
+			input:          `["abc"]`,
+			oldPattern:     `.*`,
+			newTemplate:    `xx`,
+			excludePattern: `a^`,
+			want:           `["xx"]`,
 		}, {
-			desc:        "number_group",
-			input:       `["abcde"]`,
-			oldPattern:  `a(bcd)`,
-			newTemplate: `$1 $1`,
-			want:        `["bcd bcde"]`,
+			desc:           "partial_match",
+			input:          `["abcde"]`,
+			oldPattern:     `bcd`,
+			newTemplate:    `xyz`,
+			excludePattern: `a^`,
+			want:           `["axyze"]`,
 		}, {
-			desc:        "name_group",
-			input:       `["abcde"]`,
-			oldPattern:  `a(?P<x>bcd)`,
-			newTemplate: `$x $x`,
-			want:        `["bcd bcde"]`,
+			desc:           "number_group",
+			input:          `["abcde"]`,
+			oldPattern:     `a(bcd)`,
+			newTemplate:    `$1 $1`,
+			excludePattern: `a^`,
+			want:           `["bcd bcde"]`,
+		}, {
+			desc:           "name_group",
+			input:          `["abcde"]`,
+			oldPattern:     `a(?P<x>bcd)`,
+			newTemplate:    `$x $x`,
+			excludePattern: `a^`,
+			want:           `["bcd bcde"]`,
+		}, {
+			desc:           "full_match_excluded",
+			input:          `["abc"]`,
+			oldPattern:     `.*`,
+			newTemplate:    `xx`,
+			excludePattern: `a.*`,
+			want:           `["abc"]`,
+		}, {
+			desc:           "partial_match_excluded",
+			input:          `["abcde"]`,
+			oldPattern:     `bcd`,
+			newTemplate:    `xyz`,
+			excludePattern: `b`,
+			want:           `["abcde"]`,
 		},
 	}
 
@@ -611,7 +637,11 @@ func TestListSubstitute(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error compiling regexp %q: %v", tst.oldPattern, err)
 			}
-			ListSubstitute(lst, oldRegexp, tst.newTemplate)
+			excludeRegexp, err := regexp.Compile(tst.excludePattern)
+			if err != nil {
+				t.Fatalf("error compiling regexp %q: %v", tst.excludePattern, err)
+			}
+			ListSubstitute(lst, oldRegexp, tst.newTemplate, excludeRegexp)
 			if got := build.FormatString(lst); got != tst.want {
 				t.Errorf("ListSubstitute(%q, %q, %q) = %q ; want %q", tst.input, tst.oldPattern, tst.newTemplate, got, tst.want)
 			}

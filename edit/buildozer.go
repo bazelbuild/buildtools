@@ -72,6 +72,9 @@ var Usage = func() {}
 
 const stdinPackageName = "-" // the special package name to represent stdin
 
+// Default-value for all exclude-regexpr. Does not (and should not) match anything.
+var reMatchNothing = regexp.MustCompile("a^")
+
 // CmdEnvironment stores the information the commands below have access to.
 type CmdEnvironment struct {
 	File   *build.File                  // the AST
@@ -315,13 +318,21 @@ func cmdSubstituteLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 	newTemplate := env.Args[1]
 
+	exceptRegexp := reMatchNothing
+	if len(env.Args) > 2 {
+		exceptRegexp, err = regexp.Compile(env.Args[2])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for _, stmt := range env.File.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
 		if !ok {
 			continue
 		}
 
-		if newValue, ok := stringSubstitute(load.Module.Value, oldRegexp, newTemplate); ok {
+		if newValue, ok := stringSubstitute(load.Module.Value, oldRegexp, newTemplate, exceptRegexp); ok {
 			load.Module.Value = newValue
 		}
 	}
@@ -537,15 +548,24 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	exceptRegexp := reMatchNothing
+	if len(env.Args) > 3 {
+		exceptRegexp, err = regexp.Compile(env.Args[3])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	newTemplate := env.Args[2]
 	for _, key := range attrKeysForPattern(env.Rule, env.Args[0]) {
 		attr := env.Rule.Attr(key)
 		e, ok := attr.(*build.StringExpr)
 		if !ok {
-			ListSubstitute(attr, oldRegexp, newTemplate)
+			ListSubstitute(attr, oldRegexp, newTemplate, exceptRegexp)
 			continue
 		}
-		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
+		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate, exceptRegexp); ok {
 			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}, env))
 		}
 	}
@@ -883,7 +903,7 @@ var AllCommands = map[string]CommandInfo{
 	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
 	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
 	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
-	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
+	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template> [<except_match_regexp>]"},
 	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
 	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
 	"delete":            {cmdDelete, true, 0, 0, ""},
@@ -896,7 +916,7 @@ var AllCommands = map[string]CommandInfo{
 	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
 	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
 	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
-	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
+	"substitute":        {cmdSubstitute, true, 3, 4, "<attr> <old_regexp> <new_template> [<except_match_regexp>]"},
 	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
 	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
 	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
