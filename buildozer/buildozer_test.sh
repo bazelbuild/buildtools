@@ -959,6 +959,46 @@ go_binary(name = "to")'
   assert_err "rule 'from' does not have attribute 'visibility'"
 }
 
+function test_copy_rule() {
+  in='proto_library(name = "from", visibility = ["://foo"] + CONST)
+
+cc_binary(name = "to")'
+
+  run "$in" 'copy_rule from' '//pkg:to'
+  assert_equals 'proto_library(
+    name = "from",
+    visibility = ["://foo"] + CONST,
+)
+
+cc_binary(
+    name = "to",
+    visibility = ["://foo"] + CONST,
+)'
+}
+
+function test_copy_rule_overwrite() {
+  in='proto_library(name = "from", testonly = 1)
+
+cc_binary(name = "to", testonly = 2)'
+
+  run "$in" 'copy_rule from' '//pkg:to'
+  assert_equals 'proto_library(
+    name = "from",
+    testonly = 1,
+)
+
+cc_binary(
+    name = "to",
+    testonly = 1,
+)'
+}
+
+function test_copy_rule_no_from_rule() {
+  in='go_binary(name = "to")'
+  ERROR=2 run "$in" 'copy_rule from' '//pkg:to'
+  assert_err "could not find rule 'from'"
+}
+
 function test_set_kind() {
   in='cc_library(name = "a")'
 

@@ -636,6 +636,28 @@ func cmdCopyNoOverwrite(opts *Options, env CmdEnvironment) (*build.File, error) 
 	return copyAttributeBetweenRules(env, attrName, from)
 }
 
+func cmdCopyRule(opts *Options, env CmdEnvironment) (*build.File, error) {
+	from := env.Args[0]
+
+	fromRule := FindRuleByName(env.File, from)
+	if fromRule == nil {
+		return nil, fmt.Errorf("could not find rule '%s'", from)
+	}
+	for _, key := range env.Rule.AttrKeys() {
+		if key != "name" {
+			env.Rule.DelAttr(key)
+		}
+	}
+	for _, key := range fromRule.AttrKeys() {
+		if key != "name" {
+			copyAttributeBetweenRules(env, key, from)
+		}
+	}
+
+	return env.File, nil
+
+}
+
 // cmdDictAdd adds a key to a dict, if that key does _not_ exit already.
 func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
@@ -902,6 +924,7 @@ var AllCommands = map[string]CommandInfo{
 	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
 	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
 	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
+	"copy_rule":         {cmdCopyRule, true, 1, 1, "<from_rule>"},
 	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
 	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},

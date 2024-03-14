@@ -142,6 +142,8 @@ Buildozer supports the following commands(`'command args'`):
     exists in the `to_rule`, it will be overwritten.
   * `copy_no_overwrite <attr> <from_rule>`:  Copies the value of `attr` between
     rules. If it exists in the `to_rule`, no action is taken.
+  * `copy_rule <from_rule>`: Copies the value of `from_rule` to the `to_rule`. If
+    `to_rule` exists, it will be overwritten.
   * `dict_add <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, it will _not_ be overwritten
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
@@ -233,6 +235,9 @@ buildozer 'new cc_binary new_bin before tests' //:__pkg__
 
 # Copy an attribute from `protolib` to `py_protolib`.
 buildozer 'copy testonly protolib' //pkg:py_protolib
+
+# Copy a rule from `protolib` to `py_protolib`.
+buildozer 'copy_rule protolib' //pkg:py_protolib
 
 # Set two attributes in the same rule
 buildozer 'set compile 1' 'set srcmap 1' //pkg:rule
