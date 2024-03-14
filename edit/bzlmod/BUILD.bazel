@@ -5,7 +5,10 @@ go_library(
     srcs = ["bzlmod.go"],
     importpath = "github.com/bazelbuild/buildtools/edit/bzlmod",
     visibility = ["//visibility:public"],
-    deps = ["//build"],
+    deps = [
+        "//build",
+        "//labels",
+    ],
 )
 
 go_test(
