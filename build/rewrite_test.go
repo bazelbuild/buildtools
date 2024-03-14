@@ -24,9 +24,9 @@ import (
 	"testing"
 )
 
-var workingDir string = path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), "build")
-var originalFilePath = workingDir + "/rewrite_test_files/original.star"
-var formattedFilePath = workingDir + "/rewrite_test_files/original_formatted.star"
+var workingDir string = path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), "build", "rewrite_test_files")
+var originalFilePath = path.Join(workingDir, "original.star")
+var formattedFilePath = path.Join(workingDir, "original_formatted.star")
 
 var originalBytes, _ = ioutil.ReadFile(originalFilePath)
 var originalFile, _ = ParseDefault(originalFilePath, originalBytes)
@@ -47,7 +47,8 @@ func TestRewriterRegular(t *testing.T) {
 	var modifyBytes, _ = ioutil.ReadFile(originalFilePath)
 	var modifiedFile, _ = ParseDefault(originalFilePath, modifyBytes)
 
-	// Perform rewrite on loaded file, rewrite should do nothing here
+	// Perform rewrite on loaded file, rewrite should do nothing here because the file
+	// has no needed modifations for the rewrites scoped to include scopeDefault.
 	Rewrite(modifiedFile)
 
 	// Initialize printers to obtain bytes later for different types of printers
@@ -60,7 +61,7 @@ func TestRewriterRegular(t *testing.T) {
 	originalPrinter.file(originalFile)
 	modifiedPrinter.file(modifiedFile)
 
-	// Assert that bytes to be writter are same as original bytes and different from formatted
+	// Assert that bytes to be written are same as original bytes and different from formatted
 	if !bytes.Equal(originalPrinter.Bytes(), modifiedPrinter.Bytes()) {
 		t.Error("Original Printer should equal Modified Printer")
 	}
@@ -74,7 +75,7 @@ func TestRewriterWithRewriter(t *testing.T) {
 	var modifyBytes, _ = ioutil.ReadFile(originalFilePath)
 	var modifiedFile, _ = ParseDefault(originalFilePath, modifyBytes)
 
-	// Perform rewrite with rewriter on loaded file, should proceed to reorder
+	// Perform rewrite with rewriter on loaded file, should proceed to reorder arguments
 	rewriter.Rewrite(modifiedFile)
 
 	// Initialize printers to obtain bytes later for different types of printers
@@ -93,5 +94,45 @@ func TestRewriterWithRewriter(t *testing.T) {
 	}
 	if bytes.Equal(originalPrinter.Bytes(), modifiedPrinter.Bytes()) {
 		t.Error("Original Printer should not equal Modified Printer")
+	}
+}
+
+func TestBUILDFileOrderingRewriter(t *testing.T) {
+	originalFilePath := path.Join(workingDir, "ordering_test.original.bazel")
+	formattedFilePath := path.Join(workingDir, "ordering_test.formatted.bazel")
+
+	// Load the files as a BUILD
+	modifyBytes, _ := ioutil.ReadFile(originalFilePath)
+	modifiedFile, _ := ParseBuild(originalFilePath, modifyBytes)
+	originalBytes, _ := ioutil.ReadFile(originalFilePath)
+	originalFile, _ := ParseBuild(originalFilePath, originalBytes)
+	formattedBytes, _ := ioutil.ReadFile(formattedFilePath)
+	formattedFile, _ := ParseBuild(formattedFilePath, formattedBytes)
+
+	// Perform rewrite on loaded file, should proceed to reorder calls
+	Rewrite(modifiedFile)
+
+	// Initialize printers to obtain bytes later for different types of printers
+	// We will check bytes from printers because that is our source of truth before writing to new file
+	formattedPrinter := &printer{fileType: formattedFile.Type}
+	originalPrinter := &printer{fileType: originalFile.Type}
+	modifiedPrinter := &printer{fileType: modifiedFile.Type}
+
+	formattedPrinter.file(formattedFile)
+	originalPrinter.file(originalFile)
+	modifiedPrinter.file(modifiedFile)
+
+	// Assert that bytes to be written is same as formmatted bytes and different from original
+	if !bytes.Equal(formattedPrinter.Bytes(), modifiedPrinter.Bytes()) {
+		t.Errorf("Formatted Printer should equal Modified Printer\n\n\nmodified:\n%s\n\nformatted:\n%s\n\n",
+			modifiedPrinter.String(),
+			formattedPrinter.String(),
+		)
+	}
+	if bytes.Equal(originalPrinter.Bytes(), modifiedPrinter.Bytes()) {
+		t.Errorf("Original Printer should not equal Modified Printer\n\n\nmodified:\n%s\n\noriginal:\n%s\n\n",
+			modifiedPrinter.String(),
+			formattedPrinter.String(),
+		)
 	}
 }

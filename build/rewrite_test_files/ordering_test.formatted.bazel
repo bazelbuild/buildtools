@@ -1,0 +1,20 @@
+"""
+Test file for rewrite.go
+"""
+# gazelle:load_directive
+load("//foo.bzl", "library_x")
+load("//keep.bzl", "library_keep") # keep
+
+load("//bar.bzl", "library_y")
+
+# gazelle:directive
+
+package(default_visibility="//:__subpackages__")
+
+library_x(
+	name = "default_name"
+)
+
+library_y(
+	name = "another_default_name"
+)
