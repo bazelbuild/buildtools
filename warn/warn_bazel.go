@@ -52,20 +52,36 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 		if !ok || ident.Name != "glob" {
 			return
 		}
-		patterns, ok := call.List[0].(*build.ListExpr)
-		if !ok {
-			return
-		}
-		for _, expr := range patterns.List {
-			str, ok := expr.(*build.StringExpr)
-			if !ok {
+
+		for _, arg := range call.List {
+			assign_expr, ok := arg.(*build.AssignExpr)
+			var patterns *build.ListExpr
+			var pattern_ok bool
+			if ok {
+				str, ok := assign_expr.LHS.(*build.Ident)
+				if ok && str.Name != "include" {
+					// only validate include; it's reasonable to have constant exclude
+					continue
+				}
+				patterns, pattern_ok = assign_expr.RHS.(*build.ListExpr)
+			} else {
+				patterns, pattern_ok = arg.(*build.ListExpr)
+			}
+			if !pattern_ok {
+				// patterns isn't a list
 				continue
 			}
-			if !strings.Contains(str.Value, "*") {
-				message := fmt.Sprintf(
-					`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
-				findings = append(findings, makeLinterFinding(expr, message))
-				return // at most one warning per glob
+			for _, expr := range patterns.List {
+				str, ok := expr.(*build.StringExpr)
+				if !ok {
+					continue
+				}
+				if !strings.Contains(str.Value, "*") {
+					message := fmt.Sprintf(
+						`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
+					findings = append(findings, makeLinterFinding(expr, message))
+					return // at most one warning per glob
+				}
 			}
 		}
 	})
