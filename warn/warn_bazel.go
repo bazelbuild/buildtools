@@ -72,7 +72,7 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 		patterns, ok := call.List[0].(*build.ListExpr)
 		if ok {
 			// first arg is unnamed and is a list
-			findings = constantGlobPatternWarning(patterns)
+			findings = append(findings, constantGlobPatternWarning(patterns)...)
 			return // at most one warning per glob
 		}
 
@@ -88,7 +88,7 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 			}
 			patterns, ok := assign_expr.RHS.(*build.ListExpr)
 			if ok {
-				findings = constantGlobPatternWarning(patterns)
+				findings = append(findings, constantGlobPatternWarning(patterns)...)
 				return // at most one warning per glob
 			}
 		}
