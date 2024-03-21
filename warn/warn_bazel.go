@@ -45,7 +45,7 @@ func constantGlobPatternWarning(patterns *build.ListExpr) []*LinterFinding {
 			message := fmt.Sprintf(
 				`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
 			findings = append(findings, makeLinterFinding(expr, message))
-			break // at most one warning per glob
+			return findings // at most one warning per glob
 		}
 	}
 	return findings
@@ -69,10 +69,10 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 		if !ok || ident.Name != "glob" {
 			return
 		}
-		arg, ok := call.List[0].(*build.ListExpr)
+		patterns, ok := call.List[0].(*build.ListExpr)
 		if ok {
 			// first arg is unnamed and is a list
-			findings = constantGlobPatternWarning(arg)
+			findings = constantGlobPatternWarning(patterns)
 			return // at most one warning per glob
 		}
 
