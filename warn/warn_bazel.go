@@ -54,12 +54,12 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 		}
 
 		for _, arg := range call.List {
-			assign_expr, ok := arg.(*build.AssignExpr)
 			var patterns *build.ListExpr
 			var pattern_ok bool
+			assign_expr, ok := arg.(*build.AssignExpr)
 			if ok {
 				str, ok := assign_expr.LHS.(*build.Ident)
-				if ok && str.Name != "include" {
+				if !ok || str.Name != "include" {
 					// only validate include; it's reasonable to have constant exclude
 					continue
 				}
