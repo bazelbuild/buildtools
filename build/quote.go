@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // unesc maps single-letter chars following \ to their actual values.
@@ -316,22 +317,48 @@ func quote(unquoted string, triple bool) string {
 			buf.WriteByte(esc[c])
 			continue
 		}
-		if c < 0x20 || c >= 0x80 {
-			// BUILD files are supposed to be Latin-1, so escape all control and high bytes.
-			// I'd prefer to use \x here, but Blaze does not implement
-			// \x in quoted strings (b/7272572).
+		// Lekko patch starts here:
+		// ----------------------------------------------------------------
+		if c < 0x20 {
+			// Control characters are escaped as octal.
 			buf.WriteByte('\\')
 			buf.WriteByte(hex[c>>6]) // actually octal but reusing hex digits 0-7.
 			buf.WriteByte(hex[(c>>3)&7])
 			buf.WriteByte(hex[c&7])
-			/*
-				buf.WriteByte('\\')
-				buf.WriteByte('x')
-				buf.WriteByte(hex[c>>4])
-				buf.WriteByte(hex[c&0xF])
-			*/
 			continue
 		}
+		if c >= 0x80 {
+			// Try to handle UTF-8
+			r, rs := utf8.DecodeRuneInString(unquoted[i:])
+			if rs == 1 && r == utf8.RuneError {
+				buf.WriteByte('\\')
+				buf.WriteByte(hex[c>>6]) // actually octal but reusing hex digits 0-7.
+				buf.WriteByte(hex[(c>>3)&7])
+				buf.WriteByte(hex[c&7])
+				continue
+			}
+			buf.WriteRune(r)
+			i += rs - 1
+			continue
+		}
+		// ----------------------------------------------------------------
+		// Original code:
+		// if c < 0x20 || c >= 0x80 {
+		// 	// BUILD files are supposed to be Latin-1, so escape all control and high bytes.
+		// 	// I'd prefer to use \x here, but Blaze does not implement
+		// 	// \x in quoted strings (b/7272572).
+		// 	buf.WriteByte('\\')
+		// 	buf.WriteByte(hex[c>>6]) // actually octal but reusing hex digits 0-7.
+		// 	buf.WriteByte(hex[(c>>3)&7])
+		// 	buf.WriteByte(hex[c&7])
+		// 	/*
+		// 		buf.WriteByte('\\')
+		// 		buf.WriteByte('x')
+		// 		buf.WriteByte(hex[c>>4])
+		// 		buf.WriteByte(hex[c&0xF])
+		// 	*/
+		// 	continue
+		// }
 		buf.WriteByte(c)
 		continue
 	}

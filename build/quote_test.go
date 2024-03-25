@@ -40,6 +40,7 @@ var quoteTests = []struct {
 	{`"foo\\(bar"`, `foo\(bar`, true},
 	{`"""hello
 world"""`, "hello\nworld", true},
+	{`"this is fine 🤡!"`, `this is fine 🤡!`, true},
 
 	{`"\\a\\b\\f\n\r\t\\v\000\377"`, "\\a\\b\\f\n\r\t\\v\000\xFF", true},
 	{`"\\a\\b\\f\n\r\t\\v\x00\xff"`, "\\a\\b\\f\n\r\t\\v\000\xFF", false},
