@@ -26,7 +26,6 @@ import (
 )
 
 var functionsWithPositionalArguments = map[string]bool{
-	"distribs":            true,
 	"exports_files":       true,
 	"licenses":            true,
 	"print":               true,
