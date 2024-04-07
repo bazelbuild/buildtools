@@ -168,8 +168,6 @@ def buildifier_impl_factory(ctx, test_rule = False):
             fail("Cannot use 'no_sandbox' without a 'workspace'")
         workspace = ctx.file.workspace.path
 
-    out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
-
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
         "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
