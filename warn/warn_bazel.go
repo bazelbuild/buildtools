@@ -34,6 +34,23 @@ var functionsWithPositionalArguments = map[string]bool{
 	"vardef":              true,
 }
 
+func constantGlobPatternWarning(patterns *build.ListExpr) []*LinterFinding {
+	findings := []*LinterFinding{}
+	for _, expr := range patterns.List {
+		str, ok := expr.(*build.StringExpr)
+		if !ok {
+			continue
+		}
+		if !strings.Contains(str.Value, "*") {
+			message := fmt.Sprintf(
+				`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
+			findings = append(findings, makeLinterFinding(expr, message))
+			return findings // at most one warning per glob
+		}
+	}
+	return findings
+}
+
 func constantGlobWarning(f *build.File) []*LinterFinding {
 	switch f.Type {
 	case build.TypeBuild, build.TypeWorkspace, build.TypeBzl:
@@ -53,18 +70,25 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 			return
 		}
 		patterns, ok := call.List[0].(*build.ListExpr)
-		if !ok {
-			return
+		if ok {
+			// first arg is unnamed and is a list
+			findings = append(findings, constantGlobPatternWarning(patterns)...)
+			return // at most one warning per glob
 		}
-		for _, expr := range patterns.List {
-			str, ok := expr.(*build.StringExpr)
+
+		// look for named args called include
+		for _, arg := range call.List {
+			assign_expr, ok := arg.(*build.AssignExpr)
 			if !ok {
 				continue
 			}
-			if !strings.Contains(str.Value, "*") {
-				message := fmt.Sprintf(
-					`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
-				findings = append(findings, makeLinterFinding(expr, message))
+			str, ok := assign_expr.LHS.(*build.Ident)
+			if !ok || str.Name != "include" {
+				continue
+			}
+			patterns, ok := assign_expr.RHS.(*build.ListExpr)
+			if ok {
+				findings = append(findings, constantGlobPatternWarning(patterns)...)
 				return // at most one warning per glob
 			}
 		}
