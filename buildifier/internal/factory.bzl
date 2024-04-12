@@ -80,7 +80,7 @@ def buildifier_attr_factory(test_rule = False):
             allow_single_file = True,
         ),
         "_windows_runner": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bat.template",
+            default = "//buildifier:runner.bat.template",
             allow_single_file = True,
         ),
     }
