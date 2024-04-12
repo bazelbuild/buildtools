@@ -1007,26 +1007,6 @@ function test_set_int() {
 )'
 }
 
-function test_set_licenses() {
-  in='cc_test(name = "a")'
-
-  run "$in" 'set licenses foo' '//pkg:a'
-  assert_equals 'cc_test(
-    name = "a",
-    licenses = ["foo"],
-)'
-}
-
-function test_set_distribs() {
-  in='cc_test(name = "a")'
-
-  run "$in" 'set distribs foo' '//pkg:a'
-  assert_equals 'cc_test(
-    name = "a",
-    distribs = ["foo"],
-)'
-}
-
 function test_set_if_absent_absent() {
   in='soy_js(name = "a")'
 
