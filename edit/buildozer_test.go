@@ -414,6 +414,61 @@ func TestCmdSubstituteLoad(t *testing.T) {
 	}
 }
 
+func TestCmdSubstitute(t *testing.T) {
+	for i, tc := range []struct {
+		name      string
+		args      []string
+		buildFile string
+		expected  string
+	}{
+		{
+			name:      "empty_rule",
+			args:      []string{"*", "^$", "x"},
+			buildFile: `cc_library()`,
+			expected:  `cc_library()`,
+		},
+		{
+			name:      "known_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar/baz:quux"])`,
+			expected:  `cc_library(deps = ["//foo/bar/baz:quux"])`,
+		},
+		{
+			name:      "custom_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(my_custom_attr = "//bar/baz:quux")`,
+			expected:  `cc_library(my_custom_attr = "//foo/bar/baz:quux")`,
+		},
+		{
+			name:      "specific_rule",
+			args:      []string{"deps", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar"], fancy_deps = ["//bar/baz:quux"])`,
+			expected: `cc_library(
+    fancy_deps = ["//bar/baz:quux"],
+    deps = ["//foo/bar"],
+)`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			env := CmdEnvironment{
+				File: bld,
+				Args: tc.args,
+				Rule: bld.RuleAt(1),
+			}
+			bld, _ = cmdSubstitute(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tc.expected {
+				t.Errorf("cmdSubstitute(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestCmdDictAddSet_missingColon(t *testing.T) {
 	for _, tc := range []struct {
 		name string
