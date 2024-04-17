@@ -252,6 +252,9 @@ func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name stri
 		return
 	}
 	call := assign.RHS.(*build.CallExpr)
+	if _, ok = call.X.(*build.Ident); !ok {
+		return
+	}
 	if call.X.(*build.Ident).Name != "use_extension" {
 		return
 	}
