@@ -77,15 +77,15 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 
 		// look for named args called include
 		for _, arg := range call.List {
-			assign_expr, ok := arg.(*build.AssignExpr)
+			assignExpr, ok := arg.(*build.AssignExpr)
 			if !ok {
 				continue
 			}
-			str, ok := assign_expr.LHS.(*build.Ident)
+			str, ok := assignExpr.LHS.(*build.Ident)
 			if !ok || str.Name != "include" {
 				continue
 			}
-			patterns, ok := assign_expr.RHS.(*build.ListExpr)
+			patterns, ok := assignExpr.RHS.(*build.ListExpr)
 			if ok {
 				findings = append(findings, constantGlobPatternWarning(patterns)...)
 				return // at most one warning per glob
