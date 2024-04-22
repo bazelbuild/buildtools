@@ -384,7 +384,7 @@ test_dir/to_fix_tmp.bzl: applied fixes, 2 warnings left
 fixed test_dir/to_fix_tmp.bzl
 EOF
 
-error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
+error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
 error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
 error_integer="test_dir/to_fix_tmp.bzl:4: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
 error_dict="test_dir/to_fix_tmp.bzl:5: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
@@ -394,7 +394,8 @@ test_lint () {
   ret=0
   cp test_dir/to_fix.bzl test_dir/to_fix_tmp.bzl
   echo "$4" > golden/error_golden
-  echo "${4//test_dir/another_test_dir}" > golden/error_golden_another
+  with_replaced_dir="${4//test_dir/another_test_dir}"
+  echo "${with_replaced_dir//\/\/to_fix_tmp.bzl///another_test_dir/to_fix_tmp.bzl}" > golden/error_golden_another
 
   cat > golden/fix_report_golden <<EOF
 test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
@@ -483,7 +484,7 @@ cat > golden/json_report_golden <<EOF
                     "category": "bzl-visibility",
                     "actionable": true,
                     "autoFixable": false,
-                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json/to_fix.bzl\".",
+                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//json/to_fix.bzl\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility"
                 },
                 {
