@@ -18,105 +18,6 @@ package warn
 
 import "testing"
 
-func TestWarnSameOriginLoad(t *testing.T) {
-	category := "same-origin-load"
-
-	checkFindingsAndFix(t, category, `
-	load(
-		":f.bzl",
-		"s2"
-	)
-	load(":t.bzl", "s3")
-	load(
-		":f.bzl",
-		"s1"
-	)`, `
-	load(
-		":f.bzl",
-		"s1",
-		"s2"
-	)
-	load(":t.bzl", "s3")`,
-		[]string{`:7: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`},
-		scopeEverywhere,
-	)
-
-	checkFindingsAndFix(t, category, `
-	"""Module"""
-
-	load(
-		":f.bzl",
-		"s1"
-	)
-	load(
-		":f.bzl",
-		"s2"
-	)
-	load(
-		":f.bzl",
-		"s3"
-	)`, `
-	"""Module"""
-
-	load(
-		":f.bzl",
-		"s1",
-		"s2",
-		"s3"
-	)`,
-		[]string{`:8: There is already a load from ":f.bzl" on line 3. Please merge all loads from the same origin into a single one.`,
-			`:12: There is already a load from ":f.bzl" on line 3. Please merge all loads from the same origin into a single one.`},
-		scopeEverywhere,
-	)
-
-	checkFindingsAndFix(t, category, `
-	load(":f.bzl", "s1")
-	load(":f.bzl", "s2", "s3")
-	`, `
-	load(":f.bzl", "s1", "s2", "s3")
-  `,
-		[]string{`:2: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`},
-		scopeEverywhere,
-	)
-
-	checkFindingsAndFix(t, category, `
-	load(":g.bzl", "s0")
-	load(":f.bzl", "s1")
-	load(":f.bzl",
-    "s2",
-    "s3")
-	`, `
-	load(":g.bzl", "s0")
-	load(
-      ":f.bzl",
-      "s1",
-      "s2",
-      "s3",
-  )`,
-		[]string{`:3: There is already a load from ":f.bzl" on line 2. Please merge all loads from the same origin into a single one.`},
-		scopeEverywhere,
-	)
-
-	checkFindingsAndFix(t, category, `
-	load(":f.bzl", "s1")
-	load(":f.bzl", "s2", "s3")
-	load(":f.bzl",
-    "s4")
-	`, `
-	load(
-      ":f.bzl",
-      "s1",
-      "s2",
-      "s3",
-      "s4",
-  )`,
-		[]string{
-			`:2: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`,
-			`:3: There is already a load from ":f.bzl" on line 1. Please merge all loads from the same origin into a single one.`,
-		}, scopeEverywhere,
-	)
-}
-
 func TestPackageOnTop(t *testing.T) {
 	checkFindingsAndFix(t,
 		"package-on-top",
@@ -155,194 +56,90 @@ package()
 foo(baz)`,
 		[]string{},
 		scopeDefault|scopeBzl|scopeBuild)
-}
 
-func TestLoadOnTop(t *testing.T) {
-	checkFindingsAndFix(t, "load-on-top", `
-foo()
-load(":f.bzl", "x")
-x()`, `
-load(":f.bzl", "x")
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+# Some comments
 
-foo()
+"""This is a docstring"""
 
-x()`,
-		[]string{
-			":2: Load statements should be at the top of the file.",
-		}, scopeDefault|scopeBzl|scopeBuild)
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-	checkFindingsAndFix(t, "load-on-top", `
-"""Docstring"""
+package_group(name = "my_group")
+licenses(["my_license"])
+foo(baz)
+package()`,
+		`
+# Some comments
 
-# Comment block
+"""This is a docstring"""
 
-# this is foo
-foo()
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-# load
-load(":f.bzl", "bar")
+package_group(name = "my_group")
+licenses(["my_license"])
 
-# this is bar
-bar()
+package()
+foo(baz)`,
+		[]string{":11: Package declaration should be at the top of the file, after the load() statements, but before any call to a rule or a macro. package_group() and licenses() may be called before package()."},
+		scopeDefault|scopeBzl|scopeBuild)
 
-# another load
-load(":f.bzl", "foobar")`, `
-"""Docstring"""
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
 
-# Comment block
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-# load
-load(":f.bzl", "bar")
+VISIBILITY = baz
 
-# another load
-load(":f.bzl", "foobar")
-
-# this is foo
 foo()
 
-# this is bar
-bar()`,
-		[]string{
-			":9: Load statements should be at the top of the file.",
-			":15: Load statements should be at the top of the file.",
-		}, scopeDefault|scopeBzl|scopeBuild)
+package(default_visibility = VISIBILITY)`,
+		`
+"""This is a docstring"""
 
-	checkFindingsAndFix(t, "load-on-top", `
-load(":f.bzl", "x")
-# after-comment
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-x()
+VISIBILITY = baz
 
-load(":g.bzl", "y")
-`, `
-load(":f.bzl", "x")
-# after-comment
+foo()
 
-load(":g.bzl", "y")
+package(default_visibility = VISIBILITY)`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
 
-x()
-`,
-		[]string{
-			":6: Load statements should be at the top of the file.",
-		}, scopeDefault|scopeBzl|scopeBuild)
-}
+	checkFindingsAndFix(t,
+		"package-on-top",
+		`
+"""This is a docstring"""
 
-func TestOutOfOrderLoad(t *testing.T) {
-	checkFindingsAndFix(t, "out-of-order-load", `
-# b comment
-load(":b.bzl", "b")
-b += 2
-# c comment
-load(":c.bzl", "c")
-load(":a.bzl", "a")
-a + b + c`, `
-# b comment
-load(":b.bzl", "b")
-b += 2
-load(":a.bzl", "a")
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-# c comment
-load(":c.bzl", "c")
-a + b + c`,
-		[]string{":6: Load statement is out of its lexicographical order."},
-		scopeEverywhere)
+irrelevant = baz
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-# b comment
-load(":b.bzl", "b")
-# c comment
-load(":c.bzl", "c")
-# a comment
-load(":a.bzl", "a")
-a + b + c`, `
-# a comment
-load(":a.bzl", "a")
-# b comment
-load(":b.bzl", "b")
-# c comment
-load(":c.bzl", "c")
-a + b + c`,
-		[]string{":6: Load statement is out of its lexicographical order."},
-		scopeEverywhere)
+foo()
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-load(":a.bzl", "a")
-load("//a:a.bzl", "a")
-load("@a//a:a.bzl", "a")
-load("//b:b.bzl", "b")
-load(":b.bzl", "b")
-load("@b//b:b.bzl", "b")`, `
-load("@a//a:a.bzl", "a")
-load("@b//b:b.bzl", "b")
-load("//a:a.bzl", "a")
-load("//b:b.bzl", "b")
-load(":a.bzl", "a")
-load(":b.bzl", "b")
-`,
-		[]string{
-			":2: Load statement is out of its lexicographical order.",
-			":3: Load statement is out of its lexicographical order.",
-			":6: Load statement is out of its lexicographical order.",
-		}, scopeEverywhere)
+package()`,
+		`
+"""This is a docstring"""
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-load(":a.bzl", "a")
-load(":a.bzl", "a")
-`, `
-load(":a.bzl", "a")
-load(":a.bzl", "a")`,
-		[]string{}, scopeEverywhere)
+load(":foo.bzl", "foo")
+load(":bar.bzl", baz = "bar")
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo-bar:xyz.bzl", "xyz")
-load("//foo/bar:baz/mno.bzl", "mno")
-load("//foo/bar-baz:mno/prs.bzl", "prs")
-load("//foo/bar-baz:mno-prs.bzl", "prs")
-`, `
-load("//foo/bar:baz/mno.bzl", "mno")
-load("//foo/bar-baz:mno/prs.bzl", "prs")
-load("//foo/bar-baz:mno-prs.bzl", "prs")
-load("//foo-bar:xyz.bzl", "xyz")`,
-		[]string{
-			"2: Load statement is out of its lexicographical order.",
-		}, scopeEverywhere)
+irrelevant = baz
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo:xyz.bzl", "xyz")
-load("//foo2:mno.bzl", "mno")
-`, `
-load("//foo:xyz.bzl", "xyz")
-load("//foo2:mno.bzl", "mno")`,
-		[]string{}, scopeEverywhere)
+foo()
 
-	checkFindingsAndFix(t, "out-of-order-load", `
-load("//foo:b.bzl", "b")
-load("//foo:a.bzl", "a")
-`, `
-load("//foo:a.bzl", "a")
-load("//foo:b.bzl", "b")`,
-		[]string{
-			":2: Load statement is out of its lexicographical order.",
-		}, scopeEverywhere)
-
-	checkFindingsAndFix(t, "out-of-order-load", `
-load("//Foo:aaa.bzl", "bar1")
-load("//Foo:Bbb.bzl", "bar2")
-load("//Foo:BBB.bzl", "bar3")
-load("//bar/Baz2:bar.bzl", "bar4")
-load("//bar/baz1:bar.bzl", "bar5")
-
-`, `
-load("//bar/baz1:bar.bzl", "bar5")
-load("//bar/Baz2:bar.bzl", "bar4")
-load("//Foo:aaa.bzl", "bar1")
-load("//Foo:BBB.bzl", "bar3")
-load("//Foo:Bbb.bzl", "bar2")`,
-		[]string{
-			":3: Load statement is out of its lexicographical order.",
-			":4: Load statement is out of its lexicographical order.",
-			":5: Load statement is out of its lexicographical order.",
-		}, scopeEverywhere)
+package()`,
+		[]string{},
+		scopeDefault|scopeBzl|scopeBuild)
 }
 
 func TestUnsortedDictItems(t *testing.T) {

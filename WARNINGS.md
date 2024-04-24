@@ -315,7 +315,7 @@ the [`function-docstring`](#function-docstring) warning.
   * [Suppress the warning](#suppress): `# buildifier: disable=depset-items`
 
 The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
-is deprecated. In it's old form it's either a list of direct elements to be
+is deprecated. In its old form it's either a list of direct elements to be
 added (use the `direct` or unnamed first parameter instead) or a depset that
 becomes a transitive element of the new depset (use the `transitive` parameter
 instead).
@@ -611,7 +611,10 @@ If you want to keep the load, you can disable the warning by adding a comment
   * Category name: `load-on-top`
   * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=load-on-top`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files except `WORKSPACE` files (unless suppressed).
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
 they can follow only comments and docstrings.
@@ -765,7 +768,10 @@ The statement has no effect. Consider removing it or storing its result in a var
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files (unless suppressed).
 
 Load statements should be ordered by their first argument - extension file label.
 This makes it easier to developers to locate loads of interest and reduces chances
@@ -1016,7 +1022,10 @@ or lists of providers instead.
 
   * Category name: `same-origin-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=same-origin-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files except `WORKSPACE` files (unless suppressed).
 
 ### Background
 

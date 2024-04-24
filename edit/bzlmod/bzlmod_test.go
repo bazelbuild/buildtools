@@ -59,7 +59,7 @@ prox7.use(label = "@foo//:bar")
 isolated_prox4 = use_extension("@name//bzl:extensions.bzl", "ext", isolate = True)
 isolated_prox4.use(name = "foo")
 prox8 = use_extension("//bzl:extensions.bzl", "ext", dev_dependency = True)
-prox8.use(dict = {"foo": "bar"})
+unused = prox8.use(dict = {"foo": "bar"})
 prox9 = use_extension(
     # comment
     "@dep//:extensions.bzl", "other_ext")

@@ -373,8 +373,8 @@ var substituteLoadsTests = []struct {
 	},
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")`,
-		`load("//build/rules/foo:defs.bzl", "foo", "foo2")
-load("@rules_bar//bar:defs.bzl", "bar")`,
+		`load("@rules_bar//bar:defs.bzl", "bar")
+load("//build/rules/foo:defs.bzl", "foo", "foo2")`,
 	},
 	{[]string{
 		":foo.bzl$", ":defs.bzl",
@@ -389,9 +389,9 @@ load("@rules_bar//bar:defs.bzl", "bar")`,
 		`load("@rules_foo//foo:defs.bzl", "foo", "foo2")
 load("@rules_bar//bar:defs.bzl", "bar")
 load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
-		`load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")
+		`load("@rules_bar//:defs.bzl", legacy_bar = "bar")
 load("//third_party/build_defs/rules_bar/bar:defs.bzl", "bar")
-load("@rules_bar//:defs.bzl", legacy_bar = "bar")`,
+load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo", "foo2")`,
 	},
 }
 
@@ -411,6 +411,61 @@ func TestCmdSubstituteLoad(t *testing.T) {
 		if got != tt.expected {
 			t.Errorf("cmdSubstituteLoad(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
 		}
+	}
+}
+
+func TestCmdSubstitute(t *testing.T) {
+	for i, tc := range []struct {
+		name      string
+		args      []string
+		buildFile string
+		expected  string
+	}{
+		{
+			name:      "empty_rule",
+			args:      []string{"*", "^$", "x"},
+			buildFile: `cc_library()`,
+			expected:  `cc_library()`,
+		},
+		{
+			name:      "known_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar/baz:quux"])`,
+			expected:  `cc_library(deps = ["//foo/bar/baz:quux"])`,
+		},
+		{
+			name:      "custom_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(my_custom_attr = "//bar/baz:quux")`,
+			expected:  `cc_library(my_custom_attr = "//foo/bar/baz:quux")`,
+		},
+		{
+			name:      "specific_rule",
+			args:      []string{"deps", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar"], fancy_deps = ["//bar/baz:quux"])`,
+			expected: `cc_library(
+    fancy_deps = ["//bar/baz:quux"],
+    deps = ["//foo/bar"],
+)`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			env := CmdEnvironment{
+				File: bld,
+				Args: tc.args,
+				Rule: bld.RuleAt(1),
+			}
+			bld, _ = cmdSubstitute(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tc.expected {
+				t.Errorf("cmdSubstitute(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
 	}
 }
 
@@ -448,7 +503,7 @@ func TestCmdSetSelect(t *testing.T) {
 		expected  string
 	}{
 		{
-			name: "select_statment_doesn't_exist",
+			name: "select_statement_doesn't_exist",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=123s", /* key, value */
@@ -469,7 +524,7 @@ func TestCmdSetSelect(t *testing.T) {
     }),
 )`},
 		{
-			name: "select_statment_exists",
+			name: "select_statement_exists",
 			args: []string{
 				"args",                                   /* attr */
 				":use_ci_timeouts", "-test.timeout=543s", /* key, value */

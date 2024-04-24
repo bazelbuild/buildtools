@@ -79,7 +79,7 @@ type).
 
 See also the [full list](../WARNINGS.md) or the supported warnings.
 
-## Setup and usage via Bazel (not supported on Windows)
+## Setup and usage via Bazel
 
 You can also invoke buildifier via the Bazel rule.
 `WORKSPACE` file:
@@ -184,6 +184,7 @@ The output format is the following:
                     },
                     "category": "integer-division",
                     "actionable": true,
+                    "autoFixable": true,
                     "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
                     "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
                 }

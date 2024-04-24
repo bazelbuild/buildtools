@@ -74,12 +74,13 @@ type FileDiagnostics struct {
 }
 
 type warning struct {
-	Start      position `json:"start"`
-	End        position `json:"end"`
-	Category   string   `json:"category"`
-	Actionable bool     `json:"actionable"`
-	Message    string   `json:"message"`
-	URL        string   `json:"url"`
+	Start       position `json:"start"`
+	End         position `json:"end"`
+	Category    string   `json:"category"`
+	Actionable  bool     `json:"actionable"`
+	AutoFixable bool     `json:"autoFixable"`
+	Message     string   `json:"message"`
+	URL         string   `json:"url"`
 }
 
 type position struct {
@@ -113,12 +114,13 @@ func NewFileDiagnostics(filename string, warnings []*warn.Finding) *FileDiagnost
 
 	for _, w := range warnings {
 		fileDiagnostics.Warnings = append(fileDiagnostics.Warnings, &warning{
-			Start:      makePosition(w.Start),
-			End:        makePosition(w.End),
-			Category:   w.Category,
-			Actionable: w.Actionable,
-			Message:    w.Message,
-			URL:        w.URL,
+			Start:       makePosition(w.Start),
+			End:         makePosition(w.End),
+			Category:    w.Category,
+			Actionable:  w.Actionable,
+			AutoFixable: w.AutoFixable,
+			Message:     w.Message,
+			URL:         w.URL,
 		})
 	}
 

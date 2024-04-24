@@ -174,8 +174,8 @@ func TestReplaceLoad(t *testing.T) {
 		},
 		{
 			`load("location", "other", "symbol")`,
-			`load("new_location", "symbol")
-load("location", "other")`,
+			`load("location", "other")
+load("new_location", "symbol")`,
 		},
 		{
 			`load("location", symbol = "other")`,
