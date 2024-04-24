@@ -169,7 +169,7 @@ The following commands only apply to `MODULE.bazel` files (e.g. the target
     Ensures that the given repositories are imported via `use_repo` for the
     extension for which the given top-level variable contains the return value
     of a `use_extension` call.
-  * `use_repo_add <use_extension variable name> <repo(s)>`:
+  * `use_repo_remove <use_extension variable name> <repo(s)>`:
     Ensures that the given repositories are *not* imported via `use_repo` for
     the extension for which the given top-level variable contains the return
     value of a `use_extension` call.
