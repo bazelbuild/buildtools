@@ -1,0 +1,4 @@
+load("bar", "baz")
+load("foo", "x", "y", "z")
+
+package()
