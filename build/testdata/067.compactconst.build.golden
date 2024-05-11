@@ -1,10 +1,10 @@
+load(":a", "b")
 load(
     # A
-    "foo.bzl",
+    ":foo.bzl",
     # B
     "bar",
 )
-load(":a", "b")
 
 cc_binary(
     # A
