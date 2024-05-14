@@ -190,6 +190,8 @@ def buildifier_impl_factory(ctx, test_rule = False):
     )
 
     runfiles = [ctx.executable.buildifier]
+    if ctx.attr.add_tables:
+        runfiles.append(ctx.file.add_tables)
     if test_rule:
         runfiles.extend(ctx.files.srcs)
         if ctx.attr.no_sandbox:
