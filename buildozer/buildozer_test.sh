@@ -809,6 +809,61 @@ function test_replace_in_all_attributes() {
 )'
 }
 
+function test_substitute_dep() {
+  in='go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//some:value",  # Suffix comment.
+        "//some:value2",  # Suffix comment.
+        "//buildifier:build",
+    ]
+)'
+  run "$in" 'substitute deps //some:(.*) //new:${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//new:value",  # Suffix comment.
+        "//new:value2",  # Suffix comment.
+        "//buildifier:build",
+    ],
+)'
+}
+
+function test_substitute_dep_select() {
+  # Replace a dep inside a select statement
+  in='go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            "//some/other:value",
+            "//some/other:value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+  run "$in" 'substitute deps //some/other:(.*) :${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            ":value",
+            ":value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+}
+
 function test_delete_rule_all() {
   in='cc_library(name = "all")
 cc_library(name = "b")'
