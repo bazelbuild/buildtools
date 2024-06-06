@@ -763,7 +763,7 @@ func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, erro
 		return nil, fmt.Errorf("key '%s' not found in dict", key)
 	}
 	if e, ok := prev.(*build.StringExpr); ok {
-		if labels.Equal(e.Value, oldV, env.Pkg) || e.Value == oldV {
+		if labels.Equal(e.Value, oldV, env.Pkg) {
 			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
 		}
 	} else if e, ok := prev.(*build.Ident); ok {

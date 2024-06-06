@@ -466,7 +466,6 @@ func TestCmdDictReplaceIfEqual(t *testing.T) {
 	}
 }
 
-
 var substituteLoadsTests = []struct {
 	args      []string
 	buildFile string
