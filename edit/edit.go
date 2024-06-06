@@ -754,7 +754,7 @@ func ListReplace(e build.Expr, old, value, pkg string) bool {
 // successful.
 func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) bool {
 	substituted := false
-	for _, li := range AllLists(e) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok {
