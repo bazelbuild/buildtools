@@ -57,6 +57,7 @@ func convStmt(stmt syntax.Stmt) build.Expr {
 		load := &build.LoadStmt{
 			Module:       convExpr(stmt.Module).(*build.StringExpr),
 			ForceCompact: singleLine(stmt),
+			Comments:     convComments(stmt.Comments()),
 		}
 		for _, ident := range stmt.From {
 			load.From = append(load.From, convExpr(ident).(*build.Ident))
@@ -183,6 +184,12 @@ func convExpr(e syntax.Expr) build.Expr {
 				Value:       e.Value.(string),
 				TripleQuote: strings.HasPrefix(e.Raw, "\"\"\""),
 				Comments:    convComments(e.Comments())}
+		case syntax.BYTES:
+			return &build.StringExpr{
+				Value:       e.Value.(string),
+				TripleQuote: strings.HasPrefix(e.Raw, "b\"\"\""),
+				Comments:    convComments(e.Comments()),
+				Token:       "b\"" + e.Value.(string) + "\""}
 		}
 	case *syntax.Ident:
 		return &build.Ident{Name: e.Name, Comments: convComments(e.Comments())}
