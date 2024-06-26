@@ -351,6 +351,121 @@ func TestCmdDictListAdd(t *testing.T) {
 	}
 }
 
+var dictReplaceIfEqualTests = []struct {
+	args      []string
+	buildFile string
+	expected  string
+}{
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": "value1"},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": "value2"},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": "x"},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": "x"},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+      "key1": ["value1"],
+			"key2": ["value2"],
+	},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+			"key1": ["value1"],
+			"key2": ["value2"],
+    },
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value1",
+			"key2": "value2",
+	},
+	)`,
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value2",
+			"key2": "value2",
+},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value1",
+			"key2": "x",
+	},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+			"key1": "value2",
+			"key2": "x",
+		},
+)`,
+	},
+}
+
+func TestCmdDictReplaceIfEqual(t *testing.T) {
+	for i, tt := range dictReplaceIfEqualTests {
+		bld, err := build.Parse("BUILD", []byte(tt.buildFile))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		expectedBld, err := build.Parse("BUILD", []byte(tt.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rl := bld.Rules("foo")[0]
+		env := CmdEnvironment{
+			File: bld,
+			Rule: rl,
+			Args: tt.args,
+		}
+		bld, err = cmdDictReplaceIfEqual(NewOpts(), env)
+		if err != nil {
+			t.Errorf("cmdDictReplaceIfEqual(%d):\ngot error:\n%s", i, err)
+		}
+		got := strings.TrimSpace(string(build.Format(bld)))
+		expected := strings.TrimSpace(string(build.Format(expectedBld)))
+		if got != expected {
+			t.Errorf("cmdDictReplaceIfEqual(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
+		}
+	}
+}
+
 var substituteLoadsTests = []struct {
 	args      []string
 	buildFile string
