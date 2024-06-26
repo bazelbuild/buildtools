@@ -1146,7 +1146,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		// not valid.
 		// Pretend they're not there and skip past them while we look for
 		// possible workspace calls.
-		//isSyntheticPackage := isEmptyPackage(stmt)
+		// isSyntheticPackage := isEmptyPackage(stmt)
 
 		// If we're editing a WORKSPACE file, bazel requires that the workspace
 		// declaration must be the very first expression in the WORKSPACE file,

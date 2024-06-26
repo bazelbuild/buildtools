@@ -42,7 +42,7 @@ const (
 	TypeWorkspace
 	// TypeBzl represents .bzl files
 	TypeBzl
-	//TypeModule represents MODULE.bazel and *.MODULE.bazel files
+	// TypeModule represents MODULE.bazel and *.MODULE.bazel files
 	TypeModule
 )
 
