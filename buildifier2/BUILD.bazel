@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//build",
         "//convertast",
-        "@skylark_syntax//syntax",
+        "@net_starlark_go//syntax",
     ],
 )
 
