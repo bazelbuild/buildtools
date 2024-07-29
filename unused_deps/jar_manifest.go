@@ -19,7 +19,7 @@ package main
 import (
 	"archive/zip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 )
 
@@ -71,7 +71,7 @@ func jarManifestValue(jarFileName string, key string) (string, error) {
 		}
 		defer rc.Close()
 
-		bytes, err := ioutil.ReadAll(rc)
+		bytes, err := io.ReadAll(rc)
 		if err != nil {
 			return "", err
 		}

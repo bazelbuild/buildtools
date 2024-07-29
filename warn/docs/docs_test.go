@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -52,14 +51,14 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 func TestFilesMatch(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 
-	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md") 
-	generated, err := ioutil.ReadFile(generatedPath)
+	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md")
+	generated, err := os.ReadFile(generatedPath)
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", generatedPath, err)
 	}
 
 	checkedInPath := path.Join(testdata, "WARNINGS.md")
-	checkedIn, err := ioutil.ReadFile(checkedInPath)
+	checkedIn, err := os.ReadFile(checkedInPath)
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", checkedInPath, err)
 	}
