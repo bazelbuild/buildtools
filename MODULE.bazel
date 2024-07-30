@@ -39,9 +39,9 @@ node.toolchain(
     node_version = "16.7.0",
 )
 
-ext = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "ext")
-use_repo(ext, "jq_toolchains")
-use_repo(ext, "copy_to_directory_toolchains")
+toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
+use_repo(toolchains, "jq_toolchains")
+use_repo(toolchains, "copy_to_directory_toolchains")
 
 register_toolchains(
     "@jq_toolchains//:all",
