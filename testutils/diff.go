@@ -18,7 +18,6 @@ limitations under the License.
 package testutils
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -26,14 +25,14 @@ import (
 
 // Diff returns the output of running diff on b1 and b2.
 func Diff(b1, b2 []byte) ([]byte, error) {
-	f1, err := ioutil.TempFile("", "testdiff")
+	f1, err := os.CreateTemp("", "testdiff")
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(f1.Name())
 	defer f1.Close()
 
-	f2, err := ioutil.TempFile("", "testdiff")
+	f2, err := os.CreateTemp("", "testdiff")
 	if err != nil {
 		return nil, err
 	}

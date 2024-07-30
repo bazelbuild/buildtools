@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -1135,7 +1134,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	var fi os.FileInfo
 	records := []*apipb.Output_Record{}
 	if name == stdinPackageName { // read on stdin
-		data, err = ioutil.ReadAll(os.Stdin)
+		data, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return &rewriteResult{file: name, errs: []error{err}}
 		}
@@ -1297,7 +1296,7 @@ func findBuildFiles(rootDir string) []string {
 		dir := searchDirs[lastIndex]
 		searchDirs = searchDirs[:lastIndex]
 
-		dirFiles, err := ioutil.ReadDir(dir)
+		dirFiles, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}

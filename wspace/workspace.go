@@ -18,7 +18,6 @@ limitations under the License.
 package wspace
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -128,7 +127,7 @@ func FindRepoBuildFiles(root string) (map[string]string, error) {
 		"new_git_repository",
 		"new_http_archive",
 	}
-	data, err := ioutil.ReadFile(ws)
+	data, err := os.ReadFile(ws)
 	if err != nil {
 		return nil, err
 	}

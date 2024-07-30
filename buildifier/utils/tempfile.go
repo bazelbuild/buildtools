@@ -18,7 +18,6 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 )
 
@@ -29,7 +28,7 @@ type TempFile struct {
 
 // WriteTemp writes data to a temporary file and returns the name of the file.
 func (tf *TempFile) WriteTemp(data []byte) (file string, err error) {
-	f, err := ioutil.TempFile("", "buildifier-tmp-")
+	f, err := os.CreateTemp("", "buildifier-tmp-")
 	if err != nil {
 		return "", fmt.Errorf("creating temporary file: %v", err)
 	}
