@@ -147,6 +147,10 @@ Buildozer supports the following commands(`'command args'`):
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
   * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
+  * `dict_replace_if_equal <attr> <key> <old_value> <new_value>`: Replaces
+    `old_value` with `new_value` for key `key` in dictionary attribute `attr`.
+    If the key is not present in the dictionary, or does not have value
+    `old_value`, it will _not_ be updated.
   * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
     dict attribute `attr`.
   * `format`: Force formatting of all files, even if they were not changed by
@@ -169,7 +173,7 @@ The following commands only apply to `MODULE.bazel` files (e.g. the target
     Ensures that the given repositories are imported via `use_repo` for the
     extension for which the given top-level variable contains the return value
     of a `use_extension` call.
-  * `use_repo_add <use_extension variable name> <repo(s)>`:
+  * `use_repo_remove <use_extension variable name> <repo(s)>`:
     Ensures that the given repositories are *not* imported via `use_repo` for
     the extension for which the given top-level variable contains the return
     value of a `use_extension` call.
