@@ -17,7 +17,6 @@ limitations under the License.
 package edit
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -128,7 +127,7 @@ type targetExpressionToBuildFilesTestCase struct {
 }
 
 func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,19 +144,19 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 	return

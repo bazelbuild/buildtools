@@ -22,7 +22,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -36,7 +35,7 @@ var outputPath = flag.String("output", "", "output file")
 
 // bazelBuildLanguage reads a proto file and returns a BuildLanguage object.
 func bazelBuildLanguage(file string) (*buildpb.BuildLanguage, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot read %s: %s\n", file, err)
 		return nil, err
@@ -83,7 +82,7 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 
 	// Make sure we always have this.
 	_, ok := types["package_metadata"]
-	if ! ok {
+	if !ok {
 		types["package_metadata"] = buildpb.Attribute_LABEL_LIST
 	}
 
