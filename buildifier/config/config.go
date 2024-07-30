@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -132,7 +131,7 @@ func (c *Config) LoadFile() error {
 
 // LoadReader unmarshals JSON data from the given reader.
 func (c *Config) LoadReader(in io.Reader) error {
-	data, err := ioutil.ReadAll(in)
+	data, err := io.ReadAll(in)
 	if err != nil {
 		return fmt.Errorf("reading config: %w", err)
 	}
