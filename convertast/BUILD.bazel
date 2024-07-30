@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//build",
-        "@skylark_syntax//syntax",
+        "@net_starlark_go//syntax",
     ],
 )
 
