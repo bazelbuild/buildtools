@@ -41,7 +41,7 @@ function getNativeBinary() {
   if (arch == undefined || platform == undefined || (arch == 'arm64' && platform == 'windows')) {
     console.error(`FATAL: Your platform/architecture combination ${
         os.platform()} - ${os.arch()} is not yet supported.
-    See instructions at https://github.com/bazelbuild/buildtools/blob/master/_TOOL_/README.md.`);
+    See instructions at https://github.com/bazelbuild/buildtools/blob/main/_TOOL_/README.md.`);
     return Promise.resolve(1);
   }
 
