@@ -186,7 +186,7 @@ The output format is the following:
                     "actionable": true,
                     "autoFixable": true,
                     "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
-                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
+                    "url": "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#integer-division"
                 }
             ]
         },
