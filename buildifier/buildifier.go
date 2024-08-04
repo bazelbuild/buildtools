@@ -82,7 +82,7 @@ Full list of flags with their defaults:
 	flag.PrintDefaults()
 
 	fmt.Fprintf(flag.CommandLine.Output(), `
-Buildifier can be also be configured via a JSON file.  The location of the file
+Buildifier can also be configured via a JSON file.  The location of the file
 is given by the -config flag, the BUILDIFIER_CONFIG environment variable, or
 a file named '.buildifier.json' at the root of the workspace (e.g., in the same
 directory as the WORKSPACE file).  The PWD environment variable or process
