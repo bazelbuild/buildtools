@@ -336,7 +336,7 @@ func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mo
 		} else if fct, ok := RuleWarningMap[warn]; ok {
 			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else {
-			log.Fatalf("unexpected warning %q", warn)
+			log.Exitf("unexpected warning %q", warn)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })
