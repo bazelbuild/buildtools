@@ -24,6 +24,7 @@ function getNativeBinary() {
   const arch = {
     'arm64' : 'arm64',
     'x64' : 'amd64',
+    's390x': 's390x'
   }[os.arch()];
   // Filter the platform based on the platforms that are build/included.
   const platform = {
@@ -40,7 +41,7 @@ function getNativeBinary() {
   if (arch == undefined || platform == undefined || (arch == 'arm64' && platform == 'windows')) {
     console.error(`FATAL: Your platform/architecture combination ${
         os.platform()} - ${os.arch()} is not yet supported.
-    See instructions at https://github.com/bazelbuild/buildtools/blob/master/_TOOL_/README.md.`);
+    See instructions at https://github.com/bazelbuild/buildtools/blob/main/_TOOL_/README.md.`);
     return Promise.resolve(1);
   }
 

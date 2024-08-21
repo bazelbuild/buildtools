@@ -19,7 +19,6 @@ limitations under the License.
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -110,7 +109,7 @@ func getFileReader(workspaceRoot string) *warn.FileReader {
 		filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 		path := filepath.Join(workspaceRoot, filename)
 
-		return ioutil.ReadFile(path)
+		return os.ReadFile(path)
 	}
 
 	return warn.NewFileReader(readFile)

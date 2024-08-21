@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -82,7 +82,7 @@ Full list of flags with their defaults:
 	flag.PrintDefaults()
 
 	fmt.Fprintf(flag.CommandLine.Output(), `
-Buildifier can be also be configured via a JSON file.  The location of the file
+Buildifier can also be configured via a JSON file.  The location of the file
 is given by the -config flag, the BUILDIFIER_CONFIG environment variable, or
 a file named '.buildifier.json' at the root of the workspace (e.g., in the same
 directory as the WORKSPACE file).  The PWD environment variable or process
@@ -175,7 +175,7 @@ func (b *buildifier) run(args []string) int {
 	var diagnostics *utils.Diagnostics
 	if len(args) == 0 || (len(args) == 1 && (args)[0] == "-") {
 		// Read from stdin, write to stdout.
-		data, err := ioutil.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: reading stdin: %v\n", err)
 			return 2
@@ -243,7 +243,7 @@ func (b *buildifier) processFiles(files []string, tf *utils.TempFile) (*utils.Di
 		go func(i int) {
 			for j := i; j < len(files); j += nworker {
 				file := files[j]
-				data, err := ioutil.ReadFile(file)
+				data, err := os.ReadFile(file)
 				ch[i] <- result{file, data, err}
 			}
 		}(i)
@@ -361,7 +361,7 @@ func (b *buildifier) processFile(filename string, data []byte, displayFileNames 
 			return fileDiagnostics, exitCode
 		}
 
-		err := ioutil.WriteFile(filename, ndata, 0666)
+		err := os.WriteFile(filename, ndata, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "buildifier: %s\n", err)
 			return fileDiagnostics, 3
