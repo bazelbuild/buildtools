@@ -4,7 +4,7 @@ module(
 )
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.7.9")
-bazel_dep(name = "aspect_rules_js", version = "2.0.0-rc9")
+bazel_dep(name = "aspect_rules_js", version = "2.0.1")
 bazel_dep(name = "bazel_features", version = "1.14.0")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "gazelle", version = "0.37.0", repo_name = "bazel_gazelle")
