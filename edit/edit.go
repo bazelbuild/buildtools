@@ -54,7 +54,7 @@ func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, p
 				return buildFile, repo, pkg, rule
 			}
 		}
-		// TODO(rodrigoq): report error for other repos
+		return "", repo, pkg, rule
 	}
 
 	defaultBuildFileName := "BUILD"
