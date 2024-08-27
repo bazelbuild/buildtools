@@ -21,15 +21,24 @@ import "testing"
 func TestConstantGlob(t *testing.T) {
 	checkFindings(t, "constant-glob", `
 cc_library(srcs = glob(["foo.cc"]))
-cc_library(srcs = glob(["*.cc"]))
+cc_library(srcs = glob(include = ["foo.cc"]))
+cc_library(srcs = glob(include = ["foo.cc"], exclude = ["bar.cc"]))
+cc_library(srcs = glob(exclude = ["bar.cc"], include = ["foo.cc"]))
 cc_library(srcs =
-  ["constant"] + glob([
-    "*.cc",
-    "test.cpp",
-  ])
-)`,
+	["constant"] + glob([
+		"*.cc",
+		"test.cpp",
+		])
+	)
+cc_library(srcs = glob(["*.cc"]))
+cc_library(srcs = glob(["*.cc"], exclude = ["bar.cc"]))
+cc_library(srcs = glob(include = ["*.cc"], exclude = ["bar.cc"]))
+cc_library(srcs = glob(exclude = ["bar.cc"], include = ["*.cc"]))`,
 		[]string{`:1: Glob pattern "foo.cc" has no wildcard`,
-			`:6: Glob pattern "test.cpp" has no wildcard`},
+			`:2: Glob pattern "foo.cc" has no wildcard`,
+			`:3: Glob pattern "foo.cc" has no wildcard`,
+			`:4: Glob pattern "foo.cc" has no wildcard`,
+			`:8: Glob pattern "test.cpp" has no wildcard`},
 		scopeBuild|scopeBzl|scopeWorkspace)
 }
 

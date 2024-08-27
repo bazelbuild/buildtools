@@ -24,7 +24,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -93,7 +92,7 @@ func stringList(name, help string) func() []string {
 
 // getJarPath prints the path to the output jar file specified in the extra_action file at path.
 func getJarPath(path string) (string, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -154,7 +153,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 	depsByJar = make(map[string]string)
 	errs := make([]error, 0)
 	for _, paramsFileName := range paramsFileNames {
-		data, err := ioutil.ReadFile(paramsFileName)
+		data, err := os.ReadFile(paramsFileName)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -200,7 +199,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 // at compile time, and returns those values in the depsByJar map that aren't used at compile time.
 func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps map[string]bool) {
 	unusedDeps = make(map[string]bool)
-	data, err := ioutil.ReadFile(depsFileName)
+	data, err := os.ReadFile(depsFileName)
 	if err != nil {
 		log.Println(err)
 		return unusedDeps
@@ -223,7 +222,7 @@ func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps ma
 
 // parseBuildFile tries to read and parse the contents of buildFileName.
 func parseBuildFile(buildFileName string) (buildFile *build.File, err error) {
-	data, err := ioutil.ReadFile(buildFileName)
+	data, err := os.ReadFile(buildFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -302,16 +301,16 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 // setupAspect creates a workspace in a tmpdir and populates it with an aspect,
 // which is used with --override_repository below.
 func setupAspect() (string, error) {
-	tmp, err := ioutil.TempDir(os.TempDir(), "unused_deps")
+	tmp, err := os.MkdirTemp(os.TempDir(), "unused_deps")
 	if err != nil {
 		return "", err
 	}
 	for _, f := range []string{"WORKSPACE", "BUILD"} {
-		if err := ioutil.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
+		if err := os.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
 			return "", err
 		}
 	}
-	if err := ioutil.WriteFile(path.Join(tmp, "unused_deps.bzl"), []byte(aspect), 0666); err != nil {
+	if err := os.WriteFile(path.Join(tmp, "unused_deps.bzl"), []byte(aspect), 0666); err != nil {
 		return "", err
 	}
 	return tmp, nil

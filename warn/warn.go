@@ -78,7 +78,7 @@ type Replacement struct {
 }
 
 func docURL(cat string) string {
-	return "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#" + cat
+	return "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#" + cat
 }
 
 // makeFinding creates a Finding object
@@ -336,7 +336,8 @@ func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mo
 		} else if fct, ok := RuleWarningMap[warn]; ok {
 			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else {
-			log.Fatalf("unexpected warning %q", warn)
+			log.Printf("unexpected warning %q", warn)
+			os.Exit(1)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })

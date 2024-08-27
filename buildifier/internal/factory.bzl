@@ -80,7 +80,7 @@ def buildifier_attr_factory(test_rule = False):
             allow_single_file = True,
         ),
         "_windows_runner": attr.label(
-            default = "@com_github_bazelbuild_buildtools//buildifier:runner.bat.template",
+            default = "//buildifier:runner.bat.template",
             allow_single_file = True,
         ),
     }
@@ -168,8 +168,6 @@ def buildifier_impl_factory(ctx, test_rule = False):
             fail("Cannot use 'no_sandbox' without a 'workspace'")
         workspace = ctx.file.workspace.path
 
-    out_file = ctx.actions.declare_file(ctx.label.name + ".bash")
-
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
         "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
@@ -192,6 +190,8 @@ def buildifier_impl_factory(ctx, test_rule = False):
     )
 
     runfiles = [ctx.executable.buildifier]
+    if ctx.attr.add_tables:
+        runfiles.append(ctx.file.add_tables)
     if test_rule:
         runfiles.extend(ctx.files.srcs)
         if ctx.attr.no_sandbox:

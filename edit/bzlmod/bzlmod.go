@@ -18,9 +18,8 @@ limitations under the License.
 package bzlmod
 
 import (
-	"strings"
-
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // Proxies returns the names of extension proxies (i.e. the names of variables to which the result
@@ -225,19 +224,18 @@ func getApparentModuleName(f *build.File) string {
 
 // normalizeLabelString converts a label string into the form @apparent_name//path/to:target.
 func normalizeLabelString(rawLabel, apparentModuleName string) string {
-	// This implements
-	// https://github.com/bazelbuild/bazel/blob/dd822392db96bb7bccdb673414a20c4b91e3dbc1/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/ModuleFileGlobals.java#L416
-	// with the assumption that the current module is the root module.
-	if strings.HasPrefix(rawLabel, "//") {
-		// Relative labels always refer to the current module.
-		return "@" + apparentModuleName + rawLabel
-	} else if strings.HasPrefix(rawLabel, "@//") {
-		// In the root module only, this syntax refer to the module. Since we are inspecting its
-		// module file as a tool, we can assume that the current module is the root module.
-		return "@" + apparentModuleName + rawLabel[1:]
-	} else {
-		return rawLabel
+	label := labels.ParseRelative(rawLabel, "")
+	if label.Repository == "" {
+		// This branch is taken in two different cases:
+		// 1. The label is relative. In this case, labels.ParseRelative populates the Package field
+		//    but not the Repository field.
+		// 2. The label is of the form "@//pkg:extension.bzl". Normalize to spelling out the
+		//    apparent name of the root module. Note that this syntax is only allowed in the root
+		//    module, but since we are inspecting its module file as a tool, we can assume that the
+		//    current module is the root module.
+		label.Repository = apparentModuleName
 	}
+	return label.Format()
 }
 
 func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name string, dev bool, isolate bool) {
@@ -252,6 +250,9 @@ func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name stri
 		return
 	}
 	call := assign.RHS.(*build.CallExpr)
+	if _, ok = call.X.(*build.Ident); !ok {
+		return
+	}
 	if call.X.(*build.Ident).Name != "use_extension" {
 		return
 	}

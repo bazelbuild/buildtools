@@ -31,7 +31,7 @@ die () {
 [[ "$1" =~ external/* ]] && buildozer="${{1#external/}}" || buildozer="$TEST_WORKSPACE/$1"
 buildozer="$(rlocation "$buildozer")"
 
-source $TEST_SRCDIR/buildtools/buildozer/test_common.sh
+source $TEST_SRCDIR/_main/buildozer/test_common.sh
 
 ## TEST INPUTS
 
@@ -809,6 +809,61 @@ function test_replace_in_all_attributes() {
 )'
 }
 
+function test_substitute_dep() {
+  in='go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//some:value",  # Suffix comment.
+        "//some:value2",  # Suffix comment.
+        "//buildifier:build",
+    ]
+)'
+  run "$in" 'substitute deps //some:(.*) //new:${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//new:value",  # Suffix comment.
+        "//new:value2",  # Suffix comment.
+        "//buildifier:build",
+    ],
+)'
+}
+
+function test_substitute_dep_select() {
+  # Replace a dep inside a select statement
+  in='go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            "//some/other:value",
+            "//some/other:value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+  run "$in" 'substitute deps //some/other:(.*) :${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            ":value",
+            ":value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+}
+
 function test_delete_rule_all() {
   in='cc_library(name = "all")
 cc_library(name = "b")'
@@ -1004,26 +1059,6 @@ function test_set_int() {
   assert_equals 'cc_test(
     name = "a",
     shard_count = 8,
-)'
-}
-
-function test_set_licenses() {
-  in='cc_test(name = "a")'
-
-  run "$in" 'set licenses foo' '//pkg:a'
-  assert_equals 'cc_test(
-    name = "a",
-    licenses = ["foo"],
-)'
-}
-
-function test_set_distribs() {
-  in='cc_test(name = "a")'
-
-  run "$in" 'set distribs foo' '//pkg:a'
-  assert_equals 'cc_test(
-    name = "a",
-    distribs = ["foo"],
 )'
 }
 
@@ -2056,6 +2091,36 @@ EOF
 
   $buildozer 'delete' //MODULE.bazel:%10
   diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_module_bazel_segment() {
+  cat > go.MODULE.bazel <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_example_foo")
+EOF
+
+  cat > go.MODULE.bazel.expected <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+EOF
+
+  $buildozer 'delete' //go.MODULE.bazel:%10
+  diff -u go.MODULE.bazel.expected go.MODULE.bazel || fail "Output didn't match"
 }
 
 function test_module_bazel_new() {

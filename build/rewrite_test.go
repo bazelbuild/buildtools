@@ -18,7 +18,6 @@ package build
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -28,10 +27,10 @@ var workingDir string = path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORK
 var originalFilePath = workingDir + "/rewrite_test_files/original.star"
 var formattedFilePath = workingDir + "/rewrite_test_files/original_formatted.star"
 
-var originalBytes, _ = ioutil.ReadFile(originalFilePath)
+var originalBytes, _ = os.ReadFile(originalFilePath)
 var originalFile, _ = ParseDefault(originalFilePath, originalBytes)
 
-var formattedBytes, _ = ioutil.ReadFile(formattedFilePath)
+var formattedBytes, _ = os.ReadFile(formattedFilePath)
 var formattedFile, _ = ParseDefault(formattedFilePath, formattedBytes)
 
 var name map[string]int = map[string]int{"name": -99}
@@ -44,7 +43,7 @@ var rewriter = Rewriter{
 
 func TestRewriterRegular(t *testing.T) {
 	// Load the original file
-	var modifyBytes, _ = ioutil.ReadFile(originalFilePath)
+	var modifyBytes, _ = os.ReadFile(originalFilePath)
 	var modifiedFile, _ = ParseDefault(originalFilePath, modifyBytes)
 
 	// Perform rewrite on loaded file, rewrite should do nothing here
@@ -71,7 +70,7 @@ func TestRewriterRegular(t *testing.T) {
 
 func TestRewriterWithRewriter(t *testing.T) {
 	// Load the original file
-	var modifyBytes, _ = ioutil.ReadFile(originalFilePath)
+	var modifyBytes, _ = os.ReadFile(originalFilePath)
 	var modifiedFile, _ = ParseDefault(originalFilePath, modifyBytes)
 
 	// Perform rewrite with rewriter on loaded file, should proceed to reorder

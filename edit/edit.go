@@ -54,7 +54,7 @@ func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, p
 				return buildFile, repo, pkg, rule
 			}
 		}
-		// TODO(rodrigoq): report error for other repos
+		return "", repo, pkg, rule
 	}
 
 	defaultBuildFileName := "BUILD"
@@ -754,7 +754,7 @@ func ListReplace(e build.Expr, old, value, pkg string) bool {
 // successful.
 func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) bool {
 	substituted := false
-	for _, li := range AllLists(e) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok {
@@ -1146,7 +1146,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		// not valid.
 		// Pretend they're not there and skip past them while we look for
 		// possible workspace calls.
-		//isSyntheticPackage := isEmptyPackage(stmt)
+		// isSyntheticPackage := isEmptyPackage(stmt)
 
 		// If we're editing a WORKSPACE file, bazel requires that the workspace
 		// declaration must be the very first expression in the WORKSPACE file,

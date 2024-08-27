@@ -17,7 +17,6 @@ limitations under the License.
 package edit
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -128,7 +127,7 @@ type targetExpressionToBuildFilesTestCase struct {
 }
 
 func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,19 +144,19 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 	return
@@ -351,6 +350,121 @@ func TestCmdDictListAdd(t *testing.T) {
 	}
 }
 
+var dictReplaceIfEqualTests = []struct {
+	args      []string
+	buildFile string
+	expected  string
+}{
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": "value1"},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": "value2"},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {"key1": "x"},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {"key1": "x"},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+      "key1": ["value1"],
+			"key2": ["value2"],
+	},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+			"key1": ["value1"],
+			"key2": ["value2"],
+    },
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value1",
+			"key2": "value2",
+	},
+	)`,
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value2",
+			"key2": "value2",
+},
+)`,
+	},
+	{[]string{
+		"attr", "key1", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value1",
+			"key2": "x",
+	},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+			"key1": "value2",
+			"key2": "x",
+		},
+)`,
+	},
+}
+
+func TestCmdDictReplaceIfEqual(t *testing.T) {
+	for i, tt := range dictReplaceIfEqualTests {
+		bld, err := build.Parse("BUILD", []byte(tt.buildFile))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		expectedBld, err := build.Parse("BUILD", []byte(tt.expected))
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		rl := bld.Rules("foo")[0]
+		env := CmdEnvironment{
+			File: bld,
+			Rule: rl,
+			Args: tt.args,
+		}
+		bld, err = cmdDictReplaceIfEqual(NewOpts(), env)
+		if err != nil {
+			t.Errorf("cmdDictReplaceIfEqual(%d):\ngot error:\n%s", i, err)
+		}
+		got := strings.TrimSpace(string(build.Format(bld)))
+		expected := strings.TrimSpace(string(build.Format(expectedBld)))
+		if got != expected {
+			t.Errorf("cmdDictReplaceIfEqual(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
+		}
+	}
+}
+
 var substituteLoadsTests = []struct {
 	args      []string
 	buildFile string
@@ -411,6 +525,61 @@ func TestCmdSubstituteLoad(t *testing.T) {
 		if got != tt.expected {
 			t.Errorf("cmdSubstituteLoad(%d):\ngot:\n%s\nexpected:\n%s", i, got, tt.expected)
 		}
+	}
+}
+
+func TestCmdSubstitute(t *testing.T) {
+	for i, tc := range []struct {
+		name      string
+		args      []string
+		buildFile string
+		expected  string
+	}{
+		{
+			name:      "empty_rule",
+			args:      []string{"*", "^$", "x"},
+			buildFile: `cc_library()`,
+			expected:  `cc_library()`,
+		},
+		{
+			name:      "known_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar/baz:quux"])`,
+			expected:  `cc_library(deps = ["//foo/bar/baz:quux"])`,
+		},
+		{
+			name:      "custom_attr",
+			args:      []string{"*", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(my_custom_attr = "//bar/baz:quux")`,
+			expected:  `cc_library(my_custom_attr = "//foo/bar/baz:quux")`,
+		},
+		{
+			name:      "specific_rule",
+			args:      []string{"deps", "^//(.*)$", "//foo/${1}"},
+			buildFile: `cc_library(deps = ["//bar"], fancy_deps = ["//bar/baz:quux"])`,
+			expected: `cc_library(
+    fancy_deps = ["//bar/baz:quux"],
+    deps = ["//foo/bar"],
+)`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			env := CmdEnvironment{
+				File: bld,
+				Args: tc.args,
+				Rule: bld.RuleAt(1),
+			}
+			bld, _ = cmdSubstitute(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tc.expected {
+				t.Errorf("cmdSubstitute(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
 	}
 }
 

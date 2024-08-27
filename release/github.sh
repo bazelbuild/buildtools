@@ -30,7 +30,7 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
 done;
 
 echo "Creating a draft release"
-API_JSON="{\"tag_name\": \"$TAG\", \"target_commitish\": \"master\", \"name\": \"$NAME\", \"draft\": true}"
+API_JSON="{\"tag_name\": \"$TAG\", \"target_commitish\": \"main\", \"name\": \"$NAME\", \"draft\": true}"
 RESPONSE=$(curl -s --show-error -H "$GH_AUTH_HEADER" --data "$API_JSON" "https://api.github.com/$GH_REPO/releases")
 RELEASE_ID=$(echo $RESPONSE | jq -r '.id')
 RELEASE_URL=$(echo $RESPONSE | jq -r '.html_url')

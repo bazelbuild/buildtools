@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -546,7 +545,7 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 			continue
 		}
 		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
-			env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newValue}, env))
+			env.Rule.SetAttr(key, getStringExpr(newValue, env.Pkg))
 		}
 	}
 	return env.File, nil
@@ -745,6 +744,35 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+// cmdDictReplaceIfEqual updates a value in a dict if it is equal to a given value.
+func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	key := env.Args[1]
+	oldV := getStringValue(env.Args[2])
+	newV := getStringValue(env.Args[3])
+
+	thing := env.Rule.Attr(attr)
+	dictAttr, ok := thing.(*build.DictExpr)
+	if !ok {
+		return env.File, nil
+	}
+
+	prev := DictionaryGet(dictAttr, key)
+	if prev == nil {
+		return nil, fmt.Errorf("key '%s' not found in dict", key)
+	}
+	if e, ok := prev.(*build.StringExpr); ok {
+		if labels.Equal(e.Value, oldV, env.Pkg) {
+			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+		}
+	} else if e, ok := prev.(*build.Ident); ok {
+		if e.Name == oldV {
+			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+		}
+	}
+	return env.File, nil
+}
+
 // cmdDictListAdd adds an item to a list in a dict.
 func cmdDictListAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
@@ -880,35 +908,36 @@ type CommandInfo struct {
 // AllCommands associates the command names with their function and number
 // of arguments.
 var AllCommands = map[string]CommandInfo{
-	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
-	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
-	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
-	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
-	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
-	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
-	"delete":            {cmdDelete, true, 0, 0, ""},
-	"fix":               {cmdFix, true, 0, -1, "<fix(es)>?"},
-	"move":              {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
-	"new":               {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
-	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
-	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
-	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
-	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
-	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
-	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
-	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
-	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
-	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
-	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
-	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
-	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
-	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
-	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
-	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
-	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
-	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
-	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
-	"format":            {cmdFormat, false, 0, 0, ""},
+	"add":                   {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
+	"new_load":              {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
+	"replace_load":          {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
+	"substitute_load":       {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
+	"comment":               {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
+	"print_comment":         {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
+	"delete":                {cmdDelete, true, 0, 0, ""},
+	"fix":                   {cmdFix, true, 0, -1, "<fix(es)>?"},
+	"move":                  {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
+	"new":                   {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
+	"print":                 {cmdPrint, true, 0, -1, "<attribute(s)>"},
+	"remove":                {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
+	"remove_comment":        {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
+	"remove_if_equal":       {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
+	"rename":                {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
+	"replace":               {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
+	"substitute":            {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
+	"set":                   {cmdSet, true, 1, -1, "<attr> <value(s)>"},
+	"set_if_absent":         {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
+	"set_select":            {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
+	"copy":                  {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
+	"copy_no_overwrite":     {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
+	"dict_add":              {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_set":              {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_remove":           {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
+	"dict_replace_if_equal": {cmdDictReplaceIfEqual, true, 4, 4, "<attr> <key> <old_value> <new_value>"},
+	"dict_list_add":         {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"use_repo_add":          {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"use_repo_remove":       {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":                {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{
@@ -1105,7 +1134,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	var fi os.FileInfo
 	records := []*apipb.Output_Record{}
 	if name == stdinPackageName { // read on stdin
-		data, err = ioutil.ReadAll(os.Stdin)
+		data, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return &rewriteResult{file: name, errs: []error{err}}
 		}
@@ -1267,7 +1296,7 @@ func findBuildFiles(rootDir string) []string {
 		dir := searchDirs[lastIndex]
 		searchDirs = searchDirs[:lastIndex]
 
-		dirFiles, err := ioutil.ReadDir(dir)
+		dirFiles, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}

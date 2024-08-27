@@ -19,7 +19,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -479,7 +478,7 @@ func TestFindConfigPath(t *testing.T) {
 				defer os.Unsetenv(k)
 			}
 
-			tmp, err := ioutil.TempDir("", name+"*")
+			tmp, err := os.MkdirTemp("", name+"*")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -499,7 +498,7 @@ func TestFindConfigPath(t *testing.T) {
 					}
 				}
 				filename := filepath.Join(dir, rel)
-				if err := ioutil.WriteFile(filename, []byte(content), 0644); err != nil {
+				if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 					t.Fatal(err)
 				}
 			}
