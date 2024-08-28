@@ -19,7 +19,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,7 +74,6 @@ func ExampleExample() {
 	//     "keyword-positional-params",
 	//     "list-append",
 	//     "load",
-	//     "load-on-top",
 	//     "module-docstring",
 	//     "name-conventions",
 	//     "native-android",
@@ -86,7 +84,6 @@ func ExampleExample() {
 	//     "native-proto",
 	//     "native-py",
 	//     "no-effect",
-	//     "out-of-order-load",
 	//     "output-group",
 	//     "overly-nested-depset",
 	//     "package-name",
@@ -98,7 +95,6 @@ func ExampleExample() {
 	//     "repository-name",
 	//     "return-value",
 	//     "rule-impl-return",
-	//     "same-origin-load",
 	//     "skylark-comment",
 	//     "skylark-docstring",
 	//     "string-iteration",
@@ -259,7 +255,6 @@ func TestValidate(t *testing.T) {
 			"keyword-positional-params",
 			"list-append",
 			"load",
-			"load-on-top",
 			"module-docstring",
 			"name-conventions",
 			"native-android",
@@ -270,7 +265,6 @@ func TestValidate(t *testing.T) {
 			"native-proto",
 			"native-py",
 			"no-effect",
-			"out-of-order-load",
 			"output-group",
 			"overly-nested-depset",
 			"package-name",
@@ -282,7 +276,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"same-origin-load",
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -324,7 +317,6 @@ func TestValidate(t *testing.T) {
 			"keyword-positional-params",
 			"list-append",
 			"load",
-			"load-on-top",
 			"module-docstring",
 			"name-conventions",
 			// "native-android",
@@ -335,7 +327,6 @@ func TestValidate(t *testing.T) {
 			// "native-proto",
 			// "native-py",
 			"no-effect",
-			"out-of-order-load",
 			"output-group",
 			"overly-nested-depset",
 			"package-name",
@@ -347,7 +338,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"same-origin-load",
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -389,7 +379,6 @@ func TestValidate(t *testing.T) {
 			"keyword-positional-params",
 			"list-append",
 			"load",
-			"load-on-top",
 			"module-docstring",
 			"name-conventions",
 			// "native-android",
@@ -399,7 +388,6 @@ func TestValidate(t *testing.T) {
 			// "native-proto",
 			// "native-py",
 			"no-effect",
-			"out-of-order-load",
 			"output-group",
 			"overly-nested-depset",
 			"package-name",
@@ -411,7 +399,7 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"same-origin-load",
+
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -490,7 +478,7 @@ func TestFindConfigPath(t *testing.T) {
 				defer os.Unsetenv(k)
 			}
 
-			tmp, err := ioutil.TempDir("", name+"*")
+			tmp, err := os.MkdirTemp("", name+"*")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -510,7 +498,7 @@ func TestFindConfigPath(t *testing.T) {
 					}
 				}
 				filename := filepath.Join(dir, rel)
-				if err := ioutil.WriteFile(filename, []byte(content), 0644); err != nil {
+				if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 					t.Fatal(err)
 				}
 			}

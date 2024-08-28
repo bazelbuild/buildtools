@@ -65,6 +65,7 @@ type Finding struct {
 	Message     string
 	URL         string
 	Actionable  bool
+	AutoFixable bool
 	Replacement *Replacement
 }
 
@@ -77,11 +78,11 @@ type Replacement struct {
 }
 
 func docURL(cat string) string {
-	return "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#" + cat
+	return "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#" + cat
 }
 
 // makeFinding creates a Finding object
-func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, fix *Replacement) *Finding {
+func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, autoFixable bool, fix *Replacement) *Finding {
 	if url == "" {
 		url = docURL(cat)
 	}
@@ -93,6 +94,7 @@ func makeFinding(f *build.File, start, end build.Position, cat, url, msg string,
 		URL:         url,
 		Message:     msg,
 		Actionable:  actionable,
+		AutoFixable: autoFixable,
 		Replacement: fix,
 	}
 }
@@ -146,7 +148,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"keyword-positional-params": keywordPositionalParametersWarning,
 	"list-append":               listAppendWarning,
 	"load":                      unusedLoadWarning,
-	"load-on-top":               loadOnTopWarning,
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
 	"native-android":            nativeAndroidRulesWarning,
@@ -158,7 +159,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"native-py":                 nativePyRulesWarning,
 	"no-effect":                 noEffectWarning,
 	"output-group":              outputGroupWarning,
-	"out-of-order-load":         outOfOrderLoadWarning,
 	"overly-nested-depset":      overlyNestedDepsetWarning,
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
@@ -168,7 +168,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"repository-name":           repositoryNameWarning,
 	"rule-impl-return":          ruleImplReturnWarning,
 	"return-value":              missingReturnValueWarning,
-	"same-origin-load":          sameOriginLoadWarning,
 	"skylark-comment":           skylarkCommentWarning,
 	"skylark-docstring":         skylarkDocstringWarning,
 	"string-iteration":          stringIterationWarning,
@@ -246,7 +245,7 @@ func runWarningsFunction(category string, f *build.File, fct func(f *build.File,
 	findings := []*Finding{}
 	for _, w := range fct(f, f.Pkg, fileReader) {
 		if !DisabledWarning(f, w.Start.Line, category) {
-			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
+			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, len(w.Replacement) > 0, nil)
 			if len(w.Replacement) > 0 {
 				// An automatic fix exists
 				switch mode {
@@ -337,7 +336,8 @@ func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mo
 		} else if fct, ok := RuleWarningMap[warn]; ok {
 			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else {
-			log.Fatalf("unexpected warning %q", warn)
+			log.Printf("unexpected warning %q", warn)
+			os.Exit(1)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })

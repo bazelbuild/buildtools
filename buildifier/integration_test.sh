@@ -279,7 +279,6 @@ cat > golden/.buildifier.example.json <<EOF
     "keyword-positional-params",
     "list-append",
     "load",
-    "load-on-top",
     "module-docstring",
     "name-conventions",
     "native-android",
@@ -290,7 +289,6 @@ cat > golden/.buildifier.example.json <<EOF
     "native-proto",
     "native-py",
     "no-effect",
-    "out-of-order-load",
     "output-group",
     "overly-nested-depset",
     "package-name",
@@ -302,7 +300,6 @@ cat > golden/.buildifier.example.json <<EOF
     "repository-name",
     "return-value",
     "rule-impl-return",
-    "same-origin-load",
     "skylark-comment",
     "skylark-docstring",
     "string-iteration",
@@ -387,17 +384,18 @@ test_dir/to_fix_tmp.bzl: applied fixes, 2 warnings left
 fixed test_dir/to_fix_tmp.bzl
 EOF
 
-error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility)"
-error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#module-docstring)"
-error_integer="test_dir/to_fix_tmp.bzl:4: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division)"
-error_dict="test_dir/to_fix_tmp.bzl:5: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#unsorted-dict-items)"
-error_cfg="test_dir/to_fix_tmp.bzl:6: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg)"
+error_bzl="test_dir/to_fix_tmp.bzl:1: bzl-visibility: Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//to_fix_tmp.bzl\". (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#bzl-visibility)"
+error_docstring="test_dir/to_fix_tmp.bzl:1: module-docstring: The file has no module docstring."$'\n'"A module docstring is a string literal (not a comment) which should be the first statement of a file (it may follow comment lines). (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#module-docstring)"
+error_integer="test_dir/to_fix_tmp.bzl:4: integer-division: The \"/\" operator for integer division is deprecated in favor of \"//\". (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#integer-division)"
+error_dict="test_dir/to_fix_tmp.bzl:5: unsorted-dict-items: Dictionary items are out of their lexicographical order. (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#unsorted-dict-items)"
+error_cfg="test_dir/to_fix_tmp.bzl:6: attr-cfg: cfg = \"data\" for attr definitions has no effect and should be removed. (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#attr-cfg)"
 
 test_lint () {
   ret=0
   cp test_dir/to_fix.bzl test_dir/to_fix_tmp.bzl
   echo "$4" > golden/error_golden
-  echo "${4//test_dir/another_test_dir}" > golden/error_golden_another
+  with_replaced_dir="${4//test_dir/another_test_dir}"
+  echo "${with_replaced_dir//\/\/to_fix_tmp.bzl///another_test_dir/to_fix_tmp.bzl}" > golden/error_golden_another
 
   cat > golden/fix_report_golden <<EOF
 test_dir/to_fix_tmp.bzl: applied fixes, $5 warnings left
@@ -485,8 +483,9 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "bzl-visibility",
                     "actionable": true,
-                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//test_dir/json/to_fix.bzl\".",
-                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#bzl-visibility"
+                    "autoFixable": false,
+                    "message": "Module \"//foo/bar/internal/baz:module.bzl\" can only be loaded from files located inside \"//foo/bar\", not from \"//json/to_fix.bzl\".",
+                    "url": "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#bzl-visibility"
                 },
                 {
                     "start": {
@@ -499,8 +498,9 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "integer-division",
                     "actionable": true,
+                    "autoFixable": true,
                     "message": "The \"/\" operator for integer division is deprecated in favor of \"//\".",
-                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#integer-division"
+                    "url": "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#integer-division"
                 },
                 {
                     "start": {
@@ -513,8 +513,9 @@ cat > golden/json_report_golden <<EOF
                     },
                     "category": "attr-cfg",
                     "actionable": true,
+                    "autoFixable": true,
                     "message": "cfg = \"data\" for attr definitions has no effect and should be removed.",
-                    "url": "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#attr-cfg"
+                    "url": "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#attr-cfg"
                 }
             ]
         },
@@ -637,7 +638,7 @@ load(":nonexistent.bzl", "foo2", "bar2")
 EOF
 
 cat > report_golden <<EOF
-BUILD:1: deprecated-function: The function "bar" defined in "//lib.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#deprecated-function)
+BUILD:1: deprecated-function: The function "bar" defined in "//lib.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#deprecated-function)
 EOF
 
 $buildifier --lint=warn --warnings=deprecated-function BUILD 2> report || ret=$?

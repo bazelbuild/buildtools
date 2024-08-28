@@ -4,3 +4,4 @@
 .ijwb
 *.iml
 /.bazelrc.user
+MODULE.bazel.lock

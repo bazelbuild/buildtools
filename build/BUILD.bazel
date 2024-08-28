@@ -23,6 +23,7 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/build",
     visibility = ["//visibility:public"],
     deps = [
+        "//labels",
         "//tables",
     ],
 )

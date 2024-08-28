@@ -1,0 +1,6 @@
+load(":a.bzl", "one") # disable=same-origin-load
+load(":a.bzl", "two")
+load(":b.bzl", "one")
+load(":b.bzl", "two") # buildifier: disable=same-origin-load
+load(":c.bzl", "one", "x", y = "three")
+load(":c.bzl", "x", "two", y = "four")

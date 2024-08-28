@@ -54,6 +54,7 @@ npm_package(
         ":package",
     ] + _PARENT_PACKAGE_FILES,
     package = "@bazel/buildozer",
+    publishable = True,
 )
 
 js_test(

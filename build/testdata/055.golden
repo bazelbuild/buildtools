@@ -1,12 +1,12 @@
-load(":foo.bzl", "a", "d", "foo", b = "c", c = "b")
 load(":bar.bzl", "bar")
+load(":baz.bzl", "baz")
+# after-comment
+
+load(":foo.bzl", "a", "d", "foo", b = "c", c = "b")
 load(
     ":foobar.bzl",
     "foobar",
 )
-load(":baz.bzl", "baz")
-# after-comment
-
 load(
     # 0
     "foobar.bzl",  # 1

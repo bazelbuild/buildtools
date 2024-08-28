@@ -106,9 +106,9 @@ Using `applicable_licenses` as an attribute name may cause unexpected behavior. 
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-cfg`
 
-The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+The [Configuration](https://docs.bazel.build/versions/main/skylark/rules.html#configurations)
 `cfg = "data"` is deprecated and has no effect. Consider removing it.
-The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+The [Configuration](https://docs.bazel.build/versions/main/skylark/rules.html#configurations)
 `cfg = "host"` is deprecated. Consider replacing it with `cfg = "exec"`.
 
 --------------------------------------------------------------------------------
@@ -141,7 +141,7 @@ Using licenses as an attribute name may cause unexpected behavior.
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-non-empty`
 
-The `non_empty` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `non_empty` [attribute](https://docs.bazel.build/versions/main/skylark/lib/attr.html)
 for attr definitions is deprecated, please use `allow_empty` with an opposite value instead.
 
 --------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ Using `package_metadata` as an attribute name may cause unexpected behavior. Its
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-single-file`
 
-The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `single_file` [attribute](https://docs.bazel.build/versions/main/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
@@ -225,7 +225,7 @@ The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspo
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=constant-glob`
 
-[Glob function](https://docs.bazel.build/versions/master/be/functions.html#glob)
+[Glob function](https://docs.bazel.build/versions/main/be/functions.html#glob)
 is used to get a list of files from the depot. The patterns (the first argument)
 typically include a wildcard (* character). A pattern without a wildcard is
 often useless and sometimes harmful.
@@ -267,16 +267,16 @@ performance (glob can be relatively slow):
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=ctx-actions`
 
-The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
+The following [actions](https://docs.bazel.build/versions/main/skylark/lib/actions.html)
 are deprecated, please use the new API:
 
-  * [`ctx.new_file`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)
-  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)
-  * [`ctx.file_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#write)
-  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)
-  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run)
-  * [`ctx.empty_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)
-  * [`ctx.template_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)
+  * [`ctx.new_file`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#declare_file)
+  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#declare_directory)
+  * [`ctx.file_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#write)
+  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#run_shell)
+  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#run)
+  * [`ctx.empty_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#do_nothing)
+  * [`ctx.template_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
 
 --------------------------------------------------------------------------------
 
@@ -287,10 +287,10 @@ are deprecated, please use the new API:
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=ctx-args`
 
-It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)
+It's deprecated to use the [`add`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add)
 method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either
-[`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
-[`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
+[`add_all`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add_all) or
+[`add_joined`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add_joined),
 depending on the desired behavior.
 
 --------------------------------------------------------------------------------
@@ -314,8 +314,8 @@ the [`function-docstring`](#function-docstring) warning.
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=depset-items`
 
-The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
-is deprecated. In it's old form it's either a list of direct elements to be
+The `items` parameter for [`depset`](https://docs.bazel.build/versions/main/skylark/lib/globals.html#depset)
+is deprecated. In its old form it's either a list of direct elements to be
 added (use the `direct` or unnamed first parameter instead) or a depset that
 becomes a transitive element of the new depset (use the `transitive` parameter
 instead).
@@ -356,7 +356,7 @@ depset1 | depset2
 depset1.union(depset2)
 ```
 
-Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
+Please use the [depset](https://docs.bazel.build/versions/main/skylark/lib/depset.html) constructor
 instead:
 
 ```python
@@ -364,9 +364,9 @@ depset(transitive = [depset1, depset2])
 ```
 
 When fixing this issue, make sure you
-[understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[understand depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)
 and try to
-[reduce the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reduce the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
@@ -453,7 +453,7 @@ To fix the issue just change the name attribute of one rule/macro.
   * [Suppress the warning](#suppress): `# buildifier: disable=filetype`
 
 The function `FileType` is deprecated. Instead of using it as an argument to the
-[`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
+[`rule` function](https://docs.bazel.build/versions/main/skylark/lib/globals.html#rule)
 just use a list of strings.
 
 --------------------------------------------------------------------------------
@@ -586,7 +586,7 @@ Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://docs.bazel.build/versions/main/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the definition is not used in
 the file, the load can be safely removed. If a symbol is loaded two times, you
 will get a warning on the second occurrence.
@@ -611,7 +611,10 @@ If you want to keep the load, you can disable the warning by adding a comment
   * Category name: `load-on-top`
   * Flag in Bazel: [`--incompatible_bzl_disallow_load_after_statement`](https://github.com/bazelbuild/bazel/issues/5815)
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=load-on-top`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files except `WORKSPACE` files (unless suppressed).
 
 Load statements should be first statements (with the exception of `WORKSPACE` files),
 they can follow only comments and docstrings.
@@ -765,7 +768,10 @@ The statement has no effect. Consider removing it or storing its result in a var
 
   * Category name: `out-of-order-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=out-of-order-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files (unless suppressed).
 
 Load statements should be ordered by their first argument - extension file label.
 This makes it easier to developers to locate loads of interest and reduces chances
@@ -785,7 +791,7 @@ of a symbol load and its usage can change resulting in runtime error.
   * [Suppress the warning](#suppress): `# buildifier: disable=output-group`
 
 The `output_group` field of a target is deprecated in favor of the
-[`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+[`OutputGroupInfo` provider](https://docs.bazel.build/versions/main/skylark/lib/OutputGroupInfo.html).
 
 --------------------------------------------------------------------------------
 
@@ -822,9 +828,9 @@ x = depset(..., transitive = [y.deps for y in ...])
 ```
 
 For more information, read Bazel documentation about
-[depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)
 and
-[reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reducing the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
@@ -836,7 +842,7 @@ and
   * [Suppress the warning](#suppress): `# buildifier: disable=package-name`
 
 The global variable `PACKAGE_NAME` is deprecated, please use
-[`native.package_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#package_name)
+[`native.package_name()`](https://docs.bazel.build/versions/main/skylark/lib/native.html#package_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -946,7 +952,7 @@ AllInfo = provider("This provider accepts any field.", fields = None)
 NoneInfo = provider("This provider cannot have fields.", fields = [])
 ```
 
-See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
+See the [documentation for providers](https://docs.bazel.build/versions/main/skylark/lib/globals.html#provider).
 
 --------------------------------------------------------------------------------
 
@@ -979,7 +985,7 @@ forbid reassignment, but not every side-effect.
   * [Suppress the warning](#suppress): `# buildifier: disable=repository-name`
 
 The global variable `REPOSITORY_NAME` is deprecated, please use
-[`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
+[`native.repository_name()`](https://docs.bazel.build/versions/main/skylark/lib/native.html#repository_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -1005,9 +1011,9 @@ know certain parts of the code cannot be reached, add the statement
   * [Suppress the warning](#suppress): `# buildifier: disable=rule-impl-return`
 
 Returning structs from rule implementation functions is
-[deprecated](https://docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),
+[deprecated](https://docs.bazel.build/versions/main/skylark/rules.html#migrating-from-legacy-providers),
 consider using
-[providers](https://docs.bazel.build/versions/master/skylark/rules.html#providers)
+[providers](https://docs.bazel.build/versions/main/skylark/rules.html#providers)
 or lists of providers instead.
 
 --------------------------------------------------------------------------------
@@ -1016,11 +1022,14 @@ or lists of providers instead.
 
   * Category name: `same-origin-load`
   * Automatic fix: yes
+  * Not supported by the latest version of Buildifier
   * [Suppress the warning](#suppress): `# buildifier: disable=same-origin-load`
+
+Obsolete; the warning has been implemented in the formatter and the fix is now automatically applied to all files except `WORKSPACE` files (unless suppressed).
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://docs.bazel.build/versions/main/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the same label is used for loading
 symbols more the ones, all such loads can be merged into a single one.
 

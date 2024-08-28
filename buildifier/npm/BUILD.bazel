@@ -53,6 +53,7 @@ npm_package(
         ":package",
     ] + _PARENT_PACKAGE_FILES,
     package = "@bazel/buildifier",
+    publishable = True,
 )
 
 js_test(

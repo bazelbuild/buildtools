@@ -18,7 +18,6 @@ package edit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -174,8 +173,8 @@ func TestReplaceLoad(t *testing.T) {
 		},
 		{
 			`load("location", "other", "symbol")`,
-			`load("new_location", "symbol")
-load("location", "other")`,
+			`load("location", "other")
+load("new_location", "symbol")`,
 		},
 		{
 			`load("location", symbol = "other")`,
@@ -728,7 +727,7 @@ type testCase struct {
 }
 
 func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName string) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -736,16 +735,16 @@ func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName strin
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 
