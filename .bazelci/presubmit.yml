@@ -6,6 +6,7 @@ platforms:
   ubuntu1804:
     test_targets:
     - "//..."
+    skip_in_bazel_downstream_pipeline: "Newer abseil-cpp introduced doesn't work on this old platform"
   ubuntu2004:
     test_targets:
     - "//..."
