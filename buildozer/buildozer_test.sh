@@ -1098,6 +1098,20 @@ function test_set_custom_code() {
 )'
 }
 
+function test_set_custom_code_with_whitespace() {
+  in='cc_test(name = "a")'
+
+  run "$in" 'set attr foo(\
+\ \ a\ =\ 1,\
+)' '//pkg:a'
+  assert_equals 'cc_test(
+    name = "a",
+    attr = foo(
+        a = 1,
+    ),
+)'
+}
+
 function assert_output() {
   echo "$1" > "expected"
   diff -u "expected" "$log" || fail "Output didn't match"
@@ -1658,7 +1672,12 @@ add deps x#|a/pkg2:foo
 add deps y|a/pkg2:bar|add deps c|a/pkg1:foo
 add deps z|a/pkg2:bar
 add deps a|//a/pkg1:bar
-add deps b|a/pkg1:foo" > commands
+add deps b|a/pkg1:foo
+
+set attr func(a=1)|a/pkg1:foo
+set attr func(\\
+\ \ a\ =\ 1\\
+)|a/pkg2:foo" > commands
 }
 
 function check_file_test() {
@@ -1666,6 +1685,7 @@ function check_file_test() {
   cat > expected_pkg_1 <<EOF
 cc_library(
     name = "foo",
+    attr = func(a = 1),
     deps = [
         "a",
         "b",
@@ -1689,6 +1709,9 @@ EOF
   cat > expected_pkg_2 <<EOF
 cc_library(
     name = "foo",
+    attr = func(
+        a = 1,
+    ),
     deps = ["x#"],
 )
 
