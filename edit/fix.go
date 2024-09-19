@@ -157,12 +157,14 @@ func genruleRenameDepsTools(_ *build.File, r *build.Rule, _ string) bool {
 	return r.Kind() == "genrule" && RenameAttribute(r, "deps", "tools") == nil
 }
 
+// Regexp comes from LABEL_CHAR_MATCHER in
+//
+//	java/com/google/devtools/build/lib/analysis/LabelExpander.java
+var labelCharMatcherRe = regexp.MustCompile("[a-zA-Z0-9:/_.+-]+|[^a-zA-Z0-9:/_.+-]+")
+
 // explicitHeuristicLabels adds $(location ...) for each label in the string s.
 func explicitHeuristicLabels(s string, labels map[string]bool) string {
-	// Regexp comes from LABEL_CHAR_MATCHER in
-	//   java/com/google/devtools/build/lib/analysis/LabelExpander.java
-	re := regexp.MustCompile("[a-zA-Z0-9:/_.+-]+|[^a-zA-Z0-9:/_.+-]+")
-	parts := re.FindAllString(s, -1)
+	parts := labelCharMatcherRe.FindAllString(s, -1)
 	changed := false
 	canChange := true
 	for i, part := range parts {
