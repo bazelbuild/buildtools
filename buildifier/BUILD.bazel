@@ -56,6 +56,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "buildifier-linux-s390x",
+    out = "buildifier-linux_s390x",
+    embed = [":buildifier_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 # Test that the buildifier binary works
 sh_test(
     name = "buildifier_integration_test",
