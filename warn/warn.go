@@ -197,6 +197,9 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 	"native-proto-common":              nativeProtoSymbolsWarning("proto_common", "proto_common.bzl"),
 	"native-proto-lang-toolchain-info": nativeProtoSymbolsWarning("ProtoLangToolchainInfo", "proto_lang_toolchain_info.bzl"),
 	"native-py":                        nativePyRulesWarning,
+	"native-sh-binary":                 NativeShellRulesWarning("sh_binary"),
+	"native-sh-library":                NativeShellRulesWarning("sh_library"),
+	"native-sh-test":                   NativeShellRulesWarning("sh_test"),
 	"unnamed-macro":                    unnamedMacroWarning,
 }
 
