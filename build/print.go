@@ -955,6 +955,10 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	if mode == modeSeq {
 		return true
 	}
+	// Use compact mode for empty call expressions
+	if mode == modeCall && len(*list) == 0 {
+		return true
+	}
 
 	// In the Default and .bzl printing modes try to keep the original printing style.
 	// Non-top-level statements and lists of arguments of a function definition
