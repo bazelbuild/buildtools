@@ -318,10 +318,15 @@ func (in *input) startToken(val *yySymType) {
 // has not done that already.
 func (in *input) endToken(val *yySymType) {
 	if val.tok == "" {
-		tok := string(in.token[:len(in.token)-len(in.remaining)])
+		tok := string(in.peekToken())
 		val.tok = tok
 		in.lastToken = val.tok
 	}
+}
+
+// peekToken returns the bytes comprising the current token being scanned.
+func (in *input) peekToken() []byte {
+	return in.token[:len(in.token)-len(in.remaining)]
 }
 
 // Lex is called from the generated parser to obtain the next input token.
@@ -616,24 +621,20 @@ func (in *input) Lex(val *yySymType) int {
 	}
 
 	// Scan over alphanumeric identifier.
-	c := in.peekRune()
-	isInt := c >= '0' && c <= '9'
-	if isIdent(c) {
-		readSign := false
-		in.readRune()
-		for {
-			c := in.peekRune()
-			if isInt && c == 'e' {
-				readSign = true
-			} else if !isIdent(c) {
-				if readSign && (c == '+' || c == '-') {
-					readSign = false
-				} else {
+	for {
+		c := in.peekRune()
+		if !isIdent(c) {
+			if c == '+' || c == '-' {
+				t := in.peekToken()
+				// Parse 12.3e-4 and 12.3E+4 as a single token.
+				if !(len(t) > 0 && t[0] >= '0' && t[0] <= '9' && (t[len(t)-1] == 'e' || t[len(t)-1] == 'E')) {
 					break
 				}
+			} else {
+				break
 			}
-			in.readRune()
 		}
+		in.readRune()
 	}
 
 	// Call endToken to set val.tok to identifier we just scanned,
@@ -650,7 +651,7 @@ func (in *input) Lex(val *yySymType) int {
 	case "continue":
 		return _CONTINUE
 	}
-	if isInt {
+	if len(val.tok) > 0 && val.tok[0] >= '0' && val.tok[0] <= '9' {
 		return _INT
 	}
 	return _IDENT
