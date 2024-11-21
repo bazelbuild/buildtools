@@ -616,12 +616,24 @@ func (in *input) Lex(val *yySymType) int {
 	}
 
 	// Scan over alphanumeric identifier.
-	for {
-		c := in.peekRune()
-		if !isIdent(c) {
-			break
-		}
+	c := in.peekRune()
+	isInt := c >= '0' && c <= '9'
+	if isIdent(c) {
+		readSign := false
 		in.readRune()
+		for {
+			c := in.peekRune()
+			if isInt && c == 'e' {
+				readSign = true
+			} else if !isIdent(c) {
+				if readSign && (c == '+' || c == '-') {
+					readSign = false
+				} else {
+					break
+				}
+			}
+			in.readRune()
+		}
 	}
 
 	// Call endToken to set val.tok to identifier we just scanned,
@@ -638,7 +650,7 @@ func (in *input) Lex(val *yySymType) int {
 	case "continue":
 		return _CONTINUE
 	}
-	if len(val.tok) > 0 && val.tok[0] >= '0' && val.tok[0] <= '9' {
+	if isInt {
 		return _INT
 	}
 	return _IDENT
