@@ -552,7 +552,6 @@ def macro():
     cc_library()
     native.cc_binary()
     cc_test()
-    cc_proto_library()
     native.fdo_prefetch_hints()
     native.objc_library()
     objc_import()
@@ -564,13 +563,12 @@ cc_import()
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "cc_binary", "cc_import", "cc_library", "cc_proto_library", "cc_test", "cc_toolchain", "cc_toolchain_suite", "fdo_prefetch_hints", "fdo_profile", "objc_import", "objc_library")
+load(%q, "cc_binary", "cc_import", "cc_library", "cc_test", "cc_toolchain", "cc_toolchain_suite", "fdo_prefetch_hints", "fdo_profile", "objc_import", "objc_library")
 
 def macro():
     cc_library()
     cc_binary()
     cc_test()
-    cc_proto_library()
     fdo_prefetch_hints()
     objc_library()
     objc_import()
@@ -584,14 +582,13 @@ cc_import()
 			fmt.Sprintf(`:4: Function "cc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
 			fmt.Sprintf(`:5: Function "cc_binary" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
 			fmt.Sprintf(`:6: Function "cc_test" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:7: Function "cc_proto_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:8: Function "fdo_prefetch_hints" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:9: Function "objc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:10: Function "objc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:11: Function "cc_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:12: Function "cc_toolchain_suite" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:14: Function "fdo_profile" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:15: Function "cc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:7: Function "fdo_prefetch_hints" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:8: Function "objc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:9: Function "objc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:10: Function "cc_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:11: Function "cc_toolchain_suite" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:13: Function "fdo_profile" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:14: Function "cc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
 		},
 		scopeBzl|scopeBuild)
 }
@@ -665,7 +662,7 @@ py_test()
 }
 
 func TestNativeProtoWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-proto", `
+	checkFindingsAndFix(t, "native-proto,native-proto-lang-toolchain,native-proto-info,native-proto-common", `
 """My file"""
 
 def macro():
@@ -679,7 +676,10 @@ def macro():
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "ProtoInfo", "proto_common", "proto_lang_toolchain", "proto_library")
+load("%[1]s:proto_library.bzl", "proto_library")
+load("%[1]s/common:proto_common.bzl", "proto_common")
+load("%[1]s/common:proto_info.bzl", "ProtoInfo")
+load("%[1]s/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
 
 def macro():
     proto_library()
@@ -689,14 +689,14 @@ def macro():
 
     ProtoInfo
     proto_common
-`, tables.ProtoLoadPath),
+`, tables.ProtoLoadPathPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s/common:proto_info.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s/common:proto_common.bzl".`, tables.ProtoLoadPathPrefix),
 		},
 		scopeBzl|scopeBuild)
 }

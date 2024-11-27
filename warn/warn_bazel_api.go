@@ -293,6 +293,12 @@ func NotLoadedFunctionUsageCheck(f *build.File, globals []string, loadFrom strin
 	return notLoadedUsageCheck(f, globals, []string{}, loadFrom)
 }
 
+// NotLoadedSymbolUsageCheck checks whether there's a usage of a given not imported function in the file
+// and adds a load statement if necessary.
+func NotLoadedSymbolUsageCheck(f *build.File, globals []string, loadFrom string) []*LinterFinding {
+	return notLoadedUsageCheck(f, []string{}, globals, loadFrom)
+}
+
 // makePositional makes the function argument positional (removes the keyword if it exists)
 func makePositional(argument build.Expr) build.Expr {
 	if binary, ok := argument.(*build.AssignExpr); ok {
@@ -709,11 +715,30 @@ func nativePyRulesWarning(f *build.File) []*LinterFinding {
 	return NotLoadedFunctionUsageCheck(f, tables.PyNativeRules, tables.PyLoadPath)
 }
 
-func nativeProtoRulesWarning(f *build.File) []*LinterFinding {
+// NativeProtoRulesWarning produces a warning for missing loads of proto rules
+func NativeProtoRulesWarning(rule string) func(f *build.File) []*LinterFinding {
+  return func(f *build.File) []*LinterFinding {
+    if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+      return nil
+    }
+    return NotLoadedFunctionUsageCheck(f, []string{rule}, tables.ProtoLoadPathPrefix + ":" + rule + ".bzl")
+	}
+}
+
+func nativeProtoLangToolchainWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
 		return nil
 	}
-	return notLoadedUsageCheck(f, tables.ProtoNativeRules, tables.ProtoNativeSymbols, tables.ProtoLoadPath)
+	return NotLoadedFunctionUsageCheck(f, []string{"proto_lang_toolchain"}, tables.ProtoLoadPathPrefix + "/toolchains:proto_lang_toolchain.bzl")
+}
+
+func nativeProtoSymbolsWarning(symbol string, bzlfile string) func(f *build.File) []*LinterFinding {
+  return func(f *build.File) []*LinterFinding {
+    if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+      return nil
+    }
+    return NotLoadedSymbolUsageCheck(f, []string{symbol}, tables.ProtoLoadPathPrefix + "/common:" + bzlfile)
+	}
 }
 
 func contextArgsAPIWarning(f *build.File) []*LinterFinding {

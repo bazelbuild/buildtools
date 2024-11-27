@@ -104,18 +104,18 @@ func getFileForTest(input string, fileType build.FileType) *build.File {
 	return file
 }
 
-func getFindings(category, input string, fileType build.FileType) []*Finding {
+func getFindings(categories, input string, fileType build.FileType) []*Finding {
 	file := getFileForTest(input, fileType)
-	return FileWarnings(file, []string{category}, nil, ModeWarn, testFileReader)
+	return FileWarnings(file, strings.Split(categories,","), nil, ModeWarn, testFileReader)
 }
 
-func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
+func compareFindings(t *testing.T, categories, input string, expected []string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no warnings are expected
 	if scope&fileType == 0 {
 		expected = []string{}
 	}
 
-	findings := getFindings(category, input, fileType)
+	findings := getFindings(categories, input, fileType)
 	// We ensure that there is the expected number of warnings.
 	// At the moment, we check only the line numbers.
 	if len(expected) != len(findings) {
@@ -139,7 +139,7 @@ func compareFindings(t *testing.T, category, input string, expected []string, sc
 }
 
 // checkFix makes sure that fixed file contents match the expected output
-func checkFix(t *testing.T, category, input, expected string, scope, fileType build.FileType) {
+func checkFix(t *testing.T, categories, input, expected string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no changes are expected
 	if scope&fileType == 0 {
 		expected = input
@@ -148,7 +148,7 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 	file := getFileForTest(input, fileType)
 	goldenFile := getFileForTest(expected, fileType)
 
-	FixWarnings(file, []string{category}, false, testFileReader)
+	FixWarnings(file, strings.Split(categories, ","), false, testFileReader)
 	have := build.Format(file)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
@@ -160,12 +160,12 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 
 // checkFix makes sure that the file contents don't change if a fix is not requested
 // (i.e. the warning functions have no side effects modifying the AST)
-func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
+func checkNoFix(t *testing.T, categories, input string, fileType build.FileType) {
 	file := getFileForTest(input, fileType)
 	formatted := build.Format(file)
 
 	// No fixes expected
-	FileWarnings(file, []string{category}, nil, ModeWarn, testFileReader)
+	FileWarnings(file, strings.Split(categories, ","), nil, ModeWarn, testFileReader)
 	fixed := build.FormatWithoutRewriting(file)
 
 	if !bytes.Equal(formatted, fixed) {
@@ -180,7 +180,7 @@ func checkFindings(t *testing.T, category, input string, expected []string, scop
 	checkFindingsAndFix(t, category, input, input, expected, scope)
 }
 
-func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope build.FileType) {
+func checkFindingsAndFix(t *testing.T, categories, input, output string, expected []string, scope build.FileType) {
 	fileTypes := []build.FileType{
 		build.TypeDefault,
 		build.TypeBuild,
@@ -190,10 +190,10 @@ func checkFindingsAndFix(t *testing.T, category, input, output string, expected 
 	}
 
 	for _, fileType := range fileTypes {
-		compareFindings(t, category, input, expected, scope, fileType)
-		checkFix(t, category, input, output, scope, fileType)
-		checkFix(t, category, output, output, scope, fileType)
-		checkNoFix(t, category, input, fileType)
+		compareFindings(t, categories, input, expected, scope, fileType)
+		checkFix(t, categories, input, output, scope, fileType)
+		checkFix(t, categories, output, output, scope, fileType)
+		checkNoFix(t, categories, input, fileType)
 	}
 }
 

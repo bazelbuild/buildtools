@@ -155,7 +155,14 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"native-cc":                 nativeCcRulesWarning,
 	"native-java":               nativeJavaRulesWarning,
 	"native-package":            nativePackageWarning,
-	"native-proto":              nativeProtoRulesWarning,
+	"native-proto":              NativeProtoRulesWarning("proto_library"),
+	"native-java-proto":         NativeProtoRulesWarning("java_proto_library"),
+	"native-java-lite-proto":    NativeProtoRulesWarning("java_lite_proto_library"),
+	"native-cc-proto":           NativeProtoRulesWarning("cc_proto_library"),
+	"native-proto-lang-toolchain": nativeProtoLangToolchainWarning,
+	"native-proto-info":         nativeProtoSymbolsWarning("ProtoInfo", "proto_info.bzl"),
+	"native-proto-common":       nativeProtoSymbolsWarning("proto_common", "proto_common.bzl"),
+	"native-proto-lang-toolchain-info": nativeProtoSymbolsWarning("ProtoLangToolchainInfo", "proto_lang_toolchain_info.bzl"),
 	"native-py":                 nativePyRulesWarning,
 	"no-effect":                 noEffectWarning,
 	"output-group":              outputGroupWarning,
@@ -190,7 +197,6 @@ var nonDefaultWarnings = map[string]bool{
 	"native-android":      true, // disables native android rules
 	"native-cc":           true, // disables native cc rules
 	"native-java":         true, // disables native java rules
-	"native-proto":        true, // disables native proto rules
 	"native-py":           true, // disables native python rules
 }
 

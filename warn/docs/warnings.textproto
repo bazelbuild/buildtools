@@ -518,11 +518,8 @@ warnings: {
   header: "All Proto build rules and symbols should be loaded from Starlark"
   description:
     "The Proto build rules should be loaded from Starlark.\n\n"
-    "Update: the plans for disabling native rules\n"
-    "[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),\n"
-    "at the moment it's not required to load Starlark rules."
-  bazel_flag: "--incompatible_load_proto_rules_from_bzl"
-  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/8922"
+  bazel_flag: "--incompatible_autoload_externally"
+  bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
 }
 
