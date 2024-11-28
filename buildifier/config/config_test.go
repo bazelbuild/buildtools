@@ -269,7 +269,7 @@ func TestValidate(t *testing.T) {
 			"native-cc",
 			"native-cc-proto",
 			"native-java",
-			native-java-lite-proto",
+			"native-java-lite-proto",
 			"native-java-proto",
 			"native-package",
 			"native-proto",
