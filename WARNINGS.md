@@ -40,9 +40,16 @@ Warning categories supported by buildifier's linter:
   * [`native-android`](#native-android)
   * [`native-build`](#native-build)
   * [`native-cc`](#native-cc)
+  * [`native-cc-proto`](#native-cc-proto)
   * [`native-java`](#native-java)
+  * [`native-java-lite-proto`](#native-java-lite-proto)
+  * [`native-java-proto`](#native-java-proto)
   * [`native-package`](#native-package)
   * [`native-proto`](#native-proto)
+  * [`native-proto-common`](#native-proto-common)
+  * [`native-proto-info`](#native-proto-info)
+  * [`native-proto-lang-toolchain`](#native-proto-lang-toolchain)
+  * [`native-proto-lang-toolchain-info`](#native-proto-lang-toolchain-info)
   * [`native-py`](#native-py)
   * [`no-effect`](#no-effect)
   * [`out-of-order-load`](#out-of-order-load)
@@ -695,6 +702,19 @@ at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
+## <a name="native-cc-proto"></a>cc_proto_library rule should be loaded from Starlark
+
+  * Category name: `native-cc-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc-proto`
+
+The cc_proto_library rule should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
 ## <a name="native-java"></a>All Java build rules should be loaded from Starlark
 
   * Category name: `native-java`
@@ -711,6 +731,32 @@ at the moment it's not required to load Starlark rules.
 
 --------------------------------------------------------------------------------
 
+## <a name="native-java-lite-proto"></a>java_lite_proto_library rule should be loaded from Starlark
+
+  * Category name: `native-java-lite-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-lite-proto`
+
+The java_lite_proto_library rule should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-proto"></a>java_proto_library rule should be loaded from Starlark
+
+  * Category name: `native-java-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-proto`
+
+The java_proto_library rule should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
 ## <a name="native-package"></a>`native.package()` shouldn't be used in .bzl files
 
   * Category name: `native-package`
@@ -722,19 +768,68 @@ It can silently modify the semantics of a BUILD file and makes it hard to mainta
 
 --------------------------------------------------------------------------------
 
-## <a name="native-proto"></a>All Proto build rules and symbols should be loaded from Starlark
+## <a name="native-proto"></a>proto_library rule should be loaded from Starlark
 
   * Category name: `native-proto`
-  * Flag in Bazel: [`--incompatible_load_proto_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8922)
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-proto`
 
-The Proto build rules should be loaded from Starlark.
+The proto_library rule should be loaded from Starlark.
 
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-common"></a>proto_common module should be loaded from Starlark
+
+  * Category name: `native-proto-common`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-common`
+
+The proto_common module should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-info"></a>ProtoInfo provider should be loaded from Starlark
+
+  * Category name: `native-proto-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-info`
+
+The ProtoInfo provider should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-lang-toolchain"></a>proto_lang_toolchain rule should be loaded from Starlark
+
+  * Category name: `native-proto-lang-toolchain`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-lang-toolchain`
+
+The proto_lang_toolchain rule should be loaded from Starlark.
+
+
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-lang-toolchain-info"></a>ProtoLangToolchainInfo provider should be loaded from Starlark
+
+  * Category name: `native-proto-lang-toolchain-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-lang-toolchain-info`
+
+The ProtoLangToolchainInfo provider should be loaded from Starlark.
+
+
 
 --------------------------------------------------------------------------------
 
