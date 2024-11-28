@@ -106,7 +106,7 @@ func getFileForTest(input string, fileType build.FileType) *build.File {
 
 func getFindings(categories, input string, fileType build.FileType) []*Finding {
 	file := getFileForTest(input, fileType)
-	return FileWarnings(file, strings.Split(categories,","), nil, ModeWarn, testFileReader)
+	return FileWarnings(file, strings.Split(categories, ","), nil, ModeWarn, testFileReader)
 }
 
 func compareFindings(t *testing.T, categories, input string, expected []string, scope, fileType build.FileType) {
