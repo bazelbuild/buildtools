@@ -517,7 +517,7 @@ warnings: {
   name: "native-proto"
   header: "proto_library rule should be loaded from Starlark"
   description:
-    "The proto_library rule should be loaded from Starlark.\n\n"
+    "The proto_library rule should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -527,7 +527,7 @@ warnings: {
   name: "native-java-proto"
   header: "java_proto_library rule should be loaded from Starlark"
   description:
-    "The java_proto_library rule should be loaded from Starlark.\n\n"
+    "The java_proto_library rule should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -537,7 +537,7 @@ warnings: {
   name: "native-java-lite-proto"
   header: "java_lite_proto_library rule should be loaded from Starlark"
   description:
-    "The java_lite_proto_library rule should be loaded from Starlark.\n\n"
+    "The java_lite_proto_library rule should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -547,7 +547,7 @@ warnings: {
   name: "native-cc-proto"
   header: "cc_proto_library rule should be loaded from Starlark"
   description:
-    "The cc_proto_library rule should be loaded from Starlark.\n\n"
+    "The cc_proto_library rule should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -557,7 +557,7 @@ warnings: {
   name: "native-proto-lang-toolchain"
   header: "proto_lang_toolchain rule should be loaded from Starlark"
   description:
-    "The proto_lang_toolchain rule should be loaded from Starlark.\n\n"
+    "The proto_lang_toolchain rule should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -567,7 +567,7 @@ warnings: {
   name: "native-proto-info"
   header: "ProtoInfo provider should be loaded from Starlark"
   description:
-    "The ProtoInfo provider should be loaded from Starlark.\n\n"
+    "The ProtoInfo provider should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -577,7 +577,7 @@ warnings: {
   name: "native-proto-lang-toolchain-info"
   header: "ProtoLangToolchainInfo provider should be loaded from Starlark"
   description:
-    "The ProtoLangToolchainInfo provider should be loaded from Starlark.\n\n"
+    "The ProtoLangToolchainInfo provider should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true
@@ -587,7 +587,7 @@ warnings: {
   name: "native-proto-common"
   header: "proto_common module should be loaded from Starlark"
   description:
-    "The proto_common module should be loaded from Starlark.\n\n"
+    "The proto_common module should be loaded from Starlark."
   bazel_flag: "--incompatible_autoload_externally"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/23043"
   autofix: true

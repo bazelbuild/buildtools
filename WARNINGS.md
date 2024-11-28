@@ -711,8 +711,6 @@ at the moment it's not required to load Starlark rules.
 
 The cc_proto_library rule should be loaded from Starlark.
 
-
-
 --------------------------------------------------------------------------------
 
 ## <a name="native-java"></a>All Java build rules should be loaded from Starlark
@@ -740,8 +738,6 @@ at the moment it's not required to load Starlark rules.
 
 The java_lite_proto_library rule should be loaded from Starlark.
 
-
-
 --------------------------------------------------------------------------------
 
 ## <a name="native-java-proto"></a>java_proto_library rule should be loaded from Starlark
@@ -752,8 +748,6 @@ The java_lite_proto_library rule should be loaded from Starlark.
   * [Suppress the warning](#suppress): `# buildifier: disable=native-java-proto`
 
 The java_proto_library rule should be loaded from Starlark.
-
-
 
 --------------------------------------------------------------------------------
 
@@ -777,8 +771,6 @@ It can silently modify the semantics of a BUILD file and makes it hard to mainta
 
 The proto_library rule should be loaded from Starlark.
 
-
-
 --------------------------------------------------------------------------------
 
 ## <a name="native-proto-common"></a>proto_common module should be loaded from Starlark
@@ -789,8 +781,6 @@ The proto_library rule should be loaded from Starlark.
   * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-common`
 
 The proto_common module should be loaded from Starlark.
-
-
 
 --------------------------------------------------------------------------------
 
@@ -803,8 +793,6 @@ The proto_common module should be loaded from Starlark.
 
 The ProtoInfo provider should be loaded from Starlark.
 
-
-
 --------------------------------------------------------------------------------
 
 ## <a name="native-proto-lang-toolchain"></a>proto_lang_toolchain rule should be loaded from Starlark
@@ -816,8 +804,6 @@ The ProtoInfo provider should be loaded from Starlark.
 
 The proto_lang_toolchain rule should be loaded from Starlark.
 
-
-
 --------------------------------------------------------------------------------
 
 ## <a name="native-proto-lang-toolchain-info"></a>ProtoLangToolchainInfo provider should be loaded from Starlark
@@ -828,8 +814,6 @@ The proto_lang_toolchain rule should be loaded from Starlark.
   * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-lang-toolchain-info`
 
 The ProtoLangToolchainInfo provider should be loaded from Starlark.
-
-
 
 --------------------------------------------------------------------------------
 
