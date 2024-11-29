@@ -234,7 +234,6 @@ var CcNativeRules = []string{
 	"cc_test",
 	"cc_library",
 	"cc_import",
-	"cc_proto_library",
 	"fdo_prefetch_hints",
 	"fdo_profile",
 	"cc_toolchain",
@@ -251,8 +250,6 @@ var JavaNativeRules = []string{
 	"java_binary",
 	"java_import",
 	"java_library",
-	"java_lite_proto_library",
-	"java_proto_library",
 	"java_test",
 	"java_package_configuration",
 	"java_plugin",
@@ -274,20 +271,8 @@ var PyNativeRules = []string{
 // PyLoadPath is the load path for the Starlark Python Rules.
 var PyLoadPath = "@rules_python//python:defs.bzl"
 
-// ProtoNativeRules lists all Proto rules that are being migrated from Native to Starlark.
-var ProtoNativeRules = []string{
-	"proto_lang_toolchain",
-	"proto_library",
-}
-
-// ProtoNativeSymbols lists all Proto symbols that are being migrated from Native to Starlark.
-var ProtoNativeSymbols = []string{
-	"ProtoInfo",
-	"proto_common",
-}
-
-// ProtoLoadPath is the load path for the Starlark Proto Rules.
-var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
+// ProtoLoadPathPrefix is the load path prefix for the Starlark Proto Rules.
+var ProtoLoadPathPrefix = "@com_google_protobuf//bazel"
 
 // IsModuleOverride contains the names of all Bzlmod module overrides available in MODULE.bazel.
 var IsModuleOverride = map[string]bool{
