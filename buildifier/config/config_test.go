@@ -593,6 +593,8 @@ func TestFindTablePath(t *testing.T) {
 			}
 			defer os.RemoveAll(tmp)
 
+			t.Log("tmp:", tmp)
+
 			if tc.wd != "" {
 				if err := os.MkdirAll(filepath.Join(tmp, tc.wd), os.ModePerm); err != nil {
 					t.Fatalf("failed to create working directory: %v", err)
@@ -621,13 +623,12 @@ func TestFindTablePath(t *testing.T) {
 			got = strings.TrimPrefix(got, tmp)
 			got = strings.TrimPrefix(got, "/")
 
-			if (err != nil) != (tc.wantErr != nil) || (err != nil && err.Error() != tc.wantErr.Error()) {
-				t.Errorf("FindTablePath() error = %v, wantErr = %v", err, tc.wantErr)
-				return
+			if (err != nil) != (tc.wantErr != nil) || (err != nil && tc.wantErr.Error() != err.Error()) {
+				t.Errorf("FindTablePath wantErr = %q, error = %q", tc.wantErr, err)
 			}
 
-			if got != tc.want {
-				t.Errorf("FindTablePath() got = %v, want = %v", got, tc.want)
+			if tc.want != got {
+				t.Errorf("FindTablePath want = %q, got = %q", tc.want, got)
 			}
 		})
 	}
