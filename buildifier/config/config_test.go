@@ -541,3 +541,97 @@ func TestFindConfigPath(t *testing.T) {
 		})
 	}
 }
+
+func TestFindTablePath(t *testing.T) {
+	tests := []struct {
+		name    string
+		file    string
+		files   []string
+		wd      string
+		want    string
+		wantAbs bool
+		wantErr error
+	}{
+		{
+			name:    "default",
+			file:    ".buildifier-tables.json",
+			files:   []string{".buildifier-tables.json"},
+			wd:      "",
+			want:    ".buildifier-tables.json",
+			wantAbs: false,
+			wantErr: nil,
+		},
+		{
+			name:    "working-dir-is-subdir",
+			file:    ".buildifier-tables.json",
+			files:   []string{".buildifier-tables.json", "foo/BUILD.bazel"},
+			wd:      "foo",
+			want:    ".buildifier-tables.json",
+			wantAbs: true,
+			wantErr: nil,
+		},
+		{
+			name:    "relative-subdir",
+			file:    "bar/.buildifier-tables.json",
+			files:   []string{"bar/.buildifier-tables.json", "foo/BUILD.bazel"},
+			wd:      "foo",
+			want:    "bar/.buildifier-tables.json",
+			wantAbs: true,
+			wantErr: nil,
+		},
+		{
+			name:    "file-not-found",
+			file:    "nonexistentFile.json",
+			files:   []string{".buildifier-tables.json"},
+			wd:      "",
+			want:    "nonexistentFile.json",
+			wantAbs: false,
+			wantErr: os.ErrNotExist,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+
+			if tc.wd != "" {
+				if err := os.MkdirAll(filepath.Join(tmpDir, tc.wd), os.ModePerm); err != nil {
+					t.Fatalf("failed to create working directory: %v", err)
+				}
+				if err := os.Chdir(filepath.Join(tmpDir, tc.wd)); err != nil {
+					t.Fatalf("failed to change working directory: %v", err)
+				}
+			} else {
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("failed to set working directory: %v", err)
+				}
+			}
+
+			for _, file := range tc.files {
+				filePath := filepath.Join(tmpDir, file)
+				dir := filepath.Dir(filePath)
+				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+					t.Fatalf("failed to create directory %v: %v", dir, err)
+				}
+				if err := os.WriteFile(filePath, []byte("{}"), 0644); err != nil {
+					t.Fatalf("failed to create file %v: %v", filePath, err)
+				}
+			}
+
+			if tc.wantAbs {
+				tc.want = filepath.Join(tmpDir, tc.file)
+			}
+
+			got, err := FindTablePath(tc.file)
+
+			if (err != nil) != (tc.wantErr != nil) || (err != nil && err.Error() != tc.wantErr.Error()) {
+				t.Errorf("FindTablePath() error = %v, wantErr = %v", err, tc.wantErr)
+				return
+			}
+
+			if got != tc.want {
+				t.Errorf("FindTablePath() got = %v, want = %v", got, tc.want)
+			}
+		})
+	}
+}

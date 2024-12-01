@@ -67,6 +67,28 @@ func FindConfigPath(rootDir string) string {
 	return filepath.Join(dirname, buildifierJSONFilename)
 }
 
+// FindTablePath locates the specified table file starting from the process's
+// current working directory. It searches upward through the directory tree
+// until the file is found or the root of the workspace is reached.
+func FindTablePath(file string) (string, error) {
+	if wspace.IsRegularFile(file) {
+		return file, nil
+	}
+	rootDir, _ := os.Getwd()
+	dirname, err := wspace.Find(
+		rootDir,
+		map[string]func(os.FileInfo) bool{
+			file: func(fi os.FileInfo) bool {
+				return fi.Mode()&os.ModeType == 0
+			},
+		},
+	)
+	if err != nil {
+		return file, err
+	}
+	return filepath.Join(dirname, file), nil
+}
+
 // Config is used to configure buildifier
 type Config struct {
 	// InputType determines the input file type: build (for BUILD files), bzl
@@ -190,14 +212,22 @@ func (c *Config) Validate(args []string) error {
 	}
 
 	if c.TablesPath != "" {
-		if err := tables.ParseAndUpdateJSONDefinitions(c.TablesPath, false); err != nil {
+		foundTablesPath, err := FindTablePath(c.TablesPath)
+		if err != nil {
 			return fmt.Errorf("failed to parse %s for -tables: %w", c.TablesPath, err)
+		}
+		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, false); err != nil {
+			return fmt.Errorf("failed to parse %s for -tables: %w", foundTablesPath, err)
 		}
 	}
 
 	if c.AddTablesPath != "" {
-		if err := tables.ParseAndUpdateJSONDefinitions(c.AddTablesPath, true); err != nil {
+		foundTablesPath, err := FindTablePath(c.AddTablesPath)
+		if err != nil {
 			return fmt.Errorf("failed to parse %s for -add_tables: %w", c.AddTablesPath, err)
+		}
+		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, true); err != nil {
+			return fmt.Errorf("failed to parse %s for -add_tables: %w", foundTablesPath, err)
 		}
 	}
 
