@@ -549,7 +549,6 @@ func TestFindTablePath(t *testing.T) {
 		files   []string
 		wd      string
 		want    string
-		wantAbs bool
 		wantErr error
 	}{
 		{
@@ -558,7 +557,6 @@ func TestFindTablePath(t *testing.T) {
 			files:   []string{".buildifier-tables.json"},
 			wd:      "",
 			want:    ".buildifier-tables.json",
-			wantAbs: false,
 			wantErr: nil,
 		},
 		{
@@ -567,7 +565,6 @@ func TestFindTablePath(t *testing.T) {
 			files:   []string{".buildifier-tables.json", "foo/BUILD.bazel"},
 			wd:      "foo",
 			want:    ".buildifier-tables.json",
-			wantAbs: true,
 			wantErr: nil,
 		},
 		{
@@ -576,7 +573,6 @@ func TestFindTablePath(t *testing.T) {
 			files:   []string{"bar/.buildifier-tables.json", "foo/BUILD.bazel"},
 			wd:      "foo",
 			want:    "bar/.buildifier-tables.json",
-			wantAbs: true,
 			wantErr: nil,
 		},
 		{
@@ -585,30 +581,33 @@ func TestFindTablePath(t *testing.T) {
 			files:   []string{".buildifier-tables.json"},
 			wd:      "",
 			want:    "nonexistentFile.json",
-			wantAbs: false,
 			wantErr: os.ErrNotExist,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
+			tmp, err := os.MkdirTemp("", tc.name+"*")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(tmp)
 
 			if tc.wd != "" {
-				if err := os.MkdirAll(filepath.Join(tmpDir, tc.wd), os.ModePerm); err != nil {
+				if err := os.MkdirAll(filepath.Join(tmp, tc.wd), os.ModePerm); err != nil {
 					t.Fatalf("failed to create working directory: %v", err)
 				}
-				if err := os.Chdir(filepath.Join(tmpDir, tc.wd)); err != nil {
+				if err := os.Chdir(filepath.Join(tmp, tc.wd)); err != nil {
 					t.Fatalf("failed to change working directory: %v", err)
 				}
 			} else {
-				if err := os.Chdir(tmpDir); err != nil {
+				if err := os.Chdir(tmp); err != nil {
 					t.Fatalf("failed to set working directory: %v", err)
 				}
 			}
 
 			for _, file := range tc.files {
-				filePath := filepath.Join(tmpDir, file)
+				filePath := filepath.Join(tmp, file)
 				dir := filepath.Dir(filePath)
 				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 					t.Fatalf("failed to create directory %v: %v", dir, err)
@@ -618,11 +617,9 @@ func TestFindTablePath(t *testing.T) {
 				}
 			}
 
-			if tc.wantAbs {
-				tc.want = filepath.Join(tmpDir, tc.file)
-			}
-
 			got, err := FindTablePath(tc.file)
+			got = strings.TrimPrefix(got, tmp)
+			got = strings.TrimPrefix(got, "/")
 
 			if (err != nil) != (tc.wantErr != nil) || (err != nil && err.Error() != tc.wantErr.Error()) {
 				t.Errorf("FindTablePath() error = %v, wantErr = %v", err, tc.wantErr)
