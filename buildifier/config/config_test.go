@@ -604,7 +604,7 @@ func TestFindTablePath(t *testing.T) {
 				}
 			} else {
 				if err := os.Chdir(tmp); err != nil {
-					t.Fatalf("failed to set working directory: %v", err)
+					t.Fatalf("failed to change working directory: %v", err)
 				}
 			}
 
@@ -619,7 +619,7 @@ func TestFindTablePath(t *testing.T) {
 				}
 			}
 
-			got, err := FindTablePath(tc.file)
+			got, err := findTablesPath(tc.file)
 			got = strings.TrimPrefix(got, tmp)
 			got = strings.TrimPrefix(got, "/")
 

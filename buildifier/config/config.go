@@ -67,10 +67,10 @@ func FindConfigPath(rootDir string) string {
 	return filepath.Join(dirname, buildifierJSONFilename)
 }
 
-// FindTablePath locates the specified table file starting from the process's
+// findTablesPath locates the specified table file starting from the process's
 // current working directory. It searches upward through the directory tree
 // until the file is found or the root of the workspace is reached.
-func FindTablePath(file string) (string, error) {
+func findTablesPath(file string) (string, error) {
 	if wspace.IsRegularFile(file) {
 		return file, nil
 	}
@@ -212,9 +212,9 @@ func (c *Config) Validate(args []string) error {
 	}
 
 	if c.TablesPath != "" {
-		foundTablesPath, err := FindTablePath(c.TablesPath)
+		foundTablesPath, err := findTablesPath(c.TablesPath)
 		if err != nil {
-			return fmt.Errorf("failed to parse %s for -tables: %w", c.TablesPath, err)
+			return fmt.Errorf("failed to find %s for -tables: %w", c.TablesPath, err)
 		}
 		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, false); err != nil {
 			return fmt.Errorf("failed to parse %s for -tables: %w", foundTablesPath, err)
@@ -222,9 +222,9 @@ func (c *Config) Validate(args []string) error {
 	}
 
 	if c.AddTablesPath != "" {
-		foundTablesPath, err := FindTablePath(c.AddTablesPath)
+		foundTablesPath, err := findTablesPath(c.AddTablesPath)
 		if err != nil {
-			return fmt.Errorf("failed to parse %s for -add_tables: %w", c.AddTablesPath, err)
+			return fmt.Errorf("failed to find %s for -add_tables: %w", c.AddTablesPath, err)
 		}
 		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, true); err != nil {
 			return fmt.Errorf("failed to parse %s for -add_tables: %w", foundTablesPath, err)
