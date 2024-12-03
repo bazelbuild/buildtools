@@ -587,12 +587,13 @@ func TestFindTablePath(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tmp, err := os.MkdirTemp("", tc.name+"*")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(tmp)
+			tmp := t.TempDir()
 
+			// On MacOS "/tmp" is a symlink to "/private/tmp". Resolve it to make the testing easier
+			tmp, err := filepath.EvalSymlinks(tmp)
+			if err != nil {
+				t.Fatalf("failed to resolve symlink for temporary directory: %v", err)
+			}
 			t.Log("tmp:", tmp)
 
 			if tc.wd != "" {
