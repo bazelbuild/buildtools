@@ -153,7 +153,17 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"native-android":                   nativeAndroidRulesWarning,
 	"native-build":                     nativeInBuildFilesWarning,
 	"native-cc":                        nativeCcRulesWarning,
-	"native-java":                      nativeJavaRulesWarning,
+	"native-java-binary":               NativeJavaRulesWarning("java_binary"),
+	"native-java-import":               NativeJavaRulesWarning("java_import"),
+	"native-java-library":              NativeJavaRulesWarning("java_library"),
+	"native-java-plugin":               NativeJavaRulesWarning("java_plugin"),
+	"native-java-test":                 NativeJavaRulesWarning("java_test"),
+	"native-java-package-config":       NativeJavaToolchainRulesWarning("java_package_configuration"),
+	"native-java-runtime":              NativeJavaToolchainRulesWarning("java_runtime"),
+	"native-java-toolchain":            NativeJavaToolchainRulesWarning("java_toolchain"),
+	"native-java-common":               NativeJavaSymbolsWarning("java_common", "java_common"),
+	"native-java-info":                 NativeJavaSymbolsWarning("JavaInfo", "java_info"),
+	"native-java-plugin-info":          NativeJavaSymbolsWarning("JavaPluginInfo", "java_plugin_info"),
 	"native-package":                   nativePackageWarning,
 	"native-proto":                     NativeProtoRulesWarning("proto_library"),
 	"native-java-proto":                NativeProtoRulesWarning("java_proto_library"),
@@ -196,7 +206,6 @@ var nonDefaultWarnings = map[string]bool{
 	"unsorted-dict-items": true, // dict items should be sorted
 	"native-android":      true, // disables native android rules
 	"native-cc":           true, // disables native cc rules
-	"native-java":         true, // disables native java rules
 	"native-py":           true, // disables native python rules
 }
 

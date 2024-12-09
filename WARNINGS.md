@@ -41,9 +41,19 @@ Warning categories supported by buildifier's linter:
   * [`native-build`](#native-build)
   * [`native-cc`](#native-cc)
   * [`native-cc-proto`](#native-cc-proto)
-  * [`native-java`](#native-java)
+  * [`native-java-binary`](#native-java-binary)
+  * [`native-java-common`](#native-java-common)
+  * [`native-java-import`](#native-java-import)
+  * [`native-java-info`](#native-java-info)
+  * [`native-java-library`](#native-java-library)
   * [`native-java-lite-proto`](#native-java-lite-proto)
+  * [`native-java-package-config`](#native-java-package-config)
+  * [`native-java-plugin`](#native-java-plugin)
+  * [`native-java-plugin-info`](#native-java-plugin-info)
   * [`native-java-proto`](#native-java-proto)
+  * [`native-java-runtime`](#native-java-runtime)
+  * [`native-java-test`](#native-java-test)
+  * [`native-java-toolchain`](#native-java-toolchain)
   * [`native-package`](#native-package)
   * [`native-proto`](#native-proto)
   * [`native-proto-common`](#native-proto-common)
@@ -713,19 +723,58 @@ The cc_proto_library rule should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
-## <a name="native-java"></a>All Java build rules should be loaded from Starlark
+## <a name="native-java-binary"></a>All Java build rules should be loaded from Starlark
 
-  * Category name: `native-java`
-  * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
+  * Category name: `native-java-binary`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
-  * [Suppress the warning](#suppress): `# buildifier: disable=native-java`
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-binary`
 
 The Java build rules should be loaded from Starlark.
 
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+--------------------------------------------------------------------------------
+
+## <a name="native-java-common"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-common`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-common`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-import"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-import`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-import`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-info"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-info`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-library"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-library`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-library`
+
+The Java build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
@@ -740,6 +789,39 @@ The java_lite_proto_library rule should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
+## <a name="native-java-package-config"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-package-config`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-package-config`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-plugin"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-plugin`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-plugin`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-plugin-info"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-plugin-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-plugin-info`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
 ## <a name="native-java-proto"></a>java_proto_library rule should be loaded from Starlark
 
   * Category name: `native-java-proto`
@@ -748,6 +830,39 @@ The java_lite_proto_library rule should be loaded from Starlark.
   * [Suppress the warning](#suppress): `# buildifier: disable=native-java-proto`
 
 The java_proto_library rule should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-runtime"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-runtime`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-runtime`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-test"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-test`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-test`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-toolchain"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-toolchain`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-toolchain`
+
+The Java build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
