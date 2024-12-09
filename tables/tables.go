@@ -245,20 +245,8 @@ var CcNativeRules = []string{
 // CcLoadPath is the load path for the Starlark C++ Rules.
 var CcLoadPath = "@rules_cc//cc:defs.bzl"
 
-// JavaNativeRules lists all Java rules that are being migrated from Native to Starlark.
-var JavaNativeRules = []string{
-	"java_binary",
-	"java_import",
-	"java_library",
-	"java_test",
-	"java_package_configuration",
-	"java_plugin",
-	"java_runtime",
-	"java_toolchain",
-}
-
-// JavaLoadPath is the load path for the Starlark Java Rules.
-var JavaLoadPath = "@rules_java//java:defs.bzl"
+// JavaLoadPathPrefix is the load package for the Starlark Java Rules.
+var JavaLoadPathPrefix = "@rules_java//java"
 
 // PyNativeRules lists all Python rules that are being migrated from Native to Starlark.
 var PyNativeRules = []string{

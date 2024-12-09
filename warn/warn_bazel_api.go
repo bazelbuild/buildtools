@@ -701,11 +701,34 @@ func nativeCcRulesWarning(f *build.File) []*LinterFinding {
 	return NotLoadedFunctionUsageCheck(f, tables.CcNativeRules, tables.CcLoadPath)
 }
 
-func nativeJavaRulesWarning(f *build.File) []*LinterFinding {
-	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
-		return nil
+// NativeJavaRulesWarning produces a warning for missing loads of java rules
+func NativeJavaRulesWarning(rule string) func(f *build.File) []*LinterFinding {
+	return func(f *build.File) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedFunctionUsageCheck(f, []string{rule}, tables.JavaLoadPathPrefix+":"+rule+".bzl")
 	}
-	return NotLoadedFunctionUsageCheck(f, tables.JavaNativeRules, tables.JavaLoadPath)
+}
+
+// NativeJavaToolchainRulesWarning produces a warning for missing loads of java toolchain rules
+func NativeJavaToolchainRulesWarning(rule string) func(f *build.File) []*LinterFinding {
+	return func(f *build.File) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedFunctionUsageCheck(f, []string{rule}, tables.JavaLoadPathPrefix+"/toolchains:"+rule+".bzl")
+	}
+}
+
+// NativeJavaSymbolsWarning produces a warning for missing loads of java top-level symbols
+func NativeJavaSymbolsWarning(symbol string, bzlfile string) func(f *build.File) []*LinterFinding {
+	return func(f *build.File) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedSymbolUsageCheck(f, []string{symbol}, tables.JavaLoadPathPrefix+"/common:"+bzlfile+".bzl")
+	}
 }
 
 func nativePyRulesWarning(f *build.File) []*LinterFinding {
