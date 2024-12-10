@@ -693,6 +693,27 @@ warnings: {
 }
 
 warnings: {
+  name: "native-sh-binary"
+  header: "sh_binary build rules should be loaded from Starlark"
+  description: "The sh_binary build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-sh-library"
+  header: "sh_library build rules should be loaded from Starlark"
+  description: "The sh_library build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
+  name: "native-sh-test"
+  header: "sh_test build rules should be loaded from Starlark"
+  description: "The sh_test build rules should be loaded from Starlark."
+  autofix: true
+}
+
+warnings: {
   name: "no-effect"
   header: "Expression result is not used"
   description: "The statement has no effect. Consider removing it or storing its result in a variable."
