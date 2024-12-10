@@ -1367,14 +1367,22 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 	r := bufio.NewReader(reader)
 	atEOF := false
 	for !atEOF {
-		line, err := r.ReadString('\n')
-		if err == io.EOF {
-			atEOF = true
-			err = nil
+		lineBuilder := strings.Builder{}
+		for !atEOF {
+			linePart, err := r.ReadString('\n')
+			if err == io.EOF {
+				atEOF = true
+				err = nil
+			}
+			if err != nil {
+				return fmt.Errorf("error while reading commands file: %v", err)
+			}
+			lineBuilder.WriteString(linePart)
+			if !strings.HasSuffix(linePart, "\\\n") {
+				break
+			}
 		}
-		if err != nil {
-			return fmt.Errorf("error while reading commands file: %v", err)
-		}
+		line := lineBuilder.String()
 		line = strings.TrimSpace(line)
 		if line == "" || line[0] == '#' {
 			continue
