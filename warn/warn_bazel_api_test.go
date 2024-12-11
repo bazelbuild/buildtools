@@ -594,7 +594,7 @@ cc_import()
 }
 
 func TestNativeJavaWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-java", `
+	checkFindingsAndFix(t, "native-java-binary,native-java-import,native-java-library,native-java-plugin,native-java-test,native-java-package-config,native-java-runtime,native-java-toolchain,native-java-common,native-java-info,native-java-plugin-info", `
 """My file"""
 
 def macro():
@@ -602,27 +602,60 @@ def macro():
     java_library()
     native.java_library()
     native.java_binary()
+    native.java_plugin()
+    native.java_package_configuration()
+    native.java_runtime()
+    native.java_toolchain()
+
+    JavaInfo
+    JavaPluginInfo
+    java_common
 
 java_test()
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "java_binary", "java_import", "java_library", "java_test")
+load("%[1]s:java_binary.bzl", "java_binary")
+load("%[1]s:java_import.bzl", "java_import")
+load("%[1]s:java_library.bzl", "java_library")
+load("%[1]s:java_plugin.bzl", "java_plugin")
+load("%[1]s:java_test.bzl", "java_test")
+load("%[1]s/common:java_common.bzl", "java_common")
+load("%[1]s/common:java_info.bzl", "JavaInfo")
+load("%[1]s/common:java_plugin_info.bzl", "JavaPluginInfo")
+load("%[1]s/toolchains:java_package_configuration.bzl", "java_package_configuration")
+load("%[1]s/toolchains:java_runtime.bzl", "java_runtime")
+load("%[1]s/toolchains:java_toolchain.bzl", "java_toolchain")
 
 def macro():
     java_import()
     java_library()
     java_library()
     java_binary()
+    java_plugin()
+    java_package_configuration()
+    java_runtime()
+    java_toolchain()
+
+    JavaInfo
+    JavaPluginInfo
+    java_common
 
 java_test()
-`, tables.JavaLoadPath),
+`, tables.JavaLoadPathPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:9: Function "java_test" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s:java_import.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s:java_binary.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:8: Function "java_plugin" is not global anymore and needs to be loaded from "%s:java_plugin.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:9: Function "java_package_configuration" is not global anymore and needs to be loaded from "%s/toolchains:java_package_configuration.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:10: Function "java_runtime" is not global anymore and needs to be loaded from "%s/toolchains:java_runtime.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:11: Function "java_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:java_toolchain.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:13: Symbol "JavaInfo" is not global anymore and needs to be loaded from "%s/common:java_info.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:14: Symbol "JavaPluginInfo" is not global anymore and needs to be loaded from "%s/common:java_plugin_info.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:15: Symbol "java_common" is not global anymore and needs to be loaded from "%s/common:java_common.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:17: Function "java_test" is not global anymore and needs to be loaded from "%s:java_test.bzl".`, tables.JavaLoadPathPrefix),
 		},
 		scopeBzl|scopeBuild)
 }
