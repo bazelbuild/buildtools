@@ -19,6 +19,7 @@ package main
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/bazelbuild/buildtools/testutils"
@@ -52,13 +53,13 @@ func TestFilesMatch(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 
 	generatedPath := path.Join(testdata, "warn", "docs", "WARNINGS.md")
-	generated, err := os.ReadFile(generatedPath)
+	generated, err := os.ReadFile(filepath.FromSlash(generatedPath))
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", generatedPath, err)
 	}
 
 	checkedInPath := path.Join(testdata, "WARNINGS.md")
-	checkedIn, err := os.ReadFile(checkedInPath)
+	checkedIn, err := os.ReadFile(filepath.FromSlash(checkedInPath))
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", checkedInPath, err)
 	}
