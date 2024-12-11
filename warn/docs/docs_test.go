@@ -18,7 +18,6 @@ package main
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -31,7 +30,7 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 		filepath.FromSlash(os.Getenv("TEST_SRCDIR")),
 		filepath.FromSlash(os.Getenv("TEST_WORKSPACE")))
 
-	textprotoPath := path.Join(testdata, "warn", "docs", "warnings.textproto")
+	textprotoPath := filepath.Join(testdata, "warn", "docs", "warnings.textproto")
 	warnings, err := readWarningsFromFile(textprotoPath)
 	if err != nil {
 		t.Fatalf("getWarnings(%q) = %v", textprotoPath, err)
@@ -52,7 +51,9 @@ func TestAllWarningsAreDocumented(t *testing.T) {
 }
 
 func TestFilesMatch(t *testing.T) {
-	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
+	testdata := filepath.Join(
+		filepath.FromSlash(os.Getenv("TEST_SRCDIR")),
+		filepath.FromSlash(os.Getenv("TEST_WORKSPACE")))
 
 	generatedPath := filepath.Join(testdata, "warn", "docs", "WARNINGS.md")
 	generated, err := os.ReadFile(generatedPath)
