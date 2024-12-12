@@ -21,4 +21,6 @@ platforms:
     test_targets:
     - "--"
     - "//:tests"
-    - "-//warn/docs:docs_test"  # Failing on the CI but passes locally
+    - "-//warn/docs:docs_test"
+    - "-//build:build_test"
+    - "-//buildifier:buildifier_integration_test"
