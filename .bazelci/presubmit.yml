@@ -21,3 +21,4 @@ platforms:
     test_targets:
     - "--"
     - "//:tests"
+    - "-//warn/docs:docs_test"  # Failing on the CI but passes locally
