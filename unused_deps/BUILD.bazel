@@ -79,6 +79,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "unused_deps-linux-s390x",
+    out = "unused_deps-linux_s390x",
+    embed = [":unused_deps_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 go_test(
     name = "jar_manifest_test",
     size = "small",
