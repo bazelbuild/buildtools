@@ -764,6 +764,27 @@ func nativeProtoSymbolsWarning(symbol string, bzlfile string) func(f *build.File
 	}
 }
 
+func nativeShBinaryWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return NotLoadedFunctionUsageCheck(f, []string{"sh_binary"}, "@rules_shell//shell:sh_binary.bzl")
+}
+
+func nativeShLibraryWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return NotLoadedFunctionUsageCheck(f, []string{"sh_library"}, "@rules_shell//shell:sh_library.bzl")
+}
+
+func nativeShTestWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+		return nil
+	}
+	return NotLoadedFunctionUsageCheck(f, []string{"sh_test"}, "@rules_shell//shell:sh_test.bzl")
+}
+
 func contextArgsAPIWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
 		return nil
@@ -1132,7 +1153,6 @@ func providerParamsWarning(f *build.File) []*LinterFinding {
 	})
 	return findings
 }
-
 
 func attrNameWarning(f *build.File, names []string) []*LinterFinding {
 	if f.Type != build.TypeBzl {
