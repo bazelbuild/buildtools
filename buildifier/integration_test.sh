@@ -317,6 +317,7 @@ cat > golden/.buildifier.example.json <<EOF
     "repository-name",
     "return-value",
     "rule-impl-return",
+    "rule-load-location",
     "skylark-comment",
     "skylark-docstring",
     "string-iteration",
