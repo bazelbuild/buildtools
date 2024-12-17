@@ -19,5 +19,8 @@
   "NamePriority": {
     "name": -1
   },
-  "StripLabelLeadingSlashes": true
+  "StripLabelLeadingSlashes": true,
+  "RuleLoadLocation": {
+    "genrule": "//tools/bazel:genrule.bzl"
+  }
 }

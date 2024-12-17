@@ -37,6 +37,7 @@ func TestParseJSONDefinitions(t *testing.T) {
 		SortableAllowlist:        map[string]bool{},
 		NamePriority:             map[string]int{"name": -1},
 		StripLabelLeadingSlashes: true,
+		RuleLoadLocation:         map[string]string{"genrule": "//tools/bazel:genrule.bzl"},
 	}
 	if !reflect.DeepEqual(expected, definitions) {
 		t.Errorf("ParseJSONDefinitions(simple_tables.json) = %v; want %v", definitions, expected)
