@@ -15,7 +15,7 @@ func ruleLoadLocationWarning(f *build.File) []*LinterFinding {
 			continue
 		}
 
-		for i := 0; i < len(load.To); i++ {
+		for i := 0; i < len(load.From); i++ {
 			from := load.From[i]
 
 			expectedLocation, ok := tables.RuleLoadLocation[from.Name]
@@ -23,7 +23,7 @@ func ruleLoadLocationWarning(f *build.File) []*LinterFinding {
 				continue
 			}
 
-			f := makeLinterFinding(load.From[i], fmt.Sprintf("Rule %q must be loaded from %v.", from.Name, expectedLocation))
+			f := makeLinterFinding(from, fmt.Sprintf("Rule %q must be loaded from %v.", from.Name, expectedLocation))
 			findings = append(findings, f)
 		}
 
