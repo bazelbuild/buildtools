@@ -24,6 +24,7 @@ go_library(
         "//build",
         "//bzlenv",
         "//edit",
+        "//edit/bzlmod",
         "//labels",
         "//tables",
     ],

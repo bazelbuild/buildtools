@@ -305,6 +305,8 @@ def _impl(ctx):
 }
 
 func TestNativeGitRepositoryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
 
@@ -368,6 +370,8 @@ def macro():
 }
 
 func TestNativeHttpArchiveWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "http-archive", `
 """My file"""
 
@@ -511,6 +515,8 @@ rule(foo = bar)  # no matching parameters
 }
 
 func TestNativeAndroidWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-android", `
 """My file"""
 
@@ -545,6 +551,8 @@ android_binary()
 }
 
 func TestNativeCcWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-cc", `
 """My file"""
 
@@ -594,6 +602,16 @@ cc_import()
 }
 
 func TestNativeJavaWarning(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"MODULE.bazel": `
+include("//my/pkg:java.MODULE.bazel")
+`,
+		"my/pkg/java.MODULE.bazel": `
+bazel_dep(name = "rules_java", version = "1.2.3", repo_name = "my_rules_java")
+`,
+	})()
+
+	expectedLoadPrefix := "@my_rules_java//java"
 	checkFindingsAndFix(t, "native-java-binary,native-java-import,native-java-library,native-java-plugin,native-java-test,native-java-package-config,native-java-runtime,native-java-toolchain,native-java-common,native-java-info,native-java-plugin-info", `
 """My file"""
 
@@ -642,25 +660,32 @@ def macro():
     java_common
 
 java_test()
-`, tables.JavaLoadPathPrefix),
+`, expectedLoadPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s:java_import.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s:java_binary.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:8: Function "java_plugin" is not global anymore and needs to be loaded from "%s:java_plugin.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:9: Function "java_package_configuration" is not global anymore and needs to be loaded from "%s/toolchains:java_package_configuration.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:10: Function "java_runtime" is not global anymore and needs to be loaded from "%s/toolchains:java_runtime.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:11: Function "java_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:java_toolchain.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:13: Symbol "JavaInfo" is not global anymore and needs to be loaded from "%s/common:java_info.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:14: Symbol "JavaPluginInfo" is not global anymore and needs to be loaded from "%s/common:java_plugin_info.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:15: Symbol "java_common" is not global anymore and needs to be loaded from "%s/common:java_common.bzl".`, tables.JavaLoadPathPrefix),
-			fmt.Sprintf(`:17: Function "java_test" is not global anymore and needs to be loaded from "%s:java_test.bzl".`, tables.JavaLoadPathPrefix),
+			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s:java_import.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s:java_binary.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:8: Function "java_plugin" is not global anymore and needs to be loaded from "%s:java_plugin.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:9: Function "java_package_configuration" is not global anymore and needs to be loaded from "%s/toolchains:java_package_configuration.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:10: Function "java_runtime" is not global anymore and needs to be loaded from "%s/toolchains:java_runtime.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:11: Function "java_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:java_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:13: Symbol "JavaInfo" is not global anymore and needs to be loaded from "%s/common:java_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:14: Symbol "JavaPluginInfo" is not global anymore and needs to be loaded from "%s/common:java_plugin_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:15: Symbol "java_common" is not global anymore and needs to be loaded from "%s/common:java_common.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:17: Function "java_test" is not global anymore and needs to be loaded from "%s:java_test.bzl".`, expectedLoadPrefix),
 		},
 		scopeBzl|scopeBuild)
 }
 
 func TestNativePyWarning(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"MODULE.bazel": `
+bazel_dep(name = "rules_python", repo_name = "my_rules_python")
+`,
+	})()
+
+	expectedLoadPath := "@my_rules_python//python:defs.bzl"
 	checkFindingsAndFix(t, "native-py", `
 """My file"""
 
@@ -683,18 +708,22 @@ def macro():
     py_runtime()
 
 py_test()
-`, tables.PyLoadPath),
+`, expectedLoadPath),
 		[]string{
-			fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
 		},
 		scopeBzl|scopeBuild)
 }
 
 func TestNativeProtoWarning(t *testing.T) {
+	// No MODULE.bazel file, so loads should use the legacy protobuf repo name.
+	defer setUpFileReader(nil)()
+
+	expectedLoadPrefix := "@com_google_protobuf//bazel"
 	checkFindingsAndFix(t, "native-proto,native-proto-lang-toolchain,native-proto-info,native-proto-common", `
 """My file"""
 
@@ -722,14 +751,14 @@ def macro():
 
     ProtoInfo
     proto_common
-`, tables.ProtoLoadPathPrefix),
+`, expectedLoadPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, tables.ProtoLoadPathPrefix),
-			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, tables.ProtoLoadPathPrefix),
-			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, tables.ProtoLoadPathPrefix),
-			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, tables.ProtoLoadPathPrefix),
-			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s/common:proto_info.bzl".`, tables.ProtoLoadPathPrefix),
-			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s/common:proto_common.bzl".`, tables.ProtoLoadPathPrefix),
+			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s/common:proto_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s/common:proto_common.bzl".`, expectedLoadPrefix),
 		},
 		scopeBzl|scopeBuild)
 }
