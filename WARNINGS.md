@@ -674,7 +674,6 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
   * Category name: `native-android`
   * Flag in Bazel: [`--incompatible_disable_native_android_rules`](https://github.com/bazelbuild/bazel/issues/8391)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-android`
 
 The Android build rules should be loaded from Starlark.
@@ -701,7 +700,6 @@ as global symbols there.
   * Category name: `native-cc`
   * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-cc`
 
 The CC build rules should be loaded from Starlark.
@@ -937,7 +935,6 @@ The ProtoLangToolchainInfo provider should be loaded from Starlark.
   * Category name: `native-py`
   * Flag in Bazel: [`--incompatible_load_python_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/9006)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-py`
 
 The Python build rules should be loaded from Starlark.

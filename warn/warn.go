@@ -204,9 +204,6 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
 	"unsorted-dict-items": true, // dict items should be sorted
-	"native-android":      true, // disables native android rules
-	"native-cc":           true, // disables native cc rules
-	"native-py":           true, // disables native python rules
 }
 
 // fileWarningWrapper is a wrapper that converts a file warning function to a generic function.
