@@ -260,7 +260,13 @@ var PyNativeRules = []string{
 var PyLoadPath = "@rules_python//python:defs.bzl"
 
 // ProtoLoadPathPrefix is the load path prefix for the Starlark Proto Rules.
-var ProtoLoadPathPrefix = "@com_google_protobuf//bazel"
+var ProtoLoadPathPrefix = "@protobuf//bazel"
+
+// ModuleToLegacyRepoName contains the mapping from module name to WORKSPACE repository name
+// for modules with load fixes if those names are different.
+var ModuleToLegacyRepoName = map[string]string{
+	"protobuf": "com_google_protobuf",
+}
 
 // IsModuleOverride contains the names of all Bzlmod module overrides available in MODULE.bazel.
 var IsModuleOverride = map[string]bool{
