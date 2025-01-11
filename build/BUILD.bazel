@@ -41,14 +41,15 @@ go_test(
         "rule_test.go",
         "walk_test.go",
     ],
-    data = glob(["testdata/*"]) + [
+    data = glob([
+        "testdata/*",
+        "rewrite_test_files/*",
+    ]) + [
         # parse.y.go is checked in to satisfy the Go community
         # https://github.com/bazelbuild/buildtools/issues/14
         # this test ensures it doesn't get stale.
         "parse.y.baz.go",
         "parse.y.go",
-        "rewrite_test_files/original_formatted.star",
-        "rewrite_test_files/original.star",
     ],
     embed = [":build"],
     deps = [
