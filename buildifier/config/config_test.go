@@ -353,9 +353,9 @@ func TestValidate(t *testing.T) {
 			"load",
 			"module-docstring",
 			"name-conventions",
-			// "native-android",
+			"native-android",
 			"native-build",
-			// "native-cc",
+			"native-cc",
 			"native-cc-proto",
 			"native-java-binary",
 			"native-java-common",
@@ -376,7 +376,7 @@ func TestValidate(t *testing.T) {
 			"native-proto-info",
 			"native-proto-lang-toolchain",
 			"native-proto-lang-toolchain-info",
-			// "native-py",
+			"native-py",
 			"no-effect",
 			"output-group",
 			"overly-nested-depset",
@@ -398,7 +398,7 @@ func TestValidate(t *testing.T) {
 			// "unsorted-dict-items",
 			"unused-variable",
 		}},
-		"warnings plus/minus": {options: "--warnings=+native-cc,-print,-deprecated-function", wantWarnings: []string{
+		"warnings plus/minus": {options: "--warnings=+unsorted-dict-items,-print,-deprecated-function", wantWarnings: []string{
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -432,8 +432,9 @@ func TestValidate(t *testing.T) {
 			"load",
 			"module-docstring",
 			"name-conventions",
-			// "native-android",
+			"native-android",
 			"native-build",
+			"native-cc",
 			"native-cc-proto",
 			"native-java-binary",
 			"native-java-common",
@@ -454,7 +455,7 @@ func TestValidate(t *testing.T) {
 			"native-proto-info",
 			"native-proto-lang-toolchain",
 			"native-proto-lang-toolchain-info",
-			// "native-py",
+			"native-py",
 			"no-effect",
 			"output-group",
 			"overly-nested-depset",
@@ -474,9 +475,8 @@ func TestValidate(t *testing.T) {
 			"uninitialized",
 			"unnamed-macro",
 			"unreachable",
-			// "unsorted-dict-items",
 			"unused-variable",
-			"native-cc",
+			"unsorted-dict-items",
 		}},
 		"warnings error": {options: "--warnings=native-cc,-print,-deprecated-function", wantErr: fmt.Errorf(`warning categories with modifiers ("+" or "-") can't be mixed with raw warning categories`)},
 	} {
@@ -577,6 +577,99 @@ func TestFindConfigPath(t *testing.T) {
 
 			if tc.want != got {
 				t.Errorf("FindConfigPath: want %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestFindTablePath(t *testing.T) {
+	tests := []struct {
+		name    string
+		file    string
+		files   []string
+		wd      string
+		want    string
+		wantErr error
+	}{
+		{
+			name:    "default",
+			file:    ".buildifier-tables.json",
+			files:   []string{".buildifier-tables.json"},
+			wd:      "",
+			want:    ".buildifier-tables.json",
+			wantErr: nil,
+		},
+		{
+			name:    "working-dir-is-subdir",
+			file:    ".buildifier-tables.json",
+			files:   []string{".buildifier-tables.json", "foo/BUILD.bazel"},
+			wd:      "foo",
+			want:    ".buildifier-tables.json",
+			wantErr: nil,
+		},
+		{
+			name:    "relative-subdir",
+			file:    "bar/.buildifier-tables.json",
+			files:   []string{"bar/.buildifier-tables.json", "foo/BUILD.bazel"},
+			wd:      "foo",
+			want:    "bar/.buildifier-tables.json",
+			wantErr: nil,
+		},
+		{
+			name:    "file-not-found",
+			file:    "nonexistentFile.json",
+			files:   []string{".buildifier-tables.json"},
+			wd:      "",
+			want:    "nonexistentFile.json",
+			wantErr: os.ErrNotExist,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tmp := t.TempDir()
+
+			// On MacOS "/tmp" is a symlink to "/private/tmp". Resolve it to make the testing easier
+			tmp, err := filepath.EvalSymlinks(tmp)
+			if err != nil {
+				t.Fatalf("failed to resolve symlink for temporary directory: %v", err)
+			}
+			t.Log("tmp:", tmp)
+
+			if tc.wd != "" {
+				if err := os.MkdirAll(filepath.Join(tmp, tc.wd), os.ModePerm); err != nil {
+					t.Fatalf("failed to create working directory: %v", err)
+				}
+				if err := os.Chdir(filepath.Join(tmp, tc.wd)); err != nil {
+					t.Fatalf("failed to change working directory: %v", err)
+				}
+			} else {
+				if err := os.Chdir(tmp); err != nil {
+					t.Fatalf("failed to change working directory: %v", err)
+				}
+			}
+
+			for _, file := range tc.files {
+				filePath := filepath.Join(tmp, file)
+				dir := filepath.Dir(filePath)
+				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+					t.Fatalf("failed to create directory %v: %v", dir, err)
+				}
+				if err := os.WriteFile(filePath, []byte("{}"), 0644); err != nil {
+					t.Fatalf("failed to create file %v: %v", filePath, err)
+				}
+			}
+
+			got, err := findTablesPath(tc.file)
+			got = strings.TrimPrefix(got, tmp)
+			got = strings.TrimPrefix(got, "/")
+
+			if (err != nil) != (tc.wantErr != nil) || (err != nil && tc.wantErr.Error() != err.Error()) {
+				t.Errorf("FindTablePath wantErr = %q, error = %q", tc.wantErr, err)
+			}
+
+			if tc.want != got {
+				t.Errorf("FindTablePath want = %q, got = %q", tc.want, got)
 			}
 		})
 	}
