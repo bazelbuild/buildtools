@@ -58,6 +58,8 @@ func setUpFileReader(data map[string]string) (cleanup func()) {
 	}
 	testFileReader = NewFileReader(readFile)
 	fileReaderRequests = nil
+	// The cached mapping depends on the file reader, so we need to reset it as well.
+	moduleToApparentRepoName = nil
 
 	return func() {
 		// Tear down
