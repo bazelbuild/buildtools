@@ -137,6 +137,7 @@ var rewrites = []struct {
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
+	{"editfloat", editFloats, scopeBoth},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -1396,6 +1397,35 @@ func editOctals(f *File, _ *Rewriter) {
 		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9' {
 			l.Token = "0o" + l.Token[1:]
 		}
+	})
+}
+
+// editFloats inserts '0' before the decimal point in floats and normalizes the
+// exponent part to lowercase, no plus sign, and no leading zero.
+func editFloats(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		l, ok := expr.(*LiteralExpr)
+		if !ok {
+			return
+		}
+		if !strings.ContainsRune(l.Token, '.') {
+			return
+		}
+		if strings.HasPrefix(l.Token, ".") {
+			l.Token = "0" + l.Token
+		}
+		if !strings.ContainsAny(l.Token, "eE") {
+			return
+		}
+		parts := strings.SplitN(l.Token, "e", 2)
+		if len(parts) != 2 {
+			parts = strings.SplitN(l.Token, "E", 2)
+		}
+		if len(parts) != 2 {
+			// Invalid float, skip rewriting.
+			return
+		}
+		l.Token = parts[0] + "e" + strings.TrimLeft(parts[1], "0+")
 	})
 }
 
