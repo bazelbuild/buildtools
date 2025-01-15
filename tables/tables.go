@@ -234,7 +234,6 @@ var CcNativeRules = []string{
 	"cc_test",
 	"cc_library",
 	"cc_import",
-	"cc_proto_library",
 	"fdo_prefetch_hints",
 	"fdo_profile",
 	"cc_toolchain",
@@ -246,22 +245,8 @@ var CcNativeRules = []string{
 // CcLoadPath is the load path for the Starlark C++ Rules.
 var CcLoadPath = "@rules_cc//cc:defs.bzl"
 
-// JavaNativeRules lists all Java rules that are being migrated from Native to Starlark.
-var JavaNativeRules = []string{
-	"java_binary",
-	"java_import",
-	"java_library",
-	"java_lite_proto_library",
-	"java_proto_library",
-	"java_test",
-	"java_package_configuration",
-	"java_plugin",
-	"java_runtime",
-	"java_toolchain",
-}
-
-// JavaLoadPath is the load path for the Starlark Java Rules.
-var JavaLoadPath = "@rules_java//java:defs.bzl"
+// JavaLoadPathPrefix is the load package for the Starlark Java Rules.
+var JavaLoadPathPrefix = "@rules_java//java"
 
 // PyNativeRules lists all Python rules that are being migrated from Native to Starlark.
 var PyNativeRules = []string{
@@ -274,20 +259,14 @@ var PyNativeRules = []string{
 // PyLoadPath is the load path for the Starlark Python Rules.
 var PyLoadPath = "@rules_python//python:defs.bzl"
 
-// ProtoNativeRules lists all Proto rules that are being migrated from Native to Starlark.
-var ProtoNativeRules = []string{
-	"proto_lang_toolchain",
-	"proto_library",
-}
+// ProtoLoadPathPrefix is the load path prefix for the Starlark Proto Rules.
+var ProtoLoadPathPrefix = "@protobuf//bazel"
 
-// ProtoNativeSymbols lists all Proto symbols that are being migrated from Native to Starlark.
-var ProtoNativeSymbols = []string{
-	"ProtoInfo",
-	"proto_common",
+// ModuleToLegacyRepoName contains the mapping from module name to WORKSPACE repository name
+// for modules with load fixes if those names are different.
+var ModuleToLegacyRepoName = map[string]string{
+	"protobuf": "com_google_protobuf",
 }
-
-// ProtoLoadPath is the load path for the Starlark Proto Rules.
-var ProtoLoadPath = "@rules_proto//proto:defs.bzl"
 
 // IsModuleOverride contains the names of all Bzlmod module overrides available in MODULE.bazel.
 var IsModuleOverride = map[string]bool{
