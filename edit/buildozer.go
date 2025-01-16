@@ -370,6 +370,10 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 			fields[i] = &apipb.Output_Record_Field{
 				Value: &apipb.Output_Record_Field_Text{Text: env.File.Path},
 			}
+		} else if str == "attrs" {
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: env.Rule.AttrKeys()}},
+			}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
 				env.Pkg, env.Rule.Name(), str)

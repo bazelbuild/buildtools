@@ -1251,6 +1251,18 @@ function test_print_version() {
   assert_output '12345'
 }
 
+function test_print_attrs() {
+  in='package()
+cc_library(
+  name = "a",
+  srcs = ["a.cc"],
+  deps = ["//foo"],
+)'
+  run "$in" 'print attrs' '//pkg:*'
+  assert_output '[]
+[name srcs deps]'
+}
+
 function test_new_cc_library() {
   in='cc_test(name = "a")
 
