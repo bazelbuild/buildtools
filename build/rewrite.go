@@ -138,6 +138,7 @@ var rewrites = []struct {
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
 	{"editfloat", editFloats, scopeBoth},
+	{"collapseEmpty", collapseEmpty, scopeBoth},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -1458,4 +1459,18 @@ func removeParens(f *File, _ *Rewriter) {
 	}
 
 	Edit(f, simplify)
+}
+
+// collapseEmpty unsets ForceMultiLine for empty call expressions.
+func collapseEmpty(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		c, ok := expr.(*CallExpr)
+		if !ok {
+			return
+		}
+
+		if len(c.List) == 0 { // No arguments
+			c.ForceMultiLine = false
+		}
+	})
 }
