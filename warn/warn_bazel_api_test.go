@@ -763,6 +763,81 @@ def macro():
 		scopeBzl|scopeBuild)
 }
 
+func TestNativeShBinaryWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-sh-binary", `
+"""My file"""
+
+def macro():
+    native.sh_binary()
+
+sh_binary()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+def macro():
+    sh_binary()
+
+sh_binary()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeShLibraryWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-sh-library", `
+"""My file"""
+
+def macro():
+    native.sh_library()
+
+sh_library()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_library.bzl", "sh_library")
+
+def macro():
+    sh_library()
+
+sh_library()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_library" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_library.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_library" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_library.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeShTestWarning(t *testing.T) {
+	checkFindingsAndFix(t, "native-sh-test", `
+"""My file"""
+
+def macro():
+    native.sh_test()
+
+sh_test()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+def macro():
+    sh_test()
+
+sh_test()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
 func TestKeywordParameters(t *testing.T) {
 	checkFindingsAndFix(t, "keyword-positional-params", `
 foo(key = value)

@@ -61,6 +61,9 @@ Warning categories supported by buildifier's linter:
   * [`native-proto-lang-toolchain`](#native-proto-lang-toolchain)
   * [`native-proto-lang-toolchain-info`](#native-proto-lang-toolchain-info)
   * [`native-py`](#native-py)
+  * [`native-sh-binary`](#native-sh-binary)
+  * [`native-sh-library`](#native-sh-library)
+  * [`native-sh-test`](#native-sh-test)
   * [`no-effect`](#no-effect)
   * [`out-of-order-load`](#out-of-order-load)
   * [`output-group`](#output-group)
@@ -942,6 +945,36 @@ The Python build rules should be loaded from Starlark.
 Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-binary"></a>sh_binary build rules should be loaded from Starlark
+
+  * Category name: `native-sh-binary`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-binary`
+
+The sh_binary build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-library"></a>sh_library build rules should be loaded from Starlark
+
+  * Category name: `native-sh-library`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-library`
+
+The sh_library build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-test"></a>sh_test build rules should be loaded from Starlark
+
+  * Category name: `native-sh-test`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-test`
+
+The sh_test build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 

@@ -798,6 +798,15 @@ func nativeProtoSymbolsWarning(symbol string, bzlfile string) func(f *build.File
 	}
 }
 
+func NativeShellRulesWarning(rule string) func(f *build.File, fileReader *FileReader) []*LinterFinding {
+	return func(f *build.File, fileReader *FileReader) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedFunctionUsageCheck(f, fileReader, []string{rule}, tables.ShellLoadPathPrefix+":"+rule+".bzl")
+	}
+}
+
 func contextArgsAPIWarning(f *build.File) []*LinterFinding {
 	if f.Type != build.TypeBzl {
 		return nil
