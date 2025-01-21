@@ -798,6 +798,7 @@ func nativeProtoSymbolsWarning(symbol string, bzlfile string) func(f *build.File
 	}
 }
 
+// NativeShellRulesWarning produces a warning for missing loads of shell rules
 func NativeShellRulesWarning(rule string) func(f *build.File, fileReader *FileReader) []*LinterFinding {
 	return func(f *build.File, fileReader *FileReader) []*LinterFinding {
 		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
