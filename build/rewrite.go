@@ -1464,12 +1464,7 @@ func removeParens(f *File, _ *Rewriter) {
 // collapseEmpty unsets ForceMultiLine for empty call expressions.
 func collapseEmpty(f *File, _ *Rewriter) {
 	Walk(f, func(expr Expr, stack []Expr) {
-		c, ok := expr.(*CallExpr)
-		if !ok {
-			return
-		}
-
-		if len(c.List) == 0 { // No arguments
+		if c, ok := expr.(*CallExpr); ok && len(c.List) == 0 { // No arguments
 			c.ForceMultiLine = false
 		}
 	})
