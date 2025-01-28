@@ -39,8 +39,25 @@ Warning categories supported by buildifier's linter:
   * [`name-conventions`](#name-conventions)
   * [`native-android`](#native-android)
   * [`native-build`](#native-build)
-  * [`native-cc`](#native-cc)
+  * [`native-cc-binary`](#native-cc-binary)
+  * [`native-cc-common`](#native-cc-common)
+  * [`native-cc-debug-package-info`](#native-cc-debug-package-info)
+  * [`native-cc-fdo-prefetch-hints`](#native-cc-fdo-prefetch-hints)
+  * [`native-cc-fdo-profile`](#native-cc-fdo-profile)
+  * [`native-cc-import`](#native-cc-import)
+  * [`native-cc-info`](#native-cc-info)
+  * [`native-cc-library`](#native-cc-library)
+  * [`native-cc-memprof-profile`](#native-cc-memprof-profile)
+  * [`native-cc-objc-import`](#native-cc-objc-import)
+  * [`native-cc-objc-library`](#native-cc-objc-library)
+  * [`native-cc-propeller-optimize`](#native-cc-propeller-optimize)
   * [`native-cc-proto`](#native-cc-proto)
+  * [`native-cc-shared-library`](#native-cc-shared-library)
+  * [`native-cc-shared-library-hint-info`](#native-cc-shared-library-hint-info)
+  * [`native-cc-shared-library-info`](#native-cc-shared-library-info)
+  * [`native-cc-test`](#native-cc-test)
+  * [`native-cc-toolchain`](#native-cc-toolchain)
+  * [`native-cc-toolchain-suite`](#native-cc-toolchain-suite)
   * [`native-java-binary`](#native-java-binary)
   * [`native-java-common`](#native-java-common)
   * [`native-java-import`](#native-java-import)
@@ -698,18 +715,32 @@ as global symbols there.
 
 --------------------------------------------------------------------------------
 
-## <a name="native-cc"></a>All C++ build rules should be loaded from Starlark
+## <a name="native-cc-binary"></a><a name="native-cc-common"></a><a name="native-cc-debug-package-info"></a><a name="native-cc-fdo-prefetch-hints"></a><a name="native-cc-fdo-profile"></a><a name="native-cc-import"></a><a name="native-cc-info"></a><a name="native-cc-library"></a><a name="native-cc-memprof-profile"></a><a name="native-cc-objc-import"></a><a name="native-cc-objc-library"></a><a name="native-cc-propeller-optimize"></a><a name="native-cc-shared-library"></a><a name="native-cc-shared-library-hint-info"></a><a name="native-cc-shared-library-info"></a><a name="native-cc-test"></a><a name="native-cc-toolchain"></a><a name="native-cc-toolchain-suite"></a>All C++ build rules should be loaded from Starlark
 
-  * Category name: `native-cc`
-  * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
+  * Category names:
+    * `native-cc-binary`
+    * `native-cc-common`
+    * `native-cc-debug-package-info`
+    * `native-cc-fdo-prefetch-hints`
+    * `native-cc-fdo-profile`
+    * `native-cc-import`
+    * `native-cc-info`
+    * `native-cc-library`
+    * `native-cc-memprof-profile`
+    * `native-cc-objc-import`
+    * `native-cc-objc-library`
+    * `native-cc-propeller-optimize`
+    * `native-cc-shared-library`
+    * `native-cc-shared-library-hint-info`
+    * `native-cc-shared-library-info`
+    * `native-cc-test`
+    * `native-cc-toolchain`
+    * `native-cc-toolchain-suite`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc`
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc-binary`, `# buildifier: disable=native-cc-common`, `# buildifier: disable=native-cc-debug-package-info`, `# buildifier: disable=native-cc-fdo-prefetch-hints`, `# buildifier: disable=native-cc-fdo-profile`, `# buildifier: disable=native-cc-import`, `# buildifier: disable=native-cc-info`, `# buildifier: disable=native-cc-library`, `# buildifier: disable=native-cc-memprof-profile`, `# buildifier: disable=native-cc-objc-import`, `# buildifier: disable=native-cc-objc-library`, `# buildifier: disable=native-cc-propeller-optimize`, `# buildifier: disable=native-cc-shared-library`, `# buildifier: disable=native-cc-shared-library-hint-info`, `# buildifier: disable=native-cc-shared-library-info`, `# buildifier: disable=native-cc-test`, `# buildifier: disable=native-cc-toolchain`, `# buildifier: disable=native-cc-toolchain-suite`
 
-The CC build rules should be loaded from Starlark.
-
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+The C++ build rules should be loaded from @rules_cc.
 
 --------------------------------------------------------------------------------
 

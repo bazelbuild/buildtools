@@ -728,11 +728,34 @@ func nativeAndroidRulesWarning(f *build.File, fileReader *FileReader) []*LinterF
 	return NotLoadedFunctionUsageCheck(f, fileReader, tables.AndroidNativeRules, tables.AndroidLoadPath)
 }
 
-func nativeCcRulesWarning(f *build.File, fileReader *FileReader) []*LinterFinding {
-	if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
-		return nil
+// NativeCcRulesWarning produces a warning for missing loads of cc rules
+func NativeCcRulesWarning(rule string) func(f *build.File, fileReader *FileReader) []*LinterFinding {
+	return func(f *build.File, fileReader *FileReader) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedFunctionUsageCheck(f, fileReader, []string{rule}, tables.CcLoadPathPrefix+":"+rule+".bzl")
 	}
-	return NotLoadedFunctionUsageCheck(f, fileReader, tables.CcNativeRules, tables.CcLoadPath)
+}
+
+// NativeCcToolchainRulesWarning produces a warning for missing loads of cc toolchain rules
+func NativeCcToolchainRulesWarning(rule string) func(f *build.File, fileReader *FileReader) []*LinterFinding {
+	return func(f *build.File, fileReader *FileReader) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedFunctionUsageCheck(f, fileReader, []string{rule}, tables.CcLoadPathPrefix+"/toolchains:"+rule+".bzl")
+	}
+}
+
+// NativeCcSymbolsWarning produces a warning for missing loads of cc top-level symbols
+func NativeCcSymbolsWarning(symbol string, bzlfile string) func(f *build.File, fileReader *FileReader) []*LinterFinding {
+	return func(f *build.File, fileReader *FileReader) []*LinterFinding {
+		if f.Type != build.TypeBzl && f.Type != build.TypeBuild {
+			return nil
+		}
+		return NotLoadedSymbolUsageCheck(f, fileReader, []string{symbol}, tables.CcLoadPathPrefix+"/common:"+bzlfile+".bzl")
+	}
 }
 
 // NativeJavaRulesWarning produces a warning for missing loads of java rules
