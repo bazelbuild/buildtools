@@ -774,6 +774,8 @@ def macro():
 }
 
 func TestNativeShBinaryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-sh-binary", `
 """My file"""
 
@@ -799,6 +801,8 @@ sh_binary()
 }
 
 func TestNativeShLibraryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-sh-library", `
 """My file"""
 
@@ -824,6 +828,8 @@ sh_library()
 }
 
 func TestNativeShTestWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-sh-test", `
 """My file"""
 
@@ -844,6 +850,68 @@ sh_test()
 		[]string{
 			fmt.Sprintf(`:4: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
 			fmt.Sprintf(`:6: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeWarningLoadPlacedAfterFileDocstringWithComment(t *testing.T) {
+	defer setUpFileReader(nil)()
+
+	checkFindingsAndFix(t, "native-sh-binary,native-java-binary", `
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""My file"""
+
+def macro():
+    native.sh_binary()
+    native.java_binary()
+
+java_binary()
+sh_binary()
+`, `
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""My file"""
+
+load("@rules_java//java:java_binary.bzl", "java_binary")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+def macro():
+    sh_binary()
+    java_binary()
+
+java_binary()
+sh_binary()
+`,
+		[]string{
+			fmt.Sprintf(`:18: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+			fmt.Sprintf(`:19: Function "java_binary" is not global anymore and needs to be loaded from "@rules_java//java:java_binary.bzl".`),
+			fmt.Sprintf(`:21: Function "java_binary" is not global anymore and needs to be loaded from "@rules_java//java:java_binary.bzl".`),
+			fmt.Sprintf(`:22: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
 		},
 		scopeBzl|scopeBuild)
 }

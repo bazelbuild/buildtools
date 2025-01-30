@@ -158,10 +158,10 @@ func insertLoad(f *build.File, module string, symbols []string) *LinterReplaceme
 	i := 0
 	for i = range f.Stmt {
 		stmt := f.Stmt[i]
-		_, isComment := stmt.(*build.CommentBlock)
-		_, isString := stmt.(*build.StringExpr)
-		isDocString := isString && i == 0
-		if !isComment && !isDocString {
+		if _, isComment := stmt.(*build.CommentBlock); isComment {
+			continue
+		}
+		if _, isDocString := stmt.(*build.StringExpr); !isDocString {
 			// Insert a nil statement here
 			break
 		}
