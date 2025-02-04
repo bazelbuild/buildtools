@@ -180,8 +180,8 @@ var moduleToApparentRepoName func(string) string
 // useApparentRepoNameIfExternal replaces the module name in a load statement with the apparent repository
 // name used by the root Bazel module (if any).
 func useApparentRepoNameIfExternal(load string, fileReader *FileReader) string {
-	if !strings.HasPrefix(load, "@") {
-		// Not a load from an external repository.
+	if !strings.HasPrefix(load, "@") || fileReader == nil {
+		// Not a load from an external repository or we can't load external files.
 		return load
 	}
 	if moduleToApparentRepoName == nil {
