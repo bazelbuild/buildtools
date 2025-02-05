@@ -87,6 +87,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "buildozer-linux-s390x",
+    out = "buildozer-linux_s390x",
+    embed = [":buildozer_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 exports_files(
     [
         "README.md",
