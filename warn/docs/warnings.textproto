@@ -932,6 +932,21 @@ warnings: {
 }
 
 warnings: {
+  name: "rule-load-location"
+  header: "Rule must be loaded from a specific location"
+  description:
+      "Warns when a rule is loaded from a location other than the expected one.\n"
+      "Expected locations are specified in the tables file:\n\n"
+  "```json\n"
+  "{\n"
+  "  \"RuleLoadLocation\": {\n"
+  "    \"genrule\": \"//tools/bazel:genrule.bzl\"\n"
+  "  }\n"
+  "}\n"
+  "```\n"
+}
+
+warnings: {
   name: "same-origin-load"
   header: "Same label is used for multiple loads"
   description:

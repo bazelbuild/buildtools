@@ -266,8 +266,11 @@ var IsModuleOverride = map[string]bool{
 	"single_version_override":   true,
 }
 
+// RuleLoadLocation contains custom locations for loading rules.
+var RuleLoadLocation = map[string]string{}
+
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool, ruleLoadLocation map[string]string) {
 	IsLabelArg = labelArg
 	LabelDenylist = denylist
 	IsListArg = listArg
@@ -277,10 +280,11 @@ func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, 
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
+	RuleLoadLocation = ruleLoadLocation
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool, ruleLoadLocation map[string]string) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -304,4 +308,7 @@ func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sor
 	}
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
+	for k, v := range ruleLoadLocation {
+		RuleLoadLocation[k] = v
+	}
 }
