@@ -265,6 +265,7 @@ the attribute, a warning is printed on stderr.
 There are some special attributes in the `print` command:
 
   * `kind`: displays the name of the function
+  * `attrs`: displays the attribute names of the rule
   * `label`: the fully qualified label
   * `rule`: the entire rule definition
   * `startline`: the line number on which the rule begins in the BUILD file
