@@ -191,9 +191,10 @@ func (r *Rule) Kind() string {
 func (r *Rule) SetKind(kind string) {
 	names := strings.Split(kind, ".")
 	var expr Expr
-	expr = &Ident{Name: names[0]}
+        startPos, _ := r.Call.X.Span()
+	expr = &Ident{Name: names[0], NamePos: startPos}
 	for _, name := range names[1:] {
-		expr = &DotExpr{X: expr, Name: name}
+		expr = &DotExpr{X: expr, Name: name, NamePos: startPos}
 	}
 	r.Call.X = expr
 }
