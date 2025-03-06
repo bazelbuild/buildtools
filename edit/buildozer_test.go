@@ -699,3 +699,76 @@ func TestCmdSetSelect(t *testing.T) {
 		})
 	}
 }
+
+func TestCmdChange(t *testing.T) {
+	for i, tc := range []struct {
+		name      string
+		args      []string
+		buildFile string
+		expected  string
+	}{
+		{
+			name: "noop_if_same",
+			args: []string{"foo"},
+			buildFile: `foo(
+    name = "foo",
+)`,
+			expected: `foo(
+    name = "foo",
+)`},
+		{
+			name: "change_if_different",
+			args: []string{"bar"},
+			buildFile: `foo(
+    name = "foo",
+)`,
+			expected: `bar(
+    name = "foo",
+)`},
+		{
+			name: "only_changes_rule_ident",
+			args: []string{"bar"},
+			buildFile: `# Comment before rule.
+foo(
+    name = "foo",
+    flag = True,
+    # Comment on attribute.
+    label_list = [
+        "//:a",
+        "//:b",
+        "//:c",
+    ],
+    value = 1,
+)`,
+			expected: `# Comment before rule.
+bar(
+    name = "foo",
+    flag = True,
+    # Comment on attribute.
+    label_list = [
+        "//:a",
+        "//:b",
+        "//:c",
+    ],
+    value = 1,
+)`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+			}
+			rl := bld.Rules("foo")[0]
+			env := CmdEnvironment{
+				File: bld,
+				Rule: rl,
+				Args: tc.args,
+			}
+			bld, _ = cmdChange(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tc.expected {
+				t.Errorf("cmdChange(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}

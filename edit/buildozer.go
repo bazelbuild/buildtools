@@ -258,6 +258,12 @@ func cmdNew(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+func cmdChange(opts *Options, env CmdEnvironment) (*build.File, error) {
+	kind := env.Args[0]
+	env.Rule.Call.X = &build.Ident{Name: kind}
+	return env.File, nil
+}
+
 // findInsertionIndex is used by cmdNew to find the place at which to insert the new rule.
 func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 	if len(env.Args) < 4 {
@@ -922,6 +928,7 @@ var AllCommands = map[string]CommandInfo{
 	"fix":                   {cmdFix, true, 0, -1, "<fix(es)>?"},
 	"move":                  {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
 	"new":                   {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
+	"change":                {cmdChange, true, 1, 1, "<rule_kind>"},
 	"print":                 {cmdPrint, true, 0, -1, "<attribute(s)>"},
 	"remove":                {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
 	"remove_comment":        {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
