@@ -277,6 +277,10 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 		// Standalone comment blocks shouldn't be attached to other statements
 		return false
 	} else if (p.formattingMode() == TypeBuild) && p.level == 0 {
+		if tables.CompactConstantDefinitions && isAssignmentExpr(s1) && isAssignmentExpr(s2) {
+			// Two constant definitions do not need an extra line (if compact option enabled).
+			return true
+		}
 		// Top-level statements in a BUILD or WORKSPACE file
 		return false
 	} else if isFunctionDefinition(s1) || isFunctionDefinition(s2) {
@@ -443,6 +447,11 @@ func usedModuleExtensionProxy(x Expr) string {
 // isCommentBlock reports whether x is a comment block node.
 func isCommentBlock(x Expr) bool {
 	_, ok := x.(*CommentBlock)
+	return ok
+}
+
+func isAssignmentExpr(x Expr) bool {
+	_, ok := x.(*AssignExpr)
 	return ok
 }
 
