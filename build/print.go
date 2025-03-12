@@ -387,56 +387,64 @@ func isBazelDepWithOverride(x, y Expr) bool {
 }
 
 func useSameModuleExtensionProxy(x, y Expr) bool {
-	extX := usedModuleExtensionProxy(x)
+	extX, isUseRepoX := usedModuleExtensionProxy(x)
 	if extX == "" {
 		return false
 	}
-	extY := usedModuleExtensionProxy(y)
-	return extX == extY
+	extY, isUseRepoY := usedModuleExtensionProxy(y)
+	// Switching from a use_repo to a non-use_repo statement should break the
+	// sequence of statements.
+	//
+	//   foo_deps.module(path = "github.com/foo/bar")
+	//   use_repo(foo_deps, "com_github_foo_bar")
+	//
+	//   foo_deps.module(path = "github.com/foo/bar2")
+	//   use_repo(foo_deps, "com_github_foo_bar2")
+	return extX == extY && (!isUseRepoX || isUseRepoY)
 }
 
-func usedModuleExtensionProxy(x Expr) string {
+func usedModuleExtensionProxy(x Expr) (name string, isUseRepo bool) {
 	if call, ok := x.(*CallExpr); ok {
 		if callee, isIdent := call.X.(*Ident); isIdent && callee.Name == "use_repo" {
 			// Handles:
 			//   use_repo(foo_deps, "com_github_foo_bar")
 			if len(call.List) < 1 {
-				return ""
+				return "", true
 			}
 			proxy, isIdent := call.List[0].(*Ident)
 			if !isIdent {
-				return ""
+				return "", true
 			}
-			return proxy.Name
+			return proxy.Name, true
 		} else if dot, isDot := call.X.(*DotExpr); isDot {
 			// Handles:
 			//   foo_deps.module(path = "github.com/foo/bar")
 			extension, isIdent := dot.X.(*Ident)
 			if !isIdent {
-				return ""
+				return "", false
 			}
-			return extension.Name
+			return extension.Name, false
 		} else {
-			return ""
+			return "", false
 		}
 	} else if assign, ok := x.(*AssignExpr); ok {
 		// Handles:
 		//   foo_deps = use_extension("//:foo.bzl", "foo_deps")
 		assignee, isIdent := assign.LHS.(*Ident)
 		if !isIdent {
-			return ""
+			return "", false
 		}
 		call, isCall := assign.RHS.(*CallExpr)
 		if !isCall {
-			return ""
+			return "", false
 		}
 		callee, isIdent := call.X.(*Ident)
 		if !isIdent || callee.Name != "use_extension" {
-			return ""
+			return "", false
 		}
-		return assignee.Name
+		return assignee.Name, false
 	} else {
-		return ""
+		return "", false
 	}
 }
 
