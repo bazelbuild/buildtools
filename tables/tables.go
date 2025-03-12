@@ -132,7 +132,6 @@ var IsSortableListArg = map[string]bool{
 	"javadeps":            true,
 	"lib_deps":            true,
 	"module_deps":         true,
-	"out":                 true,
 	"outs":                true,
 	"packages":            true,
 	"plugin_modules":      true,
