@@ -51,6 +51,10 @@ mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
 cat > test_dir/MODULE.bazel <<'EOF'
 module(name='my-module',version='1.0',compatibility_level=1)
+include("cpp.MODULE.bazel")
+
+include("go.MODULE.bazel")
+include("web.MODULE.bazel")
 bazel_dep(name='rules_cc',version='0.0.1')
 bazel_dep(name='protobuf',repo_name='com_google_protobuf',version='3.19.0')
 bazel_dep(
@@ -160,6 +164,10 @@ module(
     version = "1.0",
     compatibility_level = 1,
 )
+
+include("cpp.MODULE.bazel")
+include("go.MODULE.bazel")
+include("web.MODULE.bazel")
 
 bazel_dep(name = "rules_cc", version = "0.0.1")
 bazel_dep(name = "protobuf", version = "3.19.0", repo_name = "com_google_protobuf")

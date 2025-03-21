@@ -273,6 +273,10 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 		//   foo_deps.module(path = "github.com/foo/bar")
 		//   use_repo(foo_deps, "com_github_foo_bar")
 		return true
+	} else if p.fileType == TypeModule && isInclude(s1) && isInclude(s2) {
+		// include takes a single argument and there are typically multiple in
+		// a row, so we want to keep them together.
+		return true
 	} else if isCommentBlock(s1) || isCommentBlock(s2) {
 		// Standalone comment blocks shouldn't be attached to other statements
 		return false
@@ -446,6 +450,15 @@ func usedModuleExtensionProxy(x Expr) (name string, isUseRepo bool) {
 	} else {
 		return "", false
 	}
+}
+
+func isInclude(x Expr) bool {
+	if call, ok := x.(*CallExpr); ok {
+		if ident, ok := call.X.(*Ident); ok && ident.Name == "include" {
+			return true
+		}
+	}
+	return false
 }
 
 // isCommentBlock reports whether x is a comment block node.
