@@ -26,6 +26,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -1286,12 +1287,13 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 	if !strings.HasSuffix(file, suffix) {
 		return []string{file}
 	}
-
-	return findBuildFiles(strings.TrimSuffix(file, suffix))
+	return findBuildFiles(strings.TrimSuffix(file, suffix), getIgnoredPrefixes(rootDir))
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
-func findBuildFiles(rootDir string) []string {
+// ignoredPrefixes are path prefixes to ignore (if a path matches any of these prefixes,
+// it will be skipped along with its subdirectories).
+func findBuildFiles(rootDir string, ignoredPrefixes []string) []string {
 	var buildFiles []string
 	searchDirs := []string{rootDir}
 
@@ -1306,12 +1308,18 @@ func findBuildFiles(rootDir string) []string {
 		}
 
 		for _, dirFile := range dirFiles {
+			fullPath := filepath.Join(dir, dirFile.Name())
+
+			if shouldIgnorePath(fullPath, rootDir, ignoredPrefixes) {
+				continue
+			}
+
 			if dirFile.IsDir() {
-				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
+				searchDirs = append(searchDirs, fullPath)
 			} else {
 				for _, buildFileName := range BuildFileNames {
 					if dirFile.Name() == buildFileName {
-						buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+						buildFiles = append(buildFiles, fullPath)
 					}
 				}
 			}
@@ -1319,6 +1327,53 @@ func findBuildFiles(rootDir string) []string {
 	}
 
 	return buildFiles
+}
+
+// getIgnoredPrefixes returns a list of ignored prefixes from the .bazelignore file in the root directory.
+// It returns an empty list if the file does not exist.
+func getIgnoredPrefixes(rootDir string) []string {
+	bazelignorePath := filepath.Join(rootDir, ".bazelignore")
+	ignoredPaths := []string{}
+
+	data, err := os.ReadFile(bazelignorePath)
+	if err != nil {
+		return ignoredPaths
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines, comments, and absolute paths
+		// Bazel will error out if there are any absolute paths in the .bazelignore file.
+		if line == "" || strings.HasPrefix(line, "#") || path.IsAbs(line) {
+			continue
+		}
+
+		ignoredPaths = append(ignoredPaths, line)
+	}
+
+	return ignoredPaths
+}
+
+// shouldIgnorePath returns true if the path should be ignored based on the list of ignored prefixes.
+func shouldIgnorePath(path string, rootDir string, ignoredPrefixes []string) bool {
+	rel, err := filepath.Rel(rootDir, path)
+	if err != nil {
+		return false
+	}
+	// Normalize path separators to forward slashes
+	rel = filepath.ToSlash(rel)
+
+	for _, prefix := range ignoredPrefixes {
+		if strings.HasPrefix(rel, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // appendCommands adds the given commands to be applied to each of the given targets
