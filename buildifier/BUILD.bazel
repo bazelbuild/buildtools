@@ -58,6 +58,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildifier-linux-riscv64",
+    out = "buildifier-linux_riscv64",
+    embed = [":buildifier_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildifier-linux-s390x",
     out = "buildifier-linux_s390x",
     embed = [":buildifier_lib"],

@@ -24,7 +24,8 @@ function getNativeBinary() {
   const arch = {
     'arm64' : 'arm64',
     'x64' : 'amd64',
-    's390x': 's390x'
+    's390x': 's390x',
+    'riscv64': 'riscv64',
   }[os.arch()];
   // Filter the platform based on the platforms that are build/included.
   const platform = {
