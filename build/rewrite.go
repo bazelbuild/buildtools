@@ -211,6 +211,15 @@ func keepSorted(x Expr) bool {
 	return hasComment(x, "keep sorted")
 }
 
+// labelRE matches label strings, e.g. @r//x/y/z:abc
+// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
+func makeLabelRe(labelPrefix string) *regexp.Regexp {
+	return regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
+}
+
+var leadingSlashesLabelRe = makeLabelRe("//")
+var stripLeadingSlashesLabelRe = makeLabelRe("")
+
 // fixLabels rewrites labels into a canonical form.
 //
 // First, it joins labels written as string addition, turning
@@ -250,12 +259,11 @@ func fixLabels(f *File, w *Rewriter) {
 	}
 
 	labelPrefix := "//"
+	labelRE := leadingSlashesLabelRe
 	if w.StripLabelLeadingSlashes {
 		labelPrefix = ""
+		labelRE = stripLeadingSlashesLabelRe
 	}
-	// labelRE matches label strings, e.g. @r//x/y/z:abc
-	// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
-	labelRE := regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
 
 	shortenLabel := func(v Expr) {
 		str, ok := v.(*StringExpr)
@@ -699,28 +707,6 @@ func isUniq(list []stringSortKey) bool {
 		}
 	}
 	return true
-}
-
-// If stk describes a call argument like rule(arg=...), callArgName
-// returns the name of that argument, formatted as "rule.arg".
-func callArgName(stk []Expr) string {
-	n := len(stk)
-	if n < 2 {
-		return ""
-	}
-	arg := argName(stk[n-1])
-	if arg == "" {
-		return ""
-	}
-	call, ok := stk[n-2].(*CallExpr)
-	if !ok {
-		return ""
-	}
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
-	}
-	return rule.Name + "." + arg
 }
 
 // A stringSortKey records information about a single string literal to be
