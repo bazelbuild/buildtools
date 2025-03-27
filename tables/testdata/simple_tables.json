@@ -19,5 +19,6 @@
   "NamePriority": {
     "name": -1
   },
+  "CompactConstantDefinitions": true,
   "StripLabelLeadingSlashes": true
 }
