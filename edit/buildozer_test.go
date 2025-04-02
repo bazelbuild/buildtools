@@ -175,7 +175,7 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	}
 
 	// Create .bazelignore file with paths to ignore
-	bazelignoreContent := []byte("# Ignore these directories\nignored\na/ignored\n")
+	bazelignoreContent := []byte("# Ignore these directories\nignored\na/ignored/\n")
 	if err := os.WriteFile(filepath.Join(tmp, ".bazelignore"), bazelignoreContent, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -776,6 +776,11 @@ ignored
 			bazelignore: "",
 			expected:    []string{},
 		},
+		{
+			name:        "trailing slash should be normalized",
+			bazelignore: `ignored/`,
+			expected:    []string{"ignored"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -795,6 +800,62 @@ ignored
 			got := getIgnoredPrefixes(testDir)
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("getIgnoredPrefixes() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestShouldIgnorePath(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	tests := []struct {
+		name            string
+		path            string
+		ignoredPrefixes []string
+		want            bool
+	}{
+		{
+			name:            "exact match",
+			path:            filepath.Join(tmp, "foo"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "subdirectory",
+			path:            filepath.Join(tmp, "foo", "bar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "similar prefix but not directory",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            false, // Should not ignore "foobar" when only "foo" is ignored
+		},
+		{
+			name:            "matched with multiple prefixes",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo2", "foobar", "baz"},
+			want:            true,
+		},
+		{
+			name:            "no match",
+			path:            filepath.Join(tmp, "bar"),
+			ignoredPrefixes: []string{"foo", "baz"},
+			want:            false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldIgnorePath(tt.path, tmp, tt.ignoredPrefixes)
+			if got != tt.want {
+				t.Errorf("shouldIgnorePath(%q, %q, %v) = %v, want %v",
+					tt.path, tmp, tt.ignoredPrefixes, got, tt.want)
 			}
 		})
 	}

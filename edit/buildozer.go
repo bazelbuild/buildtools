@@ -1353,7 +1353,7 @@ func getIgnoredPrefixes(rootDir string) []string {
 			continue
 		}
 
-		ignoredPaths = append(ignoredPaths, line)
+		ignoredPaths = append(ignoredPaths, path.Clean(line))
 	}
 
 	return ignoredPaths
@@ -1369,7 +1369,8 @@ func shouldIgnorePath(path string, rootDir string, ignoredPrefixes []string) boo
 	rel = filepath.ToSlash(rel)
 
 	for _, prefix := range ignoredPrefixes {
-		if strings.HasPrefix(rel, prefix) {
+		// Check if the path exactly matches the prefix or if it's a subdirectory of the prefix.
+		if rel == prefix || strings.HasPrefix(rel, prefix+"/") {
 			return true
 		}
 	}
