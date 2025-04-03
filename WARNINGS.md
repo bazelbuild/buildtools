@@ -612,8 +612,8 @@ the readability.
   * [Suppress the warning](#suppress): `# buildifier: disable=list-append`
 
 Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
-This replacement does not apply to select statements, but the warning might trigger
-anyway. It is recommended to suppress the warning for this edge case using the comment above.
+NOTE: .append() does not work if the target is a select, hence this warning can safely
+be ignored or suppressed.
 
 --------------------------------------------------------------------------------
 
