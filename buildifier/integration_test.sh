@@ -29,9 +29,7 @@ die () {
 }
 
 [[ "$1" =~ external/* ]] && buildifier="${{1#external/}}" || buildifier="$TEST_WORKSPACE/$1"
-[[ "$2" =~ external/* ]] && buildifier2="${{2#external/}}" || buildifier2="$TEST_WORKSPACE/$2"
 buildifier="$(rlocation "$buildifier")"
-buildifier2="$(rlocation "$buildifier2")"
 
 touch WORKSPACE.bazel
 [[ -d test_dir ]] && rm -r test_dir
@@ -135,7 +133,6 @@ cp test_dir/.git/git.bzl golden/git.bzl
 "$buildifier" --path=foo.bzl test2.bzl
 "$buildifier" --config=test_dir/.buildifier.test.json < test_dir/test.bzl > test_dir/test.bzl.BUILD.out
 "$buildifier" --config=example > test_dir/.buildifier.example.json
-"$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
 
 cat > golden/BUILD.golden <<EOF
 load(":foo.bzl", "foo")

@@ -84,11 +84,9 @@ sh_test(
     srcs = ["integration_test.sh"],
     args = [
         "$(location :buildifier)",
-        "$(location //buildifier2)",
     ],
     data = [
         ":buildifier",
-        "//buildifier2",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
