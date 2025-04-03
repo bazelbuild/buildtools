@@ -396,7 +396,7 @@ warnings: {
   header: "Prefer using `.append()` to adding a single element list"
   description: "Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.\n"
     "This replacement does not apply to select statements, but the warning might trigger\n"
-    "anyway. Feel free to suppress using the command above."
+    "anyway. It is recommended to suppress the warning for this edge case using the comment above."
   autofix: true
 }
 
