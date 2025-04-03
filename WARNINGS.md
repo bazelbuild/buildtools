@@ -613,7 +613,7 @@ the readability.
 
 Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 This replacement does not apply to select statements, but the warning might trigger
-anyway. Feel free to suppress using the command above.
+anyway. It is recommended to suppress the warning for this edge case using the comment above.
 
 --------------------------------------------------------------------------------
 
