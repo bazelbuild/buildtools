@@ -189,7 +189,7 @@ func listAppendWarning(f *build.File) []*LinterFinding {
 		}
 
 		_, end := as.Span()
-		findings = append(findings, makeLinterFinding(as, `Prefer using ".append()" to adding a single element list.`,
+		findings = append(findings, makeLinterFinding(as, `Prefer using ".append()" to adding a single element list. NOTE: This does not work if the target is a select, hence this warning can safely be ignored or suppressed.`,
 			LinterReplacement{expr, &build.CallExpr{
 				Comments: as.Comments,
 				X: &build.DotExpr{
