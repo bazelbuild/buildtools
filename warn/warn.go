@@ -160,6 +160,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"redefined-variable":        redefinedVariableWarning,
 	"repository-name":           repositoryNameWarning,
 	"rule-impl-return":          ruleImplReturnWarning,
+	"rule-load-location":        ruleLoadLocationWarning,
 	"return-value":              missingReturnValueWarning,
 	"skylark-comment":           skylarkCommentWarning,
 	"skylark-docstring":         skylarkDocstringWarning,
