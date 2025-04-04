@@ -213,7 +213,7 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 			defer os.Chdir(cwd)
 		}
 
-		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
+		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target, true)
 		expectedBuildFilesMap := make(map[string]bool)
 		buildFilesMap := make(map[string]bool)
 		for _, buildFile := range buildFiles {
