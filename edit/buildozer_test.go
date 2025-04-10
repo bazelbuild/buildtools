@@ -144,6 +144,13 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
+	// Create additional directories that will be ignored
+	if err := os.MkdirAll(filepath.Join(tmp, "ignored"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "ignored"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -159,6 +166,20 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
+	// Create BUILD files in ignored directories to verify they're skipped
+	if err := os.WriteFile(filepath.Join(tmp, "ignored", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "a", "ignored", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create .bazelignore file with paths to ignore
+	bazelignoreContent := []byte("# Ignore these directories\nignored\na/ignored/\n")
+	if err := os.WriteFile(filepath.Join(tmp, ".bazelignore"), bazelignoreContent, 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	return
 }
 
@@ -192,7 +213,7 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 			defer os.Chdir(cwd)
 		}
 
-		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
+		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target, true)
 		expectedBuildFilesMap := make(map[string]bool)
 		buildFilesMap := make(map[string]bool)
 		for _, buildFile := range buildFiles {
@@ -695,6 +716,146 @@ func TestCmdSetSelect(t *testing.T) {
 			got := strings.TrimSpace(string(build.Format(bld)))
 			if got != tc.expected {
 				t.Errorf("cmdSetSelect(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestGetIgnoredPrefixes(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	tests := []struct {
+		name          string
+		bazelignore   string
+		expected      []string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name: "valid paths",
+			bazelignore: `# Ignore these directories
+ignored
+a/ignored
+b/c/d`,
+			expected: []string{"ignored", "a/ignored", "b/c/d"},
+		},
+		{
+			name:        "empty file",
+			bazelignore: ` `,
+			expected:    []string{},
+		},
+		{
+			name: "only comments",
+			bazelignore: `# This is a comment
+# Another comment`,
+			expected: []string{},
+		},
+		{
+			name: "empty lines",
+			bazelignore: `ignored
+
+a/ignored
+
+# comment
+b/c/d`,
+			expected: []string{"ignored", "a/ignored", "b/c/d"},
+		},
+		{
+			name: "absolute paths",
+			bazelignore: `/absolute/path
+ignored
+/another/absolute/path`,
+			expected: []string{"ignored"},
+		},
+		{
+			name:        "no file",
+			bazelignore: "",
+			expected:    []string{},
+		},
+		{
+			name:        "trailing slash should be normalized",
+			bazelignore: `ignored/`,
+			expected:    []string{"ignored"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a new temporary directory for each test case
+			testDir, err := os.MkdirTemp(tmp, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.bazelignore != "" {
+				if err := os.WriteFile(filepath.Join(testDir, ".bazelignore"), []byte(tt.bazelignore), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			got := getIgnoredPrefixes(testDir)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("getIgnoredPrefixes() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestShouldIgnorePath(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	tests := []struct {
+		name            string
+		path            string
+		ignoredPrefixes []string
+		want            bool
+	}{
+		{
+			name:            "exact match",
+			path:            filepath.Join(tmp, "foo"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "subdirectory",
+			path:            filepath.Join(tmp, "foo", "bar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "similar prefix but not directory",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            false, // Should not ignore "foobar" when only "foo" is ignored
+		},
+		{
+			name:            "matched with multiple prefixes",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo2", "foobar", "baz"},
+			want:            true,
+		},
+		{
+			name:            "no match",
+			path:            filepath.Join(tmp, "bar"),
+			ignoredPrefixes: []string{"foo", "baz"},
+			want:            false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldIgnorePath(tt.path, tmp, tt.ignoredPrefixes)
+			if got != tt.want {
+				t.Errorf("shouldIgnorePath(%q, %q, %v) = %v, want %v",
+					tt.path, tmp, tt.ignoredPrefixes, got, tt.want)
 			}
 		})
 	}
