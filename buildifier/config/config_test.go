@@ -615,9 +615,9 @@ func TestFindConfigPath(t *testing.T) {
 		},
 		"BUILDIFIER_CONFIG-override": {
 			env: map[string]string{
-				"BUILDIFIER_CONFIG": ".buildifier2.json",
+				"BUILDIFIER_CONFIG": ".buildifier_x.json",
 			},
-			want: ".buildifier2.json",
+			want: ".buildifier_x.json",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
