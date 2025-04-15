@@ -26,6 +26,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -1183,11 +1184,9 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 	var errs []error
 	changed := false
-	for _, commands := range commandsForFile.commands {
-		target := commands.target
-		commands := commands.commands
-		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		if label := labels.Parse(target); label.Package == stdinPackageName {
+	for _, cft := range commandsForFile.commands {
+		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, cft.target)
+		if label := labels.Parse(cft.target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
 		}
@@ -1198,40 +1197,21 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 
 		targets, err := expandTargets(f, rule)
 		if err != nil {
-			cerr := commandError(commands, target, err)
+			cerr := commandError(cft.commands, cft.target, err)
 			errs = append(errs, cerr)
 			if !opts.KeepGoing {
 				return &rewriteResult{file: name, errs: errs, records: records}
 			}
 		}
 		targets = filterRules(opts, targets)
-		for _, cmd := range commands {
-			cmdInfo := AllCommands[cmd.tokens[0]]
-			// Depending on whether a transformation is rule-specific or not, it should be applied to
-			// every rule that satisfies the filter or just once to the file.
-			cmdTargets := targets
-			if !cmdInfo.PerRule {
-				cmdTargets = []*build.Rule{nil}
-			}
-			for _, r := range cmdTargets {
-				record := &apipb.Output_Record{}
-				newf, err := cmdInfo.Fn(opts, CmdEnvironment{f, r, vars, absPkg, cmd.tokens[1:], record})
-				if len(record.Fields) != 0 {
-					records = append(records, record)
-				}
-				if err != nil {
-					cerr := commandError([]command{cmd}, target, err)
-					if opts.KeepGoing {
-						errs = append(errs, cerr)
-					} else {
-						return &rewriteResult{file: name, errs: []error{cerr}, records: records}
-					}
-				}
-				if newf != nil {
-					changed = true
-					f = newf
-				}
-			}
+
+		newf, err := executeCommandsInFile(opts, f, cft, targets, &records, vars, absPkg, &errs)
+		if err != nil {
+			return &rewriteResult{file: name, errs: []error{err}, records: records}
+		}
+		if newf != nil {
+			changed = true
+			f = newf
 		}
 	}
 	if !changed {
@@ -1262,6 +1242,52 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 
 	return &rewriteResult{file: name, errs: errs, modified: true, records: records}
+}
+
+func executeCommandsInFile(
+	opts *Options,
+	f *build.File,
+	cft commandsForTarget,
+	rules []*build.Rule,
+	records *[]*apipb.Output_Record,
+	vars map[string]*build.AssignExpr,
+	absPkg string,
+	errs *[]error,
+) (*build.File, error) {
+	changed := false
+	for _, cmd := range cft.commands {
+		cmdInfo := AllCommands[cmd.tokens[0]]
+		// Depending on whether a transformation is rule-specific or not, it should be applied to
+		// every rule that satisfies the filter or just once to the file.
+		cmdTargets := rules
+		if !cmdInfo.PerRule {
+			cmdTargets = []*build.Rule{nil}
+		}
+		for _, r := range cmdTargets {
+			record := &apipb.Output_Record{}
+			newf, err := cmdInfo.Fn(opts, CmdEnvironment{f, r, vars, absPkg, cmd.tokens[1:], record})
+			if len(record.Fields) != 0 {
+				*records = append(*records, record)
+			}
+			if err != nil {
+				cerr := commandError([]command{cmd}, cft.target, err)
+				if opts.KeepGoing {
+					*errs = append(*errs, cerr)
+				} else {
+					return nil, cerr
+				}
+			}
+			if newf != nil {
+				f = newf
+				changed = true
+			}
+		}
+	}
+	// The "file" reference was updated if there were changes to the file.
+	if changed {
+		return f, nil
+	}
+	return nil, nil
 }
 
 // EditFile is a function that does any prework needed before editing a file.
@@ -1546,4 +1572,78 @@ func Buildozer(opts *Options, args []string) int {
 		return 3
 	}
 	return 0
+}
+
+func ExecuteCommandsOnInlineFile(fileContent []byte, commands []string) ([]byte, error) {
+	opts := Options{}
+	commandsByTargetName, filename, err := groupCommandsForInlineFile(commands, opts)
+	if err != nil {
+		return nil, err
+	}
+	f, err := build.Parse(*filename, fileContent)
+	if err != nil {
+		return nil, err
+	}
+	for _, cft := range commandsByTargetName {
+		rules, err := expandTargets(f, cft.target)
+		if err != nil {
+			return nil, err
+		}
+		newf, err := executeCommandsInFile(
+			&opts,
+			f,
+			cft,
+			rules,
+			/* records= */ nil,
+			/* vars= */ nil,
+			/* absPkg= */ "",
+			/* errs= */ nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if newf != nil {
+			f = newf
+		}
+	}
+
+	f = RemoveEmptyPackage(f)
+	f = RemoveEmptyUseRepoCalls(f)
+	outputFileContent, err := buildifier.Buildify(&opts, f)
+	if err != nil {
+		return nil, err
+	}
+	return outputFileContent, nil
+}
+
+// groupCommands parses and groups up provided commands per target.
+// returns error if there is anything invalid or unexpected in the input commands.
+func groupCommandsForInlineFile(commands []string, opts Options) ([]commandsForTarget, *string, error) {
+	commandsByFile := make(map[string][]commandsForTarget)
+	commandReader := strings.NewReader(strings.Join(commands, "\n"))
+	// AppendCommandsFromReader will return commands based on a file in current dir (which does not exist).
+	err := appendCommandsFromReader(&opts, commandReader, commandsByFile, []string{})
+	if err != nil || len(commandsByFile) != 1 {
+		return nil, nil, fmt.Errorf("error parsing commands %s", err)
+	}
+	if len(commandsByFile) != 1 {
+		return nil, nil, fmt.Errorf("invlid input commands, commands resolved into modifying multiple different files")
+	}
+	for filepath, commandsForTargets := range commandsByFile {
+		for i := range commandsForTargets {
+			cft := &commandsForTargets[i]
+			splitTarget := strings.Split(cft.target, ":")
+			switch len(splitTarget) {
+			case 1: // No-op
+			case 2:
+				// Ignores anything prefixing ":" character since inline changes only considers target name.
+				cft.target = splitTarget[1]
+			default:
+				return nil, nil, fmt.Errorf("invalid target name %q", cft.target)
+			}
+		}
+		_, filename := path.Split(filepath)
+		return commandsForTargets, &filename, nil
+	}
+	panic("unreachable")
 }
