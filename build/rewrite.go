@@ -217,7 +217,8 @@ func keepSorted(x Expr) bool {
 // "//x" + ":y" (usually split across multiple lines) into "//x:y".
 //
 // Second, it removes redundant target qualifiers, turning labels like
-// "//third_party/m4:m4" into "//third_party/m4".
+// "//third_party/m4:m4" into "//third_party/m4" as well as ones like
+// "@foo//:foo" into "@foo".
 func fixLabels(f *File, w *Rewriter) {
 	joinLabel := func(p *Expr) {
 		add, ok := (*p).(*BinaryExpr)
@@ -287,6 +288,8 @@ func fixLabels(f *File, w *Rewriter) {
 		}
 		if m[4] != "" && m[4] == m[5] { // e.g. //foo:foo
 			str.Value = m[1]
+		} else if m[3] != "" && m[4] == "" && m[3] == m[5] { // e.g. @foo//:foo
+			str.Value = "@" + m[3]
 		}
 	}
 
