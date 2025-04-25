@@ -299,7 +299,7 @@ cc_library(
         "//a|zzz",
         "//a}zzz",
         "//a~zzz",
-        "@abc//:abc",
+        "@abc",
         "@abc//:xyz",
         "@abc//foo",
         "@zzz",
