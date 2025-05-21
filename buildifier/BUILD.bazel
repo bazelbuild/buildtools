@@ -58,6 +58,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildifier-linux-riscv64",
+    out = "buildifier-linux_riscv64",
+    embed = [":buildifier_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildifier-linux-s390x",
     out = "buildifier-linux_s390x",
     embed = [":buildifier_lib"],
@@ -74,11 +84,9 @@ sh_test(
     srcs = ["integration_test.sh"],
     args = [
         "$(location :buildifier)",
-        "$(location //buildifier2)",
     ],
     data = [
         ":buildifier",
-        "//buildifier2",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )

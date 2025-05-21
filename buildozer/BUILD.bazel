@@ -88,6 +88,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildozer-linux-riscv64",
+    out = "buildozer-linux_riscv64",
+    embed = [":buildozer_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildozer-linux-s390x",
     out = "buildozer-linux_s390x",
     embed = [":buildozer_lib"],

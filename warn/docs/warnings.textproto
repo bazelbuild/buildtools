@@ -394,7 +394,9 @@ warnings: {
 warnings: {
   name: "list-append"
   header: "Prefer using `.append()` to adding a single element list"
-  description: "Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation."
+  description: "Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.\n"
+    "NOTE: .append() does not work if the target is a select, hence this warning can safely\n"
+    "be ignored or suppressed."
   autofix: true
 }
 

@@ -89,6 +89,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "unused_deps-linux-riscv64",
+    out = "unused_deps-linux_riscv64",
+    embed = [":unused_deps_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 go_test(
     name = "jar_manifest_test",
     size = "small",

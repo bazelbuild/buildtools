@@ -29,9 +29,7 @@ die () {
 }
 
 [[ "$1" =~ external/* ]] && buildifier="${{1#external/}}" || buildifier="$TEST_WORKSPACE/$1"
-[[ "$2" =~ external/* ]] && buildifier2="${{2#external/}}" || buildifier2="$TEST_WORKSPACE/$2"
 buildifier="$(rlocation "$buildifier")"
-buildifier2="$(rlocation "$buildifier2")"
 
 touch WORKSPACE.bazel
 [[ -d test_dir ]] && rm -r test_dir
@@ -51,6 +49,10 @@ mkdir test_dir/.git  # contents should be ignored
 echo -e "a+b" > test_dir/.git/git.bzl
 cat > test_dir/MODULE.bazel <<'EOF'
 module(name='my-module',version='1.0',compatibility_level=1)
+include("cpp.MODULE.bazel")
+
+include("go.MODULE.bazel")
+include("web.MODULE.bazel")
 bazel_dep(name='rules_cc',version='0.0.1')
 bazel_dep(name='protobuf',repo_name='com_google_protobuf',version='3.19.0')
 bazel_dep(
@@ -91,6 +93,8 @@ use_repo(
     b = "b",
     a = "c",
 )
+go_deps.module(name = "foo")
+use_repo(go_deps, "foo")
 bazel_dep(name="foo",version="1.0")
 git_override(module_name="foo",remote="foo.git",commit="1234567890")
 bazel_dep(name="bar",version="1.0")
@@ -129,7 +133,6 @@ cp test_dir/.git/git.bzl golden/git.bzl
 "$buildifier" --path=foo.bzl test2.bzl
 "$buildifier" --config=test_dir/.buildifier.test.json < test_dir/test.bzl > test_dir/test.bzl.BUILD.out
 "$buildifier" --config=example > test_dir/.buildifier.example.json
-"$buildifier2" test_dir/test.bzl > test_dir/test.bzl.out
 
 cat > golden/BUILD.golden <<EOF
 load(":foo.bzl", "foo")
@@ -158,6 +161,10 @@ module(
     version = "1.0",
     compatibility_level = 1,
 )
+
+include("cpp.MODULE.bazel")
+include("go.MODULE.bazel")
+include("web.MODULE.bazel")
 
 bazel_dep(name = "rules_cc", version = "0.0.1")
 bazel_dep(name = "protobuf", version = "3.19.0", repo_name = "com_google_protobuf")
@@ -203,6 +210,9 @@ use_repo(
     b = "b",
     c = "a",
 )
+
+go_deps.module(name = "foo")
+use_repo(go_deps, "foo")
 
 bazel_dep(name = "foo", version = "1.0")
 git_override(
@@ -349,19 +359,18 @@ cat > golden/.buildifier.example.json <<EOF
 }
 EOF
 
-diff test_dir/BUILD golden/BUILD.golden
-diff test_dir/test.bzl golden/test.bzl.golden
-diff test_dir/subdir/test.bzl golden/test.bzl.golden
-diff test_dir/test.bzl.BUILD.out golden/BUILD.golden
-diff test_dir/subdir/build golden/build
-diff test_dir/foo.bar golden/foo.bar
-diff test.bzl golden/test.bzl.golden
-diff test2.bzl golden/test.bzl.golden
-diff stdout golden/test.bzl.golden
-diff test_dir/test.bzl.out golden/test.bzl.golden
-diff test_dir/.git/git.bzl golden/git.bzl
-diff test_dir/MODULE.bazel golden/MODULE.bazel.golden
-diff test_dir/.buildifier.example.json golden/.buildifier.example.json
+diff -u test_dir/BUILD golden/BUILD.golden
+diff -u test_dir/test.bzl golden/test.bzl.golden
+diff -u test_dir/subdir/test.bzl golden/test.bzl.golden
+diff -u test_dir/test.bzl.BUILD.out golden/BUILD.golden
+diff -u test_dir/subdir/build golden/build
+diff -u test_dir/foo.bar golden/foo.bar
+diff -u test.bzl golden/test.bzl.golden
+diff -u test2.bzl golden/test.bzl.golden
+diff -u stdout golden/test.bzl.golden
+diff -u test_dir/.git/git.bzl golden/git.bzl
+diff -u test_dir/MODULE.bazel golden/MODULE.bazel.golden
+diff -u test_dir/.buildifier.example.json golden/.buildifier.example.json
 
 # Test run on a directory without -r
 "$buildifier" test_dir || ret=$?
@@ -444,30 +453,30 @@ EOF
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/error golden/error_golden || die "$1: wrong console output for --mode=check --lint=warn"
-  diff test_dir/to_fix.bzl test_dir/to_fix.bzl || die "$1: --mode=check --lint=warn shouldn't modify files"
+  diff -u test_dir/error golden/error_golden || die "$1: wrong console output for --mode=check --lint=warn"
+  diff -u test_dir/to_fix.bzl test_dir/to_fix.bzl || die "$1: --mode=check --lint=warn shouldn't modify files"
 
   # --lint=warn
   $buildifier --lint=warn $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
+  diff -u test_dir/error golden/error_golden || die "$1: wrong console output for --lint=warn"
 
   # --lint=warn with --path
   $buildifier --lint=warn --path=another_test_dir/to_fix_tmp.bzl $2 test_dir/to_fix_tmp.bzl 2> test_dir/error || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: warn: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/error golden/error_golden_another || die "$1: wrong console output for --lint=warn and --path"
+  diff -u test_dir/error golden/error_golden_another || die "$1: wrong console output for --lint=warn and --path"
 
   # --lint=fix
   $buildifier --lint=fix $2 -v test_dir/to_fix_tmp.bzl 2> test_dir/fix_report || ret=$?
   if [[ $ret -ne 4 ]]; then
     die "$1: fix: Expected buildifier to exit with 4, actual: $ret"
   fi
-  diff test_dir/to_fix_tmp.bzl $3 || die "$1: wrong file output for --lint=fix"
-  diff test_dir/fix_report golden/fix_report_golden || die "$1: wrong console output for --lint=fix"
+  diff -u test_dir/to_fix_tmp.bzl $3 || die "$1: wrong file output for --lint=fix"
+  diff -u test_dir/fix_report golden/fix_report_golden || die "$1: wrong console output for --lint=fix"
 }
 
 test_lint "default" "" "test_dir/fixed_golden.bzl" "$error_bzl"$'\n'"$error_docstring"$'\n'"$error_integer"$'\n'"$error_cfg" 2
@@ -629,16 +638,16 @@ EOF
 cd test_dir/json
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix.bzl to_fix_2.bzl to_fix_3.bzl to_fix_4.bzl > json_report
-diff json_report ../../golden/json_report_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with many files"
+diff -u json_report ../../golden/json_report_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with many files"
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix_4.bzl > json_report
-diff json_report ../../golden/json_report_small_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with a single file"
+diff -u json_report ../../golden/json_report_small_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with a single file"
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v < to_fix_4.bzl > json_report
-diff json_report ../../golden/json_report_stdin_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with stdin"
+diff -u json_report ../../golden/json_report_stdin_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with stdin"
 
 $buildifier --mode=check --format=json --lint=warn --warnings=-module-docstring -v to_fix_4.bzl foo.bar > json_report
-diff json_report ../../golden/json_report_invalid_file_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with an invalid file"
+diff -u json_report ../../golden/json_report_invalid_file_golden || die "$1: wrong console output for --mode=check --format=json --lint=warn with an invalid file"
 
 cd ../..
 
@@ -679,4 +688,4 @@ BUILD:1: deprecated-function: The function "bar" defined in "//lib.bzl" is depre
 EOF
 
 $buildifier --lint=warn --warnings=deprecated-function BUILD 2> report || ret=$?
-diff report_golden report || die "$1: wrong console output for multifile warnings (WORKSPACE exists)"
+diff -u report_golden report || die "$1: wrong console output for multifile warnings (WORKSPACE exists)"
