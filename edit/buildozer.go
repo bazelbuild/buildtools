@@ -653,10 +653,11 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.SplitN(x, ":", 2)
+		kv := splitOnNonEscaped(x, ':', 2)
 		if len(kv) != 2 {
 			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
 		}
+		kv = removeEscapes(kv, ':')
 		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
@@ -713,10 +714,11 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.SplitN(x, ":", 2)
+		kv := splitOnNonEscaped(x, ':', 2)
 		if len(kv) != 2 {
 			return nil, fmt.Errorf("no colon in dict_set argument %q found", x)
 		}
+		kv = removeEscapes(kv, ':')
 		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)
@@ -736,6 +738,8 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 		return env.File, nil
 	}
 
+	// Removes "\:" escapes for consistency with dict_add and dict_set.
+	args = removeEscapes(args, ':')
 	for _, x := range args {
 		// should errors here be flagged?
 		DictionaryDelete(dictAttr, x)
@@ -1027,6 +1031,33 @@ func SplitOnSpaces(input string) []string {
 		result[i] = s
 	}
 	return result
+}
+
+var splitRegexes = map[byte]*regexp.Regexp{
+	':': regexp.MustCompile(`[^\\]:`),
+	'|': regexp.MustCompile(`[^\\]\|`),
+}
+
+func splitOnNonEscaped(input string, sep byte, n int) []string {
+	re, ok := splitRegexes[sep]
+	if !ok {
+		panic(fmt.Sprintf("splitOnNonEscaped not implemented for %c", sep))
+	}
+	split := re.Split(input, n)
+	offset := 0
+	for i, s := range split[:len(split)-1] {
+		offset += len(s) + 2 // Index starting the following segment.
+		val := split[i] + string(input[offset-2])
+		split[i] = val
+	}
+	return split
+}
+
+func removeEscapes(values []string, sep byte) []string {
+	for i, val := range values {
+		values[i] = strings.ReplaceAll(val, `\`+string(sep), string(sep))
+	}
+	return values
 }
 
 // parseCommands parses commands and targets they should be applied on from
@@ -1449,11 +1480,8 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		if line == "" || line[0] == '#' {
 			continue
 		}
-		line = saveEscapedPipes(line)
-		args := strings.Split(line, "|")
-		for i, arg := range args {
-			args[i] = replaceSavedPipes(arg)
-		}
+		args := splitOnNonEscaped(line, '|', -1)
+		args = removeEscapes(args, '|')
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
 			if err := appendCommands(opts, commandsByFile, cmd); err != nil {
@@ -1466,14 +1494,6 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		}
 	}
 	return nil
-}
-
-func saveEscapedPipes(s string) string {
-	return strings.ReplaceAll(s, `\|`, "\x00\x00")
-}
-
-func replaceSavedPipes(s string) string {
-	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
 func printRecord(writer io.Writer, record *apipb.Output_Record) {

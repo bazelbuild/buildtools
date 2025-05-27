@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/google/go-cmp/cmp"
 )
 
 var removeCommentTests = []struct {
@@ -630,6 +631,97 @@ func TestCmdDictAddSet_missingColon(t *testing.T) {
 	}
 }
 
+func TestCmdDictOperations(t *testing.T) {
+	tests := []struct {
+		name             string
+		dict_add_args    []string
+		dict_set_args    []string
+		dict_remove_args []string
+		input            string
+		want             string
+	}{
+		{
+			name:             "dict_add_set_remove",
+			dict_add_args:    []string{"dict_attr", `added_entry:new_value`},
+			dict_set_args:    []string{"dict_attr", `entry_to_change:updated_value`},
+			dict_remove_args: []string{"dict_attr", `entry_to_remove`},
+			input: strings.Join([]string{
+				`rule(`,
+				`  name = "rule_name",`,
+				`  dict_attr = {`,
+				`    "entry_to_change": "123",`,
+				`    "entry_to_remove": "abc",`,
+				`  },`,
+				`)`,
+			}, "\n"),
+			want: strings.Join([]string{
+				`rule(`,
+				`    name = "rule_name",`,
+				`    dict_attr = {`,
+				`        "entry_to_change": "updated_value",`,
+				`        "added_entry": "new_value",`,
+				`    },`,
+				`)`,
+				``,
+			}, "\n"),
+		},
+		{
+			name:             "dict_add_set_remove_with_escaped_colon",
+			dict_add_args:    []string{"dict_attr", `added\:entry:new:value`},
+			dict_set_args:    []string{"dict_attr", `entry\:to_change:updated\:value`},
+			dict_remove_args: []string{"dict_attr", `entry\:to_remove`},
+			input: strings.Join([]string{
+				`rule(`,
+				`  name = "rule_name",`,
+				`  dict_attr = {`,
+				`    "entry:to_change": "123",`,
+				`    "entry:to_remove": "abc",`,
+				`  },`,
+				`)`,
+			}, "\n"),
+			want: strings.Join([]string{
+				`rule(`,
+				`    name = "rule_name",`,
+				`    dict_attr = {`,
+				`        "entry:to_change": "updated:value",`,
+				`        "added:entry": "new:value",`,
+				`    },`,
+				`)`,
+				``,
+			}, "\n"),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := build.Parse("BUILD", []byte(tc.input))
+			if err != nil {
+				t.Fatalf("build.Parse returned err: %s", err)
+			}
+			rule := file.RuleNamed("rule_name")
+			file, err = cmdDictAdd(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_add_args})
+			if err != nil {
+				t.Fatalf("cmdDictAdd returned err: %s", err)
+			}
+
+			file, err = cmdDictSet(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_set_args})
+			if err != nil {
+				t.Fatalf("cmdDictSet returned err: %s", err)
+			}
+
+			file, err = cmdDictRemove(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_remove_args})
+			if err != nil {
+				t.Fatalf("cmdDictRemove returned err: %s", err)
+			}
+
+			got := string(build.Format(file))
+
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Fatalf("dict operations returned diff -want +got %v", diff)
+			}
+		})
+	}
+}
+
 func TestCmdSetSelect(t *testing.T) {
 	for i, tc := range []struct {
 		name      string
@@ -856,6 +948,75 @@ func TestShouldIgnorePath(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("shouldIgnorePath(%q, %q, %v) = %v, want %v",
 					tt.path, tmp, tt.ignoredPrefixes, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSplitOnNonEscaped(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		sep   byte
+		lim   int
+		want  []string
+	}{
+		{
+			name:  "no_split",
+			input: "one:two",
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"one:two"},
+		},
+		{
+			name:  "split_to_two",
+			input: "one:two",
+			sep:   ':',
+			lim:   2,
+			want:  []string{"one", "two"},
+		},
+		{
+			name:  "split_with_limit",
+			input: "one:two:three:four",
+			sep:   ':',
+			lim:   2,
+			want:  []string{"one", "two:three:four"},
+		},
+		{
+			name:  "split_without_limit",
+			input: "one:two:three:four",
+			sep:   ':',
+			lim:   -1,
+			want:  []string{"one", "two", "three", "four"},
+		},
+		{
+			name:  "does_not_split_on_escaped",
+			input: `one\:two:three`,
+			sep:   ':',
+			lim:   2,
+			want:  []string{`one\:two`, "three"},
+		},
+		{
+			name:  "split_on_pipe",
+			input: `one|two|three`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"one", "two", "three"},
+		},
+		{
+			name:  "skip_escaped_pipes",
+			input: `one\|two|three`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{`one\|two`, "three"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := splitOnNonEscaped(tc.input, tc.sep, tc.lim)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Fatalf("splitOnNonEscaped returned diff -want +got %v", diff)
 			}
 		})
 	}
