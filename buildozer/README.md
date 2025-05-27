@@ -89,9 +89,7 @@ Buildozer supports the following commands(`'command args'`):
   * `add <attr> <value(s)>`: Adds value(s) to a list attribute of a rule. If a
     value is already present in the list, it is not added.
   * `new_load <path> <[to=]from(s)>`: Add a load statement for the given path,
-    importing the symbols. Before using this, make sure to run
-    `buildozer 'fix movePackageToTop'`. Afterwards, consider running
-    `buildozer 'fix unusedLoads'`.
+    importing the symbols. Afterwards, consider running `buildozer 'fix unusedLoads'`.
   * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
     existing load statements for the requested symbols before adding new loads.
   * `substitute_load <old_regexp> <new_template>` Replaces modules of loads which
@@ -265,6 +263,7 @@ the attribute, a warning is printed on stderr.
 There are some special attributes in the `print` command:
 
   * `kind`: displays the name of the function
+  * `attrs`: displays the attribute names of the rule
   * `label`: the fully qualified label
   * `rule`: the entire rule definition
   * `startline`: the line number on which the rule begins in the BUILD file

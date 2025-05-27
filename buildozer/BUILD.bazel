@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 go_library(
     name = "buildozer_lib",
@@ -81,6 +82,26 @@ go_binary(
     out = "buildozer-linux_arm64",
     embed = [":buildozer_lib"],
     goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-riscv64",
+    out = "buildozer-linux_riscv64",
+    embed = [":buildozer_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-s390x",
+    out = "buildozer-linux_s390x",
+    embed = [":buildozer_lib"],
+    goarch = "s390x",
     goos = "linux",
     pure = "on",
     visibility = ["//visibility:public"],

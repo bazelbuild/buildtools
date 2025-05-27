@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 go_binary(
     name = "buildifier",
@@ -56,6 +57,26 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "buildifier-linux-riscv64",
+    out = "buildifier-linux_riscv64",
+    embed = [":buildifier_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildifier-linux-s390x",
+    out = "buildifier-linux_s390x",
+    embed = [":buildifier_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 # Test that the buildifier binary works
 sh_test(
     name = "buildifier_integration_test",
@@ -63,11 +84,9 @@ sh_test(
     srcs = ["integration_test.sh"],
     args = [
         "$(location :buildifier)",
-        "$(location //buildifier2)",
     ],
     data = [
         ":buildifier",
-        "//buildifier2",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )

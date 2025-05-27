@@ -26,6 +26,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -44,26 +45,27 @@ import (
 
 // Options represents choices about how buildozer should behave.
 type Options struct {
-	Stdout            bool      // write changed BUILD file to stdout
-	Buildifier        string    // path to buildifier binary
-	Parallelism       int       // number of cores to use for concurrent actions
-	NumIO             int       // number of concurrent actions
-	CommandsFiles     []string  // file names to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
-	KeepGoing         bool      // apply all commands, even if there are failures
-	FilterRuleTypes   []string  // list of rule types to change, empty means all
-	PreferEOLComments bool      // when adding a new comment, put it on the same line if possible
-	RootDir           string    // If present, use this folder rather than $PWD to find the root dir
-	Quiet             bool      // suppress informational messages.
-	EditVariables     bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
-	IsPrintingProto   bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
-	IsPrintingJSON    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
-	OutWriter         io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
-	ErrWriter         io.Writer // where to write error output (`os.Stderr` will be used if not specified)
+	Stdout             bool      // write changed BUILD file to stdout
+	Buildifier         string    // path to buildifier binary
+	Parallelism        int       // number of cores to use for concurrent actions
+	NumIO              int       // number of concurrent actions
+	CommandsFiles      []string  // file names to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
+	KeepGoing          bool      // apply all commands, even if there are failures
+	FilterRuleTypes    []string  // list of rule types to change, empty means all
+	PreferEOLComments  bool      // when adding a new comment, put it on the same line if possible
+	RootDir            string    // If present, use this folder rather than $PWD to find the root dir
+	Quiet              bool      // suppress informational messages.
+	EditVariables      bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
+	IsPrintingProto    bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	IsPrintingJSON     bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
+	OutWriter          io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
+	ErrWriter          io.Writer // where to write error output (`os.Stderr` will be used if not specified)
+	RespectBazelignore bool      // whether to use .bazelignore file for ignoring paths
 }
 
 // NewOpts returns a new Options struct with some defaults set.
 func NewOpts() *Options {
-	return &Options{NumIO: 200, PreferEOLComments: true}
+	return &Options{NumIO: 200, PreferEOLComments: true, RespectBazelignore: true}
 }
 
 // Usage is a user-overridden func to print the program usage.
@@ -369,6 +371,10 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 		} else if str == "path" {
 			fields[i] = &apipb.Output_Record_Field{
 				Value: &apipb.Output_Record_Field_Text{Text: env.File.Path},
+			}
+		} else if str == "attrs" {
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: env.Rule.AttrKeys()}},
 			}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
@@ -1268,7 +1274,7 @@ var EditFile = func(fi os.FileInfo, name string) error {
 
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
-func targetExpressionToBuildFiles(rootDir string, target string) []string {
+func targetExpressionToBuildFiles(rootDir string, target string, respectBazelignore bool) []string {
 	file, _, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
@@ -1283,11 +1289,17 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 		return []string{file}
 	}
 
-	return findBuildFiles(strings.TrimSuffix(file, suffix))
+	var ignoredPrefixes []string
+	if respectBazelignore {
+		ignoredPrefixes = getIgnoredPrefixes(rootDir)
+	}
+	return findBuildFiles(strings.TrimSuffix(file, suffix), ignoredPrefixes)
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
-func findBuildFiles(rootDir string) []string {
+// ignoredPrefixes are path prefixes to ignore (if a path matches any of these prefixes,
+// it will be skipped along with its subdirectories).
+func findBuildFiles(rootDir string, ignoredPrefixes []string) []string {
 	var buildFiles []string
 	searchDirs := []string{rootDir}
 
@@ -1302,12 +1314,18 @@ func findBuildFiles(rootDir string) []string {
 		}
 
 		for _, dirFile := range dirFiles {
+			fullPath := filepath.Join(dir, dirFile.Name())
+
+			if shouldIgnorePath(fullPath, rootDir, ignoredPrefixes) {
+				continue
+			}
+
 			if dirFile.IsDir() {
-				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
+				searchDirs = append(searchDirs, fullPath)
 			} else {
 				for _, buildFileName := range BuildFileNames {
 					if dirFile.Name() == buildFileName {
-						buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+						buildFiles = append(buildFiles, fullPath)
 					}
 				}
 			}
@@ -1315,6 +1333,58 @@ func findBuildFiles(rootDir string) []string {
 	}
 
 	return buildFiles
+}
+
+// getIgnoredPrefixes returns a list of ignored prefixes from the .bazelignore file in the root directory.
+// It returns an empty list if the file does not exist.
+func getIgnoredPrefixes(rootDir string) []string {
+	bazelignorePath := filepath.Join(rootDir, ".bazelignore")
+	ignoredPaths := []string{}
+
+	data, err := os.ReadFile(bazelignorePath)
+	if err != nil {
+		return ignoredPaths
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines, comments, and absolute paths
+		// Bazel will error out if there are any absolute paths in the .bazelignore file.
+		if line == "" || strings.HasPrefix(line, "#") || path.IsAbs(line) {
+			continue
+		}
+
+		ignoredPaths = append(ignoredPaths, path.Clean(line))
+	}
+
+	return ignoredPaths
+}
+
+// shouldIgnorePath returns true if the path should be ignored based on the list of ignored prefixes.
+func shouldIgnorePath(path string, rootDir string, ignoredPrefixes []string) bool {
+	if len(ignoredPrefixes) == 0 {
+		return false
+	}
+
+	rel, err := filepath.Rel(rootDir, path)
+	if err != nil {
+		return false
+	}
+	// Normalize path separators to forward slashes
+	rel = filepath.ToSlash(rel)
+
+	for _, prefix := range ignoredPrefixes {
+		// Check if the path exactly matches the prefix or if it's a subdirectory of the prefix.
+		if rel == prefix || strings.HasPrefix(rel, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // appendCommands adds the given commands to be applied to each of the given targets
@@ -1336,7 +1406,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
-			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
+			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target, opts.RespectBazelignore)
 		}
 
 		for _, file := range buildFiles {
