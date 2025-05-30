@@ -17,6 +17,7 @@ limitations under the License.
 package edit
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -808,6 +809,170 @@ func TestCmdSetSelect(t *testing.T) {
 			got := strings.TrimSpace(string(build.Format(bld)))
 			if got != tc.expected {
 				t.Errorf("cmdSetSelect(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestExecuteCommandsOnInlineFile(t *testing.T) {
+	tests := []struct {
+		name        string
+		fileContent []byte
+		commands    []string
+		wantOutput  []byte
+	}{
+		{
+			name:        "creating_new_target_and_adding_deps",
+			fileContent: nil,
+			commands: []string{
+				"new java_library foo|//package/path/BUILD",
+				"add deps :bar|//package/path:foo",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "adding_deps_to_existing_targets",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`)`,
+				``,
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:apples"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"add deps :bar|//package/path:foo",
+				"add deps //package/fruits:oranges|//package/path:fruits",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``,
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = [`,
+				`        "//package/fruits:apples",`,
+				`        "//package/fruits:oranges",`,
+				`    ],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "substituting_a_target",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:apples"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"replace deps //package/fruits:apples //package/fruits:oranges|//whatever/package/path:fruits",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:oranges"],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "no_changes_does_not_return_any_diff",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"add deps :bar |//whatever/package/path:foo",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := ExecuteCommandsOnInlineFile(tc.fileContent, tc.commands)
+			if err != nil {
+				t.Fatalf("Error, got error %v", err)
+			}
+
+			if diff := cmp.Diff(tc.wantOutput, output); diff != "" {
+				t.Errorf("%s: (-want +got): %s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestTestExecuteCommandsOnInlineFileFailed(t *testing.T) {
+	tests := []struct {
+		name        string
+		fileContent []byte
+		commands    []string
+		wantErr     error
+	}{
+		{
+			name: "target_does_not_exist",
+			commands: []string{
+				"add deps :foo|//package/path:bar",
+			},
+			wantErr: fmt.Errorf("rule 'bar' not found"),
+		},
+		{
+			name: "invalid_input",
+			commands: []string{
+				"completely invalid command",
+			},
+			wantErr: fmt.Errorf("rule 'completely invalid command' not found"),
+		},
+		{
+			name: "missing_implementation",
+			commands: []string{
+				"extrapolate packages :foo|//package/path:bar",
+			},
+			wantErr: fmt.Errorf("invalid input commands, expected all commands to reference a single file"),
+		},
+		{
+			name: "commands_for_multiple_files",
+			commands: []string{
+				"add deps :foo|//package/path:bar",
+				"add deps :foo|//package2/path:bar",
+			},
+			wantErr: fmt.Errorf("invalid input commands, expected all commands to reference a single file"),
+		},
+		{
+			name: "command_with_unexpected_target_semicolons",
+			commands: []string{
+				"add deps :foo|//package:path:bar",
+			},
+			wantErr: fmt.Errorf("invalid target name \"//package:path:bar\""),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			output, gotErr := ExecuteCommandsOnInlineFile(tc.fileContent, tc.commands)
+
+			if output != nil {
+				t.Fatalf("Error, got response for invalid input %v, expected error", output)
+			}
+
+			if diff := cmp.Diff(tc.wantErr.Error(), gotErr.Error()); diff != "" {
+				t.Errorf("%s: (-want +got): %s", tc.name, diff)
 			}
 		})
 	}

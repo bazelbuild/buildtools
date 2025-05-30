@@ -352,6 +352,25 @@ Buildozer commands can be made executable by means of a shebang line, too:
 add deps //base //strings|-:foo|-:bar
 ```
 
+## Using Buildozer in-memory
+
+Some clients of Buildozer have the need to execute buildozer actions in memory
+(due to a service environment which does not have access to their file system).
+This can be done using, `edit.ExecuteCommandsOnInlineFile`, which accepts
+commands and BUILD file content as bytes, applies the changes and returns the
+raw file content.
+For more details and implementation, see [`/edit/buildozer.go`](../edit/buildozer.go)
+
+Some caveats of running Buildozer in-memory:
+
+* The function assumes (and validates to some extent) that all commands apply to
+  the same file and will return errors if there are commands affecting different
+  paths.
+* When referencing targets, the function will not reliably determine if targets
+  are local or remote. Hence redundant path references may be included in
+  output. (e.g. `add dep //package/path:bar|//package/path:foo` would add the dep
+  `//package/path:bar` instead of just `:bar`).
+
 ## Error code
 
 The return code is:
