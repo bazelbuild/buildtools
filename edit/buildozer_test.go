@@ -1175,6 +1175,13 @@ func TestSplitOnNonEscaped(t *testing.T) {
 			lim:   -1,
 			want:  []string{`one\|two`, "three"},
 		},
+		{
+			name:  "split_with_unicode",
+			input: `😉|❤️|😁`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"😉", "❤️", "😁"},
+		},
 	}
 
 	for _, tc := range tests {

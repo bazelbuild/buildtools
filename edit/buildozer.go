@@ -1043,14 +1043,18 @@ func splitOnNonEscaped(input string, sep byte, n int) []string {
 	if !ok {
 		panic(fmt.Sprintf("splitOnNonEscaped not implemented for %c", sep))
 	}
-	split := re.Split(input, n)
-	offset := 0
-	for i, s := range split[:len(split)-1] {
-		offset += len(s) + 2 // Index starting the following segment.
-		val := split[i] + string(input[offset-2])
-		split[i] = val
+	inputBytes := []byte(input)
+	var splits []string
+	previousIndex := 0
+	// Split n-1 times since it's limiting number of divisions, not the number of segments.
+	for _, find := range re.FindAllIndex(inputBytes, n-1) {
+		splitVal := string(inputBytes[previousIndex:find[1]])
+		splitVal = strings.TrimSuffix(splitVal, string(sep))
+		splits = append(splits, splitVal)
+		previousIndex = find[1]
 	}
-	return split
+	splits = append(splits, string(inputBytes[previousIndex:]))
+	return splits
 }
 
 func removeEscapes(values []string, sep byte) []string {
