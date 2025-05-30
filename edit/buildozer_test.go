@@ -634,18 +634,18 @@ func TestCmdDictAddSet_missingColon(t *testing.T) {
 
 func TestCmdDictOperations(t *testing.T) {
 	tests := []struct {
-		name             string
-		dict_add_args    []string
-		dict_set_args    []string
-		dict_remove_args []string
-		input            string
-		want             string
+		name           string
+		dictAddArgs    []string
+		dictSetArgs    []string
+		dictRemoveArgs []string
+		input          string
+		want           string
 	}{
 		{
-			name:             "dict_add_set_remove",
-			dict_add_args:    []string{"dict_attr", `added_entry:new_value`},
-			dict_set_args:    []string{"dict_attr", `entry_to_change:updated_value`},
-			dict_remove_args: []string{"dict_attr", `entry_to_remove`},
+			name:           "dict_add_set_remove",
+			dictAddArgs:    []string{"dict_attr", `added_entry:new_value`},
+			dictSetArgs:    []string{"dict_attr", `entry_to_change:updated_value`},
+			dictRemoveArgs: []string{"dict_attr", `entry_to_remove`},
 			input: strings.Join([]string{
 				`rule(`,
 				`  name = "rule_name",`,
@@ -667,10 +667,10 @@ func TestCmdDictOperations(t *testing.T) {
 			}, "\n"),
 		},
 		{
-			name:             "dict_add_set_remove_with_escaped_colon",
-			dict_add_args:    []string{"dict_attr", `added\:entry:new:value`},
-			dict_set_args:    []string{"dict_attr", `entry\:to_change:updated\:value`},
-			dict_remove_args: []string{"dict_attr", `entry\:to_remove`},
+			name:           "dict_add_set_remove_with_escaped_colon",
+			dictAddArgs:    []string{"dict_attr", `added\:entry:new:value`},
+			dictSetArgs:    []string{"dict_attr", `entry\:to_change:updated\:value`},
+			dictRemoveArgs: []string{"dict_attr", `entry\:to_remove`},
 			input: strings.Join([]string{
 				`rule(`,
 				`  name = "rule_name",`,
@@ -699,17 +699,17 @@ func TestCmdDictOperations(t *testing.T) {
 				t.Fatalf("build.Parse returned err: %s", err)
 			}
 			rule := file.RuleNamed("rule_name")
-			file, err = cmdDictAdd(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_add_args})
+			file, err = cmdDictAdd(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictAddArgs})
 			if err != nil {
 				t.Fatalf("cmdDictAdd returned err: %s", err)
 			}
 
-			file, err = cmdDictSet(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_set_args})
+			file, err = cmdDictSet(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictSetArgs})
 			if err != nil {
 				t.Fatalf("cmdDictSet returned err: %s", err)
 			}
 
-			file, err = cmdDictRemove(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dict_remove_args})
+			file, err = cmdDictRemove(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictRemoveArgs})
 			if err != nil {
 				t.Fatalf("cmdDictRemove returned err: %s", err)
 			}
