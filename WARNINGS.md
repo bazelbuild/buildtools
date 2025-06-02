@@ -404,6 +404,7 @@ When fixing this issue, make sure you
 [understand depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)
 and try to
 [reduce the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+See this [explanation](https://github.com/bazelbuild/bazel/issues/5817#issuecomment-496910826) for more detail.
 
 --------------------------------------------------------------------------------
 
