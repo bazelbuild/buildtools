@@ -223,7 +223,8 @@ warnings: {
     "When fixing this issue, make sure you\n"
     "[understand depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)\n"
     "and try to\n"
-    "[reduce the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset)."
+    "[reduce the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).\n"
+    "See this [explanation](https://github.com/bazelbuild/bazel/issues/5817#issuecomment-496910826) for more detail."
   bazel_flag: "--incompatible_depset_union"
   bazel_flag_link: "https://github.com/bazelbuild/bazel/issues/5817"
 }
