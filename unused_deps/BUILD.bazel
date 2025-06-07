@@ -30,7 +30,7 @@ go_binary(
 )
 
 go_binary(
-    name = "unused_deps-darwin",
+    name = "unused_deps-darwin-amd64",
     out = "unused_deps-darwin_amd64",
     embed = [":unused_deps_lib"],
     goarch = "amd64",
@@ -40,7 +40,7 @@ go_binary(
 )
 
 go_binary(
-    name = "unused_deps-linux",
+    name = "unused_deps-linux-amd64",
     out = "unused_deps-linux_amd64",
     embed = [":unused_deps_lib"],
     goarch = "amd64",
@@ -50,7 +50,7 @@ go_binary(
 )
 
 go_binary(
-    name = "unused_deps-windows",
+    name = "unused_deps-windows-amd64",
     out = "unused_deps-windows_amd64.exe",
     embed = [":unused_deps_lib"],
     goarch = "amd64",
