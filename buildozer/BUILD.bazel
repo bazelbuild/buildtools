@@ -88,6 +88,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildozer-windows-arm64",
+    out = "buildozer-windows_arm64.exe",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildozer-linux-riscv64",
     out = "buildozer-linux_riscv64",
     embed = [":buildozer_lib"],

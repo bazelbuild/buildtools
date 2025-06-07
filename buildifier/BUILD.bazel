@@ -58,6 +58,16 @@ go_binary(
 )
 
 go_binary(
+    name = "buildifier-windows-arm64",
+    out = "buildifier-windows_arm64.exe",
+    embed = [":buildifier_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "buildifier-linux-riscv64",
     out = "buildifier-linux_riscv64",
     embed = [":buildifier_lib"],

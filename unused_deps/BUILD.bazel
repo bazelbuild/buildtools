@@ -80,6 +80,16 @@ go_binary(
 )
 
 go_binary(
+    name = "unused_deps-windows-arm64",
+    out = "unused_deps-windows_arm64.exe",
+    embed = [":unused_deps_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "unused_deps-linux-s390x",
     out = "unused_deps-linux_s390x",
     embed = [":unused_deps_lib"],
