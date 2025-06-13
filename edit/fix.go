@@ -133,20 +133,20 @@ func removeTestOnly(f *build.File, r *build.Rule, pkg string) bool {
 	if !def {
 		if pkgDecl == nil || pkgDecl.Attr("default_testonly") == nil {
 			def = strings.HasPrefix(pkg, "javatests/")
-		} else if pkgDecl.AttrLiteral("default_testonly") == "1" || pkgDecl.AttrLiteral("default_testonly") == "True" {
+		} else if pkgDecl.AttrLiteral("default_testonly") == "1" {
 			def = true
-		} else if pkgDecl.AttrLiteral("default_testonly") != "0" && pkgDecl.AttrLiteral("default_testonly") != "False" {
+		} else if pkgDecl.AttrLiteral("default_testonly") != "0" {
 			// Non-literal value: it's not safe to do a change.
 			return false
 		}
 	}
 
 	testonly := r.AttrLiteral("testonly")
-	if def && (testonly == "1" || testonly == "True") {
+	if def && testonly == "1" {
 		r.DelAttr("testonly")
 		return true
 	}
-	if !def && (testonly == "0" || testonly == "False") {
+	if !def && testonly == "0" {
 		r.DelAttr("testonly")
 		return true
 	}
