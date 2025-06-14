@@ -39,7 +39,7 @@ function getNativeBinary() {
     'win32' : '.exe',
   }[os.platform()];
 
-  if (arch == undefined || platform == undefined || (arch == 'arm64' && platform == 'windows')) {
+  if (arch == undefined || platform == undefined) {
     console.error(`FATAL: Your platform/architecture combination ${
         os.platform()} - ${os.arch()} is not yet supported.
     See instructions at https://github.com/bazelbuild/buildtools/blob/main/_TOOL_/README.md.`);

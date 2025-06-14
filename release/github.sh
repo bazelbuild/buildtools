@@ -29,6 +29,7 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
   cp bazel-bin/"$tool/$tool-darwin_amd64" $BIN_DIR
   cp bazel-bin/"$tool/$tool-darwin_arm64" $BIN_DIR
   cp bazel-bin/"$tool/$tool-windows_amd64.exe" $BIN_DIR
+  cp bazel-bin/"$tool/$tool-windows_arm64.exe" $BIN_DIR
 done;
 
 echo "Creating a draft release"
@@ -51,6 +52,7 @@ for tool in "buildifier" "buildozer" "unused_deps"; do
   upload_file "$BIN_DIR/$tool-darwin_amd64" "$tool-darwin-amd64"
   upload_file "$BIN_DIR/$tool-darwin_arm64" "$tool-darwin-arm64"
   upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
+  upload_file "$BIN_DIR/$tool-windows_arm64.exe" "$tool-windows-arm64.exe"
 done
 
 rm -rf $BIN_DIR
