@@ -142,10 +142,10 @@ Buildozer supports the following commands(`'command args'`):
     rules. If it exists in the `to_rule`, no action is taken.
   * `dict_add <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, it will _not_ be overwritten.
-    Colon characters can be included in key and value escaped as "\:".
+    Colon characters can be included in key and value escaped as "\\:".
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
-    Colon characters can be included in key and value escaped as "\:".
+    Colon characters can be included in key and value escaped as "\\:".
   * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
   * `dict_replace_if_equal <attr> <key> <old_value> <new_value>`: Replaces
     `old_value` with `new_value` for key `key` in dictionary attribute `attr`.
