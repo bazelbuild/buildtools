@@ -1192,17 +1192,16 @@ func ReplaceLoad(stmts []build.Expr, location string, from, to []string) []build
 			continue
 		}
 
+		var loadTo, loadFrom []*build.Ident
 		for i, to := range load.To {
-			if toSymbols[to.Name] {
-				if i < len(load.From)-1 {
-					load.From = append(load.From[:i], load.From[i+1:]...)
-					load.To = append(load.To[:i], load.To[i+1:]...)
-				} else {
-					load.From = load.From[:i]
-					load.To = load.To[:i]
-				}
+			// Only add the load to the statement if it will NOT be replaced by a new load.
+			if !toSymbols[to.Name] {
+				loadTo = append(loadTo, load.To[i])
+				loadFrom = append(loadFrom, load.From[i])
 			}
 		}
+		load.To = loadTo
+		load.From = loadFrom
 
 		if len(load.To) > 0 {
 			all = append(all, load)
