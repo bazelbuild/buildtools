@@ -410,6 +410,9 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 	// Symbols for which the warning should be suppressed
 	suppressedWarnings := make(map[string]bool)
 
+	// Symbols from outer scopes that are used in the current scope
+	usedSymbolsFromOuterScope := make(map[string]bool)
+
 	build.WalkStatements(root, func(expr build.Expr, stack []build.Expr) (err error) {
 		switch expr := expr.(type) {
 		case *build.File:
@@ -463,7 +466,8 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// a function call with a keyword parameter.
 				_, used := extractIdentsFromStmt(assign.RHS)
 				for ident := range used {
-					usedSymbols[ident.Name] = true
+					// RHS idents in the def statement contains direct references to the outer scope.
+					usedSymbolsFromOuterScope[ident.Name] = true
 				}
 			}
 
@@ -497,7 +501,6 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 	// make the variable with the same name from an outer scope also used.
 	// Collect variables that are used in the current or inner scopes but are not
 	// defined in the current scope.
-	usedSymbolsFromOuterScope := make(map[string]bool)
 	for symbol := range usedSymbols {
 		if _, ok := definedSymbols[symbol]; ok {
 			continue
