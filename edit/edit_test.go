@@ -829,3 +829,35 @@ func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD")
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD.bazel")
 }
+
+func TestFindRuleByName(t *testing.T) {
+	input := `load("foo.bzl", "bar")
+rule(
+  name="r1",
+	srcs=["a.txt"]
+)
+
+a = rule2(
+	name="r2",
+)
+`
+
+	bld, err := build.Parse("BUILD", []byte(input))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, name := range []string{"r1", "r2"} {
+		rule := FindRuleByName(bld, name)
+		if rule == nil {
+			t.Errorf("FindRuleByName: could not find rule with name '%s' in BUILD file <%s>", name, input)
+			return
+		}
+	}
+	// expect to not find:
+	rule := FindRuleByName(bld, "r3")
+	if rule != nil {
+		t.Errorf("FindRuleByName: found rule with name 'r3', expected not to find it")
+		return
+	}
+}
