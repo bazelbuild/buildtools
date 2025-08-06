@@ -18,9 +18,10 @@ limitations under the License.
 package bzlmod
 
 import (
-	"strings"
+	"path"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // Proxies returns the names of extension proxies (i.e. the names of variables to which the result
@@ -225,19 +226,18 @@ func getApparentModuleName(f *build.File) string {
 
 // normalizeLabelString converts a label string into the form @apparent_name//path/to:target.
 func normalizeLabelString(rawLabel, apparentModuleName string) string {
-	// This implements
-	// https://github.com/bazelbuild/bazel/blob/dd822392db96bb7bccdb673414a20c4b91e3dbc1/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/ModuleFileGlobals.java#L416
-	// with the assumption that the current module is the root module.
-	if strings.HasPrefix(rawLabel, "//") {
-		// Relative labels always refer to the current module.
-		return "@" + apparentModuleName + rawLabel
-	} else if strings.HasPrefix(rawLabel, "@//") {
-		// In the root module only, this syntax refer to the module. Since we are inspecting its
-		// module file as a tool, we can assume that the current module is the root module.
-		return "@" + apparentModuleName + rawLabel[1:]
-	} else {
-		return rawLabel
+	label := labels.ParseRelative(rawLabel, "")
+	if label.Repository == "" {
+		// This branch is taken in two different cases:
+		// 1. The label is relative. In this case, labels.ParseRelative populates the Package field
+		//    but not the Repository field.
+		// 2. The label is of the form "@//pkg:extension.bzl". Normalize to spelling out the
+		//    apparent name of the root module. Note that this syntax is only allowed in the root
+		//    module, but since we are inspecting its module file as a tool, we can assume that the
+		//    current module is the root module.
+		label.Repository = apparentModuleName
 	}
+	return label.Format()
 }
 
 func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name string, dev bool, isolate bool) {
@@ -252,6 +252,9 @@ func parseUseExtension(stmt build.Expr) (proxy string, bzlFile string, name stri
 		return
 	}
 	call := assign.RHS.(*build.CallExpr)
+	if _, ok = call.X.(*build.Ident); !ok {
+		return
+	}
 	if call.X.(*build.Ident).Name != "use_extension" {
 		return
 	}
@@ -346,4 +349,86 @@ func lastProxyUsage(f *build.File, proxies []string) (lastUsage int, lastProxy s
 	}
 
 	return lastUsage, lastProxy
+}
+
+// ExtractModuleToApparentNameMapping collects the mapping of module names (e.g. "rules_go") to
+// user-configured apparent names (e.g. "my_rules_go") from the repo's MODULE.bazel, if it exists.
+// The given function is called with a repo-relative, slash-separated path and should return the
+// content of the MODULE.bazel or *.MODULE.bazel file at that path, or nil if the file does not
+// exist.
+// See https://bazel.build/external/module#repository_names_and_strict_deps for more information on
+// apparent names.
+func ExtractModuleToApparentNameMapping(fileReader func(relPath string) *build.File) func(string) string {
+	moduleToApparentName := collectApparentNames(fileReader, "MODULE.bazel")
+
+	return func(moduleName string) string {
+		return moduleToApparentName[moduleName]
+	}
+}
+
+// Collects the mapping of module names (e.g. "rules_go") to user-configured apparent names (e.g.
+// "my_rules_go"). See https://bazel.build/external/module#repository_names_and_strict_deps for more
+// information on apparent names.
+func collectApparentNames(fileReader func(relPath string) *build.File, relPath string) map[string]string {
+	apparentNames := make(map[string]string)
+	seenFiles := make(map[string]struct{})
+	filesToProcess := []string{relPath}
+
+	for len(filesToProcess) > 0 {
+		f := filesToProcess[0]
+		filesToProcess = filesToProcess[1:]
+		if _, seen := seenFiles[f]; seen {
+			continue
+		}
+		seenFiles[f] = struct{}{}
+		bf := fileReader(f)
+		if bf == nil {
+			return nil
+		}
+		names, includeLabels := collectApparentNamesAndIncludes(bf)
+		for name, apparentName := range names {
+			apparentNames[name] = apparentName
+		}
+		for _, includeLabel := range includeLabels {
+			l := labels.Parse(includeLabel)
+			p := path.Join(l.Package, l.Target)
+			filesToProcess = append(filesToProcess, p)
+		}
+	}
+
+	return apparentNames
+}
+
+func collectApparentNamesAndIncludes(f *build.File) (map[string]string, []string) {
+	apparentNames := make(map[string]string)
+	var includeLabels []string
+
+	for _, dep := range f.Rules("") {
+		if dep.ExplicitName() == "" {
+			if ident, ok := dep.Call.X.(*build.Ident); !ok || ident.Name != "include" {
+				continue
+			}
+			if len(dep.Call.List) != 1 {
+				continue
+			}
+			if str, ok := dep.Call.List[0].(*build.StringExpr); ok {
+				includeLabels = append(includeLabels, str.Value)
+			}
+			continue
+		}
+		if dep.Kind() != "module" && dep.Kind() != "bazel_dep" {
+			continue
+		}
+		// We support module in addition to bazel_dep to handle language repos that use Gazelle to
+		// manage their own BUILD files.
+		if name := dep.AttrString("name"); name != "" {
+			if repoName := dep.AttrString("repo_name"); repoName != "" {
+				apparentNames[name] = repoName
+			} else {
+				apparentNames[name] = name
+			}
+		}
+	}
+
+	return apparentNames, includeLabels
 }

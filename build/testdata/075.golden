@@ -1,0 +1,5 @@
+load("@bar.bzl", "x", "y")
+load("@foo//:foo.bzl", "x", "y")
+load("//:baa.bzl", "x", "y")
+load("//:bac.bzl", "x", "y")
+load(":bab.bzl", "x", "y")

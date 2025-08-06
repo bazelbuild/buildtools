@@ -18,7 +18,6 @@ package build
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -63,7 +62,7 @@ func TestParseTestdata(t *testing.T) {
 			continue
 		}
 
-		data, err := ioutil.ReadFile(out)
+		data, err := os.ReadFile(out)
 		if err != nil {
 			t.Error(err)
 			continue

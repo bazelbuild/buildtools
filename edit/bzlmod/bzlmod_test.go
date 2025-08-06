@@ -59,13 +59,18 @@ prox7.use(label = "@foo//:bar")
 isolated_prox4 = use_extension("@name//bzl:extensions.bzl", "ext", isolate = True)
 isolated_prox4.use(name = "foo")
 prox8 = use_extension("//bzl:extensions.bzl", "ext", dev_dependency = True)
-prox8.use(dict = {"foo": "bar"})
+unused = prox8.use(dict = {"foo": "bar"})
 prox9 = use_extension(
     # comment
     "@dep//:extensions.bzl", "other_ext")
 prox9.use(label = "@name//:bar")
 prox10 = use_extension("@dep//:extensions.bzl", "other_ext", dev_dependency = bool(1))
 prox10.use(dict = {"foo": "bar"})
+prox11 = use_extension("extension.bzl", "ext")
+prox12 = use_extension(":extension.bzl", "ext")
+prox13 = use_extension("//:extension.bzl", "ext")
+prox14 = use_extension("@name//:extension.bzl", "ext")
+prox15 = use_extension("@repo_name//:extension.bzl", "ext")
 `
 
 func TestProxies(t *testing.T) {
@@ -138,6 +143,20 @@ func TestProxies(t *testing.T) {
 			"other_ext",
 			true,
 			[]string{"prox10"},
+		},
+		{
+			proxiesModuleNameHeader + proxiesBody,
+			[]string{"//:extension.bzl", "@//:extension.bzl"},
+			"ext",
+			false,
+			[]string{"prox11", "prox12", "prox13", "prox14"},
+		},
+		{
+			proxiesModuleRepoNameHeader + proxiesBody,
+			[]string{"//:extension.bzl", "@//:extension.bzl"},
+			"ext",
+			false,
+			[]string{"prox11", "prox12", "prox13", "prox15"},
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

@@ -20,7 +20,6 @@ package file
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -28,24 +27,32 @@ import (
 // for reading a file.
 var ReadFile = readFile
 
-// readFile is like ioutil.ReadFile.
+// WriteFile can be updated from the caller to change the API
+// for writing a file.
+var WriteFile = writeFile
+
+// OpenReadFile can be updated from the caller to change the API
+// for opening a file.
+var OpenReadFile = openReadFile
+
+// readFile is like os.ReadFile.
 func readFile(name string) ([]byte, os.FileInfo, error) {
 	fi, err := os.Stat(name)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	data, err := ioutil.ReadFile(name)
+	data, err := os.ReadFile(name)
 	return data, fi, err
 }
 
-// WriteFile is like ioutil.WriteFile
-func WriteFile(name string, data []byte) error {
-	return ioutil.WriteFile(name, data, 0644)
+// writeFile is like os.WriteFile.
+func writeFile(name string, data []byte) error {
+	return os.WriteFile(name, data, 0644)
 }
 
-// OpenReadFile is like os.Open.
-func OpenReadFile(name string) io.ReadCloser {
+// openReadFile is like os.Open.
+func openReadFile(name string) io.ReadCloser {
 	f, err := os.Open(name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not open %s\n", name)

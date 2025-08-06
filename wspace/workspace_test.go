@@ -17,7 +17,6 @@ limitations under the License.
 package wspace
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -30,7 +29,7 @@ type testCase struct {
 }
 
 func runBasicTestWithRepoRootFile(t *testing.T, repoRootFile string) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "wspace")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,10 +37,10 @@ func runBasicTestWithRepoRootFile(t *testing.T, repoRootFile string) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, repoRootFile), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, repoRootFile), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", repoRootFile), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", repoRootFile), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -65,7 +64,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestFindRepoBuildfiles(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +95,7 @@ new_http_archive(
     build_file = "//third_party:f.BUILD",
 )
 `)
-	if err := ioutil.WriteFile(filepath.Join(tmp, workspaceFile), workspace, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, workspaceFile), workspace, 0755); err != nil {
 		t.Fatal(err)
 	}
 	files, err := FindRepoBuildFiles(tmp)
@@ -129,7 +128,7 @@ func checkSplitFilePathOutput(t *testing.T, name, filename, expectedWorkspaceRoo
 }
 
 func TestSplitFilePath(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +142,7 @@ func TestSplitFilePath(t *testing.T) {
 	checkSplitFilePathOutput(t, "No WORKSPACE file", filename, "", "", "")
 
 	// Create a WORKSPACE file and try again (dir/WORKSPACE)
-	if err := ioutil.WriteFile(filepath.Join(dir, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
 		t.Error(err)
 	}
 	checkSplitFilePathOutput(t, "WORKSPACE file exists", filename, dir, "", "path/to/package/file.bzl")
@@ -151,7 +150,7 @@ func TestSplitFilePath(t *testing.T) {
 
 	// Add a BUILD file
 	buildPath := filepath.Join(dir, "path", "to", "BUILD")
-	if err := ioutil.WriteFile(buildPath, []byte{}, os.ModePerm); err != nil {
+	if err := os.WriteFile(buildPath, []byte{}, os.ModePerm); err != nil {
 		t.Error(err)
 	}
 	checkSplitFilePathOutput(t, "WORKSPACE and BUILD files exists 1", buildPath, dir, "path/to", "BUILD")
@@ -159,7 +158,7 @@ func TestSplitFilePath(t *testing.T) {
 
 	// Add a subpackage BUILD file
 	subBuildPath := filepath.Join(dir, "path", "to", "package", "BUILD.bazel")
-	if err := ioutil.WriteFile(subBuildPath, []byte{}, os.ModePerm); err != nil {
+	if err := os.WriteFile(subBuildPath, []byte{}, os.ModePerm); err != nil {
 		t.Error(err)
 	}
 	checkSplitFilePathOutput(t, "WORKSPACE and two BUILD files exists 1", subBuildPath, dir, "path/to/package", "BUILD.bazel")
@@ -177,7 +176,7 @@ func TestSplitFilePath(t *testing.T) {
 	if err := os.MkdirAll(newRoot, os.ModePerm); err != nil {
 		t.Error(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(newRoot, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(newRoot, "WORKSPACE"), []byte{}, os.ModePerm); err != nil {
 		t.Error(err)
 	}
 	checkSplitFilePathOutput(t, "Two WORKSPACE files exist", filename, newRoot, "to/package", "file.bzl")

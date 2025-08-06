@@ -42,7 +42,7 @@ const (
 	TypeWorkspace
 	// TypeBzl represents .bzl files
 	TypeBzl
-	//TypeModule represents MODULE.bazel files
+	// TypeModule represents MODULE.bazel and *.MODULE.bazel files
 	TypeModule
 )
 
@@ -130,7 +130,7 @@ func getFileType(filename string) FileType {
 	if strings.HasSuffix(basename, ".oss") {
 		basename = basename[:len(basename)-4]
 	}
-	if basename == "module.bazel" {
+	if basename == "module.bazel" || strings.HasSuffix(basename, ".module.bazel") {
 		return TypeModule
 	}
 	ext := filepath.Ext(basename)
@@ -318,10 +318,15 @@ func (in *input) startToken(val *yySymType) {
 // has not done that already.
 func (in *input) endToken(val *yySymType) {
 	if val.tok == "" {
-		tok := string(in.token[:len(in.token)-len(in.remaining)])
+		tok := string(in.peekToken())
 		val.tok = tok
 		in.lastToken = val.tok
 	}
+}
+
+// peekToken returns the bytes comprising the current token being scanned.
+func (in *input) peekToken() []byte {
+	return in.token[:len(in.token)-len(in.remaining)]
 }
 
 // Lex is called from the generated parser to obtain the next input token.
@@ -619,7 +624,15 @@ func (in *input) Lex(val *yySymType) int {
 	for {
 		c := in.peekRune()
 		if !isIdent(c) {
-			break
+			if c == '+' || c == '-' {
+				t := in.peekToken()
+				// Parse 12.3e-4 and 12.3E+4 as a single token.
+				if !(len(t) > 0 && t[0] >= '0' && t[0] <= '9' && (t[len(t)-1] == 'e' || t[len(t)-1] == 'E')) {
+					break
+				}
+			} else {
+				break
+			}
 		}
 		in.readRune()
 	}

@@ -19,7 +19,6 @@ limitations under the License.
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -69,6 +68,14 @@ func ExpandDirectories(args *[]string) ([]string, error) {
 				return filepath.SkipDir
 			}
 			if !info.IsDir() && isStarlarkFile(info.Name()) {
+				// Don't traverse into directory symlinks such as bazel-foo.bzl
+				// for a project called foo.bzl.
+				if info.Mode()&os.ModeSymlink != 0 {
+					stat, err := os.Stat(path)
+					if err != nil || stat.IsDir() {
+						return nil
+					}
+				}
 				files = append(files, path)
 			}
 			return nil
@@ -110,7 +117,7 @@ func getFileReader(workspaceRoot string) *warn.FileReader {
 		filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 		path := filepath.Join(workspaceRoot, filename)
 
-		return ioutil.ReadFile(path)
+		return os.ReadFile(path)
 	}
 
 	return warn.NewFileReader(readFile)

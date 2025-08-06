@@ -18,7 +18,6 @@ package edit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -163,42 +162,105 @@ load("other loc", "symbol")`,
 }
 
 func TestReplaceLoad(t *testing.T) {
-	tests := []struct{ input, expected string }{
+	tests := []struct {
+		name     string
+		input    string
+		location string
+		from     []string
+		to       []string
+		expected string
+	}{
 		{
-			``,
-			`load("new_location", "symbol")`,
+			name:     "add_symbol",
+			input:    ``,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
 		},
 		{
-			`load("location", "symbol")`,
-			`load("new_location", "symbol")`,
+			name:     "replace_location",
+			input:    `load("location", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
 		},
 		{
-			`load("location", "other", "symbol")`,
-			`load("new_location", "symbol")
-load("location", "other")`,
+			name:     "replace_location_one_of_multiple",
+			input:    `load("location", "other", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("location", "other")
+load("new_location", "symbol")`,
 		},
 		{
-			`load("location", symbol = "other")`,
-			`load("new_location", "symbol")`,
+			name:     "replace_location_alias",
+			input:    `load("location", symbol = "other")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
 		},
 		{
-			`load("other loc", "symbol")
+			name: "collapse_duplicate_symbol",
+			input: `load("other loc", "symbol")
 load("location", "symbol")`,
-			`load("new_location", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
+		},
+		{
+			name:     "replace_multiple_same_location",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_a", "symbol_b", "symbol_c"},
+			to:       []string{"symbol_a", "symbol_b", "symbol_c"},
+			expected: `load("new_location", "symbol_a", "symbol_b", "symbol_c")`,
+		},
+		{
+			name:     "replace_multiple_same_location_out_of_order",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_c", "symbol_a", "symbol_b"},
+			to:       []string{"symbol_c", "symbol_a", "symbol_b"},
+			expected: `load("new_location", "symbol_a", "symbol_b", "symbol_c")`,
+		},
+		{
+			name:     "replace_multiple_same_location_partial",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_a", "symbol_b"},
+			to:       []string{"symbol_a", "symbol_b"},
+			expected: `load("location", "symbol_c")
+load("new_location", "symbol_a", "symbol_b")`,
+		},
+		{
+			name:     "replace_multiple_same_location_partial_out_of_order",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_b", "symbol_a"},
+			to:       []string{"symbol_b", "symbol_a"},
+			expected: `load("location", "symbol_c")
+load("new_location", "symbol_a", "symbol_b")`,
 		},
 	}
 
 	for _, tst := range tests {
-		bld, err := build.Parse("BUILD", []byte(tst.input))
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-		bld.Stmt = ReplaceLoad(bld.Stmt, "new_location", []string{"symbol"}, []string{"symbol"})
-		got := strings.TrimSpace(string(build.Format(bld)))
-		if got != tst.expected {
-			t.Errorf("maybeReplaceLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
-		}
+		t.Run(tst.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tst.input))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			bld.Stmt = ReplaceLoad(bld.Stmt, tst.location, tst.from, tst.to)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tst.expected {
+				t.Errorf("ReplaceLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
+			}
+		})
 	}
 }
 
@@ -728,7 +790,7 @@ type testCase struct {
 }
 
 func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName string) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -736,16 +798,16 @@ func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName strin
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 

@@ -22,7 +22,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -36,7 +35,7 @@ var outputPath = flag.String("output", "", "output file")
 
 // bazelBuildLanguage reads a proto file and returns a BuildLanguage object.
 func bazelBuildLanguage(file string) (*buildpb.BuildLanguage, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot read %s: %s\n", file, err)
 		return nil, err
@@ -83,9 +82,27 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 
 	// Make sure we always have this.
 	_, ok := types["package_metadata"]
-	if ! ok {
+	if !ok {
 		types["package_metadata"] = buildpb.Attribute_LABEL_LIST
 	}
+
+	// The following attributes used to exist in the native Python rules but were removed
+	// during Starlarkification. Add them here for backwards compatibility, at least for now.
+	types["api_version"] = buildpb.Attribute_INTEGER
+	types["bootstrap_template"] = buildpb.Attribute_LABEL
+	types["buildpar"] = buildpb.Attribute_BOOLEAN
+	types["coverage_tool"] = buildpb.Attribute_LABEL
+	types["files"] = buildpb.Attribute_LABEL_LIST
+	types["has_services"] = buildpb.Attribute_BOOLEAN
+	types["interpreter"] = buildpb.Attribute_LABEL
+	types["interpreter_path"] = buildpb.Attribute_STRING
+	types["launcher"] = buildpb.Attribute_LABEL
+	types["launcher_uses_whole_archive"] = buildpb.Attribute_BOOLEAN
+	types["main"] = buildpb.Attribute_LABEL
+	types["paropts"] = buildpb.Attribute_STRING_LIST
+	types["python_version"] = buildpb.Attribute_STRING
+	types["srcs_version"] = buildpb.Attribute_STRING
+	types["stub_shebang"] = buildpb.Attribute_STRING
 
 	return types
 }
