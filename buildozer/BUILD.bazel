@@ -38,7 +38,7 @@ sh_test(
 )
 
 go_binary(
-    name = "buildozer-darwin",
+    name = "buildozer-darwin-amd64",
     out = "buildozer-darwin_amd64",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -48,7 +48,7 @@ go_binary(
 )
 
 go_binary(
-    name = "buildozer-linux",
+    name = "buildozer-linux-amd64",
     out = "buildozer-linux_amd64",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -58,7 +58,7 @@ go_binary(
 )
 
 go_binary(
-    name = "buildozer-windows",
+    name = "buildozer-windows-amd64",
     out = "buildozer-windows_amd64.exe",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -83,6 +83,16 @@ go_binary(
     embed = [":buildozer_lib"],
     goarch = "arm64",
     goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-windows-arm64",
+    out = "buildozer-windows_arm64.exe",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "windows",
     pure = "on",
     visibility = ["//visibility:public"],
 )
