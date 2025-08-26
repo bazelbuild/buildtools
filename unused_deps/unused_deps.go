@@ -76,6 +76,37 @@ javac_params = aspect(
 `
 )
 
+/**
+ * Parses `bazel version` output and returns the version string.
+ * Example output:
+ * Build label: 8.2.1
+ * Build target: bazel-out/darwin-fastbuild/bin/src/main/java/com/google/devtools/build/lib/bazel/BazelServer_deploy.jar
+ * Build time: Wed Jan 27
+ */
+func bazelMajorVersion() (int, error) {
+	out, err := cmdWithStderr(*buildTool, "version").Output()
+	if err != nil {
+		return 0, err
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Build label: ") {
+			version := strings.TrimPrefix(line, "Build label: ")
+			parts := strings.Split(version, ".")
+			if len(parts) < 1 {
+				return 0, fmt.Errorf("could not parse version from 'bazel version' output: %s", version)
+			}
+			var major int
+			_, err := fmt.Sscanf(parts[0], "%d", &major)
+			if err != nil {
+				return 0, fmt.Errorf("could not parse major version from 'bazel version' output: %s", version)
+			}
+			return major, nil
+		}
+	}
+	return 0, errors.New("could not find version in 'bazel version' output")
+}
+
 func stringList(name, help string) func() []string {
 	f := flag.String(name, "", help)
 	return func() []string {
@@ -381,6 +412,9 @@ func main() {
 	buildCmd = append(buildCmd, "--output_groups=+unused_deps_outputs")
 	buildCmd = append(buildCmd, "--override_repository=unused_deps="+aspectDir)
 	buildCmd = append(buildCmd, "--aspects=@@unused_deps//:unused_deps.bzl%javac_params")
+	if version, err := bazelMajorVersion(); err == nil && version >= 8 {
+		buildCmd = append(buildCmd, "--enable_workspace=true")
+	}
 	buildCmd = append(buildCmd, buildOptions()...)
 
 	blazeArgs := append(buildCmd, targetPatterns...)
