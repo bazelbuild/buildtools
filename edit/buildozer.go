@@ -1260,7 +1260,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 
 	if opts.Stdout || name == stdinPackageName {
 		opts.OutWriter.Write(ndata)
-		return &rewriteResult{file: name, errs: errs, records: records}
+		return &rewriteResult{file: name, errs: errs, modified: !bytes.Equal(data, ndata), records: records}
 	}
 
 	if bytes.Equal(data, ndata) {
