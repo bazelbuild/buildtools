@@ -112,9 +112,7 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
-var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFinding{
-	"positional-args": positionalArgumentsWarning,
-}
+var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFinding{}
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
@@ -219,6 +217,7 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 	"native-sh-binary":                   NativeShellRulesWarning("sh_binary"),
 	"native-sh-library":                  NativeShellRulesWarning("sh_library"),
 	"native-sh-test":                     NativeShellRulesWarning("sh_test"),
+	"positional-args":                    positionalArgumentsWarning,
 	"unnamed-macro":                      unnamedMacroWarning,
 }
 
