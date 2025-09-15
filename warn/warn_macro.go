@@ -26,9 +26,6 @@ import (
 	"github.com/bazelbuild/buildtools/labels"
 )
 
-// Internal constant that represents the native module
-const nativeModule = "<native>"
-
 // function represents a function identifier, which is a pair (module name, function name).
 type function struct {
 	pkg      string // package where the function is defined
@@ -40,12 +37,9 @@ func (f function) label() string {
 	return f.pkg + ":" + f.filename
 }
 
-// funCall represents a call to another function. It contains information of the function itself as well as some
-// information about the environment
-type funCall struct {
-	function
-	nameAlias string // function name alias (it could be loaded with a different name or assigned to a new variable).
-	line      int    // line on which the function is being called
+// callStackFrame formats a function call to be printable in a call stack.
+func (f function) callStackFrame(ref build.Expr) string {
+	return fmt.Sprintf("%s:%d: %s", f.label(), exprLine(ref), f.name)
 }
 
 // acceptsNameArgument checks whether a function can accept a named argument called "name",
@@ -53,26 +47,10 @@ type funCall struct {
 func acceptsNameArgument(def *build.DefStmt) bool {
 	for _, param := range def.Params {
 		if name, op := build.GetParamName(param); name == "name" || op == "**" {
-  		return true
+			return true
 		}
 	}
 	return false
-}
-
-// fileData represents information about rules and functions extracted from a file
-type fileData struct {
-	rules     map[string]bool               // all rules defined in the file
-	functions map[string]map[string]funCall // outer map: all functions defined in the file, inner map: all distinct function calls from the given function
-	aliases   map[string]function           // all top-level aliases (e.g. `foo = bar`).
-}
-
-// resolvesExternal takes a local function definition and replaces it with an external one if it's been defined
-// in another file and loaded
-func resolveExternal(fn function, externalSymbols map[string]function) function {
-	if external, ok := externalSymbols[fn.name]; ok {
-		return external
-	}
-	return fn
 }
 
 // exprLine returns the start line of an expression
@@ -81,208 +59,173 @@ func exprLine(expr build.Expr) int {
 	return start.Line
 }
 
-// getFunCalls extracts information about functions that are being called from the given function
-func getFunCalls(def *build.DefStmt, pkg, filename string, externalSymbols map[string]function) map[string]funCall {
-	funCalls := make(map[string]funCall)
-	build.Walk(def, func(expr build.Expr, stack []build.Expr) {
-		call, ok := expr.(*build.CallExpr)
-		if !ok {
-			return
-		}
-		if ident, ok := call.X.(*build.Ident); ok {
-			funCalls[ident.Name] = funCall{
-				function:  resolveExternal(function{pkg, filename, ident.Name}, externalSymbols),
-				nameAlias: ident.Name,
-				line:      exprLine(call),
-			}
-			return
-		}
-		dot, ok := call.X.(*build.DotExpr)
-		if !ok {
-			return
-		}
-		if ident, ok := dot.X.(*build.Ident); !ok || ident.Name != "native" {
-			return
-		}
-		name := "native." + dot.Name
-		funCalls[name] = funCall{
-			function: function{
-				name:     dot.Name,
-				filename: nativeModule,
-			},
-			nameAlias: name,
-			line:      exprLine(dot),
-		}
-	})
-	return funCalls
-}
-
-// analyzeFile extracts the information about rules and functions defined in the file
-func analyzeFile(f *build.File) fileData {
-	if f == nil {
-		return fileData{}
-	}
-
-	// Collect loaded symbols
-	externalSymbols := make(map[string]function)
-	for _, stmt := range f.Stmt {
-		load, ok := stmt.(*build.LoadStmt)
-		if !ok {
-			continue
-		}
-		label := labels.ParseRelative(load.Module.Value, f.Pkg)
-		if label.Repository != "" || label.Target == "" {
-			continue
-		}
-		for i, from := range load.From {
-			externalSymbols[load.To[i].Name] = function{label.Package, label.Target, from.Name}
-		}
-	}
-
-	report := fileData{
-		rules:     make(map[string]bool),
-		functions: make(map[string]map[string]funCall),
-		aliases:   make(map[string]function),
-	}
-	for _, stmt := range f.Stmt {
-		switch stmt := stmt.(type) {
-		case *build.AssignExpr:
-			// Analyze aliases (`foo = bar`) or rule declarations (`foo = rule(...)`)
-			lhsIdent, ok := stmt.LHS.(*build.Ident)
-			if !ok {
-				continue
-			}
-			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
-				report.aliases[lhsIdent.Name] = resolveExternal(function{f.Pkg, f.Label, rhsIdent.Name}, externalSymbols)
-				continue
-			}
-
-			call, ok := stmt.RHS.(*build.CallExpr)
-			if !ok {
-				continue
-			}
-			ident, ok := call.X.(*build.Ident)
-			if !ok || ident.Name != "rule" {
-				continue
-			}
-			report.rules[lhsIdent.Name] = true
-		case *build.DefStmt:
-			report.functions[stmt.Name] = getFunCalls(stmt, f.Pkg, f.Label, externalSymbols)
-		default:
-			continue
-		}
-	}
-	return report
-}
-
 // functionReport represents the analysis result of a function
-type functionReport struct {
-	isMacro bool     // whether the function is a macro (or a rule)
-	fc      *funCall // a call to the rule or another macro
+type macroReport struct {
+	callStack []string
+}
+
+// isMacroOrRule returns true if the report contained a rule or a macro.
+func (mr macroReport) isMacroOrRule() bool {
+	return mr.callStack != nil
+}
+
+// wrapReport is a helper to wrap a marcoReport for a downstream call.
+func wrapReport(fn function, ref build.Expr, mr macroReport) macroReport {
+	return macroReport{callStack: append([]string{fn.callStackFrame(ref)}, mr.callStack...)}
 }
 
 // macroAnalyzer is an object that analyzes the directed graph of functions calling each other,
 // loading other files lazily if necessary.
 type macroAnalyzer struct {
 	fileReader *FileReader
-	files      map[string]fileData
-	cache      map[function]functionReport
+	// Local files if file is defined here, fileReader is not used.
+	localFiles map[string]*build.File
+	cache      map[function]*macroReport
 }
 
-// getFileData retrieves a file using the fileReader object and extracts information about functions and rules
-// defined in the file.
-func (ma macroAnalyzer) getFileData(pkg, label string) fileData {
-	filename := pkg + ":" + label
-	if fd, ok := ma.files[filename]; ok {
-		return fd
+func (ma macroAnalyzer) getFile(fn function) *build.File {
+	f := ma.localFiles[fn.label()]
+	if f != nil {
+		return f
 	}
 	if ma.fileReader == nil {
-		fd := fileData{}
-		ma.files[filename] = fd
-		return fd
+		return nil
 	}
-	f := ma.fileReader.GetFile(pkg, label)
-	fd := analyzeFile(f)
-	ma.files[filename] = fd
-	return fd
+	return ma.fileReader.GetFile(fn.pkg, fn.filename)
 }
 
-// IsMacro is a public function that checks whether the given function is a macro
-func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
+// AnalyzeFn is a public function that checks whether the given function is a macro or rule.
+func (ma macroAnalyzer) AnalyzeFn(fn function) (report macroReport) {
 	// Check the cache first
 	if cached, ok := ma.cache[fn]; ok {
-		return cached
+		return *cached
 	}
-	// Write a negative result to the cache before analyzing. This will prevent stack overflow crashes
+	// Write an empty result to the cache before analyzing. This will prevent stack overflow crashes
 	// if the input data contains recursion.
-	ma.cache[fn] = report
+	ma.cache[fn] = &macroReport{}
 	defer func() {
 		// Update the cache with the actual result
-		ma.cache[fn] = report
+		ma.cache[fn] = &report
 	}()
 
-	// Check for native rules
-	if fn.filename == nativeModule {
-		switch fn.name {
-		case "glob", "existing_rule", "existing_rules", "package_name",
-			"repository_name", "exports_files":
-			// Not a rule
+	f := ma.getFile(fn)
+	if f == nil {
+		return macroReport{}
+	}
+
+	for _, stmt := range f.Stmt {
+		switch stmt := stmt.(type) {
+		// If function is loaded from another file, check the separate file for the function call.
+		case *build.LoadStmt:
+			for i, from := range stmt.From {
+				if stmt.To[i].Name == fn.name {
+					label := labels.ParseRelative(stmt.Module.Value, f.Pkg)
+					if r := ma.AnalyzeFn(function{label.Package, label.Target, from.Name}); r.isMacroOrRule() {
+						return r
+					}
+				}
+			}
+		case *build.AssignExpr:
+			// Analyze aliases (`foo = bar`) or rule declarations (`foo = rule(...)`)
+			if lhsIdent, ok := stmt.LHS.(*build.Ident); !ok || lhsIdent.Name != fn.name {
+				continue
+			}
+
+			// If the RHS is an identifier (LHS is an alias), check if RHS is a macro.
+			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
+				if r := ma.AnalyzeFn(function{f.Pkg, f.Label, rhsIdent.Name}); r.isMacroOrRule() {
+					return wrapReport(fn, stmt, r)
+				}
+				continue
+			}
+
+			// If the RHS is a function call, check if the called function is a "rule" or a macro.
+			if call, ok := stmt.RHS.(*build.CallExpr); ok {
+				if ident, ok := call.X.(*build.Ident); ok {
+					if ident.Name == "macro" {
+						report = macroReport{callStack: []string{
+							function{f.Pkg, f.Label, "(MACRO)"}.callStackFrame(stmt),
+						}}
+						return
+					}
+					if ident.Name == "rule" {
+						report = macroReport{callStack: []string{
+							function{f.Pkg, f.Label, "(RULE)"}.callStackFrame(stmt),
+						}}
+						return
+					}
+					if r := ma.AnalyzeFn(function{f.Pkg, f.Label, ident.Name}); r.isMacroOrRule() {
+						return wrapReport(fn, stmt, r)
+					}
+				}
+			}
+
+			if dotExpr, ok := stmt.RHS.(*build.DotExpr); ok {
+				// Note: Currently only handles "native." dot-expressions, others are ignored.
+				if isNativeRule(dotExpr) {
+					return macroReport{callStack: []string{function{f.Pkg, f.Label, "native." + dotExpr.Name + " (NATIVE RULE)"}.callStackFrame(dotExpr)}}
+				}
+			}
+		case *build.DefStmt:
+			if stmt.Name != fn.name {
+				continue
+			}
+			// If the function is implemented here, check if it calls any rules or macros.
+			if r := ma.checkFunctionCalls(fn, stmt); r.isMacroOrRule() {
+				return wrapReport(fn, stmt, r)
+			}
 		default:
-			report.isMacro = true
-		}
-		return
-	}
-
-	fileData := ma.getFileData(fn.pkg, fn.filename)
-
-	// Check whether fn.name is an alias for another function
-	if alias, ok := fileData.aliases[fn.name]; ok {
-		if ma.IsMacro(alias).isMacro {
-			report.isMacro = true
-		}
-		return
-	}
-
-	// Check whether fn.name is a rule
-	if fileData.rules[fn.name] {
-		report.isMacro = true
-		return
-	}
-
-	// Check whether fn.name is an ordinary function
-	funCalls, ok := fileData.functions[fn.name]
-	if !ok {
-		return
-	}
-
-	// Prioritize function calls from already loaded files. If some of the function calls are from the same file
-	// (or another file that has been loaded already), check them first.
-	var knownFunCalls, newFunCalls []funCall
-	for _, fc := range funCalls {
-		if _, ok := ma.files[fc.function.pkg+":"+fc.function.filename]; ok || fc.function.filename == nativeModule {
-			knownFunCalls = append(knownFunCalls, fc)
-		} else {
-			newFunCalls = append(newFunCalls, fc)
+			continue
 		}
 	}
-
-	for _, fc := range append(knownFunCalls, newFunCalls...) {
-		if ma.IsMacro(fc.function).isMacro {
-			report.isMacro = true
-			report.fc = &fc
-			return
-		}
-	}
-
 	return
+}
+
+func (ma macroAnalyzer) checkFunctionCalls(fn function, def *build.DefStmt) (report macroReport) {
+	report = macroReport{}
+	build.Walk(def, func(expr build.Expr, stack []build.Expr) {
+		if call, ok := expr.(*build.CallExpr); ok {
+			if fnIdent, ok := call.X.(*build.Ident); ok {
+				calledFn := function{pkg: fn.pkg, filename: fn.filename, name: fnIdent.Name}
+				if r := ma.AnalyzeFn(calledFn); r.isMacroOrRule() {
+					report = wrapReport(calledFn, call, r)
+					return
+				}
+			}
+		}
+		if dotExpr, ok := expr.(*build.DotExpr); ok {
+			// Note: Currently only handles "native." dot-expressions, others are ignored.
+			if isNativeRule(dotExpr) {
+				dotFn := function{pkg: fn.pkg, filename: fn.filename, name: "native." + dotExpr.Name + " (NATIVE RULE)"}
+				report = macroReport{callStack: []string{dotFn.callStackFrame(dotExpr)}}
+			}
+		}
+	})
+	return report
+}
+
+func isNativeRule(expr *build.DotExpr) bool {
+	if ident, ok := expr.X.(*build.Ident); !ok || ident.Name != "native" {
+		return false
+	}
+
+	switch expr.Name {
+	case "glob", "existing_rule", "existing_rules", "package_name",
+		"repository_name", "exports_files":
+
+		// Not a rule
+		return false
+	default:
+		return true
+	}
 }
 
 // newMacroAnalyzer creates and initiates an instance of macroAnalyzer.
 func newMacroAnalyzer(fileReader *FileReader) macroAnalyzer {
 	return macroAnalyzer{
 		fileReader: fileReader,
-		files:      make(map[string]fileData),
-		cache:      make(map[function]functionReport),
+		localFiles: make(map[string]*build.File),
+		cache:      make(map[function]*macroReport),
 	}
 }
 
@@ -292,9 +235,9 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 	}
 
 	macroAnalyzer := newMacroAnalyzer(fileReader)
-	macroAnalyzer.files[f.Pkg+":"+f.Label] = analyzeFile(f)
+	macroAnalyzer.localFiles[f.Pkg+":"+f.Label] = f
 
-	findings := []*LinterFinding{}
+	var findings []*LinterFinding
 	for _, stmt := range f.Stmt {
 		def, ok := stmt.(*build.DefStmt)
 		if !ok {
@@ -305,24 +248,26 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		report := macroAnalyzer.IsMacro(function{f.Pkg, f.Label, def.Name})
-		if !report.isMacro {
+		fn := function{f.Pkg, f.Label, def.Name}
+		report := macroAnalyzer.AnalyzeFn(fn)
+		if !report.isMacroOrRule() {
 			continue
 		}
-		msg := fmt.Sprintf(`The macro %q should have a keyword argument called "name".`, def.Name)
-		if report.fc != nil {
-			// fc shouldn't be nil because that's the only node that can be found inside a function.
-			msg += fmt.Sprintf(`
+		msg := fmt.Sprintf(`The macro %q should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro %q on line %d.
+It is considered a macro because it calls a rule or another macro, call stack:
+
+%s
 
 By convention, every public macro needs a "name" argument (even if it doesn't use it).
 This is important for tooling and automation.
 
   * If this function is a helper function that's not supposed to be used outside of this file,
     please make it private (e.g. rename it to "_%s").
-  * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`, report.fc.nameAlias, report.fc.line, def.Name)
-		}
+  * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`,
+			def.Name,
+			strings.Join(report.callStack, "\n"),
+			def.Name)
 		finding := makeLinterFinding(def, msg)
 		finding.End = def.ColonPos
 		findings = append(findings, finding)

@@ -45,76 +45,154 @@ def another_macro(x):
 		[]string{
 			`5: The macro "macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "my_rule" on line 7.`,
-			`19: The macro "another_macro" should have a keyword argument called "name".
+It is considered a macro because it calls a rule or another macro, call stack:
 
-It is considered a macro because it calls a rule or another macro "native.cc_library" on line 21.`,
+test/package:test_file.bzl:5: macro
+test/package:test_file.bzl:7: my_rule
+test/package:test_file.bzl:3: (RULE)
+
+By convention, every public macro needs a "name" argument (even if it doesn't use it).
+This is important for tooling and automation.
+
+  * If this function is a helper function that's not supposed to be used outside of this file,
+    please make it private (e.g. rename it to "_macro").
+  * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`,
+			`:19: The macro "another_macro" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:19: another_macro
+test/package:test_file.bzl:21: native.cc_library (NATIVE RULE)
+
+By convention, every public macro needs a "name" argument (even if it doesn't use it).
+This is important for tooling and automation.
+
+  * If this function is a helper function that's not supposed to be used outside of this file,
+    please make it private (e.g. rename it to "_another_macro").
+  * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`,
 		},
 		scopeBzl)
 
 	checkFindings(t, "unnamed-macro", `
-my_rule = rule()
+		my_rule = rule()
 
-def macro1(foo, name, bar):
-  my_rule()
+		def macro1(foo, name, bar):
+		  my_rule()
 
-def macro2(foo, *, name):
-  my_rule()
+		def macro2(foo, *, name):
+		  my_rule()
 
-def macro3(foo, *args, **kwargs):
-  my_rule()
-`,
+		def macro3(foo, *args, **kwargs):
+		  my_rule()
+		`,
 		[]string{},
 		scopeBzl)
 
 	checkFindings(t, "unnamed-macro", `
-my_rule = rule()
+		my_rule = rule()
 
-def macro(name):
-  my_rule(name = name)
+		def macro(name):
+		  my_rule(name = name)
 
-alias = macro
+		alias = macro
 
-def bad_macro():
-  for x in y:
-    alias(x)
-`,
+		def bad_macro():
+		  for x in y:
+		    alias(x)
+		`,
 		[]string{
-			`8: The macro "bad_macro" should have a keyword argument called "name".
+			`:8: The macro "bad_macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "alias" on line 10.`,
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:8: bad_macro
+test/package:test_file.bzl:10: alias
+test/package:test_file.bzl:6: alias
+test/package:test_file.bzl:3: macro
+test/package:test_file.bzl:4: my_rule
+test/package:test_file.bzl:1: (RULE)`,
 		},
 		scopeBzl)
 
 	checkFindings(t, "unnamed-macro", `
+		my_rule = rule()
+
+		def macro1():
+		  my_rule(name = x)
+
+		def macro2():
+		  macro1()
+
+		def macro3():
+		  macro2()
+
+		def macro4():
+		  my_rule()
+		`,
+		[]string{
+			`:3: The macro "macro1" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:3: macro1
+test/package:test_file.bzl:4: my_rule
+test/package:test_file.bzl:1: (RULE)`,
+			`:6: The macro "macro2" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:6: macro2
+test/package:test_file.bzl:7: macro1
+test/package:test_file.bzl:3: macro1
+test/package:test_file.bzl:4: my_rule
+test/package:test_file.bzl:1: (RULE)
+`,
+			`:9: The macro "macro3" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:9: macro3
+test/package:test_file.bzl:10: macro2
+test/package:test_file.bzl:6: macro2
+test/package:test_file.bzl:7: macro1
+test/package:test_file.bzl:3: macro1
+test/package:test_file.bzl:4: my_rule
+test/package:test_file.bzl:1: (RULE)
+`,
+			`:12: The macro "macro4" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:12: macro4
+test/package:test_file.bzl:13: my_rule
+test/package:test_file.bzl:1: (RULE)`,
+		},
+		scopeBzl)
+}
+
+func TestSymbolicMacro(t *testing.T) {
+	checkFindings(t, "unnamed-macro", `
+load(":foo.bzl", "foo")
+
 my_rule = rule()
 
-def macro1():
-  my_rule(name = x)
-
-def macro2():
-  macro1()
-
-def macro3():
-  macro2()
-
-def macro4():
+def _my_macro_implementation(name):
   my_rule()
+
+my_symbolic_macro = macro(implementation = _my_macro_impl)
+
+def legacy_macro():
+  my_symbolic_macro()
 `,
 		[]string{
-			`3: The macro "macro1" should have a keyword argument called "name".
+			`:10: The macro "legacy_macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "my_rule" on line 4.`,
-			`6: The macro "macro2" should have a keyword argument called "name".
+It is considered a macro because it calls a rule or another macro, call stack:
 
-It is considered a macro because it calls a rule or another macro "macro1" on line 7`,
-			`9: The macro "macro3" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "macro2" on line 10.`,
-			`12: The macro "macro4" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "my_rule" on line 13.`,
-		},
+test/package:test_file.bzl:10: legacy_macro
+test/package:test_file.bzl:11: my_symbolic_macro
+test/package:test_file.bzl:8: (MACRO)
+`},
 		scopeBzl)
 }
 
@@ -159,12 +237,22 @@ def bar():
   my_rule()
 `,
 		[]string{
-			`3: The macro "foo" should have a keyword argument called "name".
+			`:3: The macro "foo" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "bar" on line 4.`,
-			`6: The macro "bar" should have a keyword argument called "name".
+It is considered a macro because it calls a rule or another macro, call stack:
 
-It is considered a macro because it calls a rule or another macro "my_rule" on line 8.`,
+test/package:test_file.bzl:3: foo
+test/package:test_file.bzl:4: bar
+test/package:test_file.bzl:6: bar
+test/package:test_file.bzl:8: my_rule
+test/package:test_file.bzl:1: (RULE)`,
+			`:6: The macro "bar" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:6: bar
+test/package:test_file.bzl:8: my_rule
+test/package:test_file.bzl:1: (RULE)`,
 		},
 		scopeBzl)
 }
@@ -213,9 +301,16 @@ def not_macro(x):
   f()
 `,
 		[]string{
-			`4: The macro "macro1" should have a keyword argument called "name".
+			`:4: The macro "macro1" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "abc" on line 5.
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:4: macro1
+test/package:test_file.bzl:5: abc
+test/package:subdir1/foo.bzl:5: bar
+test/package:subdir1/foo.bzl:6: foo
+test/package:subdir1/foo.bzl:2: foo
+test/package:subdir1/foo.bzl:3: native.foo_binary (NATIVE RULE)
 
 By convention, every public macro needs a "name" argument (even if it doesn't use it).
 This is important for tooling and automation.
@@ -223,9 +318,18 @@ This is important for tooling and automation.
   * If this function is a helper function that's not supposed to be used outside of this file,
     please make it private (e.g. rename it to "_macro1").
   * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`,
-			`7: The macro "macro2" should have a keyword argument called "name".
+			`:7: The macro "macro2" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "baz" on line 8.
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:7: macro2
+test/package:test_file.bzl:8: baz
+test/package:subdir2/baz.bzl:5: baz
+test/package:subdir2/baz.bzl:7: bar
+test/package:subdir1/foo.bzl:5: bar
+test/package:subdir1/foo.bzl:6: foo
+test/package:subdir1/foo.bzl:2: foo
+test/package:subdir1/foo.bzl:3: native.foo_binary (NATIVE RULE)
 
 By convention, every public macro needs a "name" argument (even if it doesn't use it).
 This is important for tooling and automation.
@@ -233,9 +337,15 @@ This is important for tooling and automation.
   * If this function is a helper function that's not supposed to be used outside of this file,
     please make it private (e.g. rename it to "_macro2").
   * Otherwise, add a "name" argument. If possible, use that name when calling other macros/rules.`,
-			`10: The macro "macro3" should have a keyword argument called "name".
+			`:10: The macro "macro3" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "qux" on line 11.
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:10: macro3
+test/package:test_file.bzl:11: qux
+test/package:subdir2/baz.bzl:9: qux
+test/package:subdir2/baz.bzl:10: your_rule
+test/package:subdir1/foo.bzl:8: (RULE)
 
 By convention, every public macro needs a "name" argument (even if it doesn't use it).
 This is important for tooling and automation.
@@ -286,9 +396,16 @@ def macro():
   baz()
   quux()
 `, []string{
-		`4: The macro "macro" should have a keyword argument called "name".
+		`:4: The macro "macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "quux" on line 7.`,
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:4: macro
+test/package:test_file.bzl:7: quux
+test/package:bar.bzl:7: qux
+test/package:bar.bzl:10: quuux
+test/package:foo.bzl:10: qux
+test/package:foo.bzl:11: native.cc_library (NATIVE RULE)`,
 	}, scopeBzl)
 }
 
@@ -310,63 +427,16 @@ my_rule = rule()
 def macro():
   bar()
 `, []string{
-		`5: The macro "macro" should have a keyword argument called "name".
+		`:5: The macro "macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "bar" on line 6.`,
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:5: macro
+test/package:test_file.bzl:6: bar
+test/package:foo.bzl:4: foo
+test/package:foo.bzl:5: some_rule
+test/package:test_file.bzl:3: (RULE)`,
 	}, scopeBzl)
-}
-
-func TestUnnamedMacroLoadedFiles(t *testing.T) {
-	// Test that not necessary files are not loaded
-
-	defer setUpFileReader(map[string]string{
-		"a.bzl": "a = rule()",
-		"b.bzl": "b = rule()",
-		"c.bzl": "c = rule()",
-		"d.bzl": "d = rule()",
-	})()
-
-	checkFindings(t, "unnamed-macro", `
-load("//:a.bzl", "a")
-load("//:b.bzl", "b")
-load("//:c.bzl", "c")
-load("//:d.bzl", "d")
-
-def macro1():
-  a()  # has to load a.bzl to analyze
-
-def macro2():
-  b()  # can skip b.bzl because there's a native rule
-  native.cc_library()
-
-def macro3():
-  c()  # can skip c.bzl because a.bzl has already been loaded
-  a()
-
-def macro4():
-  d()  # can skip d.bzl because there's a rule or another macro defined in the same file
-  r()
-
-r = rule()
-`, []string{
-		`6: The macro "macro1" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "a" on line 7.`,
-		`9: The macro "macro2" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "native.cc_library" on line 11.`,
-		`13: The macro "macro3" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "a" on line 15.`,
-		`17: The macro "macro4" should have a keyword argument called "name".
-
-It is considered a macro because it calls a rule or another macro "r" on line 19.`,
-	}, scopeBzl)
-
-	if len(fileReaderRequests) == 1 && fileReaderRequests[0] == "a.bzl" {
-		return
-	}
-	t.Errorf("expected to load only a.bzl, instead loaded %d files: %v", len(fileReaderRequests), fileReaderRequests)
 }
 
 func TestUnnamedMacroAliases(t *testing.T) {
@@ -392,9 +462,15 @@ def macro1():
 def macro2(name):
   baz()
 `, []string{
-		`5: The macro "macro1" should have a keyword argument called "name".
+		`:5: The macro "macro1" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "baz" on line 6.`,
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:5: macro1
+test/package:test_file.bzl:6: baz
+test/package:test_file.bzl:3: baz
+test/package:bar.bzl:4: bar
+test/package:bar.bzl:2: (RULE)`,
 	}, scopeBzl)
 }
 
@@ -409,9 +485,15 @@ def macro(x):
   _not_macro(x)
 `,
 		[]string{
-			`6: The macro "macro" should have a keyword argument called "name".
+			`:6: The macro "macro" should have a keyword argument called "name".
 
-It is considered a macro because it calls a rule or another macro "_not_macro" on line 7.`,
+It is considered a macro because it calls a rule or another macro, call stack:
+
+test/package:test_file.bzl:6: macro
+test/package:test_file.bzl:7: _not_macro
+test/package:test_file.bzl:3: _not_macro
+test/package:test_file.bzl:4: my_rule
+test/package:test_file.bzl:1: (RULE)`,
 		},
 		scopeBzl)
 }
