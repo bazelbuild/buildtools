@@ -2413,12 +2413,14 @@ module(
 )
 EOF
 
+  cat > MODULE.bazel.expected.stderr <<EOF
+fixed $(pwd)/MODULE.bazel
+EOF
+
   $buildozer -stdout 'format' //MODULE.bazel:all > stdout 2> stderr
-  if [[ "$(cat stderr)" == "fixed */MODULE.bazel" ]]; then
-    fail "Expected 'fixed */MODULE.bazel', got: $(cat stderr)"
-  fi
   diff -u MODULE.bazel.expected MODULE.bazel || fail "File was changed"
   diff -u MODULE.bazel.expected.stdout stdout || fail "Output didn't match"
+  diff -u MODULE.bazel.expected.stderr stderr || fail "Error output didn't match"
 }
 
 run_suite "buildozer tests"
