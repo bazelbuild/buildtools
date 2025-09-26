@@ -1205,10 +1205,11 @@ The linter allows the following to be before `package()`:
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=positional-args`
 
-All top level calls (except for some built-ins) should use keyword args over
-positional arguments. Positional arguments can cause subtle errors if the order
-is switched or if an argument is removed. Keyword args also greatly improve
-readability.
+All macro and rule calls should use keyword args over positional arguments.
+Positional arguments can cause subtle errors if the order is switched or if
+an argument is removed. Keyword args also greatly improve readability.
+Additionally, positional arguments prevent migration from [Legacy Macros](https://bazel.build/extending/legacy-macros)
+to [Symbolic Macros](https://bazel.build/extending/macros).
 
 ```diff
 - my_macro("foo", "bar")

@@ -87,18 +87,22 @@ exports_files(["foo.txt"])
 		scopeBuild|scopeWorkspace)
 }
 
-func TestPositionalArguments(t *testing.T) {
+func TestPositionalArgumentsDoesNotWarnForNamedArguments(t *testing.T) {
 	checkFindings(t, "positional-args", `
-my_macro(foo = "bar")
-my_macro("foo", "bar")
-my_macro(foo = bar(x))
-[my_macro(foo) for foo in bar]`,
-		[]string{
-			":2: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
-			":4: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.",
-		},
-		scopeBuild)
+my_macro = macro()
+my_rule = rule()
+def my_function(foo):
+  pass
 
+my_macro(foo = "bar")
+my_rule(foo = "bar")
+my_function(foo = "bar")
+`,
+		[]string{},
+		scopeBuild)
+}
+
+func TestPositionalArgumentsDoesNotWarnForAllowlistedFunctions(t *testing.T) {
 	checkFindings(t, "positional-args", `
 register_toolchains(
 	"//foo",
@@ -106,6 +110,55 @@ register_toolchains(
 )`,
 		[]string{},
 		scopeBuild)
+}
+
+func TestPositionalArgumentsWarnsForPositionalMacrosOrRuleCalls(t *testing.T) {
+	checkFindings(t, "positional-args", `
+my_macro = macro()
+my_rule = rule()
+def my_function(foo):
+  pass
+
+my_macro("foo", "bar")
+my_rule("foo", "bar")
+my_function("foo", "bar")
+`,
+		[]string{
+			`6: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_macro" with positional arguments.`,
+			`7: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_rule" with positional arguments.`,
+		},
+		scopeBuild)
+}
+
+func TestPositionalArgumentsWarnsWhenCalledInNestedContexts(t *testing.T) {
+	checkFindings(t, "positional-args", `
+my_macro = macro()
+my_rule = rule()
+def my_function(foo):
+  pass
+
+other_function(foo = my_macro(x))
+other_function(foo = my_rule(x))
+other_function(foo = my_function(x))
+
+[my_macro(foo) for foo in bar]
+[my_rule(foo) for foo in bar]
+[my_function(foo) for foo in bar]
+`,
+		[]string{
+			`6: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_macro" with positional arguments.`,
+			`7: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_rule" with positional arguments.`,
+			`10: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_macro" with positional arguments.`,
+			`11: All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro "my_rule" with positional arguments.`,
+		},
+		scopeBuild)
+
 }
 
 func TestKwargsInBuildFilesWarning(t *testing.T) {
