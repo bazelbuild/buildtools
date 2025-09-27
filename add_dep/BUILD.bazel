@@ -1,0 +1,68 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "color",
+    srcs = ["color.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep/color",
+    visibility = ["//visibility:private"],
+)
+
+go_library(
+    name = "bazel",
+    srcs = ["bazel.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep/bazel",
+    visibility = ["//visibility:private"],
+)
+
+go_library(
+    name = "pipe",
+    srcs = ["pipe.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep/pipe",
+    visibility = ["//visibility:private"],
+)
+
+go_library(
+    name = "query",
+    srcs = ["query.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep/query",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":bazel",
+        ":pipe",
+        "//build_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+    ],
+)
+
+go_library(
+    name = "adddep",
+    srcs = ["adddep.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep/adddep",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":bazel",
+    ],
+)
+
+go_library(
+    name = "add_dep_lib",
+    srcs = ["add_dep.go"],
+    importpath = "github.com/bazelbuild/buildtools/add_dep",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":adddep",
+        ":bazel",
+        ":color",
+        ":pipe",
+        ":query",
+        "//build",
+        "//edit",
+        "//file",
+    ],
+)
+
+go_binary(
+    name = "add_dep",
+    embed = [":add_dep_lib"],
+    visibility = ["//visibility:public"],
+)
