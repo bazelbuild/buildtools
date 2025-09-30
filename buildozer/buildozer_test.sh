@@ -2393,4 +2393,34 @@ EOF
   diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
 }
 
+function test_stdout() {
+  cat > MODULE.bazel <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected.stdout <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected.stderr <<EOF
+fixed $(pwd)/MODULE.bazel
+EOF
+
+  $buildozer -stdout 'format' //MODULE.bazel:all > stdout 2> stderr
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "File was changed"
+  diff -u MODULE.bazel.expected.stdout stdout || fail "Output didn't match"
+  diff -u MODULE.bazel.expected.stderr stderr || fail "Error output didn't match"
+}
+
 run_suite "buildozer tests"
