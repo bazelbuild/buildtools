@@ -668,6 +668,27 @@ bar()
 			":9: Variable \"y\" is unused.",
 		},
 		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def sample_macro_with_unused_foo(name, foo = "foo"):
+  def inner_def(foo = "bar"):
+    print(foo)
+
+  inner_def()
+
+def sample_macro_with_used_foo(name, foo = "foo"):
+  def inner_def(foo = foo):
+    print(foo)
+
+  inner_def()
+
+sample_macro_with_unused_foo()
+sample_macro_with_used_foo()
+`,
+		[]string{
+			":1: Variable \"foo\" is unused.",
+		},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {
