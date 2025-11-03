@@ -24,9 +24,12 @@ bazel build --config=release //buildifier:all //buildozer:all //unused_deps:all
 for tool in "buildifier" "buildozer" "unused_deps"; do
   cp bazel-bin/"$tool/$tool-linux_amd64" $BIN_DIR
   cp bazel-bin/"$tool/$tool-linux_arm64" $BIN_DIR
+  cp bazel-bin/"$tool/$tool-linux_riscv64" $BIN_DIR
+  cp bazel-bin/"$tool/$tool-linux_s390x" $BIN_DIR
   cp bazel-bin/"$tool/$tool-darwin_amd64" $BIN_DIR
   cp bazel-bin/"$tool/$tool-darwin_arm64" $BIN_DIR
   cp bazel-bin/"$tool/$tool-windows_amd64.exe" $BIN_DIR
+  cp bazel-bin/"$tool/$tool-windows_arm64.exe" $BIN_DIR
 done;
 
 echo "Creating a draft release"
@@ -44,9 +47,12 @@ upload_file() {
 for tool in "buildifier" "buildozer" "unused_deps"; do
   upload_file "$BIN_DIR/$tool-linux_amd64" "$tool-linux-amd64"
   upload_file "$BIN_DIR/$tool-linux_arm64" "$tool-linux-arm64"
+  upload_file "$BIN_DIR/$tool-linux_riscv64" "$tool-linux-riscv64"
+  upload_file "$BIN_DIR/$tool-linux_s390x" "$tool-linux-s390x"
   upload_file "$BIN_DIR/$tool-darwin_amd64" "$tool-darwin-amd64"
   upload_file "$BIN_DIR/$tool-darwin_arm64" "$tool-darwin-arm64"
   upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
+  upload_file "$BIN_DIR/$tool-windows_arm64.exe" "$tool-windows-arm64.exe"
 done
 
 rm -rf $BIN_DIR

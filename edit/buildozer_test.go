@@ -17,6 +17,7 @@ limitations under the License.
 package edit
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -24,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/google/go-cmp/cmp"
 )
 
 var removeCommentTests = []struct {
@@ -144,6 +146,13 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.MkdirAll(filepath.Join(tmp, "a", "c"), 0755); err != nil {
 		t.Fatal(err)
 	}
+	// Create additional directories that will be ignored
+	if err := os.MkdirAll(filepath.Join(tmp, "ignored"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "ignored"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -159,6 +168,20 @@ func setupTestTmpWorkspace(t *testing.T, buildFileName string) (tmp string) {
 	if err := os.WriteFile(filepath.Join(tmp, "a", "c", buildFileName), nil, 0755); err != nil {
 		t.Fatal(err)
 	}
+	// Create BUILD files in ignored directories to verify they're skipped
+	if err := os.WriteFile(filepath.Join(tmp, "ignored", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "a", "ignored", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create .bazelignore file with paths to ignore
+	bazelignoreContent := []byte("# Ignore these directories\nignored\na/ignored/\n")
+	if err := os.WriteFile(filepath.Join(tmp, ".bazelignore"), bazelignoreContent, 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	return
 }
 
@@ -192,7 +215,7 @@ func runTestTargetExpressionToBuildFiles(t *testing.T, buildFileName string) {
 			defer os.Chdir(cwd)
 		}
 
-		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target)
+		buildFiles := targetExpressionToBuildFiles(tc.rootDir, tc.target, true)
 		expectedBuildFilesMap := make(map[string]bool)
 		buildFilesMap := make(map[string]bool)
 		for _, buildFile := range buildFiles {
@@ -609,6 +632,97 @@ func TestCmdDictAddSet_missingColon(t *testing.T) {
 	}
 }
 
+func TestCmdDictOperations(t *testing.T) {
+	tests := []struct {
+		name           string
+		dictAddArgs    []string
+		dictSetArgs    []string
+		dictRemoveArgs []string
+		input          string
+		want           string
+	}{
+		{
+			name:           "dict_add_set_remove",
+			dictAddArgs:    []string{"dict_attr", `added_entry:new_value`},
+			dictSetArgs:    []string{"dict_attr", `entry_to_change:updated_value`},
+			dictRemoveArgs: []string{"dict_attr", `entry_to_remove`},
+			input: strings.Join([]string{
+				`rule(`,
+				`  name = "rule_name",`,
+				`  dict_attr = {`,
+				`    "entry_to_change": "123",`,
+				`    "entry_to_remove": "abc",`,
+				`  },`,
+				`)`,
+			}, "\n"),
+			want: strings.Join([]string{
+				`rule(`,
+				`    name = "rule_name",`,
+				`    dict_attr = {`,
+				`        "entry_to_change": "updated_value",`,
+				`        "added_entry": "new_value",`,
+				`    },`,
+				`)`,
+				``,
+			}, "\n"),
+		},
+		{
+			name:           "dict_add_set_remove_with_escaped_colon",
+			dictAddArgs:    []string{"dict_attr", `added\:entry:new:value`},
+			dictSetArgs:    []string{"dict_attr", `entry\:to_change:updated\:value`},
+			dictRemoveArgs: []string{"dict_attr", `entry\:to_remove`},
+			input: strings.Join([]string{
+				`rule(`,
+				`  name = "rule_name",`,
+				`  dict_attr = {`,
+				`    "entry:to_change": "123",`,
+				`    "entry:to_remove": "abc",`,
+				`  },`,
+				`)`,
+			}, "\n"),
+			want: strings.Join([]string{
+				`rule(`,
+				`    name = "rule_name",`,
+				`    dict_attr = {`,
+				`        "entry:to_change": "updated:value",`,
+				`        "added:entry": "new:value",`,
+				`    },`,
+				`)`,
+				``,
+			}, "\n"),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := build.Parse("BUILD", []byte(tc.input))
+			if err != nil {
+				t.Fatalf("build.Parse returned err: %s", err)
+			}
+			rule := file.RuleNamed("rule_name")
+			file, err = cmdDictAdd(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictAddArgs})
+			if err != nil {
+				t.Fatalf("cmdDictAdd returned err: %s", err)
+			}
+
+			file, err = cmdDictSet(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictSetArgs})
+			if err != nil {
+				t.Fatalf("cmdDictSet returned err: %s", err)
+			}
+
+			file, err = cmdDictRemove(NewOpts(), CmdEnvironment{File: file, Rule: rule, Args: tc.dictRemoveArgs})
+			if err != nil {
+				t.Fatalf("cmdDictRemove returned err: %s", err)
+			}
+
+			got := string(build.Format(file))
+
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Fatalf("dict operations returned diff -want +got %v", diff)
+			}
+		})
+	}
+}
+
 func TestCmdSetSelect(t *testing.T) {
 	for i, tc := range []struct {
 		name      string
@@ -695,6 +809,386 @@ func TestCmdSetSelect(t *testing.T) {
 			got := strings.TrimSpace(string(build.Format(bld)))
 			if got != tc.expected {
 				t.Errorf("cmdSetSelect(%d):\ngot:\n%s\nexpected:\n%s", i, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestExecuteCommandsOnInlineFile(t *testing.T) {
+	tests := []struct {
+		name        string
+		fileContent []byte
+		commands    []string
+		wantOutput  []byte
+	}{
+		{
+			name:        "creating_new_target_and_adding_deps",
+			fileContent: nil,
+			commands: []string{
+				"new java_library foo|//package/path/BUILD",
+				"add deps :bar|//package/path:foo",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "adding_deps_to_existing_targets",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`)`,
+				``,
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:apples"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"add deps :bar|//package/path:foo",
+				"add deps //package/fruits:oranges|//package/path:fruits",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``,
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = [`,
+				`        "//package/fruits:apples",`,
+				`        "//package/fruits:oranges",`,
+				`    ],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "substituting_a_target",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:apples"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"replace deps //package/fruits:apples //package/fruits:oranges|//whatever/package/path:fruits",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "fruits",`,
+				`    deps = ["//package/fruits:oranges"],`,
+				`)`,
+				``}, "\n")),
+		},
+		{
+			name: "no_changes_does_not_return_any_diff",
+			fileContent: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+			commands: []string{
+				"add deps :bar |//whatever/package/path:foo",
+			},
+			wantOutput: []byte(strings.Join([]string{
+				`java_library(`,
+				`    name = "foo",`,
+				`    deps = [":bar"],`,
+				`)`,
+				``}, "\n")),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := ExecuteCommandsOnInlineFile(tc.fileContent, tc.commands)
+			if err != nil {
+				t.Fatalf("Error, got error %v", err)
+			}
+
+			if diff := cmp.Diff(tc.wantOutput, output); diff != "" {
+				t.Errorf("%s: (-want +got): %s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestTestExecuteCommandsOnInlineFileFailed(t *testing.T) {
+	tests := []struct {
+		name        string
+		fileContent []byte
+		commands    []string
+		wantErr     error
+	}{
+		{
+			name: "target_does_not_exist",
+			commands: []string{
+				"add deps :foo|//package/path:bar",
+			},
+			wantErr: fmt.Errorf("rule 'bar' not found"),
+		},
+		{
+			name: "invalid_input",
+			commands: []string{
+				"completely invalid command",
+			},
+			wantErr: fmt.Errorf("rule 'completely invalid command' not found"),
+		},
+		{
+			name: "missing_implementation",
+			commands: []string{
+				"extrapolate packages :foo|//package/path:bar",
+			},
+			wantErr: fmt.Errorf("invalid input commands, expected all commands to reference a single file"),
+		},
+		{
+			name: "commands_for_multiple_files",
+			commands: []string{
+				"add deps :foo|//package/path:bar",
+				"add deps :foo|//package2/path:bar",
+			},
+			wantErr: fmt.Errorf("invalid input commands, expected all commands to reference a single file"),
+		},
+		{
+			name: "command_with_unexpected_target_semicolons",
+			commands: []string{
+				"add deps :foo|//package:path:bar",
+			},
+			wantErr: fmt.Errorf("invalid target name \"//package:path:bar\""),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			output, gotErr := ExecuteCommandsOnInlineFile(tc.fileContent, tc.commands)
+
+			if output != nil {
+				t.Fatalf("Error, got response for invalid input %v, expected error", output)
+			}
+
+			if diff := cmp.Diff(tc.wantErr.Error(), gotErr.Error()); diff != "" {
+				t.Errorf("%s: (-want +got): %s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestGetIgnoredPrefixes(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	tests := []struct {
+		name          string
+		bazelignore   string
+		expected      []string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name: "valid paths",
+			bazelignore: `# Ignore these directories
+ignored
+a/ignored
+b/c/d`,
+			expected: []string{"ignored", "a/ignored", "b/c/d"},
+		},
+		{
+			name:        "empty file",
+			bazelignore: ` `,
+			expected:    []string{},
+		},
+		{
+			name: "only comments",
+			bazelignore: `# This is a comment
+# Another comment`,
+			expected: []string{},
+		},
+		{
+			name: "empty lines",
+			bazelignore: `ignored
+
+a/ignored
+
+# comment
+b/c/d`,
+			expected: []string{"ignored", "a/ignored", "b/c/d"},
+		},
+		{
+			name: "absolute paths",
+			bazelignore: `/absolute/path
+ignored
+/another/absolute/path`,
+			expected: []string{"ignored"},
+		},
+		{
+			name:        "no file",
+			bazelignore: "",
+			expected:    []string{},
+		},
+		{
+			name:        "trailing slash should be normalized",
+			bazelignore: `ignored/`,
+			expected:    []string{"ignored"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a new temporary directory for each test case
+			testDir, err := os.MkdirTemp(tmp, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.bazelignore != "" {
+				if err := os.WriteFile(filepath.Join(testDir, ".bazelignore"), []byte(tt.bazelignore), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			got := getIgnoredPrefixes(testDir)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("getIgnoredPrefixes() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestShouldIgnorePath(t *testing.T) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	tests := []struct {
+		name            string
+		path            string
+		ignoredPrefixes []string
+		want            bool
+	}{
+		{
+			name:            "exact match",
+			path:            filepath.Join(tmp, "foo"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "subdirectory",
+			path:            filepath.Join(tmp, "foo", "bar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            true,
+		},
+		{
+			name:            "similar prefix but not directory",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo"},
+			want:            false, // Should not ignore "foobar" when only "foo" is ignored
+		},
+		{
+			name:            "matched with multiple prefixes",
+			path:            filepath.Join(tmp, "foobar"),
+			ignoredPrefixes: []string{"foo2", "foobar", "baz"},
+			want:            true,
+		},
+		{
+			name:            "no match",
+			path:            filepath.Join(tmp, "bar"),
+			ignoredPrefixes: []string{"foo", "baz"},
+			want:            false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldIgnorePath(tt.path, tmp, tt.ignoredPrefixes)
+			if got != tt.want {
+				t.Errorf("shouldIgnorePath(%q, %q, %v) = %v, want %v",
+					tt.path, tmp, tt.ignoredPrefixes, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSplitOnNonEscaped(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		sep   byte
+		lim   int
+		want  []string
+	}{
+		{
+			name:  "no_split",
+			input: "one:two",
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"one:two"},
+		},
+		{
+			name:  "split_to_two",
+			input: "one:two",
+			sep:   ':',
+			lim:   2,
+			want:  []string{"one", "two"},
+		},
+		{
+			name:  "split_with_limit",
+			input: "one:two:three:four",
+			sep:   ':',
+			lim:   2,
+			want:  []string{"one", "two:three:four"},
+		},
+		{
+			name:  "split_without_limit",
+			input: "one:two:three:four",
+			sep:   ':',
+			lim:   -1,
+			want:  []string{"one", "two", "three", "four"},
+		},
+		{
+			name:  "does_not_split_on_escaped",
+			input: `one\:two:three`,
+			sep:   ':',
+			lim:   2,
+			want:  []string{`one\:two`, "three"},
+		},
+		{
+			name:  "split_on_pipe",
+			input: `one|two|three`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"one", "two", "three"},
+		},
+		{
+			name:  "skip_escaped_pipes",
+			input: `one\|two|three`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{`one\|two`, "three"},
+		},
+		{
+			name:  "split_with_unicode",
+			input: `😉|❤️|😁`,
+			sep:   '|',
+			lim:   -1,
+			want:  []string{"😉", "❤️", "😁"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := splitOnNonEscaped(tc.input, tc.sep, tc.lim)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Fatalf("splitOnNonEscaped returned diff -want +got %v", diff)
 			}
 		})
 	}
