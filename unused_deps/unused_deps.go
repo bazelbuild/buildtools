@@ -317,11 +317,13 @@ func setupAspect() (string, error) {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: unused_deps TARGET...
+	_, _ = fmt.Fprintf(flag.CommandLine.Output(), `usage: unused_deps TARGET...
 
 For Java rules in TARGETs, prints commands to delete deps unused at compile time.
 Note these may be used at run time; see documentation for more information.
+
 `)
+	flag.PrintDefaults()
 	os.Exit(2)
 }
 
