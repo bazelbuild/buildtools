@@ -27,6 +27,7 @@ $Files = Get-ChildItem -LiteralPath '%BUILD_WORKSPACE_DIRECTORY:/=\%' -Recurse -
         -or $_.Name -clike 'WORKSPACE.*.bazel' `^
         -or $_.Name -clike 'WORKSPACE.*.oss'^
     };^
+ ^<# Process files in batches of 100- to avoid exceeding CreateProcess' maximum length of 32,767 characters #^> ^
 $i = 0;^
 while ($i -lt $Files.Count)^
 {^
