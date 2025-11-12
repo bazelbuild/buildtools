@@ -7,7 +7,7 @@ go_library(
         "validation.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/buildifier/config",
-    visibility = ["//buildifier/cmd:__pkg__"],
+    visibility = ["//buildifier:__pkg__"],
     deps = [
         "//tables",
         "//warn",
