@@ -12,8 +12,21 @@ rem Get the absolute path to the buildifier executable
 for /f "tokens=2" %%i in ('findstr /r "\<buildifier\.exe\>" MANIFEST') do (set buildifier_abs_path=%%i)
 
 powershell ^
+function Should-Exclude($Path)^
+{^
+    $relPath = '.' + $Path.Substring('%BUILD_WORKSPACE_DIRECTORY%'.Length);^
+    foreach ($pattern in @(@@EXCLUDE_PATTERNS@@))^
+    {^
+        if ($relPath -clike $pattern)^
+        {^
+            return $true;^
+        };^
+    };^
+    return $false;^
+};^
 $Files = Get-ChildItem -LiteralPath '%BUILD_WORKSPACE_DIRECTORY:/=\%' -Recurse -File -ErrorAction SilentlyContinue ^|^
     Where-Object {^
+        (^
         $_.Name -eq 'BUILD.bazel' `^
         -or $_.Name -eq 'BUILD' `^
         -or $_.Name -eq 'WORKSPACE' `^
@@ -26,6 +39,7 @@ $Files = Get-ChildItem -LiteralPath '%BUILD_WORKSPACE_DIRECTORY:/=\%' -Recurse -
         -or $_.Name -clike 'BUILD.*.oss' `^
         -or $_.Name -clike 'WORKSPACE.*.bazel' `^
         -or $_.Name -clike 'WORKSPACE.*.oss'^
+        ) -and -not (Should-Exclude $_.Path)^
     };^
  ^<# Process files in batches of 100- to avoid exceeding CreateProcess' maximum length of 32,767 characters #^> ^
 $i = 0;^
