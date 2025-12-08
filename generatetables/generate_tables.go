@@ -70,7 +70,7 @@ func generateTable(rules []*buildpb.RuleDefinition) map[string]buildpb.Attribute
 	// package arguments are also not listed in the proto file
 	types["default_hdrs_check"] = buildpb.Attribute_STRING
 	types["default_visibility"] = types["visibility"]
-	types["default_copts"] = types["copts"]
+	types["default_copts"] = buildpb.Attribute_STRING_LIST
 	types["default_deprecation"] = types["deprecation"]
 	types["default_testonly"] = types["testonly"]
 	types["default_applicable_licenses"] = buildpb.Attribute_LABEL_LIST
