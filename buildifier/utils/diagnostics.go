@@ -82,7 +82,7 @@ type warning struct {
 	AutoFixable bool         `json:"autoFixable"`
 	Message     string       `json:"message"`
 	URL         string       `json:"url"`
-Replacement *replacement `json:"replacement,omitempty"` // Optional replacement
+    Replacement *replacement `json:"replacement,omitempty"` // Optional replacement
 }
 
 type position struct {
