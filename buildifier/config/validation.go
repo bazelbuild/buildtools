@@ -96,7 +96,7 @@ func ValidateModes(mode, lint *string, dflag *bool, format *string) error {
 		}
 
 	default:
-		return fmt.Errorf("unrecognized lint mode %s; valid modes are warn and fix", *lint)
+return fmt.Errorf("unrecognized lint mode %s; valid modes are warn, suggest, and fix", *lint)
 	}
 
 	return nil
