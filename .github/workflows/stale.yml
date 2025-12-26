@@ -7,11 +7,10 @@
 
 name: Close stale issues and pull requests
 
-# TODO: oreflow@ - Enable automated runs for this workflow.
 on:
   workflow_dispatch:
-#  schedule:
-#  - cron: '0 1 * * *'
+  schedule:
+  - cron: '0 10 * * *'
 
 permissions:
   contents: read
