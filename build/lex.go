@@ -142,7 +142,7 @@ func getFileType(filename string) FileType {
 	}
 	base := basename[:len(basename)-len(ext)]
 	switch {
-	case ext == ".build" || base == "build" || strings.HasPrefix(base, "build."):
+	case ext == ".build" || base == "build" || strings.HasPrefix(base, "build.") || strings.HasSuffix(basename, ".build.bazel"):
 		return TypeBuild
 	case ext == ".workspace" || base == "workspace" || strings.HasPrefix(base, "workspace."):
 		return TypeWorkspace
