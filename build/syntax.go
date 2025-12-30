@@ -555,7 +555,7 @@ func (x *BinaryExpr) Copy() Expr {
 type AssignExpr struct {
 	Comments
 	// LHS is the left hand side operation. For example, if the expression is
-	// "default_visibility = [:foo]", the LHS is "default_visibility".
+	// "default_visibility = [:foo]", the LHS is the Ident "default_visibility".
 	LHS Expr
 	// OpPos is the position of the Op.
 	OpPos Position
@@ -565,7 +565,7 @@ type AssignExpr struct {
 	// LineBreak is whether there is a linebreak between Op and RHS.
 	LineBreak bool
 	// RHS is the right hand side operation. For example, if the expression is
-	// "default_visibility = [":foo"]", the RHS is "[":foo"]".
+	// "default_visibility = [":foo"]", the RHS is the ListExpr [":foo"].
 	RHS Expr
 }
 
