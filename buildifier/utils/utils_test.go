@@ -129,6 +129,18 @@ func TestIsStarlarkFile(t *testing.T) {
 			filename: "foo.workspace",
 			ok:       false,
 		},
+		{
+			filename: "MODULE.bazel",
+			ok:       true,
+		},
+		{
+			filename: "my.MODULE.bazel",
+			ok:       true,
+		},
+		{
+			filename: "MODULE.bazel.other",
+			ok:       false,
+		},
 	}
 
 	for _, tc := range tests {

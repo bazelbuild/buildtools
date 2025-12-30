@@ -37,7 +37,8 @@ func isStarlarkFile(name string) bool {
 	switch ext {
 	case ".bazel", ".oss":
 		// BUILD.bazel or BUILD.foo.bazel should be treated as Starlark files, same for WORSKSPACE and MODULE
-		return strings.HasPrefix(name, "BUILD.") || strings.HasPrefix(name, "WORKSPACE.") || strings.HasPrefix(name, "MODULE.")
+		// MODULE files flip the order: [prefix.]MODULE.bazel
+		return strings.HasPrefix(name, "BUILD.") || strings.HasPrefix(name, "WORKSPACE.") || strings.HasSuffix(name, "MODULE.bazel")
 	}
 
 	return name == "BUILD" || name == "WORKSPACE"
@@ -68,6 +69,14 @@ func ExpandDirectories(args *[]string) ([]string, error) {
 				return filepath.SkipDir
 			}
 			if !info.IsDir() && isStarlarkFile(info.Name()) {
+				// Don't traverse into directory symlinks such as bazel-foo.bzl
+				// for a project called foo.bzl.
+				if info.Mode()&os.ModeSymlink != 0 {
+					stat, err := os.Stat(path)
+					if err != nil || stat.IsDir() {
+						return nil
+					}
+				}
 				files = append(files, path)
 			}
 			return nil

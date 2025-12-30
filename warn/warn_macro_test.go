@@ -87,6 +87,19 @@ It is considered a macro because it calls a rule or another macro "alias" on lin
 		scopeBzl)
 
 	checkFindings(t, "unnamed-macro", `
+symbolic_macro = macro()
+
+def bad_macro():
+    symbolic_macro(x)
+`,
+		[]string{
+			`3: The macro "bad_macro" should have a keyword argument called "name".
+
+It is considered a macro because it calls a rule or another macro "symbolic_macro" on line 4.`,
+		},
+		scopeBzl)
+
+	checkFindings(t, "unnamed-macro", `
 my_rule = rule()
 
 def macro1():

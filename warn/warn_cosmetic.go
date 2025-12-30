@@ -198,7 +198,6 @@ func unsortedDictItemsWarning(f *build.File) []*LinterFinding {
 				"Dictionary items are out of their lexicographical order.",
 				LinterReplacement{expr, &newDict}))
 		}
-		return
 	})
 	return findings
 }
@@ -216,6 +215,8 @@ func skylarkToStarlark(s string) string {
 	}
 }
 
+var skylarkRegex = regexp.MustCompile("(?i)skylark")
+
 // replaceSkylark replaces a substring "skylark" (case-insensitive) with a
 // similar cased string "starlark". Doesn't replace it if the previous or the
 // next symbol is '/', which may indicate it's a part of a URL.
@@ -223,7 +224,6 @@ func skylarkToStarlark(s string) string {
 // regular expression, but negative look-aheads and look-behinds are not
 // supported by Go regexp module.
 func replaceSkylark(s string) (newString string, changed bool) {
-	skylarkRegex := regexp.MustCompile("(?i)skylark")
 	newString = s
 	for _, r := range skylarkRegex.FindAllStringIndex(s, -1) {
 		if r[0] > 0 && s[r[0]-1] == '/' {

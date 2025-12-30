@@ -317,11 +317,13 @@ func setupAspect() (string, error) {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: unused_deps TARGET...
+	_, _ = fmt.Fprintf(flag.CommandLine.Output(), `usage: unused_deps TARGET...
 
 For Java rules in TARGETs, prints commands to delete deps unused at compile time.
 Note these may be used at run time; see documentation for more information.
+
 `)
+	flag.PrintDefaults()
 	os.Exit(2)
 }
 
@@ -380,7 +382,7 @@ func main() {
 	buildCmd = append(buildCmd, config.DefaultExtraBuildFlags...)
 	buildCmd = append(buildCmd, "--output_groups=+unused_deps_outputs")
 	buildCmd = append(buildCmd, "--override_repository=unused_deps="+aspectDir)
-	buildCmd = append(buildCmd, "--aspects=@unused_deps//:unused_deps.bzl%javac_params")
+	buildCmd = append(buildCmd, "--aspects=@@unused_deps//:unused_deps.bzl%javac_params")
 	buildCmd = append(buildCmd, buildOptions()...)
 
 	blazeArgs := append(buildCmd, targetPatterns...)

@@ -1,0 +1,66 @@
+# This workflow warns and then closes issues and PRs that have had no activity for a specified amount of time.
+# Details in this config are based on Bazel defaults, and should be somewhat kept in sync going forwards.
+# See: https://github.com/bazelbuild/bazel/blob/master/.github/workflows/stale.yml
+#
+# For more informatio about the Stale workflow, see:
+# https://github.com/actions/stale
+
+name: Close stale issues and pull requests
+
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '0 10 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  stale:
+    permissions:
+      issues: write
+      pull-requests: write
+    name: Track and close stale issues/PRs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      with:
+        egress-policy: audit
+
+    - name: Track and close stale issues/PRs
+      uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008 # v10.1.0
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        days-before-issue-stale: 430
+        days-before-issue-close: 90
+        stale-issue-message: >
+          Thank you for contributing to the Bazel Buildtools repository!
+          
+          This issue has been marked as stale since it has not had any activity in the last 1+ years. It will be closed in the next 90
+          days unless any other activity occurs. If you think this issue is still relevant and should stay open, please post any comment here and the issue will no longer be marked as stale.
+
+        close-issue-message: >
+          This issue has been automatically closed due to inactivity. If you're still interested in pursuing this, please post `@bazelbuild/triage` in a comment here and we'll take a look. Thanks!
+
+        days-before-pr-stale: 430
+        days-before-pr-close: 90
+        stale-pr-message: >
+          Thank you for contributing to the Bazel Buildtools repository!
+          
+          This pull request has been marked as stale since it has not had any activity in the last 1+ years. It will be closed in the next 90 days unless any other activity occurs. 
+          If you think this pull request is still relevant and should stay open, please make sure it is up to date with the "main" branch and that a reviewer is assigned from the @bazelbuild/buildtools-team.
+
+        close-pr-message: >
+          This pull request has been automatically closed due to inactivity.
+          If you think this pull request is still relevant and should stay open, please make sure it is up to date with the "main" branch and that a reviewer is assigned from the @bazelbuild/buildtools-team.
+
+        stale-issue-label: 'stale'
+        exempt-issue-labels: 'not stale,awaiting-bazeler,untriaged,P0,P1,P2,good first issue,help wanted'
+        close-issue-reason: "not_planned"
+        stale-pr-label: 'stale'
+        exempt-pr-labels: 'not stale,awaiting-review,awaiting-PR-merge,P0,P1,P2'
+        exempt-draft-pr: false
+        operations-per-run: 500
+        ascending: true
