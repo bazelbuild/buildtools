@@ -43,8 +43,7 @@ func (p Position) add(s string) Position {
 	return p
 }
 
-// An Expr represents an input element (things like, go_binary, java_library,
-// and so on).
+// An Expr represents an input element.
 type Expr interface {
 	// Span returns the start and end position of the expression,
 	// excluding leading or trailing comments.
@@ -391,8 +390,8 @@ type AssignExpr struct {
 	Op string
 	// LineBreak is whether there is a linebreak between Op and RHS.
 	LineBreak bool
-	// RHS is the left hand side operation. For example, if the expression is
-	// "default_visibility = [:foo]", the RHS is "[:foo]".
+	// RHS is the right hand side operation. For example, if the expression is
+	// "default_visibility = [":foo"]", the RHS is "[":foo"]".
 	RHS Expr
 }
 
