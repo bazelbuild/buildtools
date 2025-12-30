@@ -31,7 +31,7 @@ die () {
 [[ "$1" =~ external/* ]] && buildozer="${{1#external/}}" || buildozer="$TEST_WORKSPACE/$1"
 buildozer="$(rlocation "$buildozer")"
 
-source $TEST_SRCDIR/buildtools/buildozer/test_common.sh
+source $TEST_SRCDIR/_main/buildozer/test_common.sh
 
 ## TEST INPUTS
 
@@ -809,6 +809,61 @@ function test_replace_in_all_attributes() {
 )'
 }
 
+function test_substitute_dep() {
+  in='go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//some:value",  # Suffix comment.
+        "//some:value2",  # Suffix comment.
+        "//buildifier:build",
+    ]
+)'
+  run "$in" 'substitute deps //some:(.*) //new:${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        # Before-comment.
+        "//new:value",  # Suffix comment.
+        "//new:value2",  # Suffix comment.
+        "//buildifier:build",
+    ],
+)'
+}
+
+function test_substitute_dep_select() {
+  # Replace a dep inside a select statement
+  in='go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            "//some/other:value",
+            "//some/other:value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+  run "$in" 'substitute deps //some/other:(.*) :${1}' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [":dep"] + select({
+        "//tools/some:condition": [
+            ":value",
+            ":value2",
+        ],
+        "//tools/other:condition": [
+            "//yet/another:value",
+            "//yet/another:value2",
+        ],
+        "//conditions:default": SOME_CONSTANT,
+    }),
+)'
+}
+
 function test_delete_rule_all() {
   in='cc_library(name = "all")
 cc_library(name = "b")'
@@ -1194,6 +1249,18 @@ function test_print_version() {
   in='gendeb(name = "foobar", version = "12345")'
   run "$in" 'print version' '//pkg:*'
   assert_output '12345'
+}
+
+function test_print_attrs() {
+  in='package()
+cc_library(
+  name = "a",
+  srcs = ["a.cc"],
+  deps = ["//foo"],
+)'
+  run "$in" 'print attrs' '//pkg:*'
+  assert_output '[]
+[name srcs deps]'
 }
 
 function test_new_cc_library() {
@@ -2324,6 +2391,36 @@ EOF
 
   $buildozer 'format' //MODULE.bazel:all
   diff -u MODULE.bazel.expected MODULE.bazel || fail "Output didn't match"
+}
+
+function test_stdout() {
+  cat > MODULE.bazel <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected <<EOF
+module(
+  name = "foo", version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected.stdout <<EOF
+module(
+    name = "foo",
+    version = "0.27.0",
+)
+EOF
+
+  cat > MODULE.bazel.expected.stderr <<EOF
+fixed $(pwd)/MODULE.bazel
+EOF
+
+  $buildozer -stdout 'format' //MODULE.bazel:all > stdout 2> stderr
+  diff -u MODULE.bazel.expected MODULE.bazel || fail "File was changed"
+  diff -u MODULE.bazel.expected.stdout stdout || fail "Output didn't match"
+  diff -u MODULE.bazel.expected.stderr stderr || fail "Error output didn't match"
 }
 
 run_suite "buildozer tests"

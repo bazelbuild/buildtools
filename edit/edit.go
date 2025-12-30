@@ -54,7 +54,7 @@ func InterpretLabelForWorkspaceLocation(root, target string) (buildFile, repo, p
 				return buildFile, repo, pkg, rule
 			}
 		}
-		// TODO(rodrigoq): report error for other repos
+		return "", repo, pkg, rule
 	}
 
 	defaultBuildFileName := "BUILD"
@@ -754,7 +754,7 @@ func ListReplace(e build.Expr, old, value, pkg string) bool {
 // successful.
 func ListSubstitute(e build.Expr, oldRegexp *regexp.Regexp, newTemplate string) bool {
 	substituted := false
-	for _, li := range AllLists(e) {
+	for _, li := range allListsIncludingSelects(e) {
 		for k, elem := range li.List {
 			str, ok := elem.(*build.StringExpr)
 			if !ok {
@@ -1146,7 +1146,7 @@ func InsertLoad(stmts []build.Expr, location string, from, to []string) []build.
 		// not valid.
 		// Pretend they're not there and skip past them while we look for
 		// possible workspace calls.
-		//isSyntheticPackage := isEmptyPackage(stmt)
+		// isSyntheticPackage := isEmptyPackage(stmt)
 
 		// If we're editing a WORKSPACE file, bazel requires that the workspace
 		// declaration must be the very first expression in the WORKSPACE file,
@@ -1192,17 +1192,16 @@ func ReplaceLoad(stmts []build.Expr, location string, from, to []string) []build
 			continue
 		}
 
+		var loadTo, loadFrom []*build.Ident
 		for i, to := range load.To {
-			if toSymbols[to.Name] {
-				if i < len(load.From)-1 {
-					load.From = append(load.From[:i], load.From[i+1:]...)
-					load.To = append(load.To[:i], load.To[i+1:]...)
-				} else {
-					load.From = load.From[:i]
-					load.To = load.To[:i]
-				}
+			// Only add the load to the statement if it will NOT be replaced by a new load.
+			if !toSymbols[to.Name] {
+				loadTo = append(loadTo, load.To[i])
+				loadFrom = append(loadFrom, load.From[i])
 			}
 		}
+		load.To = loadTo
+		load.From = loadFrom
 
 		if len(load.To) > 0 {
 			all = append(all, load)

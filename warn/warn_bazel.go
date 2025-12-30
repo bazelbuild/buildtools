@@ -25,14 +25,6 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 )
 
-var functionsWithPositionalArguments = map[string]bool{
-	"exports_files":       true,
-	"licenses":            true,
-	"print":               true,
-	"register_toolchains": true,
-	"vardef":              true,
-}
-
 func constantGlobPatternWarning(patterns *build.ListExpr) []*LinterFinding {
 	findings := []*LinterFinding{}
 	for _, expr := range patterns.List {
@@ -179,17 +171,37 @@ func duplicatedNameWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding {
-	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
+func positionalArgumentsWarning(f *build.File, fileReader *FileReader) (findings []*LinterFinding) {
+	if f.Type != build.TypeBuild {
 		return nil
 	}
-	for _, arg := range call.List {
-		if _, ok := arg.(*build.AssignExpr); ok || arg == nil {
-			continue
-		}
-		return makeLinterFinding(arg, "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.")
+	macroAnalyzer := newMacroAnalyzer(fileReader)
+	macroAnalyzer.files[f.Pkg+":"+f.Label] = analyzeFile(f)
+
+	for _, expr := range f.Stmt {
+		build.Walk(expr, func(x build.Expr, _ []build.Expr) {
+			if fnCall, ok := x.(*build.CallExpr); ok {
+				fnIdent, ok := fnCall.X.(*build.Ident)
+				if !ok {
+					return
+				}
+
+				if macroAnalyzer.IsRuleOrMacro(function{pkg: f.Pkg, filename: f.Label, name: fnIdent.Name}).isRuleOrMacro {
+					for _, arg := range fnCall.List {
+						if _, ok := arg.(*build.AssignExpr); ok || arg == nil {
+							continue
+						}
+						findings = append(findings, makeLinterFinding(fnCall, fmt.Sprintf(
+							`All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro %q with positional arguments.`,
+							fnIdent.Name)))
+						return
+					}
+				}
+			}
+		})
 	}
-	return nil
+	return
 }
 
 func argsKwargsInBuildFilesWarning(f *build.File) []*LinterFinding {
@@ -240,6 +252,49 @@ func printWarning(f *build.File) []*LinterFinding {
 		}
 		findings = append(findings,
 			makeLinterFinding(expr, `"print()" is a debug function and shouldn't be submitted.`))
+	})
+	return findings
+}
+
+func externalPathWarning(f *build.File) []*LinterFinding {
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return nil
+	}
+
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Look for any string expression that contains "/external/"
+		stringExpr, ok := expr.(*build.StringExpr)
+		if !ok {
+			return
+		}
+		// Warn for "/external/" but not if "//" appears in the string (main repository paths)
+		if strings.Contains(stringExpr.Value, "/external/") && !strings.Contains(stringExpr.Value, "//") {
+			findings = append(findings,
+				makeLinterFinding(stringExpr, `String contains "/external/" which may indicate a dependency on external repositories that could be fragile.`))
+		}
+	})
+	return findings
+}
+
+func canonicalRepositoryWarning(f *build.File) []*LinterFinding {
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return nil
+	}
+
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Look for any string expression that contains "@@"
+		stringExpr, ok := expr.(*build.StringExpr)
+		if !ok {
+			return
+		}
+		if strings.Contains(stringExpr.Value, "@@") {
+			findings = append(findings,
+				makeLinterFinding(stringExpr, `String contains "@@" which indicates a canonical repository name reference that should be avoided.`))
+		}
 	})
 	return findings
 }

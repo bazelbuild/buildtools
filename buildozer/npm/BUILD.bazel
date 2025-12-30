@@ -25,7 +25,9 @@ _PARENT_PACKAGE_FILES = [
     "buildozer-darwin_arm64",
     "buildozer-linux_amd64",
     "buildozer-linux_arm64",
+    "buildozer-linux_riscv64",
     "buildozer-windows_amd64.exe",
+    "buildozer-windows_arm64.exe",
 ]
 
 [
@@ -34,7 +36,7 @@ _PARENT_PACKAGE_FILES = [
         # go_binary doesn't give a predeclared output for
         # the file in "out" so we have to construct a
         # label to reference the go_binary rule itself.
-        src = "//buildozer:%s" % s.replace("_arm64", "-arm64").split("_amd64")[0],
+        src = "//buildozer:%s" % s.replace(".exe", "").replace("_", "-"),
         out = s,
     )
     for s in _PARENT_PACKAGE_FILES
@@ -54,6 +56,7 @@ npm_package(
         ":package",
     ] + _PARENT_PACKAGE_FILES,
     package = "@bazel/buildozer",
+    publishable = True,
 )
 
 js_test(

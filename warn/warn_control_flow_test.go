@@ -352,7 +352,15 @@ foo != bar
 
 foo += bar
 bar -= bar
-
+bar *= bar
+bar /= bar
+bar //= bar
+bar %= bar
+bar &= bar
+bar |= bar
+bar ^= bar
+bar <<= bar
+bar >>= bar
 `,
 		[]string{":1:", ":3:", ":4:", ":5:", ":6:"},
 		scopeEverywhere)
@@ -659,6 +667,35 @@ bar()
 			":3: Variable \"x\" is unused.",
 			":9: Variable \"y\" is unused.",
 		},
+		scopeEverywhere)
+
+	// foo is unused in the outer macro, since the symbol is overloaded, and only
+	// the inner_def "foo" is actually used.
+	checkFindings(t, "unused-variable", `
+def sample_macro_with_unused_foo(name, foo = "foo"):
+  def inner_def(foo = "bar"):
+    print(foo)
+
+  inner_def()
+
+sample_macro_with_unused_foo()
+`,
+		[]string{
+			":1: Variable \"foo\" is unused.",
+		},
+		scopeEverywhere)
+
+	// Foo is referenced as the default value for foo in inner_def, hence it is not unused.
+	checkFindings(t, "unused-variable", `
+def sample_macro_with_used_foo(name, foo = "foo"):
+  def inner_def(bar = foo):
+    print(bar)
+
+  inner_def()
+
+sample_macro_with_used_foo()
+`,
+		[]string{},
 		scopeEverywhere)
 }
 

@@ -472,6 +472,7 @@ small_stmt:
 		}
 	}
 |	expr '=' expr      { $$ = binary($1, $2, $<tok>2, $3) }
+|	ident ':' test '=' expr  { $$ = binary(typed($1, $3), $4, $<tok>4, $5) }
 |	expr _AUGM expr    { $$ = binary($1, $2, $<tok>2, $3) }
 |	_PASS
 	{
@@ -1076,7 +1077,7 @@ func binary(x Expr, pos Position, op string, y Expr) Expr {
 	ystart, _ := y.Span()
 
 	switch op {
-	case "=", "+=", "-=", "*=", "/=", "//=", "%=", "|=":
+	case "=", "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=", "<<=", ">>=":
 		return &AssignExpr{
 			LHS:       x,
 			OpPos:     pos,

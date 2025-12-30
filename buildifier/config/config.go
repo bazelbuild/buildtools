@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -66,6 +65,28 @@ func FindConfigPath(rootDir string) string {
 		return ""
 	}
 	return filepath.Join(dirname, buildifierJSONFilename)
+}
+
+// findTablesPath locates the specified table file starting from the process's
+// current working directory. It searches upward through the directory tree
+// until the file is found or the root of the workspace is reached.
+func findTablesPath(file string) (string, error) {
+	if wspace.IsRegularFile(file) {
+		return file, nil
+	}
+	rootDir, _ := os.Getwd()
+	dirname, err := wspace.Find(
+		rootDir,
+		map[string]func(os.FileInfo) bool{
+			file: func(fi os.FileInfo) bool {
+				return fi.Mode()&os.ModeType == 0
+			},
+		},
+	)
+	if err != nil {
+		return file, err
+	}
+	return filepath.Join(dirname, file), nil
 }
 
 // Config is used to configure buildifier
@@ -132,7 +153,7 @@ func (c *Config) LoadFile() error {
 
 // LoadReader unmarshals JSON data from the given reader.
 func (c *Config) LoadReader(in io.Reader) error {
-	data, err := ioutil.ReadAll(in)
+	data, err := io.ReadAll(in)
 	if err != nil {
 		return fmt.Errorf("reading config: %w", err)
 	}
@@ -191,14 +212,22 @@ func (c *Config) Validate(args []string) error {
 	}
 
 	if c.TablesPath != "" {
-		if err := tables.ParseAndUpdateJSONDefinitions(c.TablesPath, false); err != nil {
-			return fmt.Errorf("failed to parse %s for -tables: %w", c.TablesPath, err)
+		foundTablesPath, err := findTablesPath(c.TablesPath)
+		if err != nil {
+			return fmt.Errorf("failed to find %s for -tables: %w", c.TablesPath, err)
+		}
+		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, false); err != nil {
+			return fmt.Errorf("failed to parse %s for -tables: %w", foundTablesPath, err)
 		}
 	}
 
 	if c.AddTablesPath != "" {
-		if err := tables.ParseAndUpdateJSONDefinitions(c.AddTablesPath, true); err != nil {
-			return fmt.Errorf("failed to parse %s for -add_tables: %w", c.AddTablesPath, err)
+		foundTablesPath, err := findTablesPath(c.AddTablesPath)
+		if err != nil {
+			return fmt.Errorf("failed to find %s for -add_tables: %w", c.AddTablesPath, err)
+		}
+		if err := tables.ParseAndUpdateJSONDefinitions(foundTablesPath, true); err != nil {
+			return fmt.Errorf("failed to parse %s for -add_tables: %w", foundTablesPath, err)
 		}
 	}
 

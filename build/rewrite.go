@@ -25,6 +25,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/bazelbuild/buildtools/tables"
 )
 
@@ -136,6 +137,8 @@ var rewrites = []struct {
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
+	{"editfloat", editFloats, scopeBoth},
+	{"collapseEmpty", collapseEmpty, scopeBoth},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -208,6 +211,15 @@ func keepSorted(x Expr) bool {
 	return hasComment(x, "keep sorted")
 }
 
+// labelRE matches label strings, e.g. @r//x/y/z:abc
+// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
+func makeLabelRe(labelPrefix string) *regexp.Regexp {
+	return regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
+}
+
+var leadingSlashesLabelRe = makeLabelRe("//")
+var stripLeadingSlashesLabelRe = makeLabelRe("")
+
 // fixLabels rewrites labels into a canonical form.
 //
 // First, it joins labels written as string addition, turning
@@ -247,12 +259,11 @@ func fixLabels(f *File, w *Rewriter) {
 	}
 
 	labelPrefix := "//"
+	labelRE := leadingSlashesLabelRe
 	if w.StripLabelLeadingSlashes {
 		labelPrefix = ""
+		labelRE = stripLeadingSlashesLabelRe
 	}
-	// labelRE matches label strings, e.g. @r//x/y/z:abc
-	// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
-	labelRE := regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
 
 	shortenLabel := func(v Expr) {
 		str, ok := v.(*StringExpr)
@@ -698,28 +709,6 @@ func isUniq(list []stringSortKey) bool {
 	return true
 }
 
-// If stk describes a call argument like rule(arg=...), callArgName
-// returns the name of that argument, formatted as "rule.arg".
-func callArgName(stk []Expr) string {
-	n := len(stk)
-	if n < 2 {
-		return ""
-	}
-	arg := argName(stk[n-1])
-	if arg == "" {
-		return ""
-	}
-	call, ok := stk[n-2].(*CallExpr)
-	if !ok {
-		return ""
-	}
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
-	}
-	return rule.Name + "." + arg
-}
-
 // A stringSortKey records information about a single string literal to be
 // sorted. The strings are first grouped into four phases: most strings,
 // strings beginning with ":", strings beginning with "//", and strings
@@ -1081,6 +1070,7 @@ func comparePaths(path1, path2 string) bool {
 // If one label has explicit repository path (starts with @), it goes first
 // If the packages are different, labels are sorted by package name (empty package goes first)
 // If the packages are the same, labels are sorted by their name
+// Relative labels go last
 func compareLoadLabels(load1Label, load2Label string) bool {
 	// handle absolute labels with explicit repositories separately to
 	// make sure they precede absolute and relative labels without repos
@@ -1092,31 +1082,27 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 		return isExplicitRepo1
 	}
 
-	// Either both labels have explicit repository names or both don't, compare their packages
-	// and break ties using file names if necessary
-	module1Parts := strings.SplitN(load1Label, ":", 2)
-	package1, filename1 := "", module1Parts[0]
-	if len(module1Parts) == 2 {
-		package1, filename1 = module1Parts[0], module1Parts[1]
-	}
-	module2Parts := strings.SplitN(load2Label, ":", 2)
-	package2, filename2 := "", module2Parts[0]
-	if len(module2Parts) == 2 {
-		package2, filename2 = module2Parts[0], module2Parts[1]
-	}
+	// ensure that relative labels go last by giving them a fake package name
+	// that sorts after all valid package names
+	label1 := labels.ParseRelative(load1Label, string(rune(0x7F)))
+	label2 := labels.ParseRelative(load2Label, string(rune(0x7F)))
 
-	// in case both packages are the same, use file names to break ties
-	if package1 == package2 {
-		return comparePaths(filename1, filename2)
+	if label1.Repository != label2.Repository {
+		return label1.Repository < label2.Repository
 	}
 
 	// in case one of the packages is empty, the empty one goes first
-	if len(package1) == 0 || len(package2) == 0 {
-		return len(package1) > 0
+	if (len(label1.Package) == 0) != (len(label2.Package) == 0) {
+		return len(label1.Package) == 0
 	}
 
 	// both packages are non-empty and not equal, so compare them
-	return comparePaths(package1, package2)
+	if label1.Package != label2.Package {
+		return comparePaths(label1.Package, label2.Package)
+	}
+
+	// in case both packages are the same, use file names to break ties
+	return comparePaths(label1.Target, label2.Target)
 }
 
 // sortLoadStatements reorders sorts loads lexicographically by the source file,
@@ -1401,6 +1387,35 @@ func editOctals(f *File, _ *Rewriter) {
 	})
 }
 
+// editFloats inserts '0' before the decimal point in floats and normalizes the
+// exponent part to lowercase, no plus sign, and no leading zero.
+func editFloats(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		l, ok := expr.(*LiteralExpr)
+		if !ok {
+			return
+		}
+		if !strings.ContainsRune(l.Token, '.') {
+			return
+		}
+		if strings.HasPrefix(l.Token, ".") {
+			l.Token = "0" + l.Token
+		}
+		if !strings.ContainsAny(l.Token, "eE") {
+			return
+		}
+		parts := strings.SplitN(l.Token, "e", 2)
+		if len(parts) != 2 {
+			parts = strings.SplitN(l.Token, "E", 2)
+		}
+		if len(parts) != 2 {
+			// Invalid float, skip rewriting.
+			return
+		}
+		l.Token = parts[0] + "e" + strings.TrimLeft(parts[1], "0+")
+	})
+}
+
 // removeParens removes trivial parens
 func removeParens(f *File, _ *Rewriter) {
 	var simplify func(expr Expr, stack []Expr) Expr
@@ -1430,4 +1445,13 @@ func removeParens(f *File, _ *Rewriter) {
 	}
 
 	Edit(f, simplify)
+}
+
+// collapseEmpty unsets ForceMultiLine for empty call expressions.
+func collapseEmpty(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		if c, ok := expr.(*CallExpr); ok && len(c.List) == 0 { // No arguments
+			c.ForceMultiLine = false
+		}
+	})
 }

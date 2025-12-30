@@ -24,9 +24,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -45,26 +45,27 @@ import (
 
 // Options represents choices about how buildozer should behave.
 type Options struct {
-	Stdout            bool      // write changed BUILD file to stdout
-	Buildifier        string    // path to buildifier binary
-	Parallelism       int       // number of cores to use for concurrent actions
-	NumIO             int       // number of concurrent actions
-	CommandsFiles     []string  // file names to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
-	KeepGoing         bool      // apply all commands, even if there are failures
-	FilterRuleTypes   []string  // list of rule types to change, empty means all
-	PreferEOLComments bool      // when adding a new comment, put it on the same line if possible
-	RootDir           string    // If present, use this folder rather than $PWD to find the root dir
-	Quiet             bool      // suppress informational messages.
-	EditVariables     bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
-	IsPrintingProto   bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
-	IsPrintingJSON    bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
-	OutWriter         io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
-	ErrWriter         io.Writer // where to write error output (`os.Stderr` will be used if not specified)
+	Stdout             bool      // write changed BUILD file to stdout
+	Buildifier         string    // path to buildifier binary
+	Parallelism        int       // number of cores to use for concurrent actions
+	NumIO              int       // number of concurrent actions
+	CommandsFiles      []string  // file names to read commands from, use '-' for stdin (format:|-separated command line arguments to buildozer, excluding flags
+	KeepGoing          bool      // apply all commands, even if there are failures
+	FilterRuleTypes    []string  // list of rule types to change, empty means all
+	PreferEOLComments  bool      // when adding a new comment, put it on the same line if possible
+	RootDir            string    // If present, use this folder rather than $PWD to find the root dir
+	Quiet              bool      // suppress informational messages.
+	EditVariables      bool      // for attributes that simply assign a variable (e.g. hdrs = LIB_HDRS), edit the build variable instead of appending to the attribute.
+	IsPrintingProto    bool      // output serialized devtools.buildozer.Output protos instead of human-readable strings
+	IsPrintingJSON     bool      // output serialized devtools.buildozer.Output json instead of human-readable strings
+	OutWriter          io.Writer // where to write normal output (`os.Stdout` will be used if not specified)
+	ErrWriter          io.Writer // where to write error output (`os.Stderr` will be used if not specified)
+	RespectBazelignore bool      // whether to use .bazelignore file for ignoring paths
 }
 
 // NewOpts returns a new Options struct with some defaults set.
 func NewOpts() *Options {
-	return &Options{NumIO: 200, PreferEOLComments: true}
+	return &Options{NumIO: 200, PreferEOLComments: true, RespectBazelignore: true}
 }
 
 // Usage is a user-overridden func to print the program usage.
@@ -116,7 +117,7 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		env.Rule.Call.Comments.Before = comment
 	case 2: // Attach to an attribute
 		if attr := env.Rule.AttrDefn(env.Args[0]); attr != nil {
-			if fullLine {
+			if fullLine || build.IsMultiLine(attr) {
 				attr.LHS.Comment().Before = comment
 			} else {
 				attr.RHS.Comment().Suffix = comment
@@ -370,6 +371,10 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 		} else if str == "path" {
 			fields[i] = &apipb.Output_Record_Field{
 				Value: &apipb.Output_Record_Field_Text{Text: env.File.Path},
+			}
+		} else if str == "attrs" {
+			fields[i] = &apipb.Output_Record_Field{
+				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: env.Rule.AttrKeys()}},
 			}
 		} else if value == nil {
 			fmt.Fprintf(opts.ErrWriter, "rule \"//%s:%s\" has no attribute \"%s\"\n",
@@ -648,10 +653,11 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.SplitN(x, ":", 2)
+		kv := splitOnNonEscaped(x, ':', 2)
 		if len(kv) != 2 {
 			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
 		}
+		kv = removeEscapes(kv, ':')
 		expr := getStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
@@ -708,10 +714,11 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, x := range args {
-		kv := strings.SplitN(x, ":", 2)
+		kv := splitOnNonEscaped(x, ':', 2)
 		if len(kv) != 2 {
 			return nil, fmt.Errorf("no colon in dict_set argument %q found", x)
 		}
+		kv = removeEscapes(kv, ':')
 		expr := getStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)
@@ -731,6 +738,8 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 		return env.File, nil
 	}
 
+	// Removes "\:" escapes for consistency with dict_add and dict_set.
+	args = removeEscapes(args, ':')
 	for _, x := range args {
 		// should errors here be flagged?
 		DictionaryDelete(dictAttr, x)
@@ -742,6 +751,35 @@ func cmdDictRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
 		env.Rule.DelAttr(attr)
 	}
 
+	return env.File, nil
+}
+
+// cmdDictReplaceIfEqual updates a value in a dict if it is equal to a given value.
+func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, error) {
+	attr := env.Args[0]
+	key := env.Args[1]
+	oldV := getStringValue(env.Args[2])
+	newV := getStringValue(env.Args[3])
+
+	thing := env.Rule.Attr(attr)
+	dictAttr, ok := thing.(*build.DictExpr)
+	if !ok {
+		return env.File, nil
+	}
+
+	prev := DictionaryGet(dictAttr, key)
+	if prev == nil {
+		return nil, fmt.Errorf("key '%s' not found in dict", key)
+	}
+	if e, ok := prev.(*build.StringExpr); ok {
+		if labels.Equal(e.Value, oldV, env.Pkg) {
+			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+		}
+	} else if e, ok := prev.(*build.Ident); ok {
+		if e.Name == oldV {
+			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+		}
+	}
 	return env.File, nil
 }
 
@@ -880,35 +918,36 @@ type CommandInfo struct {
 // AllCommands associates the command names with their function and number
 // of arguments.
 var AllCommands = map[string]CommandInfo{
-	"add":               {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
-	"new_load":          {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
-	"replace_load":      {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
-	"substitute_load":   {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
-	"comment":           {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
-	"print_comment":     {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
-	"delete":            {cmdDelete, true, 0, 0, ""},
-	"fix":               {cmdFix, true, 0, -1, "<fix(es)>?"},
-	"move":              {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
-	"new":               {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
-	"print":             {cmdPrint, true, 0, -1, "<attribute(s)>"},
-	"remove":            {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
-	"remove_comment":    {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
-	"remove_if_equal":   {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
-	"rename":            {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
-	"replace":           {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
-	"substitute":        {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
-	"set":               {cmdSet, true, 1, -1, "<attr> <value(s)>"},
-	"set_if_absent":     {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
-	"set_select":        {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
-	"copy":              {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
-	"copy_no_overwrite": {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
-	"dict_add":          {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
-	"dict_set":          {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
-	"dict_remove":       {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
-	"dict_list_add":     {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
-	"use_repo_add":      {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
-	"use_repo_remove":   {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
-	"format":            {cmdFormat, false, 0, 0, ""},
+	"add":                   {cmdAdd, true, 2, -1, "<attr> <value(s)>"},
+	"new_load":              {cmdNewLoad, false, 1, -1, "<path> <[to=]from(s)>"},
+	"replace_load":          {cmdReplaceLoad, false, 1, -1, "<path> <[to=]symbol(s)>"},
+	"substitute_load":       {cmdSubstituteLoad, false, 2, 2, "<old_regexp> <new_template>"},
+	"comment":               {cmdComment, true, 1, 3, "<attr>? <value>? <comment>"},
+	"print_comment":         {cmdPrintComment, true, 0, 2, "<attr>? <value>?"},
+	"delete":                {cmdDelete, true, 0, 0, ""},
+	"fix":                   {cmdFix, true, 0, -1, "<fix(es)>?"},
+	"move":                  {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
+	"new":                   {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
+	"print":                 {cmdPrint, true, 0, -1, "<attribute(s)>"},
+	"remove":                {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
+	"remove_comment":        {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
+	"remove_if_equal":       {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
+	"rename":                {cmdRename, true, 2, 2, "<old_attr> <new_attr>"},
+	"replace":               {cmdReplace, true, 3, 3, "<attr> <old_value> <new_value>"},
+	"substitute":            {cmdSubstitute, true, 3, 3, "<attr> <old_regexp> <new_template>"},
+	"set":                   {cmdSet, true, 1, -1, "<attr> <value(s)>"},
+	"set_if_absent":         {cmdSetIfAbsent, true, 1, -1, "<attr> <value(s)>"},
+	"set_select":            {cmdSetSelect, true, 1, -1, "<attr> <key_1> <value_1> <key_n> <value_n>"},
+	"copy":                  {cmdCopy, true, 2, 2, "<attr> <from_rule>"},
+	"copy_no_overwrite":     {cmdCopyNoOverwrite, true, 2, 2, "<attr> <from_rule>"},
+	"dict_add":              {cmdDictAdd, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_set":              {cmdDictSet, true, 2, -1, "<attr> <(key:value)(s)>"},
+	"dict_remove":           {cmdDictRemove, true, 2, -1, "<attr> <key(s)>"},
+	"dict_replace_if_equal": {cmdDictReplaceIfEqual, true, 4, 4, "<attr> <key> <old_value> <new_value>"},
+	"dict_list_add":         {cmdDictListAdd, true, 3, -1, "<attr> <key> <value(s)>"},
+	"use_repo_add":          {cmdUseRepoAdd, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"use_repo_remove":       {cmdUseRepoRemove, false, 2, -1, "([dev] <extension .bzl file> <extension name>|<use_extension variable name>) <repo(s)>"},
+	"format":                {cmdFormat, false, 0, 0, ""},
 }
 
 var readonlyCommands = map[string]bool{
@@ -992,6 +1031,37 @@ func SplitOnSpaces(input string) []string {
 		result[i] = s
 	}
 	return result
+}
+
+var splitRegexes = map[byte]*regexp.Regexp{
+	':': regexp.MustCompile(`[^\\]:`),
+	'|': regexp.MustCompile(`[^\\]\|`),
+}
+
+func splitOnNonEscaped(input string, sep byte, n int) []string {
+	re, ok := splitRegexes[sep]
+	if !ok {
+		panic(fmt.Sprintf("splitOnNonEscaped not implemented for %c", sep))
+	}
+	inputBytes := []byte(input)
+	var splits []string
+	previousIndex := 0
+	// Split n-1 times since it's limiting number of divisions, not the number of segments.
+	for _, find := range re.FindAllIndex(inputBytes, n-1) {
+		splitVal := string(inputBytes[previousIndex:find[1]])
+		splitVal = strings.TrimSuffix(splitVal, string(sep))
+		splits = append(splits, splitVal)
+		previousIndex = find[1]
+	}
+	splits = append(splits, string(inputBytes[previousIndex:]))
+	return splits
+}
+
+func removeEscapes(values []string, sep byte) []string {
+	for i, val := range values {
+		values[i] = strings.ReplaceAll(val, `\`+string(sep), string(sep))
+	}
+	return values
 }
 
 // parseCommands parses commands and targets they should be applied on from
@@ -1105,7 +1175,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	var fi os.FileInfo
 	records := []*apipb.Output_Record{}
 	if name == stdinPackageName { // read on stdin
-		data, err = ioutil.ReadAll(os.Stdin)
+		data, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return &rewriteResult{file: name, errs: []error{err}}
 		}
@@ -1150,11 +1220,9 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	}
 	var errs []error
 	changed := false
-	for _, commands := range commandsForFile.commands {
-		target := commands.target
-		commands := commands.commands
-		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, target)
-		if label := labels.Parse(target); label.Package == stdinPackageName {
+	for _, cft := range commandsForFile.commands {
+		_, _, absPkg, rule := InterpretLabelForWorkspaceLocation(opts.RootDir, cft.target)
+		if label := labels.Parse(cft.target); label.Package == stdinPackageName {
 			// Special-case: This is already absolute
 			absPkg = stdinPackageName
 		}
@@ -1165,55 +1233,34 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 
 		targets, err := expandTargets(f, rule)
 		if err != nil {
-			cerr := commandError(commands, target, err)
+			cerr := commandError(cft.commands, cft.target, err)
 			errs = append(errs, cerr)
 			if !opts.KeepGoing {
 				return &rewriteResult{file: name, errs: errs, records: records}
 			}
 		}
 		targets = filterRules(opts, targets)
-		for _, cmd := range commands {
-			cmdInfo := AllCommands[cmd.tokens[0]]
-			// Depending on whether a transformation is rule-specific or not, it should be applied to
-			// every rule that satisfies the filter or just once to the file.
-			cmdTargets := targets
-			if !cmdInfo.PerRule {
-				cmdTargets = []*build.Rule{nil}
-			}
-			for _, r := range cmdTargets {
-				record := &apipb.Output_Record{}
-				newf, err := cmdInfo.Fn(opts, CmdEnvironment{f, r, vars, absPkg, cmd.tokens[1:], record})
-				if len(record.Fields) != 0 {
-					records = append(records, record)
-				}
-				if err != nil {
-					cerr := commandError([]command{cmd}, target, err)
-					if opts.KeepGoing {
-						errs = append(errs, cerr)
-					} else {
-						return &rewriteResult{file: name, errs: []error{cerr}, records: records}
-					}
-				}
-				if newf != nil {
-					changed = true
-					f = newf
-				}
-			}
+
+		newf, err := executeCommandsInFile(opts, f, cft, targets, &records, vars, absPkg, &errs)
+		if err != nil {
+			return &rewriteResult{file: name, errs: []error{err}, records: records}
+		}
+		if newf != nil {
+			changed = true
+			f = newf
 		}
 	}
 	if !changed {
 		return &rewriteResult{file: name, errs: errs, records: records}
 	}
-	f = RemoveEmptyPackage(f)
-	f = RemoveEmptyUseRepoCalls(f)
-	ndata, err := buildifier.Buildify(opts, f)
+	ndata, err := cleanAndBuildify(opts, f)
 	if err != nil {
 		return &rewriteResult{file: name, errs: []error{fmt.Errorf("running buildifier: %v", err)}, records: records}
 	}
 
 	if opts.Stdout || name == stdinPackageName {
 		opts.OutWriter.Write(ndata)
-		return &rewriteResult{file: name, errs: errs, records: records}
+		return &rewriteResult{file: name, errs: errs, modified: !bytes.Equal(data, ndata), records: records}
 	}
 
 	if bytes.Equal(data, ndata) {
@@ -1231,6 +1278,58 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 	return &rewriteResult{file: name, errs: errs, modified: true, records: records}
 }
 
+// executeCommandsInFile executes the provided commandsForTarget in the provided build.File.
+func executeCommandsInFile(
+	opts *Options,
+	f *build.File,
+	cft commandsForTarget,
+	rules []*build.Rule,
+	records *[]*apipb.Output_Record,
+	vars map[string]*build.AssignExpr,
+	absPkg string,
+	errs *[]error,
+) (*build.File, error) {
+	changed := false
+	for _, cmd := range cft.commands {
+		cmdInfo := AllCommands[cmd.tokens[0]]
+		// Depending on whether a transformation is rule-specific or not, it should be applied to
+		// every rule that satisfies the filter or just once to the file.
+		cmdTargets := rules
+		if !cmdInfo.PerRule {
+			cmdTargets = []*build.Rule{nil}
+		}
+		for _, r := range cmdTargets {
+			record := &apipb.Output_Record{}
+			newf, err := cmdInfo.Fn(opts, CmdEnvironment{f, r, vars, absPkg, cmd.tokens[1:], record})
+			if len(record.Fields) != 0 {
+				*records = append(*records, record)
+			}
+			if err != nil {
+				cerr := commandError([]command{cmd}, cft.target, err)
+				if opts.KeepGoing {
+					*errs = append(*errs, cerr)
+				} else {
+					return nil, cerr
+				}
+			}
+			if newf != nil {
+				f = newf
+				changed = true
+			}
+		}
+	}
+	if changed {
+		return f, nil
+	}
+	return nil, nil
+}
+
+func cleanAndBuildify(opts *Options, f *build.File) ([]byte, error) {
+	f = RemoveEmptyPackage(f)
+	f = RemoveEmptyUseRepoCalls(f)
+	return buildifier.Buildify(opts, f)
+}
+
 // EditFile is a function that does any prework needed before editing a file.
 // e.g. "checking out for write" from a locking source control repo.
 var EditFile = func(fi os.FileInfo, name string) error {
@@ -1239,7 +1338,7 @@ var EditFile = func(fi os.FileInfo, name string) error {
 
 // Given a target, whose package may contain a trailing "/...", returns all
 // existing BUILD file paths which match the package.
-func targetExpressionToBuildFiles(rootDir string, target string) []string {
+func targetExpressionToBuildFiles(rootDir string, target string, respectBazelignore bool) []string {
 	file, _, _, _ := InterpretLabelForWorkspaceLocation(rootDir, target)
 	if rootDir == "" {
 		var err error
@@ -1254,11 +1353,17 @@ func targetExpressionToBuildFiles(rootDir string, target string) []string {
 		return []string{file}
 	}
 
-	return findBuildFiles(strings.TrimSuffix(file, suffix))
+	var ignoredPrefixes []string
+	if respectBazelignore {
+		ignoredPrefixes = getIgnoredPrefixes(rootDir)
+	}
+	return findBuildFiles(strings.TrimSuffix(file, suffix), ignoredPrefixes)
 }
 
 // Given a root directory, returns all "BUILD" files in that subtree recursively.
-func findBuildFiles(rootDir string) []string {
+// ignoredPrefixes are path prefixes to ignore (if a path matches any of these prefixes,
+// it will be skipped along with its subdirectories).
+func findBuildFiles(rootDir string, ignoredPrefixes []string) []string {
 	var buildFiles []string
 	searchDirs := []string{rootDir}
 
@@ -1267,18 +1372,24 @@ func findBuildFiles(rootDir string) []string {
 		dir := searchDirs[lastIndex]
 		searchDirs = searchDirs[:lastIndex]
 
-		dirFiles, err := ioutil.ReadDir(dir)
+		dirFiles, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
 
 		for _, dirFile := range dirFiles {
+			fullPath := filepath.Join(dir, dirFile.Name())
+
+			if shouldIgnorePath(fullPath, rootDir, ignoredPrefixes) {
+				continue
+			}
+
 			if dirFile.IsDir() {
-				searchDirs = append(searchDirs, filepath.Join(dir, dirFile.Name()))
+				searchDirs = append(searchDirs, fullPath)
 			} else {
 				for _, buildFileName := range BuildFileNames {
 					if dirFile.Name() == buildFileName {
-						buildFiles = append(buildFiles, filepath.Join(dir, dirFile.Name()))
+						buildFiles = append(buildFiles, fullPath)
 					}
 				}
 			}
@@ -1286,6 +1397,58 @@ func findBuildFiles(rootDir string) []string {
 	}
 
 	return buildFiles
+}
+
+// getIgnoredPrefixes returns a list of ignored prefixes from the .bazelignore file in the root directory.
+// It returns an empty list if the file does not exist.
+func getIgnoredPrefixes(rootDir string) []string {
+	bazelignorePath := filepath.Join(rootDir, ".bazelignore")
+	ignoredPaths := []string{}
+
+	data, err := os.ReadFile(bazelignorePath)
+	if err != nil {
+		return ignoredPaths
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines, comments, and absolute paths
+		// Bazel will error out if there are any absolute paths in the .bazelignore file.
+		if line == "" || strings.HasPrefix(line, "#") || path.IsAbs(line) {
+			continue
+		}
+
+		ignoredPaths = append(ignoredPaths, path.Clean(line))
+	}
+
+	return ignoredPaths
+}
+
+// shouldIgnorePath returns true if the path should be ignored based on the list of ignored prefixes.
+func shouldIgnorePath(path string, rootDir string, ignoredPrefixes []string) bool {
+	if len(ignoredPrefixes) == 0 {
+		return false
+	}
+
+	rel, err := filepath.Rel(rootDir, path)
+	if err != nil {
+		return false
+	}
+	// Normalize path separators to forward slashes
+	rel = filepath.ToSlash(rel)
+
+	for _, prefix := range ignoredPrefixes {
+		// Check if the path exactly matches the prefix or if it's a subdirectory of the prefix.
+		if rel == prefix || strings.HasPrefix(rel, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // appendCommands adds the given commands to be applied to each of the given targets
@@ -1307,7 +1470,7 @@ func appendCommands(opts *Options, commandMap map[string][]commandsForTarget, ar
 		if label := labels.Parse(target); label.Package == stdinPackageName {
 			buildFiles = []string{stdinPackageName}
 		} else {
-			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target)
+			buildFiles = targetExpressionToBuildFiles(opts.RootDir, target, opts.RespectBazelignore)
 		}
 
 		for _, file := range buildFiles {
@@ -1350,11 +1513,8 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		if line == "" || line[0] == '#' {
 			continue
 		}
-		line = saveEscapedPipes(line)
-		args := strings.Split(line, "|")
-		for i, arg := range args {
-			args[i] = replaceSavedPipes(arg)
-		}
+		args := splitOnNonEscaped(line, '|', -1)
+		args = removeEscapes(args, '|')
 		if len(args) > 1 && args[1] == "*" {
 			cmd := append([]string{args[0]}, labels...)
 			if err := appendCommands(opts, commandsByFile, cmd); err != nil {
@@ -1367,14 +1527,6 @@ func appendCommandsFromReader(opts *Options, reader io.Reader, commandsByFile ma
 		}
 	}
 	return nil
-}
-
-func saveEscapedPipes(s string) string {
-	return strings.ReplaceAll(s, `\|`, "\x00\x00")
-}
-
-func replaceSavedPipes(s string) string {
-	return strings.ReplaceAll(s, "\x00\x00", "|")
 }
 
 func printRecord(writer io.Writer, record *apipb.Output_Record) {
@@ -1513,4 +1665,83 @@ func Buildozer(opts *Options, args []string) int {
 		return 3
 	}
 	return 0
+}
+
+// ExecuteCommandsOnInlineFile executes the given commands on the given file content.
+// Returns the new file content after applying the commands.
+func ExecuteCommandsOnInlineFile(fileContent []byte, commands []string) ([]byte, error) {
+	opts := Options{}
+	commandsByTargetName, filename, err := groupCommandsForInlineFile(commands, opts)
+	if err != nil {
+		return nil, err
+	}
+	f, err := build.Parse(*filename, fileContent)
+	if err != nil {
+		return nil, err
+	}
+	if f.Type == build.TypeDefault {
+		// Buildozer is unable to infer the file type, fall back to BUILD by default.
+		f.Type = build.TypeBuild
+	}
+	for _, cft := range commandsByTargetName {
+		rules, err := expandTargets(f, cft.target)
+		if err != nil {
+			return nil, err
+		}
+		newf, err := executeCommandsInFile(
+			&opts,
+			f,
+			cft,
+			rules,
+			// Output records are ignored in inline file execution.
+			nil,
+			// Global variables not supported in inline file execution.
+			nil,
+			f.Pkg,
+			// Errors-list is ignored since opts.keepGoing is always false.
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if newf != nil {
+			f = newf
+		}
+	}
+	outputFileContent, err := cleanAndBuildify(&opts, f)
+	if err != nil {
+		return nil, err
+	}
+	return outputFileContent, nil
+}
+
+// groupCommandsForInlineFile groups the given commands by file and returns the commands for a
+// single file. Returns an error if the commands modify multiple files or if commands are invalid.
+func groupCommandsForInlineFile(commands []string, opts Options) ([]commandsForTarget, *string, error) {
+	commandsByFile := make(map[string][]commandsForTarget)
+	commandReader := strings.NewReader(strings.Join(commands, "\n"))
+	err := appendCommandsFromReader(&opts, commandReader, commandsByFile, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing commands %s", err)
+	}
+	if len(commandsByFile) != 1 {
+		return nil, nil, fmt.Errorf("invalid input commands, expected all commands to reference a single file")
+	}
+	for filepath, commandsForTargets := range commandsByFile {
+		for i := range commandsForTargets {
+			cft := &commandsForTargets[i]
+			splitTarget := strings.Split(cft.target, ":")
+			switch len(splitTarget) {
+			case 1: // No-op
+			case 2:
+				// Only keeps target (what is after the ":" character) since path is redundant.
+				cft.target = splitTarget[1]
+			default:
+				return nil, nil, fmt.Errorf("invalid target name %q", cft.target)
+			}
+		}
+		_, filename := path.Split(filepath)
+		return commandsForTargets, &filename, nil
+	}
+	panic("unreachable")
 }

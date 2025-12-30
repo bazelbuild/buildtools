@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 go_library(
     name = "buildozer_lib",
@@ -37,7 +38,7 @@ sh_test(
 )
 
 go_binary(
-    name = "buildozer-darwin",
+    name = "buildozer-darwin-amd64",
     out = "buildozer-darwin_amd64",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -47,7 +48,7 @@ go_binary(
 )
 
 go_binary(
-    name = "buildozer-linux",
+    name = "buildozer-linux-amd64",
     out = "buildozer-linux_amd64",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -57,7 +58,7 @@ go_binary(
 )
 
 go_binary(
-    name = "buildozer-windows",
+    name = "buildozer-windows-amd64",
     out = "buildozer-windows_amd64.exe",
     embed = [":buildozer_lib"],
     goarch = "amd64",
@@ -81,6 +82,36 @@ go_binary(
     out = "buildozer-linux_arm64",
     embed = [":buildozer_lib"],
     goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-windows-arm64",
+    out = "buildozer-windows_arm64.exe",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-riscv64",
+    out = "buildozer-linux_riscv64",
+    embed = [":buildozer_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-s390x",
+    out = "buildozer-linux_s390x",
+    embed = [":buildozer_lib"],
+    goarch = "s390x",
     goos = "linux",
     pure = "on",
     visibility = ["//visibility:public"],

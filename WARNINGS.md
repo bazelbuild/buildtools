@@ -12,6 +12,7 @@ Warning categories supported by buildifier's linter:
   * [`attr-single-file`](#attr-single-file)
   * [`build-args-kwargs`](#build-args-kwargs)
   * [`bzl-visibility`](#bzl-visibility)
+  * [`canonical-repository`](#canonical-repository)
   * [`confusing-name`](#confusing-name)
   * [`constant-glob`](#constant-glob)
   * [`ctx-actions`](#ctx-actions)
@@ -23,6 +24,7 @@ Warning categories supported by buildifier's linter:
   * [`dict-concatenation`](#dict-concatenation)
   * [`dict-method-named-arg`](#dict-method-named-arg)
   * [`duplicated-name`](#duplicated-name)
+  * [`external-path`](#external-path)
   * [`filetype`](#filetype)
   * [`function-docstring`](#function-docstring)
   * [`function-docstring-args`](#function-docstring-args)
@@ -39,11 +41,48 @@ Warning categories supported by buildifier's linter:
   * [`name-conventions`](#name-conventions)
   * [`native-android`](#native-android)
   * [`native-build`](#native-build)
-  * [`native-cc`](#native-cc)
-  * [`native-java`](#native-java)
+  * [`native-cc-binary`](#native-cc-binary)
+  * [`native-cc-common`](#native-cc-common)
+  * [`native-cc-debug-package-info`](#native-cc-debug-package-info)
+  * [`native-cc-fdo-prefetch-hints`](#native-cc-fdo-prefetch-hints)
+  * [`native-cc-fdo-profile`](#native-cc-fdo-profile)
+  * [`native-cc-import`](#native-cc-import)
+  * [`native-cc-info`](#native-cc-info)
+  * [`native-cc-library`](#native-cc-library)
+  * [`native-cc-memprof-profile`](#native-cc-memprof-profile)
+  * [`native-cc-objc-import`](#native-cc-objc-import)
+  * [`native-cc-objc-library`](#native-cc-objc-library)
+  * [`native-cc-propeller-optimize`](#native-cc-propeller-optimize)
+  * [`native-cc-proto`](#native-cc-proto)
+  * [`native-cc-shared-library`](#native-cc-shared-library)
+  * [`native-cc-shared-library-hint-info`](#native-cc-shared-library-hint-info)
+  * [`native-cc-shared-library-info`](#native-cc-shared-library-info)
+  * [`native-cc-test`](#native-cc-test)
+  * [`native-cc-toolchain`](#native-cc-toolchain)
+  * [`native-cc-toolchain-suite`](#native-cc-toolchain-suite)
+  * [`native-java-binary`](#native-java-binary)
+  * [`native-java-common`](#native-java-common)
+  * [`native-java-import`](#native-java-import)
+  * [`native-java-info`](#native-java-info)
+  * [`native-java-library`](#native-java-library)
+  * [`native-java-lite-proto`](#native-java-lite-proto)
+  * [`native-java-package-config`](#native-java-package-config)
+  * [`native-java-plugin`](#native-java-plugin)
+  * [`native-java-plugin-info`](#native-java-plugin-info)
+  * [`native-java-proto`](#native-java-proto)
+  * [`native-java-runtime`](#native-java-runtime)
+  * [`native-java-test`](#native-java-test)
+  * [`native-java-toolchain`](#native-java-toolchain)
   * [`native-package`](#native-package)
   * [`native-proto`](#native-proto)
+  * [`native-proto-common`](#native-proto-common)
+  * [`native-proto-info`](#native-proto-info)
+  * [`native-proto-lang-toolchain`](#native-proto-lang-toolchain)
+  * [`native-proto-lang-toolchain-info`](#native-proto-lang-toolchain-info)
   * [`native-py`](#native-py)
+  * [`native-sh-binary`](#native-sh-binary)
+  * [`native-sh-library`](#native-sh-library)
+  * [`native-sh-test`](#native-sh-test)
   * [`no-effect`](#no-effect)
   * [`out-of-order-load`](#out-of-order-load)
   * [`output-group`](#output-group)
@@ -106,9 +145,9 @@ Using `applicable_licenses` as an attribute name may cause unexpected behavior. 
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-cfg`
 
-The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+The [Configuration](https://docs.bazel.build/versions/main/skylark/rules.html#configurations)
 `cfg = "data"` is deprecated and has no effect. Consider removing it.
-The [Configuration](https://docs.bazel.build/versions/master/skylark/rules.html#configurations)
+The [Configuration](https://docs.bazel.build/versions/main/skylark/rules.html#configurations)
 `cfg = "host"` is deprecated. Consider replacing it with `cfg = "exec"`.
 
 --------------------------------------------------------------------------------
@@ -141,7 +180,7 @@ Using licenses as an attribute name may cause unexpected behavior.
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-non-empty`
 
-The `non_empty` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `non_empty` [attribute](https://docs.bazel.build/versions/main/skylark/lib/attr.html)
 for attr definitions is deprecated, please use `allow_empty` with an opposite value instead.
 
 --------------------------------------------------------------------------------
@@ -177,7 +216,7 @@ Using `package_metadata` as an attribute name may cause unexpected behavior. Its
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-single-file`
 
-The `single_file` [attribute](https://docs.bazel.build/versions/master/skylark/lib/attr.html)
+The `single_file` [attribute](https://docs.bazel.build/versions/main/skylark/lib/attr.html)
 is deprecated, please use `allow_single_file` instead.
 
 --------------------------------------------------------------------------------
@@ -209,6 +248,35 @@ but not from `dir/other_rule/file.bzl`.
 
 --------------------------------------------------------------------------------
 
+## <a name="canonical-repository"></a>String contains `@@` which indicates a canonical repository name reference that should be avoided
+
+  * Category name: `canonical-repository`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=canonical-repository`
+
+Using canonical repository names (with `@@` prefix) makes BUILD files fragile
+to repository mapping changes and external dependency updates. Canonical names
+are internal implementation details that can change between Bazel versions
+or when external dependencies are updated.
+
+Instead of using canonical names like:
+
+```python
+load("@@rules_go//go:def.bzl", "go_library")
+deps = ["@@protobuf~5.27.0//src:message"]
+```
+
+Use apparent names with single `@`:
+
+```python
+load("@rules_go//go:def.bzl", "go_library")
+deps = ["@protobuf//src:message"]
+```
+
+This makes your BUILD files more maintainable and resilient to changes.
+
+--------------------------------------------------------------------------------
+
 ## <a name="confusing-name"></a>Never use `l`, `I`, or `O` as names
 
   * Category name: `confusing-name`
@@ -225,7 +293,7 @@ The names `l`, `I`, or `O` can be easily confused with `I`, `l`, or `0` correspo
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=constant-glob`
 
-[Glob function](https://docs.bazel.build/versions/master/be/functions.html#glob)
+[Glob function](https://docs.bazel.build/versions/main/be/functions.html#glob)
 is used to get a list of files from the depot. The patterns (the first argument)
 typically include a wildcard (* character). A pattern without a wildcard is
 often useless and sometimes harmful.
@@ -267,16 +335,16 @@ performance (glob can be relatively slow):
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=ctx-actions`
 
-The following [actions](https://docs.bazel.build/versions/master/skylark/lib/actions.html)
+The following [actions](https://docs.bazel.build/versions/main/skylark/lib/actions.html)
 are deprecated, please use the new API:
 
-  * [`ctx.new_file`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_file)
-  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#declare_directory)
-  * [`ctx.file_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#write)
-  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run_shell)
-  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#run)
-  * [`ctx.empty_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#do_nothing)
-  * [`ctx.template_action`](https://docs.bazel.build/versions/master/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/master/skylark/lib/actions.html#expand_template)
+  * [`ctx.new_file`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#new_file) → [`ctx.actions.declare_file`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#declare_file)
+  * `ctx.experimental_new_directory` → [`ctx.actions.declare_directory`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#declare_directory)
+  * [`ctx.file_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#file_action) → [`ctx.actions.write`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#write)
+  * [`ctx.action(command = "...")`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#action) → [`ctx.actions.run_shell`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#run_shell)
+  * [`ctx.action(executable = "...")`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#action) → [`ctx.actions.run`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#run)
+  * [`ctx.empty_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#empty_action) → [`ctx.actions.do_nothing`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#do_nothing)
+  * [`ctx.template_action`](https://docs.bazel.build/versions/main/skylark/lib/ctx.html#template_action) → [`ctx.actions.expand_template`](https://docs.bazel.build/versions/main/skylark/lib/actions.html#expand_template)
 
 --------------------------------------------------------------------------------
 
@@ -287,10 +355,10 @@ are deprecated, please use the new API:
   * Automatic fix: yes
   * [Suppress the warning](#suppress): `# buildifier: disable=ctx-args`
 
-It's deprecated to use the [`add`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add)
+It's deprecated to use the [`add`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add)
 method of `ctx.actions.args()` to add a list (or a depset) of variables. Please use either
-[`add_all`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_all) or
-[`add_joined`](https://docs.bazel.build/versions/master/skylark/lib/Args.html#add_joined),
+[`add_all`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add_all) or
+[`add_joined`](https://docs.bazel.build/versions/main/skylark/lib/Args.html#add_joined),
 depending on the desired behavior.
 
 --------------------------------------------------------------------------------
@@ -314,7 +382,7 @@ the [`function-docstring`](#function-docstring) warning.
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=depset-items`
 
-The `items` parameter for [`depset`](https://docs.bazel.build/versions/master/skylark/lib/globals.html#depset)
+The `items` parameter for [`depset`](https://docs.bazel.build/versions/main/skylark/lib/globals.html#depset)
 is deprecated. In its old form it's either a list of direct elements to be
 added (use the `direct` or unnamed first parameter instead) or a depset that
 becomes a transitive element of the new depset (use the `transitive` parameter
@@ -356,7 +424,7 @@ depset1 | depset2
 depset1.union(depset2)
 ```
 
-Please use the [depset](https://docs.bazel.build/versions/master/skylark/lib/depset.html) constructor
+Please use the [depset](https://docs.bazel.build/versions/main/skylark/lib/depset.html) constructor
 instead:
 
 ```python
@@ -364,9 +432,10 @@ depset(transitive = [depset1, depset2])
 ```
 
 When fixing this issue, make sure you
-[understand depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[understand depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)
 and try to
-[reduce the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reduce the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+See this [explanation](https://github.com/bazelbuild/bazel/issues/5817#issuecomment-496910826) for more detail.
 
 --------------------------------------------------------------------------------
 
@@ -445,6 +514,40 @@ To fix the issue just change the name attribute of one rule/macro.
 
 --------------------------------------------------------------------------------
 
+## <a name="external-path"></a>String contains `/external/` which may indicate a dependency on external repositories that could be fragile
+
+  * Category name: `external-path`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=external-path`
+
+Using `/external/` paths may indicate a hard-coded dependency on external
+repository locations, which can be fragile and break when external dependencies
+are updated or reorganized.
+
+Paths containing `/external/` (without a leading `//`) may indicate:
+- Direct file system paths to external repositories
+- Dependencies that bypass Bazel's dependency management
+- Code that relies on Bazel's internal directory structure
+
+Examples that trigger this warning:
+
+```python
+srcs = ["/external/some_repo/file.h"]
+data = ["path/external/repo/data.txt"]
+```
+
+Instead, use proper Bazel labels:
+
+```python
+srcs = ["@some_repo//file.h"]
+data = ["@repo//path:data.txt"]
+```
+
+Note: This warning does not apply to main repository paths like `//external/...`
+which are legitimate Bazel labels.
+
+--------------------------------------------------------------------------------
+
 ## <a name="filetype"></a>The `FileType` function is deprecated
 
   * Category name: `filetype`
@@ -453,7 +556,7 @@ To fix the issue just change the name attribute of one rule/macro.
   * [Suppress the warning](#suppress): `# buildifier: disable=filetype`
 
 The function `FileType` is deprecated. Instead of using it as an argument to the
-[`rule` function](https://docs.bazel.build/versions/master/skylark/lib/globals.html#rule)
+[`rule` function](https://docs.bazel.build/versions/main/skylark/lib/globals.html#rule)
 just use a list of strings.
 
 --------------------------------------------------------------------------------
@@ -575,6 +678,8 @@ the readability.
   * [Suppress the warning](#suppress): `# buildifier: disable=list-append`
 
 Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
+NOTE: .append() does not work if the target is a select, hence this warning can safely
+be ignored or suppressed.
 
 --------------------------------------------------------------------------------
 
@@ -586,7 +691,7 @@ Transforming `x += [expr]` to `x.append(expr)` avoids a list allocation.
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://docs.bazel.build/versions/main/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the definition is not used in
 the file, the load can be safely removed. If a symbol is loaded two times, you
 will get a warning on the second occurrence.
@@ -657,7 +762,6 @@ UPPER_SNAKE_CASE, and providers should be UpperCamelCase ending with `Info`.
   * Category name: `native-android`
   * Flag in Bazel: [`--incompatible_disable_native_android_rules`](https://github.com/bazelbuild/bazel/issues/8391)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-android`
 
 The Android build rules should be loaded from Starlark.
@@ -679,35 +783,186 @@ as global symbols there.
 
 --------------------------------------------------------------------------------
 
-## <a name="native-cc"></a>All C++ build rules should be loaded from Starlark
+## <a name="native-cc-binary"></a><a name="native-cc-common"></a><a name="native-cc-debug-package-info"></a><a name="native-cc-fdo-prefetch-hints"></a><a name="native-cc-fdo-profile"></a><a name="native-cc-import"></a><a name="native-cc-info"></a><a name="native-cc-library"></a><a name="native-cc-memprof-profile"></a><a name="native-cc-objc-import"></a><a name="native-cc-objc-library"></a><a name="native-cc-propeller-optimize"></a><a name="native-cc-shared-library"></a><a name="native-cc-shared-library-hint-info"></a><a name="native-cc-shared-library-info"></a><a name="native-cc-test"></a><a name="native-cc-toolchain"></a><a name="native-cc-toolchain-suite"></a>All C++ build rules should be loaded from Starlark
 
-  * Category name: `native-cc`
-  * Flag in Bazel: [`--incompatible_load_cc_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8743)
+  * Category names:
+    * `native-cc-binary`
+    * `native-cc-common`
+    * `native-cc-debug-package-info`
+    * `native-cc-fdo-prefetch-hints`
+    * `native-cc-fdo-profile`
+    * `native-cc-import`
+    * `native-cc-info`
+    * `native-cc-library`
+    * `native-cc-memprof-profile`
+    * `native-cc-objc-import`
+    * `native-cc-objc-library`
+    * `native-cc-propeller-optimize`
+    * `native-cc-shared-library`
+    * `native-cc-shared-library-hint-info`
+    * `native-cc-shared-library-info`
+    * `native-cc-test`
+    * `native-cc-toolchain`
+    * `native-cc-toolchain-suite`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
-  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc`
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc-binary`, `# buildifier: disable=native-cc-common`, `# buildifier: disable=native-cc-debug-package-info`, `# buildifier: disable=native-cc-fdo-prefetch-hints`, `# buildifier: disable=native-cc-fdo-profile`, `# buildifier: disable=native-cc-import`, `# buildifier: disable=native-cc-info`, `# buildifier: disable=native-cc-library`, `# buildifier: disable=native-cc-memprof-profile`, `# buildifier: disable=native-cc-objc-import`, `# buildifier: disable=native-cc-objc-library`, `# buildifier: disable=native-cc-propeller-optimize`, `# buildifier: disable=native-cc-shared-library`, `# buildifier: disable=native-cc-shared-library-hint-info`, `# buildifier: disable=native-cc-shared-library-info`, `# buildifier: disable=native-cc-test`, `# buildifier: disable=native-cc-toolchain`, `# buildifier: disable=native-cc-toolchain-suite`
 
-The CC build rules should be loaded from Starlark.
-
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+The C++ build rules should be loaded from @rules_cc.
 
 --------------------------------------------------------------------------------
 
-## <a name="native-java"></a>All Java build rules should be loaded from Starlark
+## <a name="native-cc-proto"></a>cc_proto_library rule should be loaded from Starlark
 
-  * Category name: `native-java`
-  * Flag in Bazel: [`--incompatible_load_java_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8746)
+  * Category name: `native-cc-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
-  * [Suppress the warning](#suppress): `# buildifier: disable=native-java`
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-cc-proto`
+
+The cc_proto_library rule should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-binary"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-binary`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-binary`
 
 The Java build rules should be loaded from Starlark.
 
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+--------------------------------------------------------------------------------
+
+## <a name="native-java-common"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-common`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-common`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-import"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-import`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-import`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-info"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-info`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-library"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-library`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-library`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-lite-proto"></a>java_lite_proto_library rule should be loaded from Starlark
+
+  * Category name: `native-java-lite-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-lite-proto`
+
+The java_lite_proto_library rule should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-package-config"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-package-config`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-package-config`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-plugin"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-plugin`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-plugin`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-plugin-info"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-plugin-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-plugin-info`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-proto"></a>java_proto_library rule should be loaded from Starlark
+
+  * Category name: `native-java-proto`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-proto`
+
+The java_proto_library rule should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-runtime"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-runtime`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-runtime`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-test"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-test`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-test`
+
+The Java build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-java-toolchain"></a>All Java build rules should be loaded from Starlark
+
+  * Category name: `native-java-toolchain`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-java-toolchain`
+
+The Java build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
@@ -722,19 +977,58 @@ It can silently modify the semantics of a BUILD file and makes it hard to mainta
 
 --------------------------------------------------------------------------------
 
-## <a name="native-proto"></a>All Proto build rules and symbols should be loaded from Starlark
+## <a name="native-proto"></a>proto_library rule should be loaded from Starlark
 
   * Category name: `native-proto`
-  * Flag in Bazel: [`--incompatible_load_proto_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/8922)
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-proto`
 
-The Proto build rules should be loaded from Starlark.
+The proto_library rule should be loaded from Starlark.
 
-Update: the plans for disabling native rules
-[have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
-at the moment it's not required to load Starlark rules.
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-common"></a>proto_common module should be loaded from Starlark
+
+  * Category name: `native-proto-common`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-common`
+
+The proto_common module should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-info"></a>ProtoInfo provider should be loaded from Starlark
+
+  * Category name: `native-proto-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-info`
+
+The ProtoInfo provider should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-lang-toolchain"></a>proto_lang_toolchain rule should be loaded from Starlark
+
+  * Category name: `native-proto-lang-toolchain`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-lang-toolchain`
+
+The proto_lang_toolchain rule should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-proto-lang-toolchain-info"></a>ProtoLangToolchainInfo provider should be loaded from Starlark
+
+  * Category name: `native-proto-lang-toolchain-info`
+  * Flag in Bazel: [`--incompatible_autoload_externally`](https://github.com/bazelbuild/bazel/issues/23043)
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-proto-lang-toolchain-info`
+
+The ProtoLangToolchainInfo provider should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
@@ -743,7 +1037,6 @@ at the moment it's not required to load Starlark rules.
   * Category name: `native-py`
   * Flag in Bazel: [`--incompatible_load_python_rules_from_bzl`](https://github.com/bazelbuild/bazel/issues/9006)
   * Automatic fix: yes
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=native-py`
 
 The Python build rules should be loaded from Starlark.
@@ -751,6 +1044,36 @@ The Python build rules should be loaded from Starlark.
 Update: the plans for disabling native rules
 [have been postponed](https://groups.google.com/g/bazel-discuss/c/XNvpWcge4AE/m/aJ-aQzszAwAJ),
 at the moment it's not required to load Starlark rules.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-binary"></a>sh_binary build rules should be loaded from Starlark
+
+  * Category name: `native-sh-binary`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-binary`
+
+The sh_binary build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-library"></a>sh_library build rules should be loaded from Starlark
+
+  * Category name: `native-sh-library`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-library`
+
+The sh_library build rules should be loaded from Starlark.
+
+--------------------------------------------------------------------------------
+
+## <a name="native-sh-test"></a>sh_test build rules should be loaded from Starlark
+
+  * Category name: `native-sh-test`
+  * Automatic fix: yes
+  * [Suppress the warning](#suppress): `# buildifier: disable=native-sh-test`
+
+The sh_test build rules should be loaded from Starlark.
 
 --------------------------------------------------------------------------------
 
@@ -791,7 +1114,7 @@ of a symbol load and its usage can change resulting in runtime error.
   * [Suppress the warning](#suppress): `# buildifier: disable=output-group`
 
 The `output_group` field of a target is deprecated in favor of the
-[`OutputGroupInfo` provider](https://docs.bazel.build/versions/master/skylark/lib/OutputGroupInfo.html).
+[`OutputGroupInfo` provider](https://docs.bazel.build/versions/main/skylark/lib/OutputGroupInfo.html).
 
 --------------------------------------------------------------------------------
 
@@ -828,9 +1151,9 @@ x = depset(..., transitive = [y.deps for y in ...])
 ```
 
 For more information, read Bazel documentation about
-[depsets](https://docs.bazel.build/versions/master/skylark/depsets.html)
+[depsets](https://docs.bazel.build/versions/main/skylark/depsets.html)
 and
-[reducing the number of calls to depset](https://docs.bazel.build/versions/master/skylark/performance.html#reduce-the-number-of-calls-to-depset).
+[reducing the number of calls to depset](https://docs.bazel.build/versions/main/skylark/performance.html#reduce-the-number-of-calls-to-depset).
 
 --------------------------------------------------------------------------------
 
@@ -842,7 +1165,7 @@ and
   * [Suppress the warning](#suppress): `# buildifier: disable=package-name`
 
 The global variable `PACKAGE_NAME` is deprecated, please use
-[`native.package_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#package_name)
+[`native.package_name()`](https://docs.bazel.build/versions/main/skylark/lib/native.html#package_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -882,10 +1205,11 @@ The linter allows the following to be before `package()`:
   * Automatic fix: no
   * [Suppress the warning](#suppress): `# buildifier: disable=positional-args`
 
-All top level calls (except for some built-ins) should use keyword args over
-positional arguments. Positional arguments can cause subtle errors if the order
-is switched or if an argument is removed. Keyword args also greatly improve
-readability.
+All macro and rule calls should use keyword args over positional arguments.
+Positional arguments can cause subtle errors if the order is switched or if
+an argument is removed. Keyword args also greatly improve readability.
+Additionally, positional arguments prevent migration from [Legacy Macros](https://bazel.build/extending/legacy-macros)
+to [Symbolic Macros](https://bazel.build/extending/macros).
 
 ```diff
 - my_macro("foo", "bar")
@@ -952,7 +1276,7 @@ AllInfo = provider("This provider accepts any field.", fields = None)
 NoneInfo = provider("This provider cannot have fields.", fields = [])
 ```
 
-See the [documentation for providers](https://docs.bazel.build/versions/master/skylark/lib/globals.html#provider).
+See the [documentation for providers](https://docs.bazel.build/versions/main/skylark/lib/globals.html#provider).
 
 --------------------------------------------------------------------------------
 
@@ -985,7 +1309,7 @@ forbid reassignment, but not every side-effect.
   * [Suppress the warning](#suppress): `# buildifier: disable=repository-name`
 
 The global variable `REPOSITORY_NAME` is deprecated, please use
-[`native.repository_name()`](https://docs.bazel.build/versions/master/skylark/lib/native.html#repository_name)
+[`native.repository_name()`](https://docs.bazel.build/versions/main/skylark/lib/native.html#repository_name)
 instead.
 
 --------------------------------------------------------------------------------
@@ -1011,9 +1335,9 @@ know certain parts of the code cannot be reached, add the statement
   * [Suppress the warning](#suppress): `# buildifier: disable=rule-impl-return`
 
 Returning structs from rule implementation functions is
-[deprecated](https://docs.bazel.build/versions/master/skylark/rules.html#migrating-from-legacy-providers),
+[deprecated](https://docs.bazel.build/versions/main/skylark/rules.html#migrating-from-legacy-providers),
 consider using
-[providers](https://docs.bazel.build/versions/master/skylark/rules.html#providers)
+[providers](https://docs.bazel.build/versions/main/skylark/rules.html#providers)
 or lists of providers instead.
 
 --------------------------------------------------------------------------------
@@ -1029,7 +1353,7 @@ Obsolete; the warning has been implemented in the formatter and the fix is now a
 
 ### Background
 
-[load](https://docs.bazel.build/versions/master/skylark/concepts.html#loading-an-extension)
+[load](https://docs.bazel.build/versions/main/skylark/concepts.html#loading-an-extension)
 is used to import definitions in a BUILD file. If the same label is used for loading
 symbols more the ones, all such loads can be merged into a single one.
 

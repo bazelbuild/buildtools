@@ -53,7 +53,7 @@ type funCall struct {
 func acceptsNameArgument(def *build.DefStmt) bool {
 	for _, param := range def.Params {
 		if name, op := build.GetParamName(param); name == "name" || op == "**" {
-  		return true
+			return true
 		}
 	}
 	return false
@@ -61,9 +61,10 @@ func acceptsNameArgument(def *build.DefStmt) bool {
 
 // fileData represents information about rules and functions extracted from a file
 type fileData struct {
-	rules     map[string]bool               // all rules defined in the file
-	functions map[string]map[string]funCall // outer map: all functions defined in the file, inner map: all distinct function calls from the given function
-	aliases   map[string]function           // all top-level aliases (e.g. `foo = bar`).
+	loadedSymbols map[string]function           // Symbols loaded from other files.
+	rulesOrMacros map[string]bool               // all rules or macros defined in the file.
+	functions     map[string]map[string]funCall // outer map: all functions defined in the file, inner map: all distinct function calls from the given function
+	aliases       map[string]function           // all top-level aliases (e.g. `foo = bar`).
 }
 
 // resolvesExternal takes a local function definition and replaces it with an external one if it's been defined
@@ -123,8 +124,14 @@ func analyzeFile(f *build.File) fileData {
 		return fileData{}
 	}
 
+	report := fileData{
+		loadedSymbols: make(map[string]function),
+		rulesOrMacros: make(map[string]bool),
+		functions:     make(map[string]map[string]funCall),
+		aliases:       make(map[string]function),
+	}
+
 	// Collect loaded symbols
-	externalSymbols := make(map[string]function)
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
 		if !ok {
@@ -135,15 +142,10 @@ func analyzeFile(f *build.File) fileData {
 			continue
 		}
 		for i, from := range load.From {
-			externalSymbols[load.To[i].Name] = function{label.Package, label.Target, from.Name}
+			report.loadedSymbols[load.To[i].Name] = function{label.Package, label.Target, from.Name}
 		}
 	}
 
-	report := fileData{
-		rules:     make(map[string]bool),
-		functions: make(map[string]map[string]funCall),
-		aliases:   make(map[string]function),
-	}
 	for _, stmt := range f.Stmt {
 		switch stmt := stmt.(type) {
 		case *build.AssignExpr:
@@ -153,7 +155,7 @@ func analyzeFile(f *build.File) fileData {
 				continue
 			}
 			if rhsIdent, ok := stmt.RHS.(*build.Ident); ok {
-				report.aliases[lhsIdent.Name] = resolveExternal(function{f.Pkg, f.Label, rhsIdent.Name}, externalSymbols)
+				report.aliases[lhsIdent.Name] = resolveExternal(function{f.Pkg, f.Label, rhsIdent.Name}, report.loadedSymbols)
 				continue
 			}
 
@@ -161,13 +163,14 @@ func analyzeFile(f *build.File) fileData {
 			if !ok {
 				continue
 			}
-			ident, ok := call.X.(*build.Ident)
-			if !ok || ident.Name != "rule" {
-				continue
+			if ident, ok := call.X.(*build.Ident); ok {
+				if ident.Name == "rule" || ident.Name == "macro" {
+					report.rulesOrMacros[lhsIdent.Name] = true
+					continue
+				}
 			}
-			report.rules[lhsIdent.Name] = true
 		case *build.DefStmt:
-			report.functions[stmt.Name] = getFunCalls(stmt, f.Pkg, f.Label, externalSymbols)
+			report.functions[stmt.Name] = getFunCalls(stmt, f.Pkg, f.Label, report.loadedSymbols)
 		default:
 			continue
 		}
@@ -177,8 +180,8 @@ func analyzeFile(f *build.File) fileData {
 
 // functionReport represents the analysis result of a function
 type functionReport struct {
-	isMacro bool     // whether the function is a macro (or a rule)
-	fc      *funCall // a call to the rule or another macro
+	isRuleOrMacro bool     // whether the function is a macro (or a rule)
+	fc            *funCall // a call to the rule or another macro
 }
 
 // macroAnalyzer is an object that analyzes the directed graph of functions calling each other,
@@ -208,7 +211,7 @@ func (ma macroAnalyzer) getFileData(pkg, label string) fileData {
 }
 
 // IsMacro is a public function that checks whether the given function is a macro
-func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
+func (ma macroAnalyzer) IsRuleOrMacro(fn function) (report functionReport) {
 	// Check the cache first
 	if cached, ok := ma.cache[fn]; ok {
 		return cached
@@ -228,7 +231,7 @@ func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 			"repository_name", "exports_files":
 			// Not a rule
 		default:
-			report.isMacro = true
+			report.isRuleOrMacro = true
 		}
 		return
 	}
@@ -237,16 +240,24 @@ func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 
 	// Check whether fn.name is an alias for another function
 	if alias, ok := fileData.aliases[fn.name]; ok {
-		if ma.IsMacro(alias).isMacro {
-			report.isMacro = true
+		if ma.IsRuleOrMacro(alias).isRuleOrMacro {
+			report.isRuleOrMacro = true
 		}
 		return
 	}
 
-	// Check whether fn.name is a rule
-	if fileData.rules[fn.name] {
-		report.isMacro = true
+	// Check whether fn.name is a rule or macro
+	if fileData.rulesOrMacros[fn.name] {
+		report.isRuleOrMacro = true
 		return
+	}
+
+	// Check whether fn.name is a loaded symbol from another file
+	if externalFn, ok := fileData.loadedSymbols[fn.name]; ok {
+		if ma.IsRuleOrMacro(externalFn).isRuleOrMacro {
+			report.isRuleOrMacro = true
+			return
+		}
 	}
 
 	// Check whether fn.name is an ordinary function
@@ -267,8 +278,8 @@ func (ma macroAnalyzer) IsMacro(fn function) (report functionReport) {
 	}
 
 	for _, fc := range append(knownFunCalls, newFunCalls...) {
-		if ma.IsMacro(fc.function).isMacro {
-			report.isMacro = true
+		if ma.IsRuleOrMacro(fc.function).isRuleOrMacro {
+			report.isRuleOrMacro = true
 			report.fc = &fc
 			return
 		}
@@ -305,8 +316,8 @@ func unnamedMacroWarning(f *build.File, fileReader *FileReader) []*LinterFinding
 			continue
 		}
 
-		report := macroAnalyzer.IsMacro(function{f.Pkg, f.Label, def.Name})
-		if !report.isMacro {
+		report := macroAnalyzer.IsRuleOrMacro(function{f.Pkg, f.Label, def.Name})
+		if !report.isRuleOrMacro {
 			continue
 		}
 		msg := fmt.Sprintf(`The macro %q should have a keyword argument called "name".`, def.Name)

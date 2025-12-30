@@ -18,7 +18,6 @@ package build
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -29,7 +28,7 @@ import (
 func TestFilesMatch(t *testing.T) {
 	testdata := path.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"), "build")
 
-	generated, err := ioutil.ReadFile(path.Join(testdata, "parse.y.baz.go"))
+	generated, err := os.ReadFile(path.Join(testdata, "parse.y.baz.go"))
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", "parse.y.baz.go", err)
 	}
@@ -38,7 +37,7 @@ func TestFilesMatch(t *testing.T) {
 	// robust.
 	generated = generated[bytes.IndexByte(generated, '\n')+2:]
 
-	checkedIn, err := ioutil.ReadFile(path.Join(testdata, "parse.y.go"))
+	checkedIn, err := os.ReadFile(path.Join(testdata, "parse.y.go"))
 	if err != nil {
 		t.Fatalf("ReadFile(%q) = %v", "parse.y.go", err)
 	}

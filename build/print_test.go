@@ -19,7 +19,6 @@ package build
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -123,7 +122,7 @@ func TestSyntaxError(t *testing.T) {
 	}
 
 	for _, in := range ins {
-		data, err := ioutil.ReadFile(in)
+		data, err := os.ReadFile(in)
 		if err != nil {
 			t.Error(err)
 			return
@@ -181,13 +180,13 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // It reads the file named in, reformats it, and compares
 // the result to the file named out.
 func testPrint(t *testing.T, in, out string, isBuild bool) {
-	data, err := ioutil.ReadFile(in)
+	data, err := os.ReadFile(in)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	golden, err := ioutil.ReadFile(out)
+	golden, err := os.ReadFile(out)
 	if err != nil {
 		t.Error(err)
 		return
@@ -233,7 +232,7 @@ func TestPrintParse(t *testing.T) {
 			continue
 		}
 
-		data, err := ioutil.ReadFile(out)
+		data, err := os.ReadFile(out)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -265,7 +264,7 @@ func TestPrintNewSequences(t *testing.T) {
 	outs, chdir := findTests(t, "064.*")
 	defer chdir()
 	for _, out := range outs {
-		golden, err := ioutil.ReadFile(out)
+		golden, err := os.ReadFile(out)
 		if err != nil {
 			t.Error(err)
 			return
