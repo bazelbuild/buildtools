@@ -554,11 +554,19 @@ func (x *BinaryExpr) Copy() Expr {
 // An AssignExpr represents a binary expression with `=`: LHS = RHS.
 type AssignExpr struct {
 	Comments
-	LHS       Expr
-	OpPos     Position
-	Op        string
-	LineBreak bool // insert line break between Op and RHS
-	RHS       Expr
+	// LHS is the left hand side operation. For example, if the expression is
+	// "default_visibility = [:foo]", the LHS is the Ident "default_visibility".
+	LHS Expr
+	// OpPos is the position of the Op.
+	OpPos Position
+	// Op is the operation of the expression. For example, if the expression
+	// is "default_visibility = [:foo]", the Op is "="".
+	Op string
+	// LineBreak is whether there is a linebreak between Op and RHS.
+	LineBreak bool
+	// RHS is the right hand side operation. For example, if the expression is
+	// "default_visibility = [":foo"]", the RHS is the ListExpr [":foo"].
+	RHS Expr
 }
 
 // Span returns the start and end positions of the node
