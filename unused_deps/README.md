@@ -1,7 +1,7 @@
 # Unused Deps
 
 unused_deps is a command line tool to determine any unused dependencies
-in [java_library](https://docs.bazel.build/versions/master/be/java.html#java_library)
+in [java_library](https://docs.bazel.build/versions/main/be/java.html#java_library)
 rules. targets.  It outputs `buildozer` commands to apply the suggested
 prunings.
 
@@ -10,7 +10,7 @@ prunings.
 Build a binary and put it into your $GOPATH/bin:
 
 ```bash
-go get github.com/bazelbuild/buildtools/unused_deps
+go install github.com/bazelbuild/buildtools/unused_deps@latest
 ```
 
 ## Usage

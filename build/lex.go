@@ -1,18 +1,19 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 // Lexical scanning for BUILD file parser.
 
 package build
@@ -41,6 +42,8 @@ const (
 	TypeWorkspace
 	// TypeBzl represents .bzl files
 	TypeBzl
+	// TypeModule represents MODULE.bazel and *.MODULE.bazel files
+	TypeModule
 )
 
 func (t FileType) String() string {
@@ -53,6 +56,8 @@ func (t FileType) String() string {
 		return "WORKSPACE"
 	case TypeBzl:
 		return ".bzl"
+	case TypeModule:
+		return "MODULE.bazel"
 	}
 	return "unknown"
 }
@@ -77,6 +82,18 @@ func ParseWorkspace(filename string, data []byte) (*File, error) {
 	f, err := in.parse()
 	if f != nil {
 		f.Type = TypeWorkspace
+	}
+	return f, err
+}
+
+// ParseModule parses a file, marks it as a MODULE.bazel file and returns the corresponding parse tree.
+//
+// The filename is used only for generating error messages.
+func ParseModule(filename string, data []byte) (*File, error) {
+	in := newInput(filename, data)
+	f, err := in.parse()
+	if f != nil {
+		f.Type = TypeModule
 	}
 	return f, err
 }
@@ -113,6 +130,9 @@ func getFileType(filename string) FileType {
 	if strings.HasSuffix(basename, ".oss") {
 		basename = basename[:len(basename)-4]
 	}
+	if basename == "module.bazel" || strings.HasSuffix(basename, ".module.bazel") {
+		return TypeModule
+	}
 	ext := filepath.Ext(basename)
 	switch ext {
 	case ".bzl":
@@ -122,7 +142,7 @@ func getFileType(filename string) FileType {
 	}
 	base := basename[:len(basename)-len(ext)]
 	switch {
-	case ext == ".build" || base == "build" || strings.HasPrefix(base, "build."):
+	case ext == ".build" || base == "build" || strings.HasPrefix(base, "build.") || strings.HasSuffix(basename, ".build.bazel"):
 		return TypeBuild
 	case ext == ".workspace" || base == "workspace" || strings.HasPrefix(base, "workspace."):
 		return TypeWorkspace
@@ -140,6 +160,8 @@ func Parse(filename string, data []byte) (*File, error) {
 		return ParseBuild(filename, data)
 	case TypeWorkspace:
 		return ParseWorkspace(filename, data)
+	case TypeModule:
+		return ParseModule(filename, data)
 	case TypeBzl:
 		return ParseBzl(filename, data)
 	}
@@ -296,10 +318,15 @@ func (in *input) startToken(val *yySymType) {
 // has not done that already.
 func (in *input) endToken(val *yySymType) {
 	if val.tok == "" {
-		tok := string(in.token[:len(in.token)-len(in.remaining)])
+		tok := string(in.peekToken())
 		val.tok = tok
 		in.lastToken = val.tok
 	}
+}
+
+// peekToken returns the bytes comprising the current token being scanned.
+func (in *input) peekToken() []byte {
+	return in.token[:len(in.token)-len(in.remaining)]
 }
 
 // Lex is called from the generated parser to obtain the next input token.
@@ -482,6 +509,12 @@ func (in *input) Lex(val *yySymType) int {
 			return _STAR_STAR
 		}
 
+		if c == '-' && in.peekRune() == '>' {
+			// functions type annotation
+			in.readRune()
+			return _ARROW
+		}
+
 		if c == in.peekRune() {
 			switch c {
 			case '/':
@@ -591,7 +624,15 @@ func (in *input) Lex(val *yySymType) int {
 	for {
 		c := in.peekRune()
 		if !isIdent(c) {
-			break
+			if c == '+' || c == '-' {
+				t := in.peekToken()
+				// Parse 12.3e-4 and 12.3E+4 as a single token.
+				if !(len(t) > 0 && t[0] >= '0' && t[0] <= '9' && (t[len(t)-1] == 'e' || t[len(t)-1] == 'E')) {
+					break
+				}
+			} else {
+				break
+			}
 		}
 		in.readRune()
 	}
@@ -611,7 +652,7 @@ func (in *input) Lex(val *yySymType) int {
 		return _CONTINUE
 	}
 	if len(val.tok) > 0 && val.tok[0] >= '0' && val.tok[0] <= '9' {
-		return _NUMBER
+		return _INT
 	}
 	return _IDENT
 }
@@ -690,6 +731,8 @@ func (in *input) order(v Expr) {
 		// nothing
 	case *Ident:
 		// nothing
+	case *TypedIdent:
+		in.order(v.Type)
 	case *BranchStmt:
 		// nothing
 	case *DotExpr:

@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package edit
 
 import (
@@ -10,7 +26,7 @@ import (
 func TestEmptyCommandFileContainsNoCommands(t *testing.T) {
 	reader := strings.NewReader("")
 	commandsByBuildFile := make(map[string][]commandsForTarget)
-	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile)
+	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile, []string{})
 	t.Logf("Read commands:\n%s", prettyFormat(commandsByBuildFile))
 
 	if len(commandsByBuildFile) != 0 {
@@ -113,10 +129,20 @@ func TestLongLineInCommandFileParsesAsOneCommand(t *testing.T) {
 	}
 }
 
+func TestEscapedPipesInCommandFileArentSplit(t *testing.T) {
+	commands := parseCommandFile("set srcs mytarget.go|//test-project:mytarget(\\|\\|)\n", t)
+	if len(commands) != 1 {
+		t.Error("Exactly one command should be read")
+	}
+	if commands[0].target != "//test-project:mytarget(||)" {
+		t.Error("Read command target should be for the correct target")
+	}
+}
+
 func parseCommandFile(fileContent string, t *testing.T) []parsedCommand {
 	reader := strings.NewReader(fileContent)
 	commandsByBuildFile := make(map[string][]commandsForTarget)
-	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile)
+	appendCommandsFromReader(NewOpts(), reader, commandsByBuildFile, []string{})
 	t.Logf("Read commands:\n%s", prettyFormat(commandsByBuildFile))
 	return extractCommands(commandsByBuildFile)
 }

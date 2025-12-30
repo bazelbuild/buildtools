@@ -1,0 +1,37 @@
+@echo off
+
+set ARGS=@@ARGS@@
+
+rem Remove the leading '(' and trailing ')' characters that surround the arguments
+set stripped_args=%ARGS:~1,-1%
+
+rem Unquote the arguments
+set stripped_args=%stripped_args:'=%
+
+rem Get the absolute path to the buildifier executable
+for /f "tokens=2" %%i in ('findstr /r "\<buildifier\.exe\>" MANIFEST') do (set buildifier_abs_path=%%i)
+
+powershell ^
+$Files = Get-ChildItem -LiteralPath '%BUILD_WORKSPACE_DIRECTORY:/=\%' -Recurse -File -ErrorAction SilentlyContinue ^|^
+    Where-Object {^
+        $_.Name -eq 'BUILD.bazel' `^
+        -or $_.Name -eq 'BUILD' `^
+        -or $_.Name -eq 'WORKSPACE' `^
+        -or $_.Name -eq 'WORKSPACE.bazel' `^
+        -or $_.Name -eq 'WORKSPACE.oss' `^
+        -or $_.Name  -clike '*.bzl' `^
+        -or $_.Name -clike '*.sky' `^
+        -or $_.Name -clike '*.BUILD' `^
+        -or $_.Name -clike 'BUILD.*.bazel' `^
+        -or $_.Name -clike 'BUILD.*.oss' `^
+        -or $_.Name -clike 'WORKSPACE.*.bazel' `^
+        -or $_.Name -clike 'WORKSPACE.*.oss'^
+    };^
+ ^<# Process files in batches of 100- to avoid exceeding CreateProcess' maximum length of 32,767 characters #^> ^
+$i = 0;^
+while ($i -lt $Files.Count)^
+{^
+    $Batch = $Files[$i..($i + 99)];^
+    ^& '%buildifier_abs_path%' %stripped_args% $Batch.FullName;^
+    $i += $Batch.Count;^
+};

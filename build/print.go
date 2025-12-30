@@ -1,18 +1,19 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 // Printing of syntax trees.
 
 package build
@@ -21,6 +22,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
 const (
@@ -29,15 +32,33 @@ const (
 	defIndentation    = 8 // Indentation of multiline function definitions
 )
 
-// Format returns the formatted form of the given BUILD or bzl file.
-func Format(f *File) []byte {
+// FormatWithoutRewriting returns the formatted form of the given Starlark file.
+// This function is mostly useful for tests only, please consider using `Format` instead.
+func FormatWithoutRewriting(f *File) []byte {
 	pr := &printer{fileType: f.Type}
 	pr.file(f)
 	return pr.Bytes()
 }
 
+// Format rewrites the file and returns the formatted form of it.
+func Format(f *File) []byte {
+	Rewrite(f)
+	return FormatWithoutRewriting(f)
+}
+
+// FormatWithRewriter rewites the file with custom rewriter and returns the formatted form of it
+func FormatWithRewriter(w *Rewriter, f *File) []byte {
+	w.Rewrite(f)
+	return FormatWithoutRewriting(f)
+}
+
 // FormatString returns the string form of the given expression.
 func FormatString(x Expr) string {
+	// Expr is an interface and can be nil
+	if x == nil {
+		return ""
+	}
+
 	fileType := TypeBuild // for compatibility
 	if file, ok := x.(*File); ok {
 		fileType = file.Type
@@ -62,6 +83,17 @@ type printer struct {
 	depth        int       // nesting depth inside ( ) [ ] { }
 	level        int       // nesting level of def-, if-else- and for-blocks
 	needsNewLine bool      // true if the next statement needs a new line before it
+}
+
+// formattingMode returns the current file formatting mode.
+// Can be only TypeBuild or TypeDefault.
+func (p *printer) formattingMode() FileType {
+	switch p.fileType {
+	case TypeBuild, TypeWorkspace, TypeModule:
+		return TypeBuild
+	default: // TypeDefault, TypeBzl
+		return TypeDefault
+	}
 }
 
 // printf prints to the buffer.
@@ -106,10 +138,10 @@ func (p *printer) newline() {
 // If softNewline is called several times, just one newline is printed.
 // Usecase: if there are several nested blocks ending at the same time, for instance
 //
-//     if True:
-//         for a in b:
-//             pass
-//     foo()
+//	if True:
+//	    for a in b:
+//	        pass
+//	foo()
 //
 // the last statement (`pass`) doesn't end with a newline, each block ends with a lazy newline
 // which actually gets printed only once when right before the next statement (`foo()`) is printed.
@@ -188,13 +220,7 @@ func (p *printer) statements(rawStmts []Expr) {
 	}
 
 	for i, stmt := range stmts {
-		switch stmt := stmt.(type) {
-		case *CommentBlock:
-			// comments already handled
-
-		default:
-			p.expr(stmt, precLow)
-		}
+		p.expr(stmt, precLow)
 
 		// A CommentBlock is an empty statement without a body,
 		// it doesn't need an line break after the body
@@ -225,7 +251,7 @@ func (p *printer) statements(rawStmts []Expr) {
 // We omit the blank line when both are subinclude statements
 // and the second one has no leading comments.
 func (p *printer) compactStmt(s1, s2 Expr) bool {
-	if len(s2.Comment().Before) > 0 {
+	if len(s2.Comment().Before) > 0 || len(s1.Comment().After) > 0 {
 		return false
 	} else if isLoad(s1) && isLoad(s2) {
 		// Load statements should be compact
@@ -233,10 +259,28 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 	} else if isLoad(s1) || isLoad(s2) {
 		// Load statements should be separated from anything else
 		return false
+	} else if p.fileType == TypeModule && areBazelDepsOfSameType(s1, s2) {
+		// bazel_dep statements in MODULE files should be compressed if they are both dev deps or
+		// both non-dev deps.
+		return true
+	} else if p.fileType == TypeModule && isBazelDepWithOverride(s1, s2) {
+		// Do not separate an override from the bazel_dep it overrides.
+		return true
+	} else if p.fileType == TypeModule && useSameModuleExtensionProxy(s1, s2) {
+		// Keep statements together that use the same module extension:
+		//
+		//   foo_deps = use_extension("//:foo.bzl", "foo_deps")
+		//   foo_deps.module(path = "github.com/foo/bar")
+		//   use_repo(foo_deps, "com_github_foo_bar")
+		return true
+	} else if p.fileType == TypeModule && isInclude(s1) && isInclude(s2) {
+		// include takes a single argument and there are typically multiple in
+		// a row, so we want to keep them together.
+		return true
 	} else if isCommentBlock(s1) || isCommentBlock(s2) {
 		// Standalone comment blocks shouldn't be attached to other statements
 		return false
-	} else if (p.fileType == TypeBuild || p.fileType == TypeWorkspace) && p.level == 0 {
+	} else if (p.formattingMode() == TypeBuild) && p.level == 0 {
 		// Top-level statements in a BUILD or WORKSPACE file
 		return false
 	} else if isFunctionDefinition(s1) || isFunctionDefinition(s2) {
@@ -254,6 +298,167 @@ func (p *printer) compactStmt(s1, s2 Expr) bool {
 func isLoad(x Expr) bool {
 	_, ok := x.(*LoadStmt)
 	return ok
+}
+
+// areBazelDepsOfSameType reports whether x and y are bazel_dep statements that
+// are both dev dependencies or both regular dependencies.
+func areBazelDepsOfSameType(x, y Expr) bool {
+	if !isBazelDep(x) || !isBazelDep(y) {
+		return false
+	}
+	isXDevDep := getKeywordBoolArgument(x.(*CallExpr), "dev_dependency", false)
+	isYDevDep := getKeywordBoolArgument(y.(*CallExpr), "dev_dependency", false)
+	return isXDevDep == isYDevDep
+}
+
+func isBazelDep(x Expr) bool {
+	call, ok := x.(*CallExpr)
+	if !ok {
+		return false
+	}
+	if ident, ok := call.X.(*Ident); ok && ident.Name == "bazel_dep" {
+		return true
+	}
+	return false
+}
+
+func isUseRepoOrUseExtension(x Expr) bool {
+	call, ok := x.(*CallExpr)
+	if !ok {
+		return false
+	}
+	if ident, ok := call.X.(*Ident); ok && (ident.Name == "use_repo" || ident.Name == "use_extension") {
+		return true
+	}
+	return false
+}
+
+func isModuleOverride(x Expr) bool {
+	call, ok := x.(*CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.X.(*Ident)
+	if !ok {
+		return false
+	}
+	return tables.IsModuleOverride[ident.Name]
+}
+
+func getKeywordBoolArgument(call *CallExpr, keyword string, defaultValue bool) bool {
+	arg := getKeywordArgument(call, keyword)
+	if arg == nil {
+		return defaultValue
+	}
+	ident, ok := arg.(*Ident)
+	if !ok {
+		// Assume that the specified more complex value does not evaluate to the default.
+		return !defaultValue
+	}
+	return ident.Name == "True"
+}
+
+func getKeywordArgument(call *CallExpr, param string) Expr {
+	for _, arg := range call.List {
+		kwarg, ok := arg.(*AssignExpr)
+		if !ok {
+			continue
+		}
+		ident, ok := kwarg.LHS.(*Ident)
+		if !ok {
+			continue
+		}
+		if ident.Name == param {
+			return kwarg.RHS
+		}
+	}
+	return nil
+}
+
+func isBazelDepWithOverride(x, y Expr) bool {
+	if !isBazelDep(x) || !isModuleOverride(y) {
+		return false
+	}
+	bazelDepName, ok := getKeywordArgument(x.(*CallExpr), "name").(*StringExpr)
+	if !ok {
+		return false
+	}
+	overrideModuleName, ok := getKeywordArgument(y.(*CallExpr), "module_name").(*StringExpr)
+	if !ok {
+		return false
+	}
+	return bazelDepName.Value == overrideModuleName.Value
+}
+
+func useSameModuleExtensionProxy(x, y Expr) bool {
+	extX, isUseRepoX := usedModuleExtensionProxy(x)
+	if extX == "" {
+		return false
+	}
+	extY, isUseRepoY := usedModuleExtensionProxy(y)
+	// Switching from a use_repo to a non-use_repo statement should break the
+	// sequence of statements.
+	//
+	//   foo_deps.module(path = "github.com/foo/bar")
+	//   use_repo(foo_deps, "com_github_foo_bar")
+	//
+	//   foo_deps.module(path = "github.com/foo/bar2")
+	//   use_repo(foo_deps, "com_github_foo_bar2")
+	return extX == extY && (!isUseRepoX || isUseRepoY)
+}
+
+func usedModuleExtensionProxy(x Expr) (name string, isUseRepo bool) {
+	if call, ok := x.(*CallExpr); ok {
+		if callee, isIdent := call.X.(*Ident); isIdent && callee.Name == "use_repo" {
+			// Handles:
+			//   use_repo(foo_deps, "com_github_foo_bar")
+			if len(call.List) < 1 {
+				return "", true
+			}
+			proxy, isIdent := call.List[0].(*Ident)
+			if !isIdent {
+				return "", true
+			}
+			return proxy.Name, true
+		} else if dot, isDot := call.X.(*DotExpr); isDot {
+			// Handles:
+			//   foo_deps.module(path = "github.com/foo/bar")
+			extension, isIdent := dot.X.(*Ident)
+			if !isIdent {
+				return "", false
+			}
+			return extension.Name, false
+		} else {
+			return "", false
+		}
+	} else if assign, ok := x.(*AssignExpr); ok {
+		// Handles:
+		//   foo_deps = use_extension("//:foo.bzl", "foo_deps")
+		assignee, isIdent := assign.LHS.(*Ident)
+		if !isIdent {
+			return "", false
+		}
+		call, isCall := assign.RHS.(*CallExpr)
+		if !isCall {
+			return "", false
+		}
+		callee, isIdent := call.X.(*Ident)
+		if !isIdent || callee.Name != "use_extension" {
+			return "", false
+		}
+		return assignee.Name, false
+	} else {
+		return "", false
+	}
+}
+
+func isInclude(x Expr) bool {
+	if call, ok := x.(*CallExpr); ok {
+		if ident, ok := call.X.(*Ident); ok && ident.Name == "include" {
+			return true
+		}
+	}
+	return false
 }
 
 // isCommentBlock reports whether x is a comment block node.
@@ -285,10 +490,12 @@ func isDifferentLines(p1, p2 *Position) bool {
 // input, so extra parentheses are only needed if we have edited the tree.
 //
 // For example consider these expressions:
+//
 //	(1) "x" "y" % foo
 //	(2) "x" + "y" % foo
 //	(3) "x" + ("y" % foo)
 //	(4) ("x" + "y") % foo
+//
 // When we parse (1), we represent the concatenation as an addition.
 // However, if we print the addition back out without additional parens,
 // as in (2), it has the same meaning as (3), which is not the original
@@ -356,7 +563,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	// However, even then we can't emit line comments since that would
 	// end the expression. This is only a concern if we have rewritten
 	// the parse tree. If comments were okay before this expression in
-	// the original input they're still okay now, in the absense of rewrites.
+	// the original input they're still okay now, in the absence of rewrites.
 	//
 	// TODO(bazel-team): Check whether it is valid to emit comments right now,
 	// and if not, insert them earlier in the output instead, at the most
@@ -399,24 +606,52 @@ func (p *printer) expr(v Expr, outerPrec int) {
 	default:
 		panic(fmt.Errorf("printer: unexpected type %T", v))
 
+	case *CommentBlock:
+		// CommentBlock has no body
+
 	case *LiteralExpr:
 		p.printf("%s", v.Token)
 
 	case *Ident:
 		p.printf("%s", v.Name)
 
+	case *TypedIdent:
+		p.expr(v.Ident, precLow)
+		p.printf(": ")
+		p.expr(v.Type, precLow)
+
 	case *BranchStmt:
 		p.printf("%s", v.Token)
 
 	case *StringExpr:
 		// If the Token is a correct quoting of Value and has double quotes, use it,
-		// also use it if it has single quotes and the value itself contains a double quote symbol.
+		// also use it if it has single quotes and the value itself contains a double quote symbol
+		// or if it's a raw string literal (starts with "r").
 		// This preserves the specific escaping choices that BUILD authors have made.
 		s, triple, err := Unquote(v.Token)
-		if s == v.Value && triple == v.TripleQuote && err == nil {
-			if strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"') {
-				p.printf("%s", v.Token)
+		if err == nil && s == v.Value && triple == v.TripleQuote {
+			if strings.HasPrefix(v.Token, `r`) {
+				// Raw string literal
+				token := v.Token
+				if strings.HasSuffix(v.Token, `'`) && !strings.ContainsRune(v.Value, '"') {
+					// Single quotes but no double quotes inside the string, replace with double quotes
+					if strings.HasSuffix(token, `'''`) {
+						token = `r"""` + token[4:len(token)-3] + `"""`
+					} else if strings.HasSuffix(token, `'`) {
+						token = `r"` + token[2:len(token)-1] + `"`
+					}
+				}
+				p.printf("%s", token)
 				break
+			}
+
+			// Non-raw string literal
+			if strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"') {
+				// Either double quoted or there are double-quotes inside the string
+				if IsCorrectEscaping(v.Token) {
+					p.printf("%s", v.Token)
+					break
+				}
 			}
 		}
 
@@ -482,11 +717,12 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *LambdaExpr:
 		addParen(precColon)
-		p.printf("lambda ")
+		p.printf("lambda")
 		for i, param := range v.Params {
 			if i > 0 {
-				p.printf(", ")
+				p.printf(",")
 			}
+			p.printf(" ")
 			p.expr(param, precLow)
 		}
 		p.printf(": ")
@@ -494,7 +730,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 
 	case *BinaryExpr:
 		// Precedence: use the precedence of the operator.
-		// Since all binary expressions format left-to-right,
+		// Since all binary expressions FormatWithoutRewriting left-to-right,
 		// it is okay for the left side to reuse the same operator
 		// without parentheses, so we use prec for v.X.
 		// For the same reason, the right side cannot reuse the same
@@ -546,9 +782,14 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.seq("()", &v.Start, &[]Expr{v.X}, &v.End, modeParen, false, v.ForceMultiLine)
 
 	case *CallExpr:
+		forceCompact := v.ForceCompact
+		if p.fileType == TypeModule && (isBazelDep(v) || isUseRepoOrUseExtension(v)) {
+			start, end := v.Span()
+			forceCompact = start.Line == end.Line
+		}
 		addParen(precSuffix)
 		p.expr(v.X, precSuffix)
-		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, v.ForceCompact, v.ForceMultiLine)
+		p.seq("()", &v.ListStart, &v.List, &v.End, modeCall, forceCompact, v.ForceMultiLine)
 
 	case *LoadStmt:
 		addParen(precSuffix)
@@ -617,6 +858,10 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		p.printf("def ")
 		p.printf(v.Name)
 		p.seq("()", &v.StartPos, &v.Params, nil, modeDef, v.ForceCompact, v.ForceMultiLine)
+		if v.Type != nil {
+			p.printf(" -> ")
+			p.expr(v.Type, precLow)
+		}
 		p.printf(":")
 		p.nestedStatements(v.Body)
 
@@ -731,11 +976,15 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 	if mode == modeSeq {
 		return true
 	}
+	// Use compact mode for empty call expressions if ForceMultiLine is not set
+	if mode == modeCall && len(*list) == 0 && !forceMultiLine {
+		return true
+	}
 
 	// In the Default and .bzl printing modes try to keep the original printing style.
 	// Non-top-level statements and lists of arguments of a function definition
 	// should also keep the original style regardless of the mode.
-	if (p.level != 0 || p.fileType == TypeDefault || p.fileType == TypeBzl || mode == modeDef) && mode != modeLoad {
+	if (p.level != 0 || p.formattingMode() == TypeDefault || mode == modeDef) && mode != modeLoad {
 		// If every element (including the brackets) ends on the same line where the next element starts,
 		// use the compact mode, otherwise use multiline mode.
 		// If an node's line number is 0, it means it doesn't appear in the original file,
@@ -783,6 +1032,15 @@ func (p *printer) useCompactMode(start *Position, list *[]Expr, end *End, mode s
 // If multiLine is true, seq avoids the compact form even
 // for 0- and 1-element sequences.
 func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mode seqMode, forceCompact, forceMultiLine bool) {
+	args := &[]Expr{}
+	for _, x := range *list {
+		// nil arguments may be added by some linter checks, filter them out because
+		// they may cause NPE.
+		if x != nil {
+			*args = append(*args, x)
+		}
+	}
+
 	if mode != modeSeq {
 		p.printf("%s", brack[:1])
 	}
@@ -794,15 +1052,15 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		}
 	}()
 
-	if p.useCompactMode(start, list, end, mode, forceCompact, forceMultiLine) {
-		for i, x := range *list {
+	if p.useCompactMode(start, args, end, mode, forceCompact, forceMultiLine) {
+		for i, x := range *args {
 			if i > 0 {
 				p.printf(", ")
 			}
 			p.expr(x, precLow)
 		}
 		// Single-element tuple must end with comma, to mark it as a tuple.
-		if len(*list) == 1 && mode == modeTuple {
+		if len(*args) == 1 && mode == modeTuple {
 			p.printf(",")
 		}
 		return
@@ -814,7 +1072,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 	}
 	p.margin += indentation
 
-	for i, x := range *list {
+	for i, x := range *args {
 		// If we are about to break the line before the first
 		// element and there are trailing end-of-line comments
 		// waiting to be printed, delay them and print them as
@@ -829,7 +1087,7 @@ func (p *printer) seq(brack string, start *Position, list *[]Expr, end *End, mod
 		p.newline()
 		p.expr(x, precLow)
 
-		if i+1 < len(*list) || needsTrailingComma(mode, x) {
+		if i+1 < len(*args) || needsTrailingComma(mode, x) {
 			p.printf(",")
 		}
 	}
@@ -867,15 +1125,16 @@ func needsTrailingComma(mode seqMode, v Expr) bool {
 
 // listFor formats a ListForExpr (list comprehension).
 // The single-line form is:
+//
 //	[x for y in z if c]
 //
 // and the multi-line form is:
+//
 //	[
 //	    x
 //	    for y in z
 //	    if c
 //	]
-//
 func (p *printer) listFor(v *Comprehension) {
 	multiLine := v.ForceMultiLine || len(v.End.Before) > 0
 

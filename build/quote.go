@@ -1,18 +1,19 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 // Python quoted strings.
 
 package build
@@ -52,12 +53,34 @@ var esc = [256]byte{
 	'"':  '"',
 }
 
-// notEsc is a list of characters that can follow a \ in a string value
-// without having to escape the \. That is, since ( is in this list, we
-// quote the Go string "foo\\(bar" as the Python literal "foo\(bar".
-// This really does happen in BUILD files, especially in strings
-// being used as shell arguments containing regular expressions.
-const notEsc = " !#$%&()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~"
+// escapable is a set of all character that may follow an unescaped backslash
+// in a string literal
+var escapable = [256]bool{
+	'\n': true,
+	'a':  true,
+	'b':  true,
+	'f':  true,
+	'n':  true,
+	'r':  true,
+	't':  true,
+	'u':  true,
+	'U':  true,
+	'v':  true,
+	'x':  true,
+	'\'': true,
+	'\\': true,
+	'"':  true,
+	'0':  true,
+	'1':  true,
+	'2':  true,
+	'3':  true,
+	'4':  true,
+	'5':  true,
+	'6':  true,
+	'7':  true,
+	'8':  true,
+	'9':  true,
+}
 
 // Unquote unquotes the quoted string, returning the actual
 // string value, whether the original was triple-quoted, and
@@ -154,6 +177,46 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 			}
 			buf.WriteByte(byte(n))
 
+		case 'u':
+			// Unicode escape, exactly 4 digits for a 16-bit Unicode code point.
+			if len(quoted) < 6 {
+				err = fmt.Errorf(`truncated escape sequence %s`, quoted)
+				return
+			}
+			n, err1 := strconv.ParseInt(quoted[2:6], 16, 0)
+			if err1 != nil {
+				err = fmt.Errorf(`invalid escape sequence %s`, quoted[:6])
+				return
+			}
+			if n >= 0xD800 && n <= 0xDFFF {
+				err = fmt.Errorf(`invalid dangling surrogate %s`, quoted[:6])
+				return
+			}
+			buf.WriteRune(rune(n))
+			quoted = quoted[6:]
+
+		case 'U':
+			// Unicode escape, exactly 8 digits for a 16-bit Unicode code point.
+			if len(quoted) < 10 {
+				err = fmt.Errorf(`truncated escape sequence %s`, quoted)
+				return
+			}
+			n, err1 := strconv.ParseInt(quoted[2:10], 16, 0)
+			if err1 != nil {
+				err = fmt.Errorf(`invalid escape sequence %s`, quoted[:10])
+				return
+			}
+			if n >= 0xD800 && n <= 0xDFFF {
+				err = fmt.Errorf(`invalid dangling surrogate %s`, quoted[:10])
+				return
+			}
+			if n > 0x10FFFF {
+				err = fmt.Errorf(`Unicode value out of range %s`, quoted[:10])
+				return
+			}
+			buf.WriteRune(rune(n))
+			quoted = quoted[10:]
+
 		case 'x':
 			// Hexadecimal escape, exactly 2 digits.
 			if len(quoted) < 4 {
@@ -172,6 +235,28 @@ func Unquote(quoted string) (s string, triple bool, err error) {
 
 	s = buf.String()
 	return
+}
+
+// IsCorrectEscaping reports whether a string doesn't contain any incorrectly
+// escaped sequences such as "\a".
+func IsCorrectEscaping(value string) bool {
+	escaped := false
+	// This for-loop doesn't correctly check for a backlash at the end of the string literal, but
+	// such string can't be parsed anyway, neither by Bazel nor by Buildifier.
+	for _, ch := range value {
+		if !escaped {
+			if ch == '\\' {
+				escaped = true
+			}
+			continue
+		}
+
+		if ok := escapable[ch]; !ok {
+			return false
+		}
+		escaped = false
+	}
+	return true
 }
 
 // indexByte returns the index of the first instance of b in s, or else -1.
@@ -221,16 +306,10 @@ func quote(unquoted string, triple bool) string {
 			continue
 		}
 		if c == '\\' {
-			if i+1 < len(unquoted) && indexByte(notEsc, unquoted[i+1]) >= 0 {
-				// Can pass \ through when followed by a byte that
-				// known not to be a valid escape sequence and also
-				// that does not trigger an escape sequence of its own.
-				// Use this, because various BUILD files do.
-				buf.WriteByte('\\')
-				buf.WriteByte(unquoted[i+1])
-				i++
-				continue
-			}
+			// All backslashes should be escaped
+			buf.WriteByte('\\')
+			buf.WriteByte('\\')
+			continue
 		}
 		if esc[c] != 0 {
 			buf.WriteByte('\\')

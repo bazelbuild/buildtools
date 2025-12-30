@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package warn
 
 import (
@@ -11,44 +27,97 @@ import (
 )
 
 const (
-	scopeBuild      = build.TypeBuild
-	scopeBzl        = build.TypeBzl
-	scopeWorkspace  = build.TypeWorkspace
-	scopeDefault    = build.TypeDefault
-	scopeEverywhere = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault
-	scopeBazel      = scopeBuild | scopeBzl | scopeWorkspace
+	scopeBuild       = build.TypeBuild
+	scopeBzl         = build.TypeBzl
+	scopeWorkspace   = build.TypeWorkspace
+	scopeDefault     = build.TypeDefault
+	scopeModule      = build.TypeModule
+	scopeEverywhere  = scopeBuild | scopeBzl | scopeWorkspace | scopeDefault | scopeModule
+	scopeBazel       = scopeBuild | scopeBzl | scopeWorkspace | scopeModule
+	scopeDeclarative = scopeBuild | scopeWorkspace | scopeModule
 )
+
+// A global FileReader object that can be used by tests. If a test redefines it it must
+// reset it when it finishes.
+var testFileReader *FileReader
+
+// A global variable containing package name for test cases. Can be overwritten
+// but must be reset when the test finishes.
+var testPackage string = "test/package"
+
+// fileReaderRequests is used by tests to check which files have actually been requested by testFileReader
+var fileReaderRequests []string
+
+func setUpFileReader(data map[string]string) (cleanup func()) {
+	readFile := func(filename string) ([]byte, error) {
+		fileReaderRequests = append(fileReaderRequests, filename)
+		if contents, ok := data[filename]; ok {
+			return []byte(contents), nil
+		}
+		return nil, fmt.Errorf("file not found")
+	}
+	testFileReader = NewFileReader(readFile)
+	fileReaderRequests = nil
+	// The cached mapping depends on the file reader, so we need to reset it as well.
+	moduleToApparentRepoName = nil
+
+	return func() {
+		// Tear down
+		testFileReader = nil
+		fileReaderRequests = nil
+	}
+}
+
+func setUpTestPackage(name string) (cleanup func()) {
+	oldName := testPackage
+	testPackage = name
+
+	return func() {
+		// Tear down
+		testPackage = oldName
+	}
+}
 
 func getFilename(fileType build.FileType) string {
 	switch fileType {
 	case build.TypeBuild:
-		return "test/package/BUILD"
+		return "BUILD"
 	case build.TypeWorkspace:
-		return "test/package/WORKSPACE"
+		return "WORKSPACE"
 	case build.TypeBzl:
-		return "test/package/test_file.bzl"
+		return "test_file.bzl"
+	case build.TypeModule:
+		return "MODULE.bazel"
 	default:
-		return "test/package/test_file.strlrk"
+		return "test_file.strlrk"
 	}
 }
 
-func getFindings(category, input string, fileType build.FileType) []*Finding {
+func getFileForTest(input string, fileType build.FileType) *build.File {
 	input = strings.TrimLeft(input, "\n")
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
+	filename := getFilename(fileType)
+	file, err := build.Parse(testPackage+"/"+filename, []byte(input))
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
-	buildFile.Pkg = "test/package"
-	return FileWarnings(buildFile, []string{category}, nil, ModeWarn)
+	file.Pkg = testPackage
+	file.Label = filename
+	file.WorkspaceRoot = "/home/users/foo/bar"
+	return file
 }
 
-func compareFindings(t *testing.T, category, input string, expected []string, scope, fileType build.FileType) {
+func getFindings(categories, input string, fileType build.FileType) []*Finding {
+	file := getFileForTest(input, fileType)
+	return FileWarnings(file, strings.Split(categories, ","), nil, ModeWarn, testFileReader)
+}
+
+func compareFindings(t *testing.T, categories, input string, expected []string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no warnings are expected
 	if scope&fileType == 0 {
 		expected = []string{}
 	}
 
-	findings := getFindings(category, input, fileType)
+	findings := getFindings(categories, input, fileType)
 	// We ensure that there is the expected number of warnings.
 	// At the moment, we check only the line numbers.
 	if len(expected) != len(findings) {
@@ -72,23 +141,17 @@ func compareFindings(t *testing.T, category, input string, expected []string, sc
 }
 
 // checkFix makes sure that fixed file contents match the expected output
-func checkFix(t *testing.T, category, input, expected string, scope, fileType build.FileType) {
+func checkFix(t *testing.T, categories, input, expected string, scope, fileType build.FileType) {
 	// If scope doesn't match the file type, no changes are expected
 	if scope&fileType == 0 {
 		expected = input
 	}
 
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	goldenFile, err := build.Parse(getFilename(fileType), []byte(expected))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
+	file := getFileForTest(input, fileType)
+	goldenFile := getFileForTest(expected, fileType)
 
-	FixWarnings(buildFile, []string{category}, false)
-	have := build.Format(buildFile)
+	FixWarnings(file, strings.Split(categories, ","), false, testFileReader)
+	have := build.Format(file)
 	want := build.Format(goldenFile)
 	if !bytes.Equal(have, want) {
 		t.Errorf("fixed a test (type %s) incorrectly:\ninput:\n%s\ndiff (-expected, +ours)\n",
@@ -99,16 +162,13 @@ func checkFix(t *testing.T, category, input, expected string, scope, fileType bu
 
 // checkFix makes sure that the file contents don't change if a fix is not requested
 // (i.e. the warning functions have no side effects modifying the AST)
-func checkNoFix(t *testing.T, category, input string, fileType build.FileType) {
-	buildFile, err := build.Parse(getFilename(fileType), []byte(input))
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	formatted := build.Format(buildFile)
+func checkNoFix(t *testing.T, categories, input string, fileType build.FileType) {
+	file := getFileForTest(input, fileType)
+	formatted := build.Format(file)
 
 	// No fixes expected
-	FileWarnings(buildFile, []string{category}, nil, ModeWarn)
-	fixed := build.Format(buildFile)
+	FileWarnings(file, strings.Split(categories, ","), nil, ModeWarn, testFileReader)
+	fixed := build.FormatWithoutRewriting(file)
 
 	if !bytes.Equal(formatted, fixed) {
 		t.Errorf("Modified a file (type %s) while getting warnings:\ninput:\n%s\ndiff (-before, +after)\n",
@@ -122,19 +182,20 @@ func checkFindings(t *testing.T, category, input string, expected []string, scop
 	checkFindingsAndFix(t, category, input, input, expected, scope)
 }
 
-func checkFindingsAndFix(t *testing.T, category, input, output string, expected []string, scope build.FileType) {
+func checkFindingsAndFix(t *testing.T, categories, input, output string, expected []string, scope build.FileType) {
 	fileTypes := []build.FileType{
 		build.TypeDefault,
 		build.TypeBuild,
 		build.TypeWorkspace,
 		build.TypeBzl,
+		build.TypeModule,
 	}
 
 	for _, fileType := range fileTypes {
-		compareFindings(t, category, input, expected, scope, fileType)
-		checkFix(t, category, input, output, scope, fileType)
-		checkFix(t, category, output, output, scope, fileType)
-		checkNoFix(t, category, input, fileType)
+		compareFindings(t, categories, input, expected, scope, fileType)
+		checkFix(t, categories, input, output, scope, fileType)
+		checkFix(t, categories, output, output, scope, fileType)
+		checkNoFix(t, categories, input, fileType)
 	}
 }
 
@@ -245,7 +306,7 @@ attr.baz("baz", cfg = "data")
 		t.Fatalf("Parse error: %v", err)
 	}
 
-	findings := FileWarnings(f, []string{"attr-cfg"}, nil, ModeSuggest)
+	findings := FileWarnings(f, []string{"attr-cfg"}, nil, ModeSuggest, testFileReader)
 	want := []struct {
 		start       int
 		end         int
@@ -295,6 +356,9 @@ for y in "foobar":  # buildozer: disable=string-iteration
 cc_library(
    name = "foo",  # buildifier: disable=duplicated-name-1
 )
+
+# buildifier: disable=skylark-comment
+# some comment mentioning skylark
 `
 
 	f, err := build.ParseBzl("file.bzl", []byte(contents))
@@ -308,7 +372,7 @@ cc_library(
 		category string
 	}{
 		{
-			start:    4,
+			start:    3,
 			end:      5,
 			category: "depset-iteration",
 		},
@@ -323,7 +387,7 @@ cc_library(
 			category: "string-iteration",
 		},
 		{
-			start:    9,
+			start:    8,
 			end:      9,
 			category: "no-effect",
 		},
@@ -333,9 +397,14 @@ cc_library(
 			category: "duplicated-name-1",
 		},
 		{
-			start:    12,
+			start:    11,
 			end:      14,
 			category: "duplicated-name-2",
+		},
+		{
+			start:    16,
+			end:      17,
+			category: "skylark-comment",
 		},
 	}
 

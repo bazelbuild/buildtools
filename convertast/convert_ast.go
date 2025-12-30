@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // This file contains functions to convert from one AST to the other.
 // Input: AST from go.starlark.net/syntax
 // Output: AST from github.com/bazelbuild/buildtools/build
@@ -5,7 +21,7 @@
 package convertast
 
 import (
-	"log"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -159,7 +175,9 @@ func convExpr(e syntax.Expr) build.Expr {
 				Token:    strconv.FormatInt(e.Value.(int64), 10),
 				Comments: convComments(e.Comments())}
 		case syntax.FLOAT:
-			log.Fatal("float not yet supported")
+			return &build.LiteralExpr{
+				Token:    e.Raw,
+				Comments: convComments(e.Comments())}
 		case syntax.STRING:
 			return &build.StringExpr{
 				Value:       e.Value.(string),
@@ -208,7 +226,7 @@ func convExpr(e syntax.Expr) build.Expr {
 		}
 		return &build.ListExpr{List: list, Comments: convComments(e.Comments())}
 	case *syntax.DictExpr:
-		list := []build.Expr{}
+		list := []*build.KeyValueExpr{}
 		for i := range e.List {
 			entry := e.List[i].(*syntax.DictEntry)
 			list = append(list, &build.KeyValueExpr{
@@ -250,6 +268,16 @@ func convExpr(e syntax.Expr) build.Expr {
 			Y:        convExpr(e.Y),
 			Comments: convComments(e.Comments()),
 		}
+	case *syntax.LambdaExpr:
+		return &build.LambdaExpr{
+			Comments: convComments(e.Comments()),
+			Function: build.Function{
+				Params: convExprs(e.Params),
+				Body:   []build.Expr{convExpr(e.Body)},
+			},
+		}
+	default:
+		panic(fmt.Sprintf("other expr: %T %+v", e, e))
 	}
-	panic("other expr")
+	panic("unreachable")
 }

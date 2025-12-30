@@ -1,14 +1,17 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package build
@@ -170,6 +173,25 @@ func TestRulesDoubleNested(t *testing.T) {
 
 	compare(t, f.Rules(""), []*Rule{doubleNestedRule})
 	compare(t, f.Rules("java_library"), []*Rule{doubleNestedRule})
+}
+
+func TestRuleNamed(t *testing.T) {
+	tests := []struct {
+		name        string
+		rules       []Expr
+		want        *Rule
+		description string
+	}{
+		{"", []Expr{simpleCall}, nil, "Empty name matches no rules."},
+		{"x", []Expr{simpleCall}, simpleRule, "Find single rule by name."},
+		{"does_not_exist", []Expr{simpleCall}, nil, "Returns nil when no rules have specified name."},
+		{"foo.bar.baz", []Expr{simpleCall, structCall}, nil, "Returns nil when multiple rules have specified name."},
+	}
+	for _, tst := range tests {
+		f := &File{Stmt: tst.rules}
+
+		compare(t, f.RuleNamed(tst.name), tst.want)
+	}
 }
 
 func TestImplicitName(t *testing.T) {

@@ -8,7 +8,7 @@ go_yacc(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "build",
     srcs = [
         "lex.go",
         "parse.y.baz.go",  # keep
@@ -17,15 +17,19 @@ go_library(
         "rewrite.go",
         "rule.go",
         "syntax.go",
+        "utils.go",
         "walk.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/build",
     visibility = ["//visibility:public"],
-    deps = ["//tables:go_default_library"],
+    deps = [
+        "//labels",
+        "//tables",
+    ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "build_test",
     size = "small",
     srcs = [
         "checkfile_test.go",
@@ -33,7 +37,9 @@ go_test(
         "parse_test.go",
         "print_test.go",
         "quote_test.go",
+        "rewrite_test.go",
         "rule_test.go",
+        "utils_test.go",
         "walk_test.go",
     ],
     data = glob(["testdata/*"]) + [
@@ -42,10 +48,18 @@ go_test(
         # this test ensures it doesn't get stale.
         "parse.y.baz.go",
         "parse.y.go",
+        "rewrite_test_files/original_formatted.star",
+        "rewrite_test_files/original.star",
     ],
-    embed = [":go_default_library"],
+    embed = [":build"],
     deps = [
-        "//tables:go_default_library",
+        "//tables",
         "//testutils",
     ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":build",
+    visibility = ["//visibility:public"],
 )

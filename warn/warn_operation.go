@@ -1,11 +1,24 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // Warnings about deprecated operations in Starlark
 
 package warn
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/bazelbuild/buildtools/build"
 )
 
@@ -17,7 +30,7 @@ func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "Dictionary concatenation is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.BinaryExpr:
@@ -39,6 +52,48 @@ func dictionaryConcatenationWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+// Detect the patterns:
+//
+//	dict.pop(..., default = ...)
+//	dict.pop(..., default = ...)
+//	dict.setdefault(..., default = ...)
+//
+// And recommend removing the `default =` part. These functions take positional argument instead.
+func dictMethodNamedArgWarning(f *build.File) []*LinterFinding {
+	var findings []*LinterFinding
+
+	types := DetectTypes(f)
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+
+		var callexpr *build.CallExpr
+		var ok bool
+		if callexpr, ok = expr.(*build.CallExpr); !ok {
+			return
+		}
+		var dotexpr *build.DotExpr
+		if dotexpr, ok = callexpr.X.(*build.DotExpr); !ok || types[dotexpr.X] != Dict {
+			return
+		}
+
+		if dotexpr.Name != "pop" && dotexpr.Name != "get" && dotexpr.Name != "setdefault" {
+			return
+		}
+
+		for _, expr := range callexpr.List {
+			assignExpr, ok := expr.(*build.AssignExpr)
+			if !ok {
+				continue
+			}
+			if left, ok := assignExpr.LHS.(*build.Ident); !ok || left.Name != "default" {
+				continue
+			}
+			findings = append(findings,
+				makeLinterFinding(expr, "Named argument \"default\" not allowed, use a positional (unnamed) argument"))
+		}
+	})
+	return findings
+}
+
 func stringIterationWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
@@ -47,7 +102,7 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, "String iteration is deprecated."))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.ForStmt:
@@ -86,10 +141,14 @@ func stringIterationWarning(f *build.File) []*LinterFinding {
 func integerDivisionWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.BinaryExpr:
 			if expr.Op != "/" {
+				return
+			}
+			if types[expr.X] != Int || types[expr.Y] != Int {
 				return
 			}
 			newBinary := *expr
@@ -102,6 +161,9 @@ func integerDivisionWarning(f *build.File) []*LinterFinding {
 			if expr.Op != "/=" {
 				return
 			}
+			if types[expr.LHS] != Int || types[expr.RHS] != Int {
+				return
+			}
 			newAssign := *expr
 			newAssign.Op = "//="
 			findings = append(findings,
@@ -112,101 +174,32 @@ func integerDivisionWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func stringEscapeWarning(f *build.File) []*LinterFinding {
+func listAppendWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
 	build.WalkPointers(f, func(expr *build.Expr, stack []build.Expr) {
-		str, ok := (*expr).(*build.StringExpr)
-		if !ok || len(str.Token) == 0 || strings.HasPrefix(str.Token, "r") {
-			// String literals with empty Token field may appear if they are manually created StringExpr nodes
-			// (token is only used as a hint to the printer, if it doesn't exist, the Value field is used to
-			// generate the string literal).
-			// Raw strings are allowed to have backslashes anywhere.
+		as, ok := (*expr).(*build.AssignExpr)
+		if !ok || as.Op != "+=" {
 			return
 		}
 
-		var quotes, value string
-		if str.TripleQuote {
-			quotes = str.Token[:3]
-			value = str.Token[3 : len(str.Token)-3]
-		} else {
-			quotes = str.Token[:1]
-			value = str.Token[1 : len(str.Token)-1]
-		}
-
-		var problems []int // positions of the problems (unidentified escape sequences)
-
-		escaped := false
-		// This for-loop doesn't correctly check for a backlash at the end of the string literal, but
-		// such string can't be parsed anyway, neither by Bazel nor by Buildifier.
-		for i, ch := range value {
-			if !escaped {
-				if ch == '\\' {
-					escaped = true
-				}
-				continue
-			}
-
-			switch ch {
-			case '\n', '\\', 'n', 'r', 't', 'x', '\'', '"', '0', '1', '2', '3', '4', '5', '6', '7':
-				// According to https://github.com/Quarz0/bazel/blob/207a6103393908aba64ddb96239fbdd56cdfec05/src/main/java/com/google/devtools/build/lib/syntax/Lexer.java
-				// \x is also included to the list, although it's not supported by Bazel, but it's supported
-				// by Buildifier. This is safe for the migration because it's never been supported in Bazel,
-				// even before --incompatible_restrict_string_escapes was flipped.
-			default:
-				problems = append(problems, i)
-			}
-			escaped = false
-		}
-
-		if len(problems) == 0 {
+		list, ok := as.RHS.(*build.ListExpr)
+		if !ok || len(list.List) != 1 {
 			return
 		}
 
-		var msg string
-		if len(problems) == 1 {
-			msg = fmt.Sprintf(
-				"Invalid escape sequence \\%s at position %d.",
-				string(value[problems[0]]),
-				problems[0],
-			)
-		} else {
-			var builder strings.Builder
-			builder.WriteString("Invalid escape sequences:\n")
-			for _, pos := range problems {
-				builder.WriteString(fmt.Sprintf(
-					"    \\%s at position %d\n",
-					string(value[pos]),
-					pos,
-				))
-			}
-			msg = builder.String()
-		}
-		finding := makeLinterFinding(str, msg)
+		_, end := as.Span()
+		findings = append(findings, makeLinterFinding(as, `Prefer using ".append()" to adding a single element list. NOTE: This does not work if the target is a select, hence this warning can safely be ignored or suppressed.`,
+			LinterReplacement{expr, &build.CallExpr{
+				Comments: as.Comments,
+				X: &build.DotExpr{
+					X:    as.LHS,
+					Name: "append",
+				},
+				List: list.List,
+				End:  build.End{Pos: end},
+			}}))
 
-		// Fix
-		var bytes []byte
-		index := 0
-		for _, backslashPos := range problems {
-			for ; index < backslashPos; index++ {
-				bytes = append(bytes, value[index])
-			}
-			bytes = append(bytes, '\\')
-		}
-		for ; index < len(value); index++ {
-			bytes = append(bytes, value[index])
-		}
-
-		token := quotes + string(bytes) + quotes
-		val, _, err := build.Unquote(token)
-		if err == nil {
-			newStr := *str
-			newStr.Token = token
-			newStr.Value = val
-			finding.Replacement = []LinterReplacement{{expr, &newStr}}
-		}
-
-		findings = append(findings, finding)
 	})
 	return findings
 }

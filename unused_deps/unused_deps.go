@@ -1,10 +1,11 @@
 /*
-Copyright 2017 Google Inc. All Rights Reserved.
+Copyright 2017 Google LLC
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +24,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -35,6 +35,7 @@ import (
 	depspb "github.com/bazelbuild/buildtools/deps_proto"
 	"github.com/bazelbuild/buildtools/edit"
 	eapb "github.com/bazelbuild/buildtools/extra_actions_base_proto"
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -43,6 +44,7 @@ var (
 	buildScmRevision = "redacted"
 
 	version             = flag.Bool("version", false, "Print the version of unused_deps")
+	cQuery              = flag.Bool("cquery", false, "Use 'cquery' command instead of 'query'")
 	buildTool           = flag.String("build_tool", config.DefaultBuildTool, config.BuildToolHelp)
 	extraActionFileName = flag.String("extra_action_file", "", config.ExtraActionFileNameHelp)
 	outputFileName      = flag.String("output_file", "", "used only with extra_action_file")
@@ -55,7 +57,7 @@ var (
 def _javac_params(target, ctx):
     params = []
     for action in target.actions:
-        if not action.mnemonic == "Javac":
+        if not action.mnemonic == "Javac" and not action.mnemonic == "KotlinCompile":
             continue
         output = ctx.actions.declare_file("%s.javac_params" % target.label.name)
         args = ctx.actions.args()
@@ -65,6 +67,7 @@ def _javac_params(target, ctx):
             content = args,
         )
         params.append(output)
+        break
     return [OutputGroupInfo(unused_deps_outputs = depset(params))]
 
 javac_params = aspect(
@@ -89,7 +92,7 @@ func stringList(name, help string) func() []string {
 
 // getJarPath prints the path to the output jar file specified in the extra_action file at path.
 func getJarPath(path string) (string, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +153,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 	depsByJar = make(map[string]string)
 	errs := make([]error, 0)
 	for _, paramsFileName := range paramsFileNames {
-		data, err := ioutil.ReadFile(paramsFileName)
+		data, err := os.ReadFile(paramsFileName)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -174,7 +177,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 			if err != nil {
 				continue
 			}
-			if len(label) > 2 && label[0] == '@' && label[1] == '@' {
+			if strings.HasPrefix(label, "@@") || strings.HasPrefix(label, "@/") {
 				label = label[1:]
 			}
 			depsByJar[jar] = label
@@ -196,7 +199,7 @@ func directDepParams(blazeOutputPath string, paramsFileNames ...string) (depsByJ
 // at compile time, and returns those values in the depsByJar map that aren't used at compile time.
 func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps map[string]bool) {
 	unusedDeps = make(map[string]bool)
-	data, err := ioutil.ReadFile(depsFileName)
+	data, err := os.ReadFile(depsFileName)
 	if err != nil {
 		log.Println(err)
 		return unusedDeps
@@ -219,7 +222,7 @@ func unusedDeps(depsFileName string, depsByJar map[string]string) (unusedDeps ma
 
 // parseBuildFile tries to read and parse the contents of buildFileName.
 func parseBuildFile(buildFileName string) (buildFile *build.File, err error) {
-	data, err := ioutil.ReadFile(buildFileName)
+	data, err := os.ReadFile(buildFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -260,20 +263,35 @@ func hasRuntimeComment(expr build.Expr) bool {
 // to remove that entry from the deps attribute of the rule identified by label.
 // Returns true if at least one command was printed, or false otherwise.
 func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) {
-	buildFileName, pkg, ruleName := edit.InterpretLabel(label)
+	buildFileName, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
+	if repo != "" {
+		outputBase := blazeInfo(config.DefaultOutputBase)
+		buildFileName = fmt.Sprintf("%s/external/%s/%s", outputBase, repo, buildFileName)
+	}
+
 	depsExpr := getDepsExpr(buildFileName, ruleName)
 	for _, li := range edit.AllLists(depsExpr) {
 		for _, elem := range li.List {
 			for dep := range deps {
 				str, ok := elem.(*build.StringExpr)
-				if ok && edit.LabelsEqual(str.Value, dep, pkg) {
-					if hasRuntimeComment(str) {
-						fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
-					} else {
-						fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
-					}
-					anyCommandPrinted = true
+				if !ok {
+					continue
 				}
+				buildLabel := str.Value
+				if repo != "" && buildLabel[:2] == "//" {
+					buildLabel = fmt.Sprintf("@%s%s", repo, str.Value)
+				}
+				if !labels.Equal(buildLabel, dep, pkg) {
+					continue
+				}
+				if hasRuntimeComment(str) {
+					fmt.Printf("buildozer 'move deps runtime_deps %s' %s\n", str.Value, label)
+				} else {
+					// add dep's exported dependencies to label before removing dep
+					fmt.Printf("buildozer \"add deps $(%s query 'labels(exports, %s)' | tr '\\n' ' ')\" %s\n", *buildTool, str.Value, label)
+					fmt.Printf("buildozer 'remove deps %s' %s\n", str.Value, label)
+				}
+				anyCommandPrinted = true
 			}
 		}
 	}
@@ -283,27 +301,29 @@ func printCommands(label string, deps map[string]bool) (anyCommandPrinted bool) 
 // setupAspect creates a workspace in a tmpdir and populates it with an aspect,
 // which is used with --override_repository below.
 func setupAspect() (string, error) {
-	tmp, err := ioutil.TempDir(os.TempDir(), "unused_deps")
+	tmp, err := os.MkdirTemp(os.TempDir(), "unused_deps")
 	if err != nil {
 		return "", err
 	}
 	for _, f := range []string{"WORKSPACE", "BUILD"} {
-		if err := ioutil.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
+		if err := os.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
 			return "", err
 		}
 	}
-	if err := ioutil.WriteFile(path.Join(tmp, "unused_deps.bzl"), []byte(aspect), 0666); err != nil {
+	if err := os.WriteFile(path.Join(tmp, "unused_deps.bzl"), []byte(aspect), 0666); err != nil {
 		return "", err
 	}
 	return tmp, nil
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: unused_deps TARGET...
+	_, _ = fmt.Fprintf(flag.CommandLine.Output(), `usage: unused_deps TARGET...
 
 For Java rules in TARGETs, prints commands to delete deps unused at compile time.
 Note these may be used at run time; see documentation for more information.
+
 `)
+	flag.PrintDefaults()
 	os.Exit(2)
 }
 
@@ -328,9 +348,15 @@ func main() {
 	if len(targetPatterns) == 0 {
 		targetPatterns = []string{"//..."}
 	}
-	queryCmd := append([]string{"query"}, blazeFlags...)
+	queryCmd := []string{}
+	if *cQuery {
+		queryCmd = append(queryCmd, "cquery")
+	} else {
+		queryCmd = append(queryCmd, "query")
+	}
+	queryCmd = append(queryCmd, blazeFlags...)
 	queryCmd = append(
-		queryCmd, fmt.Sprintf("kind('(java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
+		queryCmd, fmt.Sprintf("kind('(kt|java|android)_*', %s)", strings.Join(targetPatterns, " + ")))
 
 	log.Printf("running: %s %s", *buildTool, strings.Join(queryCmd, " "))
 	queryOut, err := cmdWithStderr(*buildTool, queryCmd...).Output()
@@ -338,7 +364,7 @@ func main() {
 		log.Print(err)
 	}
 	if len(queryOut) == 0 {
-		fmt.Fprintln(os.Stderr, "found no targets of kind (java|android)_*")
+		fmt.Fprintln(os.Stderr, "found no targets of kind (kt|java|android)_*")
 		usage()
 	}
 
@@ -356,20 +382,29 @@ func main() {
 	buildCmd = append(buildCmd, config.DefaultExtraBuildFlags...)
 	buildCmd = append(buildCmd, "--output_groups=+unused_deps_outputs")
 	buildCmd = append(buildCmd, "--override_repository=unused_deps="+aspectDir)
-	buildCmd = append(buildCmd, "--aspects=@unused_deps//:unused_deps.bzl%javac_params")
+	buildCmd = append(buildCmd, "--aspects=@@unused_deps//:unused_deps.bzl%javac_params")
 	buildCmd = append(buildCmd, buildOptions()...)
 
 	blazeArgs := append(buildCmd, targetPatterns...)
 
 	log.Printf("running: %s %s", *buildTool, strings.Join(blazeArgs, " "))
 	cmdWithStderr(*buildTool, blazeArgs...).Run()
-	blazeBin := blazeInfo(config.DefaultBinDir)
+	binDir := blazeInfo(config.DefaultBinDir)
 	blazeOutputPath := blazeInfo(config.DefaultOutputPath)
 	fmt.Fprintf(os.Stderr, "\n") // vertical space between build output and unused_deps output
 
 	anyCommandPrinted := false
 	for _, label := range strings.Fields(string(queryOut)) {
-		_, pkg, ruleName := edit.InterpretLabel(label)
+		if *cQuery && strings.HasPrefix(label, "(") {
+			// cquery output includes the target's configuration ID.  Skip it.
+			// https://docs.bazel.build/versions/main/cquery.html#configurations
+			continue
+		}
+		_, repo, pkg, ruleName := edit.InterpretLabelWithRepo(label)
+		blazeBin := binDir
+		if repo != "" {
+			blazeBin = fmt.Sprintf("%s/external/%s", binDir, repo)
+		}
 		depsByJar := directDepParams(blazeOutputPath, inputFileName(blazeBin, pkg, ruleName, "javac_params"))
 		depsToRemove := unusedDeps(inputFileName(blazeBin, pkg, ruleName, "jdeps"), depsByJar)
 		// TODO(bazel-team): instead of printing, have buildifier-like modes?

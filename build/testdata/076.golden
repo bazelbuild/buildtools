@@ -1,0 +1,18 @@
+# Test collapse empty call expressions
+
+func()
+
+func()
+
+# before comment
+func()
+
+func()  # after comment
+
+func(
+    # line comment
+)
+
+func(
+    name = "not_empty",
+)

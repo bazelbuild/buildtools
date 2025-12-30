@@ -1,32 +1,35 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 // Rewriting of high-level (not purely syntactic) BUILD constructs.
 
 package build
 
 import (
-	"github.com/bazelbuild/buildtools/tables"
 	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/bazelbuild/buildtools/labels"
+	"github.com/bazelbuild/buildtools/tables"
 )
 
-// For debugging: flag to disable certain rewrites.
+// DisableRewrites disables certain rewrites (for debugging).
 var DisableRewrites []string
 
 // disabled reports whether the named rewrite is disabled.
@@ -39,7 +42,7 @@ func disabled(name string) bool {
 	return false
 }
 
-// For debugging: allow sorting of these lists even with sorting otherwise disabled.
+// AllowSort allows sorting of these lists even with sorting otherwise disabled (for debugging).
 var AllowSort []string
 
 // allowedSort reports whether sorting is allowed in the named context.
@@ -52,57 +55,64 @@ func allowedSort(name string) bool {
 	return false
 }
 
-// Rewrite applies the high-level Buildifier rewrites to f, modifying it in place.
-// If info is non-nil, Rewrite updates it with information about the rewrite.
-func Rewrite(f *File, info *RewriteInfo) {
-	// Allocate an info so that helpers can assume it's there.
-	if info == nil {
-		info = new(RewriteInfo)
-	}
+// Rewriter controls the rewrites to be applied.
+//
+// If non-nil, the rewrites with the specified names will be run. If
+// nil, a default set of rewrites will be used that is determined by
+// the type (BUILD vs default starlark) of the file being rewritten.
+type Rewriter struct {
+	RewriteSet                      []string
+	IsLabelArg                      map[string]bool
+	LabelDenyList                   map[string]bool
+	IsSortableListArg               map[string]bool
+	SortableDenylist                map[string]bool
+	SortableAllowlist               map[string]bool
+	NamePriority                    map[string]int
+	StripLabelLeadingSlashes        bool
+	ShortenAbsoluteLabelsToRelative bool
+}
 
+// Rewrite applies rewrites to a file
+func Rewrite(f *File) {
+	var rewriter = &Rewriter{
+		IsLabelArg:                      tables.IsLabelArg,
+		LabelDenyList:                   tables.LabelDenylist,
+		IsSortableListArg:               tables.IsSortableListArg,
+		SortableDenylist:                tables.SortableDenylist,
+		SortableAllowlist:               tables.SortableAllowlist,
+		NamePriority:                    tables.NamePriority,
+		StripLabelLeadingSlashes:        tables.StripLabelLeadingSlashes,
+		ShortenAbsoluteLabelsToRelative: tables.ShortenAbsoluteLabelsToRelative,
+	}
+	rewriter.Rewrite(f)
+}
+
+// Rewrite applies the rewrites to a file
+func (w *Rewriter) Rewrite(f *File) {
 	for _, r := range rewrites {
-		if !disabled(r.name) {
-			if f.Type&r.scope != 0 {
-				r.fn(f, info)
-			}
+		// f.Type&r.scope is a bitwise comparison. Because starlark files result in a scope that will
+		// not be changed by rewrites, we have included another check looking on the right side.
+		// If we have an empty rewrite set, we do not want any rewrites to happen.
+		if (!disabled(r.name) && (f.Type&r.scope != 0) && w.RewriteSet == nil) || (w.RewriteSet != nil && rewriteSetContains(w, r.name)) {
+			r.fn(f, w)
 		}
 	}
 }
 
-// RewriteInfo collects information about what Rewrite did.
-type RewriteInfo struct {
-	EditLabel        int      // number of label strings edited
-	NameCall         int      // number of calls with argument names added
-	SortCall         int      // number of call argument lists sorted
-	SortStringList   int      // number of string lists sorted
-	UnsafeSort       int      // number of unsafe string lists sorted
-	SortLoad         int      // number of load argument lists sorted
-	FormatDocstrings int      // number of reindented docstrings
-	ReorderArguments int      // number of reordered function call arguments
-	EditOctal        int      // number of edited octals
-	Log              []string // log entries - may change
-}
-
-// Stats returns a map with statistics about applied rewrites
-func (info *RewriteInfo) Stats() map[string]int {
-	return map[string]int{
-		"label":            info.EditLabel,
-		"callname":         info.NameCall,
-		"callsort":         info.SortCall,
-		"listsort":         info.SortStringList,
-		"unsafesort":       info.UnsafeSort,
-		"sortload":         info.SortLoad,
-		"formatdocstrings": info.FormatDocstrings,
-		"reorderarguments": info.ReorderArguments,
-		"editoctal":        info.EditOctal,
+func rewriteSetContains(w *Rewriter, name string) bool {
+	for _, value := range w.RewriteSet {
+		if value == name {
+			return true
+		}
 	}
+	return false
 }
 
 // Each rewrite function can be either applied for BUILD files, other files (such as .bzl),
 // or all files.
 const (
-	scopeDefault = TypeDefault | TypeBzl     // .bzl and generic Starlark files
-	scopeBuild   = TypeBuild | TypeWorkspace // BUILD and WORKSPACE files
+	scopeDefault = TypeDefault | TypeBzl                  // .bzl and generic Starlark files
+	scopeBuild   = TypeBuild | TypeWorkspace | TypeModule // BUILD, WORKSPACE, and MODULE files
 	scopeBoth    = scopeDefault | scopeBuild
 )
 
@@ -111,29 +121,24 @@ const (
 // before sorting lists of strings.
 var rewrites = []struct {
 	name  string
-	fn    func(*File, *RewriteInfo)
+	fn    func(*File, *Rewriter)
 	scope FileType
 }{
+	{"removeParens", removeParens, scopeBuild},
 	{"callsort", sortCallArgs, scopeBuild},
 	{"label", fixLabels, scopeBuild},
 	{"listsort", sortStringLists, scopeBoth},
 	{"multiplus", fixMultilinePlus, scopeBuild},
+	{"loadTop", moveLoadOnTop, scopeBoth},
+	{"sameOriginLoad", compressSameOriginLoads, scopeBoth},
+	{"sortLoadStatements", sortLoadStatements, scopeBoth},
 	{"loadsort", sortAllLoadArgs, scopeBoth},
+	{"useRepoPositionalsSort", sortUseRepoPositionals, TypeModule},
 	{"formatdocstrings", formatDocstrings, scopeBoth},
 	{"reorderarguments", reorderArguments, scopeBoth},
 	{"editoctal", editOctals, scopeBoth},
-}
-
-// DisableLoadSortForBuildFiles disables the loadsort transformation for BUILD files.
-// This is a temporary function for backward compatibility, can be called if there's plenty of
-// already formatted BUILD files that shouldn't be changed by the transformation.
-func DisableLoadSortForBuildFiles() {
-	for i := range rewrites {
-		if rewrites[i].name == "loadsort" {
-			rewrites[i].scope = scopeDefault
-			break
-		}
-	}
+	{"editfloat", editFloats, scopeBoth},
+	{"collapseEmpty", collapseEmpty, scopeBoth},
 }
 
 // leaveAlone reports whether any of the nodes on the stack are marked
@@ -153,12 +158,39 @@ func leaveAlone(stk []Expr, final Expr) bool {
 // hasComment reports whether x is marked with a comment that
 // after being converted to lower case, contains the specified text.
 func hasComment(x Expr, text string) bool {
+	if x == nil {
+		return false
+	}
 	for _, com := range x.Comment().Before {
 		if strings.Contains(strings.ToLower(com.Token), text) {
 			return true
 		}
 	}
+	for _, com := range x.Comment().After {
+		if strings.Contains(strings.ToLower(com.Token), text) {
+			return true
+		}
+	}
+	for _, com := range x.Comment().Suffix {
+		if strings.Contains(strings.ToLower(com.Token), text) {
+			return true
+		}
+	}
 	return false
+}
+
+// isCommentAnywhere checks whether there's a comment containing the given text
+// anywhere in the file.
+func isCommentAnywhere(f *File, text string) bool {
+	commentExists := false
+	WalkInterruptable(f, func(node Expr, stack []Expr) (err error) {
+		if hasComment(node, text) {
+			commentExists = true
+			return &StopTraversalError{}
+		}
+		return nil
+	})
+	return commentExists
 }
 
 // leaveAlone1 reports whether x is marked with a comment containing
@@ -179,6 +211,15 @@ func keepSorted(x Expr) bool {
 	return hasComment(x, "keep sorted")
 }
 
+// labelRE matches label strings, e.g. @r//x/y/z:abc
+// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
+func makeLabelRe(labelPrefix string) *regexp.Regexp {
+	return regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
+}
+
+var leadingSlashesLabelRe = makeLabelRe("//")
+var stripLeadingSlashesLabelRe = makeLabelRe("")
+
 // fixLabels rewrites labels into a canonical form.
 //
 // First, it joins labels written as string addition, turning
@@ -187,8 +228,7 @@ func keepSorted(x Expr) bool {
 // Second, it removes redundant target qualifiers, turning labels like
 // "//third_party/m4:m4" into "//third_party/m4" as well as ones like
 // "@foo//:foo" into "@foo".
-//
-func fixLabels(f *File, info *RewriteInfo) {
+func fixLabels(f *File, w *Rewriter) {
 	joinLabel := func(p *Expr) {
 		add, ok := (*p).(*BinaryExpr)
 		if !ok || add.Op != "+" {
@@ -202,7 +242,6 @@ func fixLabels(f *File, info *RewriteInfo) {
 		if !ok || strings.Contains(str2.Value, " ") {
 			return
 		}
-		info.EditLabel++
 		str1.Value += str2.Value
 
 		// Deleting nodes add and str2.
@@ -220,28 +259,24 @@ func fixLabels(f *File, info *RewriteInfo) {
 	}
 
 	labelPrefix := "//"
-	if tables.StripLabelLeadingSlashes {
+	labelRE := leadingSlashesLabelRe
+	if w.StripLabelLeadingSlashes {
 		labelPrefix = ""
+		labelRE = stripLeadingSlashesLabelRe
 	}
-	// labelRE matches label strings, e.g. @r//x/y/z:abc
-	// where $1 is @r//x/y/z, $2 is @r//, $3 is r, $4 is z, $5 is abc.
-	labelRE := regexp.MustCompile(`^(((?:@(\w+))?//|` + labelPrefix + `)(?:.+/)?([^:]*))(?::([^:]+))?$`)
 
 	shortenLabel := func(v Expr) {
 		str, ok := v.(*StringExpr)
 		if !ok {
 			return
 		}
-		editPerformed := false
 
-		if tables.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
+		if w.StripLabelLeadingSlashes && strings.HasPrefix(str.Value, "//") {
 			if filepath.Dir(f.Path) == "." || !strings.HasPrefix(str.Value, "//:") {
-				editPerformed = true
 				str.Value = str.Value[2:]
 			}
 		}
-
-		if tables.ShortenAbsoluteLabelsToRelative {
+		if w.ShortenAbsoluteLabelsToRelative {
 			thisPackage := labelPrefix + filepath.Dir(f.Path)
 			// filepath.Dir on Windows uses backslashes as separators, while labels always have slashes.
 			if filepath.Separator != '/' {
@@ -249,10 +284,8 @@ func fixLabels(f *File, info *RewriteInfo) {
 			}
 
 			if str.Value == thisPackage {
-				editPerformed = true
 				str.Value = ":" + path.Base(str.Value)
 			} else if strings.HasPrefix(str.Value, thisPackage+":") {
-				editPerformed = true
 				str.Value = str.Value[len(thisPackage):]
 			}
 		}
@@ -262,14 +295,36 @@ func fixLabels(f *File, info *RewriteInfo) {
 			return
 		}
 		if m[4] != "" && m[4] == m[5] { // e.g. //foo:foo
-			editPerformed = true
 			str.Value = m[1]
 		} else if m[3] != "" && m[4] == "" && m[3] == m[5] { // e.g. @foo//:foo
-			editPerformed = true
 			str.Value = "@" + m[3]
 		}
-		if editPerformed {
-			info.EditLabel++
+	}
+
+	// Join and shorten labels within a container of labels (which can be a single
+	// label, e.g. a single string expression or a concatenation of them).
+	// Gracefully finish if the argument is of a different type.
+	fixLabelsWithinAContainer := func(e *Expr) {
+		if list, ok := (*e).(*ListExpr); ok {
+			for i := range list.List {
+				if leaveAlone1(list.List[i]) {
+					continue
+				}
+				joinLabel(&list.List[i])
+				shortenLabel(list.List[i])
+			}
+		}
+		if set, ok := (*e).(*SetExpr); ok {
+			for i := range set.List {
+				if leaveAlone1(set.List[i]) {
+					continue
+				}
+				joinLabel(&set.List[i])
+				shortenLabel(set.List[i])
+			}
+		} else {
+			joinLabel(e)
+			shortenLabel(*e)
 		}
 	}
 
@@ -288,50 +343,29 @@ func fixLabels(f *File, info *RewriteInfo) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
-				if !ok || !tables.IsLabelArg[key.Name] || tables.LabelBlacklist[callName(v)+"."+key.Name] {
+				if !ok || !w.IsLabelArg[key.Name] || w.LabelDenyList[callName(v)+"."+key.Name] {
 					continue
 				}
 				if leaveAlone1(as.RHS) {
 					continue
 				}
-				if list, ok := as.RHS.(*ListExpr); ok {
-					for i := range list.List {
-						if leaveAlone1(list.List[i]) {
-							continue
-						}
-						joinLabel(&list.List[i])
-						shortenLabel(list.List[i])
-					}
-				}
-				if set, ok := as.RHS.(*SetExpr); ok {
-					for i := range set.List {
-						if leaveAlone1(set.List[i]) {
-							continue
-						}
-						joinLabel(&set.List[i])
-						shortenLabel(set.List[i])
-					}
-				} else {
-					joinLabel(&as.RHS)
-					shortenLabel(as.RHS)
-				}
+
+				findAndModifyStrings(&as.RHS, fixLabelsWithinAContainer)
 			}
 		}
 	})
 }
 
 // callName returns the name of the rule being called by call.
-// If the call is not to a literal rule name, callName returns "".
+// If the call is not to a literal rule name or a dot expression, callName
+// returns "".
 func callName(call *CallExpr) string {
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
-	}
-	return rule.Name
+	return (&Rule{call, ""}).Kind()
 }
 
 // sortCallArgs sorts lists of named arguments to a call.
-func sortCallArgs(f *File, info *RewriteInfo) {
+func sortCallArgs(f *File, w *Rewriter) {
+
 	Walk(f, func(v Expr, stk []Expr) {
 		call, ok := v.(*CallExpr)
 		if !ok {
@@ -342,7 +376,7 @@ func sortCallArgs(f *File, info *RewriteInfo) {
 		}
 		rule := callName(call)
 		if rule == "" {
-			return
+			rule = "<complex rule kind>"
 		}
 
 		// Find the tail of the argument list with named arguments.
@@ -355,14 +389,13 @@ func sortCallArgs(f *File, info *RewriteInfo) {
 		var args namedArgs
 		for i, x := range call.List[start:] {
 			name := argName(x)
-			args = append(args, namedArg{ruleNamePriority(rule, name), name, i, x})
+			args = append(args, namedArg{ruleNamePriority(w, rule, name), name, i, x})
 		}
 
 		// Sort the list and put the args back in the new order.
 		if sort.IsSorted(args) {
 			return
 		}
-		info.SortCall++
 		sort.Sort(args)
 		for i, x := range args {
 			call.List[start+i] = x.expr
@@ -373,12 +406,13 @@ func sortCallArgs(f *File, info *RewriteInfo) {
 // ruleNamePriority maps a rule argument name to its sorting priority.
 // It could use the auto-generated per-rule tables but for now it just
 // falls back to the original list.
-func ruleNamePriority(rule, arg string) int {
+func ruleNamePriority(w *Rewriter, rule, arg string) int {
 	ruleArg := rule + "." + arg
-	if val, ok := tables.NamePriority[ruleArg]; ok {
+	if val, ok := w.NamePriority[ruleArg]; ok {
 		return val
 	}
-	return tables.NamePriority[arg]
+	return w.NamePriority[arg]
+
 	/*
 		list := ruleArgOrder[rule]
 		if len(list) == 0 {
@@ -432,10 +466,18 @@ func (x namedArgs) Less(i, j int) bool {
 }
 
 // sortStringLists sorts lists of string literals used as specific rule arguments.
-func sortStringLists(f *File, info *RewriteInfo) {
-	Walk(f, func(v Expr, stk []Expr) {
-		switch v := v.(type) {
+func sortStringLists(f *File, w *Rewriter) {
+	sortStringList := func(x *Expr) {
+		SortStringList(*x)
+	}
+
+	Walk(f, func(e Expr, stk []Expr) {
+		switch v := e.(type) {
 		case *CallExpr:
+			if f.Type == TypeDefault || f.Type == TypeBzl {
+				// Rule parameters, not applicable to .bzl or default file types
+				return
+			}
 			if leaveAlone(stk, v) {
 				return
 			}
@@ -445,7 +487,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				as, ok := arg.(*AssignExpr)
-				if !ok || leaveAlone1(as) || doNotSort(as) {
+				if !ok || leaveAlone1(as) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
@@ -453,22 +495,26 @@ func sortStringLists(f *File, info *RewriteInfo) {
 					continue
 				}
 				context := rule + "." + key.Name
-				if !tables.IsSortableListArg[key.Name] || tables.SortableBlacklist[context] || f.Type == TypeDefault || f.Type == TypeBzl {
+				if w.SortableDenylist[context] {
 					continue
 				}
-				if disabled("unsafesort") && !tables.SortableWhitelist[context] && !allowedSort(context) {
-					continue
+				if w.IsSortableListArg[key.Name] ||
+					w.SortableAllowlist[context] ||
+					(!disabled("unsafesort") && allowedSort(context)) {
+					if doNotSort(as) {
+						deduplicateStringList(as.RHS)
+					} else {
+						findAndModifyStrings(&as.RHS, sortStringList)
+					}
 				}
-				sortStringList(as.RHS, info, context)
 			}
 		case *AssignExpr:
 			if disabled("unsafesort") {
 				return
 			}
 			// "keep sorted" comment on x = list forces sorting of list.
-			as := v
-			if keepSorted(as) {
-				sortStringList(as.RHS, info, "?")
+			if keepSorted(v) {
+				findAndModifyStrings(&v.RHS, sortStringList)
 			}
 		case *KeyValueExpr:
 			if disabled("unsafesort") {
@@ -476,7 +522,7 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			}
 			// "keep sorted" before key: list also forces sorting of list.
 			if keepSorted(v) {
-				sortStringList(v.Value, info, "?")
+				findAndModifyStrings(&v.Value, sortStringList)
 			}
 		case *ListExpr:
 			if disabled("unsafesort") {
@@ -484,23 +530,67 @@ func sortStringLists(f *File, info *RewriteInfo) {
 			}
 			// "keep sorted" comment above first list element also forces sorting of list.
 			if len(v.List) > 0 && (keepSorted(v) || keepSorted(v.List[0])) {
-				sortStringList(v, info, "?")
+				findAndModifyStrings(&e, sortStringList)
 			}
 		}
 	})
 }
 
-// SortStringList sorts x, a list of strings.
-func SortStringList(x Expr) {
-	sortStringList(x, nil, "")
+// deduplicateStringList removes duplicates from a list with string expressions
+// without reordering its elements.
+// Any suffix-comments are lost, any before- and after-comments are preserved.
+func deduplicateStringList(x Expr) {
+	list, ok := x.(*ListExpr)
+	if !ok {
+		return
+	}
+
+	list.List = deduplicateStringExprs(list.List)
 }
 
-// sortStringList sorts x, a list of strings.
+// deduplicateStringExprs removes duplicate string expressions from a slice
+// without reordering its elements.
+// Any suffix-comments are lost, any before- and after-comments are preserved.
+func deduplicateStringExprs(list []Expr) []Expr {
+	var comments []Comment
+	alreadySeen := make(map[string]bool)
+	var deduplicated []Expr
+	for _, value := range list {
+		str, ok := value.(*StringExpr)
+		if !ok {
+			deduplicated = append(deduplicated, value)
+			continue
+		}
+		strVal := str.Value
+		if _, ok := alreadySeen[strVal]; ok {
+			// This is a duplicate of a string above.
+			// Collect comments so that they're not lost.
+			comments = append(comments, str.Comment().Before...)
+			comments = append(comments, str.Comment().After...)
+			continue
+		}
+		alreadySeen[strVal] = true
+		if len(comments) > 0 {
+			comments = append(comments, value.Comment().Before...)
+			value.Comment().Before = comments
+			comments = nil
+		}
+		deduplicated = append(deduplicated, value)
+	}
+	return deduplicated
+}
+
+// SortStringList sorts x, a list of strings.
 // The list is broken by non-strings and by blank lines and comments into chunks.
 // Each chunk is sorted in place.
-func sortStringList(x Expr, info *RewriteInfo, context string) {
+func SortStringList(x Expr) {
 	list, ok := x.(*ListExpr)
-	if !ok || len(list.List) < 2 || doNotSort(list.List[0]) {
+	if !ok || len(list.List) < 2 {
+		return
+	}
+
+	if doNotSort(list.List[0]) {
+		list.List = deduplicateStringExprs(list.List)
 		return
 	}
 
@@ -513,36 +603,71 @@ func sortStringList(x Expr, info *RewriteInfo, context string) {
 	// certain order in their deps attributes.
 	if !forceSort {
 		if line, _ := hasComments(list); line {
+			deduplicateStringList(list)
 			return
 		}
 	}
 
+	list.List = sortStringExprs(list.List)
+}
+
+// findAndModifyStrings finds and modifies string lists with a callback
+// function recursively within  the given expression. It doesn't touch all
+// string lists it can find, but only top-level lists, lists that are parts of
+// concatenated expressions and lists within select statements.
+// It calls the callback on the root node and on all relevant inner lists.
+// The callback function should gracefully return if called with not appropriate
+// arguments.
+func findAndModifyStrings(x *Expr, callback func(*Expr)) {
+	callback(x)
+	switch x := (*x).(type) {
+	case *BinaryExpr:
+		if x.Op != "+" {
+			return
+		}
+		findAndModifyStrings(&x.X, callback)
+		findAndModifyStrings(&x.Y, callback)
+	case *CallExpr:
+		if ident, ok := x.X.(*Ident); !ok || ident.Name != "select" {
+			return
+		}
+		if len(x.List) == 0 {
+			return
+		}
+		dict, ok := x.List[0].(*DictExpr)
+		if !ok {
+			return
+		}
+		for _, kv := range dict.List {
+			findAndModifyStrings(&kv.Value, callback)
+		}
+	}
+}
+
+func sortStringExprs(list []Expr) []Expr {
+	if len(list) < 2 {
+		return list
+	}
+
 	// Sort chunks of the list with no intervening blank lines or comments.
-	for i := 0; i < len(list.List); {
-		if _, ok := list.List[i].(*StringExpr); !ok {
+	for i := 0; i < len(list); {
+		if _, ok := list[i].(*StringExpr); !ok {
 			i++
 			continue
 		}
 
 		j := i + 1
-		for ; j < len(list.List); j++ {
-			if str, ok := list.List[j].(*StringExpr); !ok || len(str.Before) > 0 {
+		for ; j < len(list); j++ {
+			if str, ok := list[j].(*StringExpr); !ok || len(str.Before) > 0 {
 				break
 			}
 		}
 
 		var chunk []stringSortKey
-		for index, x := range list.List[i:j] {
+		for index, x := range list[i:j] {
 			chunk = append(chunk, makeSortKey(index, x.(*StringExpr)))
 		}
 		if !sort.IsSorted(byStringExpr(chunk)) || !isUniq(chunk) {
-			if info != nil {
-				info.SortStringList++
-				if !tables.SortableWhitelist[context] {
-					info.UnsafeSort++
-					info.Log = append(info.Log, "sort:"+context)
-				}
-			}
 			before := chunk[0].x.Comment().Before
 			chunk[0].x.Comment().Before = nil
 
@@ -551,13 +676,15 @@ func sortStringList(x Expr, info *RewriteInfo, context string) {
 
 			chunk[0].x.Comment().Before = before
 			for offset, key := range chunk {
-				list.List[i+offset] = key.x
+				list[i+offset] = key.x
 			}
-			list.List = append(list.List[:(i+len(chunk))], list.List[j:]...)
+			list = append(list[:(i+len(chunk))], list[j:]...)
 		}
 
 		i = j
 	}
+
+	return list
 }
 
 // uniq removes duplicates from a list, which must already be sorted.
@@ -580,28 +707,6 @@ func isUniq(list []stringSortKey) bool {
 		}
 	}
 	return true
-}
-
-// If stk describes a call argument like rule(arg=...), callArgName
-// returns the name of that argument, formatted as "rule.arg".
-func callArgName(stk []Expr) string {
-	n := len(stk)
-	if n < 2 {
-		return ""
-	}
-	arg := argName(stk[n-1])
-	if arg == "" {
-		return ""
-	}
-	call, ok := stk[n-2].(*CallExpr)
-	if !ok {
-		return ""
-	}
-	rule, ok := call.X.(*Ident)
-	if !ok {
-		return ""
-	}
-	return rule.Name + "." + arg
 }
 
 // A stringSortKey records information about a single string literal to be
@@ -674,6 +779,7 @@ func (x byStringExpr) Less(i, j int) bool {
 //	call(...)
 //
 // into
+//
 //	... + [
 //		...
 //	]
@@ -683,7 +789,7 @@ func (x byStringExpr) Less(i, j int) bool {
 //	)
 //
 // which typically works better with our aggressively compact formatting.
-func fixMultilinePlus(f *File, info *RewriteInfo) {
+func fixMultilinePlus(f *File, _ *Rewriter) {
 
 	// List manipulation helpers.
 	// As a special case, we treat f([...]) as a list, mainly
@@ -822,12 +928,267 @@ func fixMultilinePlus(f *File, info *RewriteInfo) {
 	})
 }
 
+// isFunctionCall checks whether expr is a call of a function with a given name
+func isFunctionCall(expr Expr, name string) bool {
+	call, ok := expr.(*CallExpr)
+	if !ok {
+		return false
+	}
+	if ident, ok := call.X.(*Ident); ok && ident.Name == name {
+		return true
+	}
+	return false
+}
+
+// moveLoadOnTop moves all load statements to the top of the file
+func moveLoadOnTop(f *File, _ *Rewriter) {
+	if f.Type == TypeWorkspace {
+		// Moving load statements in Workspace files can break the semantics
+		return
+	}
+	if isCommentAnywhere(f, "disable=load-on-top") {
+		// For backward compatibility. This rewrite used to be a suppressible warning,
+		// in some cases it's hard to maintain the position of load statements (e.g.
+		// when the file is automatically generated or has automatic transformations
+		// applied to it). The rewrite checks for the comment anywhere in the file
+		// because it's hard to determine which statement is out of order.
+		return
+	}
+
+	// Find the misplaced load statements
+	misplacedLoads := make(map[int]*LoadStmt)
+	firstStmtIndex := -1 // index of the first seen non-load statement
+	for i := 0; i < len(f.Stmt); i++ {
+		stmt := f.Stmt[i]
+		_, isString := stmt.(*StringExpr) // typically a docstring
+		_, isComment := stmt.(*CommentBlock)
+		isWorkspace := isFunctionCall(stmt, "workspace")
+		if isString || isComment || isWorkspace || stmt == nil {
+			continue
+		}
+		load, ok := stmt.(*LoadStmt)
+		if !ok {
+			if firstStmtIndex == -1 {
+				firstStmtIndex = i
+			}
+			continue
+		}
+		if firstStmtIndex == -1 {
+			continue
+		}
+		misplacedLoads[i] = load
+	}
+
+	// Calculate a fix
+	if firstStmtIndex == -1 {
+		firstStmtIndex = 0
+	}
+	offset := len(misplacedLoads)
+	if offset == 0 {
+		return
+	}
+	stmtCopy := append([]Expr{}, f.Stmt...)
+	for i := range f.Stmt {
+		if i < firstStmtIndex {
+			// Docstring or a comment in the beginning, skip
+			continue
+		} else if _, ok := misplacedLoads[i]; ok {
+			// A misplaced load statement, should be moved up to the `firstStmtIndex` position
+			f.Stmt[firstStmtIndex] = stmtCopy[i]
+			firstStmtIndex++
+			offset--
+			if offset == 0 {
+				// No more statements should be moved
+				break
+			}
+		} else {
+			// An actual statement (not a docstring or a comment in the beginning), should be moved
+			// `offset` positions down.
+			f.Stmt[i+offset] = stmtCopy[i]
+		}
+	}
+}
+
+// compressSameOriginLoads merges loads from the same source into one load statement
+func compressSameOriginLoads(f *File, _ *Rewriter) {
+	// Load statements grouped by their source files
+	loads := make(map[string]*LoadStmt)
+
+	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
+		load, ok := f.Stmt[stmtIndex].(*LoadStmt)
+		if !ok {
+			continue
+		}
+
+		previousLoad, ok := loads[load.Module.Value]
+		if !ok {
+			loads[load.Module.Value] = load
+			continue
+		}
+		if hasComment(previousLoad, "disable=same-origin-load") ||
+			hasComment(load, "disable=same-origin-load") {
+			continue
+		}
+
+		// Move loaded symbols to the existing load statement
+		previousLoad.From = append(previousLoad.From, load.From...)
+		previousLoad.To = append(previousLoad.To, load.To...)
+		// Remove the current statement
+		f.Stmt[stmtIndex] = nil
+	}
+}
+
+// comparePaths compares two strings as if they were paths (the path delimiter,
+// '/', should be treated as smallest symbol).
+func comparePaths(path1, path2 string) bool {
+	if path1 == path2 {
+		return false
+	}
+
+	chunks1 := strings.Split(path1, "/")
+	chunks2 := strings.Split(path2, "/")
+
+	for i, chunk1 := range chunks1 {
+		if i >= len(chunks2) {
+			return false
+		}
+		chunk2 := chunks2[i]
+		// Compare case-insensitively
+		chunk1Lower := strings.ToLower(chunk1)
+		chunk2Lower := strings.ToLower(chunk2)
+		if chunk1Lower != chunk2Lower {
+			return chunk1Lower < chunk2Lower
+		}
+	}
+
+	// No case-insensitive difference detected. Likely the difference is just in
+	// the case of some symbols, compare case-sensitively for the determinism.
+	return path1 <= path2
+}
+
+// compareLoadLabels compares two module names
+// If one label has explicit repository path (starts with @), it goes first
+// If the packages are different, labels are sorted by package name (empty package goes first)
+// If the packages are the same, labels are sorted by their name
+// Relative labels go last
+func compareLoadLabels(load1Label, load2Label string) bool {
+	// handle absolute labels with explicit repositories separately to
+	// make sure they precede absolute and relative labels without repos
+	isExplicitRepo1 := strings.HasPrefix(load1Label, "@")
+	isExplicitRepo2 := strings.HasPrefix(load2Label, "@")
+
+	if isExplicitRepo1 != isExplicitRepo2 {
+		// Exactly one label has an explicit repository name, it should be the first one.
+		return isExplicitRepo1
+	}
+
+	// ensure that relative labels go last by giving them a fake package name
+	// that sorts after all valid package names
+	label1 := labels.ParseRelative(load1Label, string(rune(0x7F)))
+	label2 := labels.ParseRelative(load2Label, string(rune(0x7F)))
+
+	if label1.Repository != label2.Repository {
+		return label1.Repository < label2.Repository
+	}
+
+	// in case one of the packages is empty, the empty one goes first
+	if (len(label1.Package) == 0) != (len(label2.Package) == 0) {
+		return len(label1.Package) == 0
+	}
+
+	// both packages are non-empty and not equal, so compare them
+	if label1.Package != label2.Package {
+		return comparePaths(label1.Package, label2.Package)
+	}
+
+	// in case both packages are the same, use file names to break ties
+	return comparePaths(label1.Target, label2.Target)
+}
+
+// sortLoadStatements reorders sorts loads lexicographically by the source file,
+// but absolute loads have priority over local loads.
+func sortLoadStatements(f *File, _ *Rewriter) {
+	if isCommentAnywhere(f, "disable=out-of-order-load") {
+		// For backward compatibility. This rewrite used to be a suppressible warning,
+		// in some cases it's hard to maintain the position of load statements (e.g.
+		// when the file is automatically generated or has automatic transformations
+		// applied to it). The rewrite checks for the comment anywhere in the file
+		// because it's hard to determine which statement is out of order.
+		return
+	}
+
+	// Consequent chunks of load statements (i.e. without statements of other types between them)
+	var loadsChunks [][]*LoadStmt
+	newChunk := true // Create a new chunk for the next seen load statement
+
+	for _, stmt := range f.Stmt {
+		if stmt == nil {
+			// nil statements are no-op and shouldn't break consecutive chains of
+			// load statements
+			continue
+		}
+		load, ok := stmt.(*LoadStmt)
+		if !ok {
+			newChunk = true
+			continue
+		}
+		if newChunk {
+			// There's a non-load statement between this load and the previous load
+			loadsChunks = append(loadsChunks, []*LoadStmt{})
+			newChunk = false
+		}
+		loadsChunks[len(loadsChunks)-1] = append(loadsChunks[len(loadsChunks)-1], load)
+	}
+
+	// Sort and flatten the chunks
+	var sortedLoads []*LoadStmt
+	for _, chunk := range loadsChunks {
+		sortedChunk := append([]*LoadStmt{}, chunk...)
+
+		sort.SliceStable(sortedChunk, func(i, j int) bool {
+			load1Label := (sortedChunk)[i].Module.Value
+			load2Label := (sortedChunk)[j].Module.Value
+			return compareLoadLabels(load1Label, load2Label)
+		})
+		sortedLoads = append(sortedLoads, sortedChunk...)
+	}
+
+	// Calculate the replacements
+	loadIndex := 0
+	for stmtIndex := range f.Stmt {
+		if _, ok := f.Stmt[stmtIndex].(*LoadStmt); !ok {
+			continue
+		}
+		f.Stmt[stmtIndex] = sortedLoads[loadIndex]
+		loadIndex++
+	}
+}
+
 // sortAllLoadArgs sorts all load arguments in the file
-func sortAllLoadArgs(f *File, info *RewriteInfo) {
+func sortAllLoadArgs(f *File, _ *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		if load, ok := v.(*LoadStmt); ok {
-			if SortLoadArgs(load) {
-				info.SortLoad++
+			SortLoadArgs(load)
+		}
+	})
+}
+
+func sortUseRepoPositionals(f *File, _ *Rewriter) {
+	Walk(f, func(v Expr, stk []Expr) {
+		if call, ok := v.(*CallExpr); ok {
+			// The first argument of a valid use_repo call is always a module extension proxy, so we
+			// do not need to sort calls with less than three arguments.
+			if ident, ok := call.X.(*Ident); !ok || ident.Name != "use_repo" || len(call.List) < 3 {
+				return
+			}
+			// Respect the "do not sort" comment on both the first argument and the first repository
+			// name.
+			if doNotSort(call) || doNotSort(call.List[0]) || doNotSort(call.List[1]) {
+				call.List = deduplicateStringExprs(call.List)
+			} else {
+				// Keyword arguments do not have to be sorted here as this has already been done by
+				// the generic callsort rewriter pass.
+				call.List = sortStringExprs(call.List)
 			}
 		}
 	})
@@ -865,17 +1226,17 @@ type loadArgs struct {
 	modified bool
 }
 
-func (args loadArgs) Len() int {
+func (args *loadArgs) Len() int {
 	return len(args.From)
 }
 
-func (args loadArgs) Swap(i, j int) {
+func (args *loadArgs) Swap(i, j int) {
 	args.From[i], args.From[j] = args.From[j], args.From[i]
 	args.To[i], args.To[j] = args.To[j], args.To[i]
 	args.modified = true
 }
 
-func (args loadArgs) Less(i, j int) bool {
+func (args *loadArgs) Less(i, j int) bool {
 	// Arguments with equal "from" and "to" parts are prioritized
 	equalI := args.From[i].Name == args.To[i].Name
 	equalJ := args.From[j].Name == args.To[j].Name
@@ -887,15 +1248,38 @@ func (args loadArgs) Less(i, j int) bool {
 	return args.To[i].Name < args.To[j].Name
 }
 
+// deduplicate assumes that the args are sorted and prioritize arguments that
+// are defined later (e.g. `a = "x", a = "y"` is shortened to `a = "y"`).
+func (args *loadArgs) deduplicate() {
+	var from, to []*Ident
+	for i := range args.To {
+		if len(to) > 0 && to[len(to)-1].Name == args.To[i].Name {
+			// Overwrite
+			from[len(from)-1] = args.From[i]
+			to[len(to)-1] = args.To[i]
+			args.modified = true
+		} else {
+			// Just append
+			from = append(from, args.From[i])
+			to = append(to, args.To[i])
+		}
+	}
+	args.From = from
+	args.To = to
+}
+
 // SortLoadArgs sorts a load statement arguments (lexicographically, but positional first)
 func SortLoadArgs(load *LoadStmt) bool {
 	args := loadArgs{From: load.From, To: load.To}
-	sort.Sort(args)
+	sort.Sort(&args)
+	args.deduplicate()
+	load.From = args.From
+	load.To = args.To
 	return args.modified
 }
 
 // formatDocstrings fixes the indentation and trailing whitespace of docstrings
-func formatDocstrings(f *File, info *RewriteInfo) {
+func formatDocstrings(f *File, _ *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		def, ok := v.(*DefStmt)
 		if !ok || len(def.Body) == 0 {
@@ -916,7 +1300,6 @@ func formatDocstrings(f *File, info *RewriteInfo) {
 			docstring.Token = updatedToken
 			// Update the value to keep it consistent with Token
 			docstring.Value, _, _ = Unquote(updatedToken)
-			info.FormatDocstrings++
 		}
 	})
 }
@@ -970,25 +1353,29 @@ func argumentType(expr Expr) int {
 
 // reorderArguments fixes the order of arguments of a function call
 // (positional, named, *args, **kwargs)
-func reorderArguments(f *File, info *RewriteInfo) {
+func reorderArguments(f *File, _ *Rewriter) {
 	Walk(f, func(expr Expr, stack []Expr) {
 		call, ok := expr.(*CallExpr)
 		if !ok {
 			return
 		}
 		compare := func(i, j int) bool {
+			// Keep nil nodes at their place. They are no-op for the formatter but can
+			// be useful for the linter which expects them to not move.
+			if call.List[i] == nil || call.List[j] == nil {
+				return false
+			}
 			return argumentType(call.List[i]) < argumentType(call.List[j])
 		}
 		if !sort.SliceIsSorted(call.List, compare) {
 			sort.SliceStable(call.List, compare)
-			info.ReorderArguments++
 		}
 	})
 }
 
 // editOctals inserts 'o' into octal numbers to make it more obvious they are octal
 // 0123 -> 0o123
-func editOctals(f *File, info *RewriteInfo) {
+func editOctals(f *File, _ *Rewriter) {
 	Walk(f, func(expr Expr, stack []Expr) {
 		l, ok := expr.(*LiteralExpr)
 		if !ok {
@@ -996,7 +1383,75 @@ func editOctals(f *File, info *RewriteInfo) {
 		}
 		if len(l.Token) > 1 && l.Token[0] == '0' && l.Token[1] >= '0' && l.Token[1] <= '9' {
 			l.Token = "0o" + l.Token[1:]
-			info.EditOctal++
+		}
+	})
+}
+
+// editFloats inserts '0' before the decimal point in floats and normalizes the
+// exponent part to lowercase, no plus sign, and no leading zero.
+func editFloats(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		l, ok := expr.(*LiteralExpr)
+		if !ok {
+			return
+		}
+		if !strings.ContainsRune(l.Token, '.') {
+			return
+		}
+		if strings.HasPrefix(l.Token, ".") {
+			l.Token = "0" + l.Token
+		}
+		if !strings.ContainsAny(l.Token, "eE") {
+			return
+		}
+		parts := strings.SplitN(l.Token, "e", 2)
+		if len(parts) != 2 {
+			parts = strings.SplitN(l.Token, "E", 2)
+		}
+		if len(parts) != 2 {
+			// Invalid float, skip rewriting.
+			return
+		}
+		l.Token = parts[0] + "e" + strings.TrimLeft(parts[1], "0+")
+	})
+}
+
+// removeParens removes trivial parens
+func removeParens(f *File, _ *Rewriter) {
+	var simplify func(expr Expr, stack []Expr) Expr
+	simplify = func(expr Expr, stack []Expr) Expr {
+		// Look for parenthesized expressions, ignoring those with
+		// comments and those that are intentionally multiline.
+		pa, ok := expr.(*ParenExpr)
+		if !ok || pa.ForceMultiLine {
+			return expr
+		}
+		if len(pa.Comment().Before) > 0 || len(pa.Comment().After) > 0 || len(pa.Comment().Suffix) > 0 {
+			return expr
+		}
+
+		switch x := pa.X.(type) {
+		case *Comprehension, *DictExpr, *Ident, *ListExpr, *LiteralExpr, *ParenExpr, *SetExpr, *StringExpr:
+			// These expressions don't need parens, remove them (recursively).
+			return Edit(x, simplify)
+		case *CallExpr:
+			// Parens might be needed if the callable is multiline.
+			start, end := x.X.Span()
+			if start.Line == end.Line {
+				return Edit(x, simplify)
+			}
+		}
+		return expr
+	}
+
+	Edit(f, simplify)
+}
+
+// collapseEmpty unsets ForceMultiLine for empty call expressions.
+func collapseEmpty(f *File, _ *Rewriter) {
+	Walk(f, func(expr Expr, stack []Expr) {
+		if c, ok := expr.(*CallExpr); ok && len(c.List) == 0 { // No arguments
+			c.ForceMultiLine = false
 		}
 	})
 }

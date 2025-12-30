@@ -9,23 +9,45 @@ standard commands.
 1. Build a binary and put it into your $GOPATH/bin:
 
 ```bash
-go get github.com/bazelbuild/buildtools/buildozer
+go install github.com/bazelbuild/buildtools/buildozer@latest
 ```
 
 ## Usage
 
 ```shell
-buildozer [OPTIONS] ['command args' | -f FILE ] label-list
+buildozer [OPTIONS] ['command arg...'...|-f FILE] [label]...
 ```
 
-Here, `label-list` is a comma-separated list of Bazel labels, for example
-`//path/to/pkg1:rule1, //path/to/pkg2:rule2`. Buildozer reads commands from
-`FILE` (`-` for stdin (format: `|`-separated command line arguments to buildozer,
-excluding flags))
+Here, `label...` is a (space-separated, possibly empty) list of Bazel labels,
+for example `//path/to/pkg1:rule1 relative/path/to/pkg2:rule2`. In addition to
+the Bazel label syntax for specifying a package, Buildozer also allows the
+package part to refer to a BUILD-like file, for example `//WORKSPACE:all` or
+`toolchains/BUILD.tpl:host_toolchain`.
 
-You should specify at least one command and one target. Buildozer will execute
-all commands on all targets. Commands are executed in order, files are processed
-in parallel.
+Buildozer commands are passed as single positional arguments, and thus have to
+be quoted (or otherwise escaped). Multiple commands and multiple labels can be
+passed. Buildozer will execute all commands on all targets. (So if you do not
+specify at least one command and one target, nothing will happen.) Commands are
+executed in order, files are processed in parallel.
+
+When `-f FILE` is used instead of literal commands, buildozer reads commands
+from `FILE`. `FILE` can be `-`, in which case commands are read from the
+standard input.
+
+The format of the command file is as follows: Empty lines and lines beginning
+with `#` are ignored (including leading whitespace). Non-ignored lines consist
+of `|`-separated sets of commands and labels:
+
+```shell
+command arg arg...|command arg arg...|...|label|label|...
+```
+
+(In fact, commands and labels can appear interleaved in arbitrary order.) `|`
+characters in commands can be escaped like `\|`, but double null bytes
+(`\x00\x00`) are not valid in command files. See below for special handling of
+labels to allow reading from the standard input. When a line in a command file
+uses the single label '*', then the command(s) will be applied to all elements
+of the list `label...` from the command line.
 
 ### Targets
 
@@ -40,8 +62,10 @@ macros.
   * Use percent to refer to all rules of a certain kind: `//pkg:%java_library`
   * Use percent-and-number to refer to a rule that begins at a certain line:
    `//pkg:%123`.
-  * Use `-` for the package name if you want to process standard input stream
-   instead of a file: `-:all_tests`.
+  * Use the special package name `-` to read the BUILD file from the standard
+    input instead of from a local file in the package directory: `-:all_tests`.
+    (It is presumably not useful to both use a `-` package name and use the `-f
+    -` flag to read commands from the standard input.)
 
 ### Options
 
@@ -65,9 +89,14 @@ Buildozer supports the following commands(`'command args'`):
   * `add <attr> <value(s)>`: Adds value(s) to a list attribute of a rule. If a
     value is already present in the list, it is not added.
   * `new_load <path> <[to=]from(s)>`: Add a load statement for the given path,
-    importing the symbols. Before using this, make sure to run
-    `buildozer 'fix movePackageToTop'`. Afterwards, consider running
-    `buildozer 'fix unusedLoads'`.
+    importing the symbols. Afterwards, consider running `buildozer 'fix unusedLoads'`.
+  * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
+    existing load statements for the requested symbols before adding new loads.
+  * `substitute_load <old_regexp> <new_template>` Replaces modules of loads which
+    match `old_regexp` according to `new_template`. The regular expression must
+    follow [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+    `new_template` may be a simple replacement string, but it may also expand
+    numbered or named groups using `$0` or `$x`.
   * `comment <attr>? <value>? <comment>`: Add a comment to a rule, an attribute,
     or a specific value in a list. Spaces in the comment should be escaped with
     backslashes.
@@ -77,14 +106,18 @@ Buildozer supports the following commands(`'command args'`):
   * `move <old_attr> <new_attr> <value(s)>`: Moves `value(s)` from the list `old_attr`
     to the list `new_attr`. The wildcard `*` matches all values.
   * `new <rule_kind> <rule_name> [(before|after) <relative_rule_name>]`: Add a
-    new rule at the end of the BUILD file (before/after `<relative_rule>`).
+    new rule at the end of the BUILD file (before/after `<relative_rule>`). The
+    identifier `__pkg__` can be used to position rules relative to package().
   * `print <attr(s)>`
-  * `remove <attr>`: Removes attribute `attr`.
+  * `remove <attr>`: Removes attribute `attr`. The wildcard `*` matches all
+    attributes except `name`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
     wildcard `*` matches all attributes. Lists containing none of the `value(s)` are
     not modified.
   * `remove_comment <attr>? <value>?`: Removes the comment attached to the rule,
     an attribute, or a specific value in a list.
+  * `remove_if_equal <attr> <value>`: Removes the attribute `attr` if its value
+    is equal to `value`.
   * `rename <old_attr> <new_attr>`: Rename the `old_attr` to `new_attr` which must
     not yet exist.
   * `replace <attr> <old_value> <new_value>`: Replaces `old_value` with `new_value`
@@ -102,15 +135,26 @@ Buildozer supports the following commands(`'command args'`):
   * `set_if_absent <attr> <value(s)>`: Sets the value of an attribute. If the
     attribute was already present, no action is taken.
   * `set kind <value>`: Set the target type to value.
+  * `set_select <attr> <key_1> <value_1> <key_n> <value_n>`
   * `copy <attr> <from_rule>`: Copies the value of `attr` between rules. If it
     exists in the `to_rule`, it will be overwritten.
   * `copy_no_overwrite <attr> <from_rule>`:  Copies the value of `attr` between
     rules. If it exists in the `to_rule`, no action is taken.
   * `dict_add <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
-    attribute `attr`. If the key was already present, it will _not_ be overwritten
+    attribute `attr`. If the key was already present, it will _not_ be overwritten.
+    Colon characters can be included in key and value escaped as "\\:".
   * `dict_set <attr> <(key:value)(s)>`:  Sets the value of a key for the dict
     attribute `attr`. If the key was already present, its old value is replaced.
-  * `dict_delete <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
+    Colon characters can be included in key and value escaped as "\\:".
+  * `dict_remove <attr> <key(s)>`:  Deletes the key for the dict attribute `attr`.
+  * `dict_replace_if_equal <attr> <key> <old_value> <new_value>`: Replaces
+    `old_value` with `new_value` for key `key` in dictionary attribute `attr`.
+    If the key is not present in the dictionary, or does not have value
+    `old_value`, it will _not_ be updated.
+  * `dict_list_add <attr> <key> <value(s)>`:  Adds value(s) to the list in the
+    dict attribute `attr`.
+  * `format`: Force formatting of all files, even if they were not changed by
+    other commands.
 
 Here, `<attr>` represents an attribute (being `add`ed/`rename`d/`delete`d etc.),
 e.g.: `srcs`, `<value(s)>` represents values of the attribute and so on.
@@ -122,6 +166,28 @@ Use `//path/to/pkg:__pkg__` as label for file level changes like `new_load` and
 A transformation can be applied to all rules of a particular kind by using
 `%rule_kind` at the end of the label(see examples below).
 
+The following commands only apply to `MODULE.bazel` files (e.g. the target
+`//MODULE.bazel:all`):
+
+  * `use_repo_add <use_extension variable name> <repo(s)>`:
+    Ensures that the given repositories are imported via `use_repo` for the
+    extension for which the given top-level variable contains the return value
+    of a `use_extension` call.
+  * `use_repo_remove <use_extension variable name> <repo(s)>`:
+    Ensures that the given repositories are *not* imported via `use_repo` for
+    the extension for which the given top-level variable contains the return
+    value of a `use_extension` call.
+  * `use_repo_add [dev] <extension .bzl file> <extension name> <repo(s)>`:
+    Ensures that the given repositories generated by the given extension are
+    imported via `use_repo`. If the `dev` argument is given, extension usages
+    with `dev_dependency = True` will be considered instead. Extension usages
+    with `isolated = True` are ignored.
+  * `use_repo_remove [dev] <extension .bzl file> <extension name> <repo(s)>`:
+    Ensures that the given repositories generated by the given extension are
+    *not* imported via `use_repo`. If the `dev` argument is given, extension
+    usages with `dev_dependency = True` will be considered instead. Extension
+    usages with `isolated = True` are ignored.
+
 #### Examples
 
 ```bash
@@ -129,7 +195,18 @@ A transformation can be applied to all rules of a particular kind by using
 buildozer 'add deps //base' //pkg:rule //pkg:rule2
 
 # A load for a skylark file in //pkg
-buildozer 'new_load /tools/build_rules/build_test build_test' //pkg:__pkg__
+buildozer 'new_load //tools/build_rules:build_test.bzl build_test' //pkg:__pkg__
+
+# Replaces existing loads for build_test in //pkg
+buildozer 'replace_load @rules_build//build:defs.bzl build_test' //pkg:__pkg__
+
+# Replaces modules of loads using regular expressions.
+#
+# In this example
+#     load("@rules_foo//foo:defs.bzl", "foo_library", "foo_test")
+# will be replaced with
+#     load("//third_party/build_defs/rules_foo/foo:defs.bzl", "foo_library", "foo_test")
+buildozer 'substitute_load ^@([^/]*)//([^:].*)$ //third_party/build_defs/${1}/${2}' //pkg:__pkg__
 
 # Change the default_visibility to public for the package //pkg
 buildozer 'set default_visibility //visibility:public' //pkg:__pkg__
@@ -174,8 +251,8 @@ buildozer 'add new_attr def_val' //:%cc_binary
 
 ### Print commands
 
-They work just like the edit commands. Expect a return code of 3 as they are not
-modifying any file.
+These commands are not modifying files, Buildifier returns 0 after a successful
+execution.
 
   * `print <attribute(s)>`: For each target, prints the value of the attributes
    (see below).
@@ -188,10 +265,12 @@ the attribute, a warning is printed on stderr.
 There are some special attributes in the `print` command:
 
   * `kind`: displays the name of the function
+  * `attrs`: displays the attribute names of the rule
   * `label`: the fully qualified label
   * `rule`: the entire rule definition
   * `startline`: the line number on which the rule begins in the BUILD file
   * `endline`: the line number on which the rule ends in the BUILD file
+  * `path`: the absolute path to the BUILD file that contains the rules
 
 #### Examples
 
@@ -232,12 +311,12 @@ bazel query --output=build //path/to/BUILD
 
 ## Do multiple changes at once
 
-Use `buildozer -f <file>` to load a list of commands from a file. The usage is
-just like arguments on the command-line, except that arguments are separated by
-`|`.
+Use `buildozer -f <file>` to load a list of commands and labels from a file (see
+[Usage](#usage) above).
 
 ```shell
 $ cat /tmp/cmds
+# a comment
 new cc_library foo|//buildtools/buildozer/BUILD
 add deps //base //strings|add srcs foo.cc|//buildtools/buildozer:foo
 add deps :foo|//buildtools/buildozer
@@ -250,11 +329,53 @@ The list of commands will typically be generated and can be large. This is
 efficient: Commands are grouped so that each file is modified once. Files are
 processed in parallel.
 
+Alternatively, BUILD files can be read from the standard input and written to
+the standard output, by using the `-` package name:
+
+```shell
+$ cat /tmp/cmds
+add deps //base //strings|-:foo|-:bar
+
+$ cat some/path/BUILD | buildozer -f /tmp/cmds
+```
+
+This writes the result of updating the `:foo` and `:bar` targets in the input
+BUILD file to the standard output.
+
+Buildozer commands can be made executable by means of a shebang line, too:
+
+```shell
+#!/usr/bin/env -S buildozer -f
+#
+# Adds //base and //string dependencies to :foo and :bar.
+
+add deps //base //strings|-:foo|-:bar
+```
+
+## Using Buildozer in-memory
+
+Some clients of Buildozer have the need to execute buildozer actions in memory
+(due to a service environment which does not have access to their file system).
+This can be done using, `edit.ExecuteCommandsOnInlineFile`, which accepts
+commands and BUILD file content as bytes, applies the changes and returns the
+raw file content.
+For more details and implementation, see [`/edit/buildozer.go`](../edit/buildozer.go)
+
+Some caveats of running Buildozer in-memory:
+
+* The function assumes (and validates to some extent) that all commands apply to
+  the same file and will return errors if there are commands affecting different
+  paths.
+* When referencing targets, the function will not reliably determine if targets
+  are local or remote. Hence redundant path references may be included in
+  output. (e.g. `add dep //package/path:bar|//package/path:foo` would add the dep
+  `//package/path:bar` instead of just `:bar`).
+
 ## Error code
 
 The return code is:
 
-  * `0` on success, if changes were made
+  * `0` on success, if changes were made or only readonly commands were executed
   * `1` when there is a usage error
   * `2` when at least one command has failed
   * `3` on success, when no changes were made

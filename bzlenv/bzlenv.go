@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // Package bzlenv provides function to create and update a static environment.
 package bzlenv
 
@@ -132,26 +148,18 @@ func CollectLValues(node build.Expr) []*build.Ident {
 		for _, item := range node.List {
 			result = append(result, CollectLValues(item)...)
 		}
+	case *build.ListExpr:
+		for _, item := range node.List {
+			result = append(result, CollectLValues(item)...)
+		}
 	}
 	return result
 }
 
 func declareParams(fct *build.DefStmt, env *Environment) {
 	for _, node := range fct.Params {
-		switch node := node.(type) {
-		case *build.Ident:
-			env.declare(node.Name, Parameter, node)
-		case *build.UnaryExpr:
-			// either *args or **kwargs
-			if ident, ok := node.X.(*build.Ident); ok {
-				env.declare(ident.Name, Parameter, node)
-			}
-		case *build.AssignExpr:
-			// x = value
-			if ident, ok := node.LHS.(*build.Ident); ok {
-				env.declare(ident.Name, Parameter, node)
-			}
-		}
+		name, _ := build.GetParamName(node)
+		env.declare(name, Parameter, node)
 	}
 }
 

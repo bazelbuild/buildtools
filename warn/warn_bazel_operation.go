@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // Warnings about deprecated Bazel-related operations
 
 package warn
@@ -15,7 +31,7 @@ func depsetUnionWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(expr, `Depsets should be joined using the "depset()" constructor.`))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
 		switch expr := expr.(type) {
 		case *build.BinaryExpr:
@@ -73,7 +89,7 @@ func depsetIterationWarning(f *build.File) []*LinterFinding {
 			makeLinterFinding(*expr, `Depset iteration is deprecated, use the "to_list()" method instead.`, LinterReplacement{expr, newNode}))
 	}
 
-	types := detectTypes(f)
+	types := DetectTypes(f)
 	build.WalkPointers(f, func(e *build.Expr, stack []build.Expr) {
 		switch expr := (*e).(type) {
 		case *build.ForStmt:
@@ -128,7 +144,7 @@ func depsetIterationWarning(f *build.File) []*LinterFinding {
 
 func overlyNestedDepsetWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
-	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) {
+	build.WalkStatements(f, func(expr build.Expr, stack []build.Expr) (err error) {
 		// Are we inside a for-loop?
 		isForLoop := false
 		for _, e := range stack {
@@ -173,6 +189,7 @@ func overlyNestedDepsetWarning(f *build.File) []*LinterFinding {
 				return
 			}
 		}
+		return
 	})
 	return findings
 }

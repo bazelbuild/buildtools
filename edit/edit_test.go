@@ -1,19 +1,25 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 package edit
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -115,6 +121,7 @@ var splitOnSpacesTests = []struct {
 	{"a", []string{"a"}},
 	{"  abc def ", []string{"abc", "def"}},
 	{`  abc\ def `, []string{"abc def"}},
+	{"  abc def\nghi", []string{"abc", "def", "ghi"}},
 }
 
 func TestSplitOnSpaces(t *testing.T) {
@@ -151,6 +158,109 @@ load("other loc", "symbol")`,
 		if got != tst.expected {
 			t.Errorf("maybeInsertLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
 		}
+	}
+}
+
+func TestReplaceLoad(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		location string
+		from     []string
+		to       []string
+		expected string
+	}{
+		{
+			name:     "add_symbol",
+			input:    ``,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
+		},
+		{
+			name:     "replace_location",
+			input:    `load("location", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
+		},
+		{
+			name:     "replace_location_one_of_multiple",
+			input:    `load("location", "other", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("location", "other")
+load("new_location", "symbol")`,
+		},
+		{
+			name:     "replace_location_alias",
+			input:    `load("location", symbol = "other")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
+		},
+		{
+			name: "collapse_duplicate_symbol",
+			input: `load("other loc", "symbol")
+load("location", "symbol")`,
+			location: "new_location",
+			from:     []string{"symbol"},
+			to:       []string{"symbol"},
+			expected: `load("new_location", "symbol")`,
+		},
+		{
+			name:     "replace_multiple_same_location",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_a", "symbol_b", "symbol_c"},
+			to:       []string{"symbol_a", "symbol_b", "symbol_c"},
+			expected: `load("new_location", "symbol_a", "symbol_b", "symbol_c")`,
+		},
+		{
+			name:     "replace_multiple_same_location_out_of_order",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_c", "symbol_a", "symbol_b"},
+			to:       []string{"symbol_c", "symbol_a", "symbol_b"},
+			expected: `load("new_location", "symbol_a", "symbol_b", "symbol_c")`,
+		},
+		{
+			name:     "replace_multiple_same_location_partial",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_a", "symbol_b"},
+			to:       []string{"symbol_a", "symbol_b"},
+			expected: `load("location", "symbol_c")
+load("new_location", "symbol_a", "symbol_b")`,
+		},
+		{
+			name:     "replace_multiple_same_location_partial_out_of_order",
+			input:    `load("location", "symbol_a", "symbol_b", "symbol_c")`,
+			location: "new_location",
+			from:     []string{"symbol_b", "symbol_a"},
+			to:       []string{"symbol_b", "symbol_a"},
+			expected: `load("location", "symbol_c")
+load("new_location", "symbol_a", "symbol_b")`,
+		},
+	}
+
+	for _, tst := range tests {
+		t.Run(tst.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tst.input))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			bld.Stmt = ReplaceLoad(bld.Stmt, tst.location, tst.from, tst.to)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if got != tst.expected {
+				t.Errorf("ReplaceLoad(%s): got %s, expected %s", tst.input, got, tst.expected)
+			}
+		})
 	}
 }
 
@@ -193,40 +303,40 @@ func TestSelectListsIntersection(t *testing.T) {
 		expected []build.Expr
 	}{
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select()
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select(CONFIGS)
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": "string",
 				"DEFAULT": "default"
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": LIST,
 				"DEFAULT": DEFAULT
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config": ":1 :2 :3".split(" "),
 				"DEFAULT": ":2 :3".split(" ")
 			})
 		)`, nil},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [":1"],
 				"config2": [":2"],
@@ -234,7 +344,7 @@ func TestSelectListsIntersection(t *testing.T) {
 			})
 		)`, []build.Expr{}},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [],
 				"config2": [":1"],
@@ -251,7 +361,7 @@ func TestSelectListsIntersection(t *testing.T) {
 			})
 		)`, []build.Expr{&build.StringExpr{Value: ":2"}}},
 		{`rule(
-			name = "rule", 
+			name = "rule",
 			attr = select({
 				"config1": [":4", ":3", ":1", ":5", ":2", ":6"],
 				"config2": [":5", ":2", ":6", ":1"],
@@ -672,4 +782,50 @@ x = 2`,
 			t.Errorf("TestPackageDeclaration: got:\n%s\nexpected:\n%s", got, want)
 		}
 	}
+}
+
+type testCase struct {
+	inputRoot, inputTarget                       string
+	expectedBuildFile, expectedPkg, expectedRule string
+}
+
+func runTestInterpretLabelForWorkspaceLocation(t *testing.T, buildFileName string) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+	if err := os.MkdirAll(filepath.Join(tmp, "a", "b"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "WORKSPACE"), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "a", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "a", "b", buildFileName), nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []testCase{
+		{tmp, "//", filepath.Join(tmp, buildFileName), "", "."},
+		{tmp, "//a", filepath.Join(tmp, "a", buildFileName), "a", "a"},
+		{tmp, "//a:a", filepath.Join(tmp, "a", buildFileName), "a", "a"},
+		{tmp, "//a/b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
+		{tmp, "//a/b:b", filepath.Join(tmp, "a", "b", buildFileName), "a/b", "b"},
+	} {
+		buildFile, _, pkg, rule := InterpretLabelForWorkspaceLocation(tc.inputRoot, tc.inputTarget)
+		if buildFile != tc.expectedBuildFile || pkg != tc.expectedPkg || rule != tc.expectedRule {
+			t.Errorf("InterpretLabelForWorkspaceLocation(%q, %q) = %q, %q, %q; want %q, %q, %q", tc.inputRoot, tc.inputTarget, buildFile, pkg, rule, tc.expectedBuildFile, tc.expectedPkg, tc.expectedRule)
+		}
+	}
+}
+
+func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
+	runTestInterpretLabelForWorkspaceLocation(t, "BUILD")
+	runTestInterpretLabelForWorkspaceLocation(t, "BUILD.bazel")
 }

@@ -1,42 +1,123 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "unused_deps_lib",
     srcs = [
         "jar_manifest.go",
         "unused_deps.go",
     ],
     importpath = "github.com/bazelbuild/buildtools/unused_deps",
     visibility = ["//visibility:private"],
+    x_defs = {
+        "main.buildVersion": "{STABLE_buildVersion}",
+        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+    },
     deps = [
-        "//build:go_default_library",
-        "//config:go_default_library",
-        "//deps_proto:go_default_library",
-        "//edit:go_default_library",
-        "//extra_actions_base_proto:go_default_library",
+        "//build",
+        "//config",
+        "//deps_proto",
+        "//edit",
+        "//extra_actions_base_proto",
+        "//labels",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
 
 go_binary(
     name = "unused_deps",
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
     visibility = ["//visibility:public"],
-    x_defs = {
-        "main.buildVersion": "{STABLE_buildVersion}",
-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
-    },
+)
+
+go_binary(
+    name = "unused_deps-darwin-amd64",
+    out = "unused_deps-darwin_amd64",
+    embed = [":unused_deps_lib"],
+    goarch = "amd64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-linux-amd64",
+    out = "unused_deps-linux_amd64",
+    embed = [":unused_deps_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-windows-amd64",
+    out = "unused_deps-windows_amd64.exe",
+    embed = [":unused_deps_lib"],
+    goarch = "amd64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-linux-arm64",
+    out = "unused_deps-linux_arm64",
+    embed = [":unused_deps_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-darwin-arm64",
+    out = "unused_deps-darwin_arm64",
+    embed = [":unused_deps_lib"],
+    goarch = "arm64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-windows-arm64",
+    out = "unused_deps-windows_arm64.exe",
+    embed = [":unused_deps_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-linux-s390x",
+    out = "unused_deps-linux_s390x",
+    embed = [":unused_deps_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unused_deps-linux-riscv64",
+    out = "unused_deps-linux_riscv64",
+    embed = [":unused_deps_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
 )
 
 go_test(
     name = "jar_manifest_test",
     size = "small",
     srcs = ["jar_manifest_test.go"],
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "unused_deps_test",
     srcs = ["jar_manifest_test.go"],
-    embed = [":go_default_library"],
+    embed = [":unused_deps_lib"],
 )

@@ -1,17 +1,17 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package build
@@ -19,7 +19,6 @@ package build
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -109,6 +108,32 @@ func TestPrintRewrite(t *testing.T) {
 	}
 }
 
+// Test that attempting to format an incorrect file throws a syntax error
+func TestSyntaxError(t *testing.T) {
+	ins, chdir := findTests(t, ".error")
+	defer chdir()
+	parsers := map[string]func(string, []byte) (*File, error){
+		"bzl":     ParseBzl,
+		"default": ParseDefault,
+	}
+
+	for _, in := range ins {
+		data, err := os.ReadFile(in)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		for name, parser := range parsers {
+			_, err := parser(in, data)
+			if err == nil {
+				t.Errorf("Expected a syntax error for %q (type %q)", in, name)
+				return
+			}
+		}
+	}
+}
+
 // Test that golden files for the build mode aren't modified if reformatted in bzl mode
 func TestPrintBuildAsBzl(t *testing.T) {
 	ins, chdir := findTests(t, ".in")
@@ -149,16 +174,15 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 
 // testPrint is a helper for testing the printer.
 // It reads the file named in, reformats it, and compares
-// the result to the file named out. If rewrite is true, the
-// reformatting includes buildifier's higher-level rewrites.
+// the result to the file named out.
 func testPrint(t *testing.T, in, out string, isBuild bool) {
-	data, err := ioutil.ReadFile(in)
+	data, err := os.ReadFile(in)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	golden, err := ioutil.ReadFile(out)
+	golden, err := os.ReadFile(out)
 	if err != nil {
 		t.Error(err)
 		return
@@ -182,8 +206,6 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 			return
 		}
 
-		Rewrite(file, nil)
-
 		ndata := Format(file)
 
 		if !bytes.Equal(ndata, golden) {
@@ -201,7 +223,12 @@ func TestPrintParse(t *testing.T) {
 	outs, chdir := findTests(t, "")
 	defer chdir()
 	for _, out := range outs {
-		data, err := ioutil.ReadFile(out)
+		if strings.HasSuffix(out, ".error") {
+			// Incorrect starlark file, skip
+			continue
+		}
+
+		data, err := os.ReadFile(out)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -213,7 +240,7 @@ func TestPrintParse(t *testing.T) {
 			t.Errorf("parsing original: %v", err)
 		}
 
-		ndata := Format(f)
+		ndata := FormatWithoutRewriting(f)
 
 		f2, err := Parse(base, ndata)
 		if err != nil {
@@ -233,7 +260,7 @@ func TestPrintNewSequences(t *testing.T) {
 	outs, chdir := findTests(t, "064.*")
 	defer chdir()
 	for _, out := range outs {
-		golden, err := ioutil.ReadFile(out)
+		golden, err := os.ReadFile(out)
 		if err != nil {
 			t.Error(err)
 			return
@@ -342,8 +369,6 @@ func TestPrintNewSequences(t *testing.T) {
 				Type: fileType,
 				Stmt: newSequences,
 			}
-
-			Rewrite(file, nil)
 
 			ndata := Format(file)
 

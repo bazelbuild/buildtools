@@ -1,20 +1,28 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2020 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package build
+
+// StopTraversalError is a special error that tells the walker to not traverse
+// further and visit child nodes of the current node.
+type StopTraversalError struct{}
+
+func (m *StopTraversalError) Error() string {
+	return "Stop traversal"
+}
 
 // Walk walks the expression tree v, calling f on all subexpressions
 // in a preorder traversal.
@@ -24,18 +32,27 @@ package build
 //
 func Walk(v Expr, f func(x Expr, stk []Expr)) {
 	var stack []Expr
-	walk1(&v, &stack, func(x *Expr, stk []Expr) Expr {
+	walk1(&v, &stack, func(x *Expr, stk []Expr) (Expr, error) {
 		f(*x, stk)
-		return nil
+		return nil, nil
 	})
 }
 
 // WalkPointers is the same as Walk but calls the callback function with pointers to nodes.
 func WalkPointers(v Expr, f func(x *Expr, stk []Expr)) {
 	var stack []Expr
-	walk1(&v, &stack, func(x *Expr, stk []Expr) Expr {
+	walk1(&v, &stack, func(x *Expr, stk []Expr) (Expr, error) {
 		f(x, stk)
-		return nil
+		return nil, nil
+	})
+}
+
+// WalkInterruptable is the same as Walk but allows traversal to be interrupted.
+func WalkInterruptable(v Expr, f func(x Expr, stk []Expr) error) {
+	var stack []Expr
+	walk1(&v, &stack, func(x *Expr, stk []Expr) (Expr, error) {
+		err := f(*x, stk)
+		return nil, err
 	})
 }
 
@@ -48,8 +65,8 @@ func WalkPointers(v Expr, f func(x *Expr, stk []Expr)) {
 //
 func Edit(v Expr, f func(x Expr, stk []Expr) Expr) Expr {
 	var stack []Expr
-	return walk1(&v, &stack, func(x *Expr, stk []Expr) Expr {
-		return f(*x, stk)
+	return walk1(&v, &stack, func(x *Expr, stk []Expr) (Expr, error) {
+		return f(*x, stk), nil
 	})
 }
 
@@ -58,20 +75,27 @@ func Edit(v Expr, f func(x Expr, stk []Expr) Expr) Expr {
 func EditChildren(v Expr, f func(x Expr, stk []Expr) Expr) {
 	stack := []Expr{v}
 	WalkOnce(v, func(x *Expr) {
-		walk1(x, &stack, func(x *Expr, stk []Expr) Expr {
-			return f(*x, stk)
+		walk1(x, &stack, func(x *Expr, stk []Expr) (Expr, error) {
+			return f(*x, stk), nil
 		})
 	})
 }
 
 // walk1 is a helper function for Walk, WalkWithPostfix, and Edit.
-func walk1(v *Expr, stack *[]Expr, f func(x *Expr, stk []Expr) Expr) Expr {
-	if v == nil {
+func walk1(v *Expr, stack *[]Expr, f func(x *Expr, stk []Expr) (Expr, error)) Expr {
+	if v == nil || *v == nil {
 		return nil
 	}
 
-	if res := f(v, *stack); res != nil {
+	res, err := f(v, *stack)
+	if res != nil {
 		*v = res
+	}
+	if err != nil {
+		if _, ok := err.(*StopTraversalError); ok {
+			// Don't traverse inside
+			return nil
+		}
 	}
 	*stack = append(*stack, *v)
 
@@ -145,7 +169,8 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 		}
 	case *DictExpr:
 		for i := range v.List {
-			f(&v.List[i])
+			e := Expr(v.List[i])
+			f(&e)
 		}
 	case *Comprehension:
 		f(&v.Body)
@@ -202,12 +227,18 @@ func WalkOnce(v Expr, f func(x *Expr)) {
 }
 
 // walkStatements is a helper function for WalkStatements
-func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr)) {
+func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr) error) {
 	if v == nil {
 		return
 	}
 
-	f(v, *stack)
+	err := f(v, *stack)
+	if err != nil {
+		if _, ok := err.(*StopTraversalError); ok {
+			return
+		}
+	}
+
 	*stack = append(*stack, v)
 
 	traverse := func(x Expr) {
@@ -240,7 +271,7 @@ func walkStatements(v Expr, stack *[]Expr, f func(x Expr, stk []Expr)) {
 }
 
 // WalkStatements traverses sub statements (not all nodes)
-func WalkStatements(v Expr, f func(x Expr, stk []Expr)) {
+func WalkStatements(v Expr, f func(x Expr, stk []Expr) error) {
 	var stack []Expr
 	walkStatements(v, &stack, f)
 }

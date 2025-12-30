@@ -1,4 +1,20 @@
-package utils
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package config
 
 import (
 	"fmt"
@@ -8,11 +24,11 @@ import (
 // ValidateInputType validates the value of --type
 func ValidateInputType(inputType *string) error {
 	switch *inputType {
-	case "build", "bzl", "workspace", "default", "auto":
+	case "build", "bzl", "workspace", "default", "module", "auto":
 		return nil
 
 	default:
-		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, auto", *inputType)
+		return fmt.Errorf("unrecognized input type %s; valid types are build, bzl, workspace, default, module, auto", *inputType)
 	}
 }
 
@@ -24,7 +40,7 @@ func ValidateFormat(format, mode *string) error {
 
 	case "text", "json":
 		if *mode != "check" {
-			return fmt.Errorf("cannot specify --format without --type=check")
+			return fmt.Errorf("cannot specify --format without --mode=check")
 		}
 
 	default:
@@ -108,7 +124,7 @@ func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) 
 			}
 		}
 		if len(warningsList) > 0 && (len(plus) > 0 || len(minus) > 0) {
-			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't me mixed with raw warning categories")
+			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't be mixed with raw warning categories")
 		}
 		if len(warningsList) == 0 {
 			for _, warning := range *defaultWarnings {

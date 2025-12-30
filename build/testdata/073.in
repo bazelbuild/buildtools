@@ -1,0 +1,4 @@
+# disable=out-of-order-load
+
+load(":foo", "foo")
+load(":bar", "bar")

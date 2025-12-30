@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // General Bazel-related warnings
 
 package warn
@@ -9,9 +25,28 @@ import (
 	"github.com/bazelbuild/buildtools/build"
 )
 
+func constantGlobPatternWarning(patterns *build.ListExpr) []*LinterFinding {
+	findings := []*LinterFinding{}
+	for _, expr := range patterns.List {
+		str, ok := expr.(*build.StringExpr)
+		if !ok {
+			continue
+		}
+		if !strings.Contains(str.Value, "*") {
+			message := fmt.Sprintf(
+				`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
+			findings = append(findings, makeLinterFinding(expr, message))
+			return findings // at most one warning per glob
+		}
+	}
+	return findings
+}
+
 func constantGlobWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeDefault {
-		// Only applicable to Bazel files
+	switch f.Type {
+	case build.TypeBuild, build.TypeWorkspace, build.TypeBzl:
+	default:
+		// Not applicable
 		return nil
 	}
 
@@ -26,18 +61,25 @@ func constantGlobWarning(f *build.File) []*LinterFinding {
 			return
 		}
 		patterns, ok := call.List[0].(*build.ListExpr)
-		if !ok {
-			return
+		if ok {
+			// first arg is unnamed and is a list
+			findings = append(findings, constantGlobPatternWarning(patterns)...)
+			return // at most one warning per glob
 		}
-		for _, expr := range patterns.List {
-			str, ok := expr.(*build.StringExpr)
+
+		// look for named args called include
+		for _, arg := range call.List {
+			assignExpr, ok := arg.(*build.AssignExpr)
 			if !ok {
 				continue
 			}
-			if !strings.Contains(str.Value, "*") {
-				message := fmt.Sprintf(
-					`Glob pattern %q has no wildcard ('*'). Constant patterns can be error-prone, move the file outside the glob.`, str.Value)
-				findings = append(findings, makeLinterFinding(expr, message))
+			str, ok := assignExpr.LHS.(*build.Ident)
+			if !ok || str.Name != "include" {
+				continue
+			}
+			patterns, ok := assignExpr.RHS.(*build.ListExpr)
+			if ok {
+				findings = append(findings, constantGlobPatternWarning(patterns)...)
 				return // at most one warning per glob
 			}
 		}
@@ -98,7 +140,7 @@ func nativePackageWarning(f *build.File) []*LinterFinding {
 }
 
 func duplicatedNameWarning(f *build.File) []*LinterFinding {
-	if f.Type == build.TypeBzl || f.Type == build.TypeDefault {
+	if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
 		// Not applicable to .bzl files.
 		return nil
 	}
@@ -129,17 +171,37 @@ func duplicatedNameWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
-func positionalArgumentsWarning(call *build.CallExpr, pkg string) *LinterFinding {
-	if id, ok := call.X.(*build.Ident); !ok || functionsWithPositionalArguments[id.Name] {
+func positionalArgumentsWarning(f *build.File, fileReader *FileReader) (findings []*LinterFinding) {
+	if f.Type != build.TypeBuild {
 		return nil
 	}
-	for _, arg := range call.List {
-		if _, ok := arg.(*build.AssignExpr); ok {
-			continue
-		}
-		return makeLinterFinding(arg, "All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.")
+	macroAnalyzer := newMacroAnalyzer(fileReader)
+	macroAnalyzer.files[f.Pkg+":"+f.Label] = analyzeFile(f)
+
+	for _, expr := range f.Stmt {
+		build.Walk(expr, func(x build.Expr, _ []build.Expr) {
+			if fnCall, ok := x.(*build.CallExpr); ok {
+				fnIdent, ok := fnCall.X.(*build.Ident)
+				if !ok {
+					return
+				}
+
+				if macroAnalyzer.IsRuleOrMacro(function{pkg: f.Pkg, filename: f.Label, name: fnIdent.Name}).isRuleOrMacro {
+					for _, arg := range fnCall.List {
+						if _, ok := arg.(*build.AssignExpr); ok || arg == nil {
+							continue
+						}
+						findings = append(findings, makeLinterFinding(fnCall, fmt.Sprintf(
+							`All calls to rules or macros should pass arguments by keyword (arg_name=value) syntax.
+Found call to rule or macro %q with positional arguments.`,
+							fnIdent.Name)))
+						return
+					}
+				}
+			}
+		})
 	}
-	return nil
+	return
 }
 
 func argsKwargsInBuildFilesWarning(f *build.File) []*LinterFinding {
@@ -190,6 +252,49 @@ func printWarning(f *build.File) []*LinterFinding {
 		}
 		findings = append(findings,
 			makeLinterFinding(expr, `"print()" is a debug function and shouldn't be submitted.`))
+	})
+	return findings
+}
+
+func externalPathWarning(f *build.File) []*LinterFinding {
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return nil
+	}
+
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Look for any string expression that contains "/external/"
+		stringExpr, ok := expr.(*build.StringExpr)
+		if !ok {
+			return
+		}
+		// Warn for "/external/" but not if "//" appears in the string (main repository paths)
+		if strings.Contains(stringExpr.Value, "/external/") && !strings.Contains(stringExpr.Value, "//") {
+			findings = append(findings,
+				makeLinterFinding(stringExpr, `String contains "/external/" which may indicate a dependency on external repositories that could be fragile.`))
+		}
+	})
+	return findings
+}
+
+func canonicalRepositoryWarning(f *build.File) []*LinterFinding {
+	if f.Type == build.TypeDefault {
+		// Only applicable to Bazel files
+		return nil
+	}
+
+	findings := []*LinterFinding{}
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		// Look for any string expression that contains "@@"
+		stringExpr, ok := expr.(*build.StringExpr)
+		if !ok {
+			return
+		}
+		if strings.Contains(stringExpr.Value, "@@") {
+			findings = append(findings,
+				makeLinterFinding(stringExpr, `String contains "@@" which indicates a canonical repository name reference that should be avoided.`))
+		}
 	})
 	return findings
 }

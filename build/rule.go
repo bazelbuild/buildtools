@@ -1,17 +1,17 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // Rule-level API for inspecting and modifying a build.File syntax tree.
@@ -42,9 +42,7 @@ func (f *File) Rule(call *CallExpr) *Rule {
 	return r
 }
 
-// Rules returns the rules in the file of the given kind (such as "go_library").
-// If kind == "", Rules returns all rules in the file.
-func (f *File) Rules(kind string) []*Rule {
+func (f *File) rules(p func(r *Rule) bool) []*Rule {
 	var all []*Rule
 
 	for _, stmt := range f.Stmt {
@@ -61,9 +59,9 @@ func (f *File) Rules(kind string) []*Rule {
 				}
 			}
 
-			// Check if the rule kind is correct.
+			// Check if the rule is correct.
 			rule := f.Rule(call)
-			if kind != "" && rule.Kind() != kind {
+			if !p(rule) {
 				return
 			}
 			all = append(all, rule)
@@ -73,20 +71,36 @@ func (f *File) Rules(kind string) []*Rule {
 	return all
 }
 
+// Rules returns the rules in the file of the given kind (such as "go_library").
+// If kind == "", Rules returns all rules in the file.
+func (f *File) Rules(kind string) []*Rule {
+	return f.rules(func(rule *Rule) bool {
+		// Check if the rule kind is correct.
+		return kind == "" || rule.Kind() == kind
+	})
+}
+
 // RuleAt returns the rule in the file that starts at the specified line, or null if no such rule.
 func (f *File) RuleAt(linenum int) *Rule {
-
-	for _, stmt := range f.Stmt {
-		call, ok := stmt.(*CallExpr)
-		if !ok {
-			continue
-		}
-		start, end := call.X.Span()
-		if start.Line <= linenum && linenum <= end.Line {
-			return f.Rule(call)
-		}
+	all := f.rules(func(rule *Rule) bool {
+		start, end := rule.Call.X.Span()
+		return start.Line <= linenum && linenum <= end.Line
+	})
+	if len(all) != 1 {
+		return nil
 	}
-	return nil
+	return all[0]
+}
+
+// RuleNamed returns the rule in the file that has the specified name, or null if no such rule.
+func (f *File) RuleNamed(name string) *Rule {
+	all := f.rules(func(rule *Rule) bool {
+		return rule.Name() == name
+	})
+	if len(all) != 1 {
+		return nil
+	}
+	return all[0]
 }
 
 // DelRules removes rules with the given kind and name from the file.
@@ -176,10 +190,14 @@ func (r *Rule) Kind() string {
 // SetKind changes rule's kind (such as "go_library").
 func (r *Rule) SetKind(kind string) {
 	names := strings.Split(kind, ".")
+	var startPos Position
+	if x := r.Call.X; x != nil {
+		startPos, _ = x.Span()
+	}
 	var expr Expr
-	expr = &Ident{Name: names[0]}
+	expr = &Ident{Name: names[0], NamePos: startPos}
 	for _, name := range names[1:] {
-		expr = &DotExpr{X: expr, Name: name}
+		expr = &DotExpr{X: expr, Name: name, NamePos: startPos}
 	}
 	r.Call.X = expr
 }

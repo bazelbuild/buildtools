@@ -1,8 +1,23 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // Package testutils provides some useful helpers for buildozer/buildifer tests.
 package testutils
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -10,14 +25,14 @@ import (
 
 // Diff returns the output of running diff on b1 and b2.
 func Diff(b1, b2 []byte) ([]byte, error) {
-	f1, err := ioutil.TempFile("", "testdiff")
+	f1, err := os.CreateTemp("", "testdiff")
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(f1.Name())
 	defer f1.Close()
 
-	f2, err := ioutil.TempFile("", "testdiff")
+	f2, err := os.CreateTemp("", "testdiff")
 	if err != nil {
 		return nil, err
 	}

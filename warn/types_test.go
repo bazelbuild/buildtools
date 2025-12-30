@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package warn
 
 import (
@@ -16,7 +32,7 @@ func checkTypes(t *testing.T, input, output string) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	types := detectTypes(f)
+	types := DetectTypes(f)
 
 	var edit func(expr build.Expr, stack []build.Expr) build.Expr
 	edit = func(expr build.Expr, stack []build.Expr) build.Expr {
@@ -36,7 +52,7 @@ func checkTypes(t *testing.T, input, output string) {
 	build.Edit(f, edit)
 
 	want := []byte(strings.TrimLeft(output, "\n"))
-	have := build.Format(f)
+	have := build.FormatWithoutRewriting(f)
 	if !bytes.Equal(have, want) {
 		t.Errorf("detected types incorrectly: diff shows -expected, +ours")
 		testutils.Tdiff(t, want, have)
@@ -45,8 +61,15 @@ func checkTypes(t *testing.T, input, output string) {
 
 func TestTypes(t *testing.T) {
 	checkTypes(t, `
+b = True
+b2 = bool("hello")
+i = 3
+i2 = int(1.2)
+f = 1.2
+f2 = float(3)
 s = "string"
 s2 = s
+s3 = str(42)
 d = {}
 d2 = {foo: bar}
 d3 = dict(**foo)
@@ -54,16 +77,23 @@ d4 = {k: v for k, v in foo}
 dep = depset(items=[s, d])
 foo = bar
 `, `
+b = bool:<True>
+b2 = bool:<bool(string:<"hello">)>
+i = int:<3>
+i2 = int:<int(float:<1.2>)>
+f = float:<1.2>
+f2 = float:<float(int:<3>)>
 s = string:<"string">
 s2 = string:<s>
+s3 = string:<str(int:<42>)>
 d = dict:<{}>
 d2 = dict:<{foo: bar}>
 d3 = dict:<dict(**foo)>
 d4 = dict:<{k: v for k, v in foo}>
-dep = depset:<depset(items = [
+dep = depset:<depset(items = list:<[
     string:<s>,
     dict:<d>,
-])>
+]>)>
 foo = bar
 `)
 }

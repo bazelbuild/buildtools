@@ -1,0 +1,24 @@
+set = {1, 2, 3}
+
+multiline_set = {
+  4, 5, [6]
+}
+
+plus = lambda x, y: x + y
+
+two = (lambda x:x(x)) (lambda z:lambda y:z)( 1 ) ( 2 ) ( 3 )
+
+make_one = lambda: 1
+
+l = lambda x,y,*args,**kwargs:f(y,key=x,*args,**kwargs)
+
+TriggerActionAfterProbe(
+    probe = ("http", "response"),
+    predicate = lambda State, response: all([
+        response["request"]["method"] == "GET",
+        response["request"]["url"].find("/posts/") != -1,
+        response["request"]["url"].endswith("/comments"),
+        response["status_code"] in range(200, 299),
+    ]),
+    action = lambda State, response: None,
+)

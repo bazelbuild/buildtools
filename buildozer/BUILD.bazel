@@ -1,23 +1,125 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 go_library(
-    name = "go_default_library",
+    name = "buildozer_lib",
     srcs = ["main.go"],
     importpath = "github.com/bazelbuild/buildtools/buildozer",
     visibility = ["//visibility:private"],
-    deps = [
-        "//build:go_default_library",
-        "//edit:go_default_library",
-        "//tables:go_default_library",
-    ],
     x_defs = {
         "main.buildVersion": "{STABLE_buildVersion}",
         "main.buildScmRevision": "{STABLE_buildScmRevision}",
     },
+    deps = [
+        "//build",
+        "//edit",
+        "//tables",
+    ],
 )
 
 go_binary(
     name = "buildozer",
-    embed = [":go_default_library"],
+    embed = [":buildozer_lib"],
     visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "buildozer_test",
+    size = "small",
+    srcs = ["buildozer_test.sh"],
+    args = [
+        "$(location :buildozer)",
+    ],
+    data = [
+        "test_common.sh",
+        ":buildozer",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+go_binary(
+    name = "buildozer-darwin-amd64",
+    out = "buildozer-darwin_amd64",
+    embed = [":buildozer_lib"],
+    goarch = "amd64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-amd64",
+    out = "buildozer-linux_amd64",
+    embed = [":buildozer_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-windows-amd64",
+    out = "buildozer-windows_amd64.exe",
+    embed = [":buildozer_lib"],
+    goarch = "amd64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-darwin-arm64",
+    out = "buildozer-darwin_arm64",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-arm64",
+    out = "buildozer-linux_arm64",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-windows-arm64",
+    out = "buildozer-windows_arm64.exe",
+    embed = [":buildozer_lib"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-riscv64",
+    out = "buildozer-linux_riscv64",
+    embed = [":buildozer_lib"],
+    goarch = "riscv64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "buildozer-linux-s390x",
+    out = "buildozer-linux_s390x",
+    embed = [":buildozer_lib"],
+    goarch = "s390x",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(
+    [
+        "README.md",
+    ],
+    visibility = ["//buildozer/npm:__pkg__"],
 )

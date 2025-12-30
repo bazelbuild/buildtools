@@ -1,18 +1,58 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package warn
 
 import "testing"
 
 func TestIntegerDivision(t *testing.T) {
 	checkFindingsAndFix(t, "integer-division", `
-a = b / c
-d /= e
+a = 1
+b = int(2.3)
+c = 1.0
+d = float(2)
+
+e = a / b
+f = a / c
+g = c / a
+h = c / d
+
+a /= b
+a /= c
+c /= a
+c /= d
 `, `
-a = b // c
-d //= e
+a = 1
+b = int(2.3)
+c = 1.0
+d = float(2)
+
+e = a // b
+f = a / c
+g = c / a
+h = c / d
+
+a //= b
+a /= c
+c /= a
+c /= d
 `,
 		[]string{
-			":1: The \"/\" operator for integer division is deprecated in favor of \"//\".",
-			":2: The \"/=\" operator for integer division is deprecated in favor of \"//=\".",
+			":6: The \"/\" operator for integer division is deprecated in favor of \"//\".",
+			":11: The \"/=\" operator for integer division is deprecated in favor of \"//=\".",
 		},
 		scopeEverywhere)
 }
@@ -80,74 +120,51 @@ for x in l:
 		scopeEverywhere)
 }
 
-func TestStringEscape(t *testing.T) {
-	checkFindingsAndFix(t, "string-escape", `
-'foo'
-'\\foo\\"bar"\\'
-"\foo"
-'"\foo"\\\bar'
-
-'''
-"asdf"
-\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9
-'''
+func TestListAppend(t *testing.T) {
+	checkFindingsAndFix(t, "list-append", `
+x = []
+x += y
+x += [1]
+x += [2, 3]
+x += [4 for y in z]
+x += 5
+x += [foo(
+    bar,
+    baz,
+)]
 `, `
-"foo"
-'\\foo\\"bar"\\'
-"\\foo"
-'"\\foo"\\\\bar'
-
-'''
-"asdf"
-\\a\\b\\c\\d\\e\\f\\g\\h\\i\\j\\k\\l\\m\n\\o\\p\\q\r\\s\t\\u\\v\\w\x43\\y\\z\0\1\2\3\4\5\6\7\\8\\9
-'''
+x = []
+x += y
+x.append(1)
+x += [2, 3]
+x += [4 for y in z]
+x += 5
+x.append(foo(
+    bar,
+    baz,
+))
 `,
 		[]string{
-			`:3: Invalid escape sequence \f at position 1.`,
-			`:4: Invalid escape sequences:
-    \f at position 2
-    \b at position 9
-`,
-			`:6: Invalid escape sequences:
-    \a at position 9
-    \b at position 11
-    \c at position 13
-    \d at position 15
-    \e at position 17
-    \f at position 19
-    \g at position 21
-    \h at position 23
-    \i at position 25
-    \j at position 27
-    \k at position 29
-    \l at position 31
-    \m at position 33
-    \o at position 37
-    \p at position 39
-    \q at position 41
-    \s at position 45
-    \u at position 49
-    \v at position 51
-    \w at position 53
-    \y at position 59
-    \z at position 61
-    \8 at position 79
-    \9 at position 81
-`,
+			`:3: Prefer using ".append()" to adding a single element list`,
+			`:7: Prefer using ".append()" to adding a single element list`,
 		},
 		scopeEverywhere)
+}
 
-	checkFindings(t, "string-escape", `
-r'foo'
-r'\\foo\\"bar"\\'
-r"\foo"
-r'"\foo"\\\bar'
+func TestDictMethodNamedArg(t *testing.T) {
+	checkFindings(t, "dict-method-named-arg", `
+d = dict()
+d.get("a", "b")
+[].get("a", default = "b")
 
-r'''
-"asdf"
-\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x43\y\z\0\1\2\3\4\5\6\7\8\9
-'''
+d.get("a", default = "b") # warning
+d.pop("a", default = "b") # warning
+{}.setdefault("a", default = "b") # warning
 `,
-		[]string{},
+		[]string{
+			`:5: Named argument "default" not allowed`,
+			`:6: Named argument "default" not allowed`,
+			`:7: Named argument "default" not allowed`,
+		},
 		scopeEverywhere)
 }

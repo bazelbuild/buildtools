@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "bzlmod",
+    srcs = ["bzlmod.go"],
+    importpath = "github.com/bazelbuild/buildtools/edit/bzlmod",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//build",
+        "//labels",
+    ],
+)
+
+go_test(
+    name = "bzlmod_test",
+    srcs = ["bzlmod_test.go"],
+    embed = [":bzlmod"],
+    deps = ["//build"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":bzlmod",
+    visibility = ["//visibility:public"],
+)

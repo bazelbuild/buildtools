@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // Package warn implements functions that generate warnings for BUILD files.
 package warn
 
@@ -49,6 +65,7 @@ type Finding struct {
 	Message     string
 	URL         string
 	Actionable  bool
+	AutoFixable bool
 	Replacement *Replacement
 }
 
@@ -61,11 +78,11 @@ type Replacement struct {
 }
 
 func docURL(cat string) string {
-	return "https://github.com/bazelbuild/buildtools/blob/master/WARNINGS.md#" + cat
+	return "https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#" + cat
 }
 
 // makeFinding creates a Finding object
-func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, fix *Replacement) *Finding {
+func makeFinding(f *build.File, start, end build.Position, cat, url, msg string, actionable bool, autoFixable bool, fix *Replacement) *Finding {
 	if url == "" {
 		url = docURL(cat)
 	}
@@ -77,6 +94,7 @@ func makeFinding(f *build.File, start, end build.Position, cat, url, msg string,
 		URL:         url,
 		Message:     msg,
 		Actionable:  actionable,
+		AutoFixable: autoFixable,
 		Replacement: fix,
 	}
 }
@@ -94,60 +112,57 @@ func makeLinterFinding(node build.Expr, message string, replacement ...LinterRep
 
 // RuleWarningMap lists the warnings that run on a single rule.
 // These warnings run only on BUILD files (not bzl files).
-var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFinding{
-	"positional-args": positionalArgumentsWarning,
-}
+var RuleWarningMap = map[string]func(call *build.CallExpr, pkg string) *LinterFinding{}
 
 // FileWarningMap lists the warnings that run on the whole file.
 var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
+	"attr-applicable_licenses":  attrApplicableLicensesWarning,
 	"attr-cfg":                  attrConfigurationWarning,
 	"attr-license":              attrLicenseWarning,
+	"attr-licenses":             attrLicensesWarning,
 	"attr-non-empty":            attrNonEmptyWarning,
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
-	"bzl-visibility":            deprecatedBzlLoadWarning,
+	"bzl-visibility":            bzlVisibilityWarning,
+	"canonical-repository":      canonicalRepositoryWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
 	"ctx-actions":               ctxActionsWarning,
 	"ctx-args":                  contextArgsAPIWarning,
+	"depset-items":              depsetItemsWarning,
 	"depset-iteration":          depsetIterationWarning,
 	"depset-union":              depsetUnionWarning,
+	"dict-method-named-arg":     dictMethodNamedArgWarning,
 	"dict-concatenation":        dictionaryConcatenationWarning,
 	"duplicated-name":           duplicatedNameWarning,
+	"external-path":             externalPathWarning,
 	"filetype":                  fileTypeWarning,
 	"function-docstring":        functionDocstringWarning,
 	"function-docstring-header": functionDocstringHeaderWarning,
 	"function-docstring-args":   functionDocstringArgsWarning,
 	"function-docstring-return": functionDocstringReturnWarning,
-	"git-repository":            nativeGitRepositoryWarning,
-	"http-archive":              nativeHTTPArchiveWarning,
 	"integer-division":          integerDivisionWarning,
 	"keyword-positional-params": keywordPositionalParametersWarning,
+	"list-append":               listAppendWarning,
 	"load":                      unusedLoadWarning,
-	"load-on-top":               loadOnTopWarning,
 	"module-docstring":          moduleDocstringWarning,
 	"name-conventions":          nameConventionsWarning,
-	"native-android":            nativeAndroidRulesWarning,
 	"native-build":              nativeInBuildFilesWarning,
-	"native-cc":                 nativeCcRulesWarning,
-	"native-java":               nativeJavaRulesWarning,
 	"native-package":            nativePackageWarning,
-	"native-proto":              nativeProtoRulesWarning,
-	"native-py":                 nativePyRulesWarning,
 	"no-effect":                 noEffectWarning,
 	"output-group":              outputGroupWarning,
-	"out-of-order-load":         outOfOrderLoadWarning,
 	"overly-nested-depset":      overlyNestedDepsetWarning,
 	"package-name":              packageNameWarning,
 	"package-on-top":            packageOnTopWarning,
 	"print":                     printWarning,
+	"provider-params":           providerParamsWarning,
 	"redefined-variable":        redefinedVariableWarning,
 	"repository-name":           repositoryNameWarning,
 	"rule-impl-return":          ruleImplReturnWarning,
 	"return-value":              missingReturnValueWarning,
-	"same-origin-load":          sameOriginLoadWarning,
-	"string-escape":             stringEscapeWarning,
+	"skylark-comment":           skylarkCommentWarning,
+	"skylark-docstring":         skylarkDocstringWarning,
 	"string-iteration":          stringIterationWarning,
 	"uninitialized":             uninitializedVariableWarning,
 	"unreachable":               unreachableStatementWarning,
@@ -155,27 +170,85 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"unused-variable":           unusedVariableWarning,
 }
 
+// MultiFileWarningMap lists the warnings that run on the whole file, but may use other files.
+var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader) []*LinterFinding{
+	"deprecated-function":                deprecatedFunctionWarning,
+	"git-repository":                     nativeGitRepositoryWarning,
+	"http-archive":                       nativeHTTPArchiveWarning,
+	"native-android":                     nativeAndroidRulesWarning,
+	"native-cc-binary":                   NativeCcRulesWarning("cc_binary"),
+	"native-cc-import":                   NativeCcRulesWarning("cc_import"),
+	"native-cc-library":                  NativeCcRulesWarning("cc_library"),
+	"native-cc-objc-import":              NativeCcRulesWarning("objc_import"),
+	"native-cc-objc-library":             NativeCcRulesWarning("objc_library"),
+	"native-cc-shared-library":           NativeCcRulesWarning("cc_shared_library"),
+	"native-cc-test":                     NativeCcRulesWarning("cc_test"),
+	"native-cc-toolchain":                NativeCcToolchainRulesWarning("cc_toolchain"),
+	"native-cc-toolchain-suite":          NativeCcToolchainRulesWarning("cc_toolchain_suite"),
+	"native-cc-fdo-prefetch-hints":       NativeCcToolchainRulesWarning("fdo_prefetch_hints"),
+	"native-cc-fdo-profile":              NativeCcToolchainRulesWarning("fdo_profile"),
+	"native-cc-memprof-profile":          NativeCcToolchainRulesWarning("memprof_profile"),
+	"native-cc-propeller-optimize":       NativeCcToolchainRulesWarning("propeller_optimize"),
+	"native-cc-common":                   NativeCcSymbolsWarning("cc_common", "cc_common"),
+	"native-cc-debug-package-info":       NativeCcSymbolsWarning("DebugPackageInfo", "debug_package_info"),
+	"native-cc-info":                     NativeCcSymbolsWarning("CcInfo", "cc_info"),
+	"native-cc-shared-library-info":      NativeCcSymbolsWarning("CcSharedLibraryInfo", "cc_shared_library_info"),
+	"native-cc-shared-library-hint-info": NativeCcSymbolsWarning("CcSharedLibraryHintInfo", "cc_shared_library_hint_info"),
+	"native-java-binary":                 NativeJavaRulesWarning("java_binary"),
+	"native-java-import":                 NativeJavaRulesWarning("java_import"),
+	"native-java-library":                NativeJavaRulesWarning("java_library"),
+	"native-java-plugin":                 NativeJavaRulesWarning("java_plugin"),
+	"native-java-test":                   NativeJavaRulesWarning("java_test"),
+	"native-java-package-config":         NativeJavaToolchainRulesWarning("java_package_configuration"),
+	"native-java-runtime":                NativeJavaToolchainRulesWarning("java_runtime"),
+	"native-java-toolchain":              NativeJavaToolchainRulesWarning("java_toolchain"),
+	"native-java-common":                 NativeJavaSymbolsWarning("java_common", "java_common"),
+	"native-java-info":                   NativeJavaSymbolsWarning("JavaInfo", "java_info"),
+	"native-java-plugin-info":            NativeJavaSymbolsWarning("JavaPluginInfo", "java_plugin_info"),
+	"native-proto":                       NativeProtoRulesWarning("proto_library"),
+	"native-java-proto":                  NativeProtoRulesWarning("java_proto_library"),
+	"native-java-lite-proto":             NativeProtoRulesWarning("java_lite_proto_library"),
+	"native-cc-proto":                    NativeProtoRulesWarning("cc_proto_library"),
+	"native-proto-lang-toolchain":        nativeProtoLangToolchainWarning,
+	"native-proto-info":                  nativeProtoSymbolsWarning("ProtoInfo", "proto_info.bzl"),
+	"native-proto-common":                nativeProtoSymbolsWarning("proto_common", "proto_common.bzl"),
+	"native-proto-lang-toolchain-info":   nativeProtoSymbolsWarning("ProtoLangToolchainInfo", "proto_lang_toolchain_info.bzl"),
+	"native-py":                          nativePyRulesWarning,
+	"native-sh-binary":                   NativeShellRulesWarning("sh_binary"),
+	"native-sh-library":                  NativeShellRulesWarning("sh_library"),
+	"native-sh-test":                     NativeShellRulesWarning("sh_test"),
+	"positional-args":                    positionalArgumentsWarning,
+	"unnamed-macro":                      unnamedMacroWarning,
+}
+
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
-	"out-of-order-load":   true, // load statements should be sorted by their labels
 	"unsorted-dict-items": true, // dict items should be sorted
-	"bzl-visibility":      true, // visibility of .bzl files
 }
 
 // fileWarningWrapper is a wrapper that converts a file warning function to a generic function.
-// A generic function takes a `pkg string` argument which is not used for file warnings, so it's just removed.
-func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
-	return func(f *build.File, pkg string) []*LinterFinding {
+// A generic function takes a `pkg string` and a `*ReadFile` arguments which are not used for file warnings,
+// so they are just removed.
+func fileWarningWrapper(fct func(f *build.File) []*LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, _ string, _ *FileReader) []*LinterFinding {
 		return fct(f)
+	}
+}
+
+// multiFileWarningWrapper is a wrapper that converts a multifile warning function to a generic function.
+// A generic function takes a `pkg string` argument which is not used for file warnings, so it's just removed.
+func multiFileWarningWrapper(fct func(f *build.File, fileReader *FileReader) []*LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, _ string, fileReader *FileReader) []*LinterFinding {
+		return fct(f, fileReader)
 	}
 }
 
 // ruleWarningWrapper is a wrapper that converts a per-rule function to a per-file function.
 // It also doesn't run on .bzl or default files, only on BUILD and WORKSPACE files.
-func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(f *build.File, pkg string) []*LinterFinding {
-	return func(f *build.File, pkg string) []*LinterFinding {
-		if f.Type != build.TypeBuild && f.Type != build.TypeWorkspace {
+func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *LinterFinding) func(*build.File, string, *FileReader) []*LinterFinding {
+	return func(f *build.File, pkg string, _ *FileReader) []*LinterFinding {
+		if f.Type != build.TypeBuild {
 			return nil
 		}
 		var findings []*LinterFinding
@@ -201,11 +274,11 @@ func ruleWarningWrapper(ruleWarning func(call *build.CallExpr, pkg string) *Lint
 }
 
 // runWarningsFunction runs a linter/fixer function over a file and applies the fixes conditionally
-func runWarningsFunction(category string, f *build.File, fct func(f *build.File, pkg string) []*LinterFinding, formatted *[]byte, mode LintMode) []*Finding {
+func runWarningsFunction(category string, f *build.File, fct func(f *build.File, pkg string, fileReader *FileReader) []*LinterFinding, formatted *[]byte, mode LintMode, fileReader *FileReader) []*Finding {
 	findings := []*Finding{}
-	for _, w := range fct(f, f.Pkg) {
+	for _, w := range fct(f, f.Pkg, fileReader) {
 		if !DisabledWarning(f, w.Start.Line, category) {
-			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, nil)
+			finding := makeFinding(f, w.Start, w.End, category, w.URL, w.Message, true, len(w.Replacement) > 0, nil)
 			if len(w.Replacement) > 0 {
 				// An automatic fix exists
 				switch mode {
@@ -236,7 +309,8 @@ func runWarningsFunction(category string, f *build.File, fct func(f *build.File,
 	return findings
 }
 
-func hasDisablingComment(expr build.Expr, warning string) bool {
+// HasDisablingComment checks if a node has a comment that disables a certain warning
+func HasDisablingComment(expr build.Expr, warning string) bool {
 	return edit.ContainsComments(expr, "buildifier: disable="+warning) ||
 		edit.ContainsComments(expr, "buildozer: disable="+warning)
 }
@@ -252,11 +326,18 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 		}
 
 		start, end := expr.Span()
+		comments := expr.Comment()
+		if len(comments.Before) > 0 {
+			start, _ = comments.Before[0].Span()
+		}
+		if len(comments.After) > 0 {
+			_, end = comments.After[len(comments.After)-1].Span()
+		}
 		if findingLine < start.Line || findingLine > end.Line {
 			return
 		}
 
-		if hasDisablingComment(expr, warning) {
+		if HasDisablingComment(expr, warning) {
 			disabled = true
 			return
 		}
@@ -266,7 +347,7 @@ func DisabledWarning(f *build.File, findingLine int, warning string) bool {
 }
 
 // FileWarnings returns a list of all warnings found in the file.
-func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mode LintMode) []*Finding {
+func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mode LintMode, fileReader *FileReader) []*Finding {
 	findings := []*Finding{}
 
 	// Sort the warnings to make sure they're applied in the same determined order
@@ -282,11 +363,14 @@ func FileWarnings(f *build.File, enabledWarnings []string, formatted *[]byte, mo
 
 	for _, warn := range warnings {
 		if fct, ok := FileWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, fileWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, fileWarningWrapper(fct), formatted, mode, fileReader)...)
+		} else if fct, ok := MultiFileWarningMap[warn]; ok {
+			findings = append(findings, runWarningsFunction(warn, f, multiFileWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else if fct, ok := RuleWarningMap[warn]; ok {
-			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode)...)
+			findings = append(findings, runWarningsFunction(warn, f, ruleWarningWrapper(fct), formatted, mode, fileReader)...)
 		} else {
-			log.Fatalf("unexpected warning %q", warn)
+			log.Printf("unexpected warning %q", warn)
+			os.Exit(1)
 		}
 	}
 	sort.Slice(findings, func(i, j int) bool { return findings[i].Start.Line < findings[j].Start.Line })
@@ -341,8 +425,8 @@ func calculateDifference(old, new *[]byte) (start, end int, replacement string) 
 }
 
 // FixWarnings fixes all warnings that can be fixed automatically.
-func FixWarnings(f *build.File, enabledWarnings []string, verbose bool) {
-	warnings := FileWarnings(f, enabledWarnings, nil, ModeFix)
+func FixWarnings(f *build.File, enabledWarnings []string, verbose bool, fileReader *FileReader) {
+	warnings := FileWarnings(f, enabledWarnings, nil, ModeFix, fileReader)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%s: applied fixes, %d warnings left\n",
 			f.DisplayPath(),
@@ -354,6 +438,9 @@ func collectAllWarnings() []string {
 	var result []string
 	// Collect list of all warnings.
 	for k := range FileWarningMap {
+		result = append(result, k)
+	}
+	for k := range MultiFileWarningMap {
 		result = append(result, k)
 	}
 	for k := range RuleWarningMap {

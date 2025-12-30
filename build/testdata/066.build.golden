@@ -1,0 +1,39 @@
+st1 = "abc"
+
+st2 = """
+multiline"""
+
+st3 = (
+    "multi"
+)
+
+n = 123
+
+id = a
+
+fct1 = foo(1)
+
+fct2 = foo(
+    arg = 1,
+)
+
+fct3 = (
+    foo(
+        arg = 1,
+    )
+)
+
+macro(
+    name = "foo",
+    arg = ["a"],
+)
+
+nested = 1
+
+comments = [
+    "a",
+    ("b"),  # end of line comment
+
+    # before comment
+    ("c"),
+]  # comment

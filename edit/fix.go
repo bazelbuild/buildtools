@@ -1,15 +1,19 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 // Functions to clean and fix BUILD files
 
 package edit
@@ -20,16 +24,18 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 // splitOptionsWithSpaces is a cleanup function.
 // It splits options strings that contain a space. This change
 // should be safe as Blaze is splitting those strings, but we will
 // eventually get rid of this misfeature.
-//   eg. it converts from:
-//     copts = ["-Dfoo -Dbar"]
-//   to:
-//     copts = ["-Dfoo", "-Dbar"]
+//
+//	eg. it converts from:
+//	  copts = ["-Dfoo -Dbar"]
+//	to:
+//	  copts = ["-Dfoo", "-Dbar"]
 func splitOptionsWithSpaces(_ *build.File, r *build.Rule, _ string) bool {
 	var attrToRewrite = []string{
 		"copts",
@@ -56,7 +62,7 @@ func splitStrings(list *build.ListExpr) bool {
 			all = append(all, e)
 			continue
 		}
-		if strings.Contains(str.Value, " ") && !strings.Contains(str.Value, "'\"") {
+		if strings.Contains(str.Value, " ") && !strings.Contains(str.Value, "'\"") && !strings.Contains(str.Value, "$(location") {
 			fixed = true
 			for i, substr := range strings.Fields(str.Value) {
 				item := &build.StringExpr{Value: substr}
@@ -78,14 +84,14 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 	fixed := false
 	for _, attr := range r.AttrKeys() {
 		e := r.Attr(attr)
-		if !ContainsLabels(attr) {
+		if !ContainsLabels(r.Kind(), attr) {
 			continue
 		}
 		for _, li := range AllLists(e) {
 			for _, elem := range li.List {
 				str, ok := elem.(*build.StringExpr)
-				if ok && str.Value != ShortenLabel(str.Value, pkg) {
-					str.Value = ShortenLabel(str.Value, pkg)
+				if ok && str.Value != labels.Shorten(str.Value, pkg) {
+					str.Value = labels.Shorten(str.Value, pkg)
 					fixed = true
 				}
 			}
@@ -96,12 +102,12 @@ func shortenLabels(_ *build.File, r *build.Rule, pkg string) bool {
 
 // removeVisibility removes useless visibility attributes.
 func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
-	pkgDecl := PackageDeclaration(f)
-	defaultVisibility := pkgDecl.AttrStrings("default_visibility")
-
 	// If no default_visibility is given, it is implicitly private.
-	if len(defaultVisibility) == 0 {
-		defaultVisibility = []string{"//visibility:private"}
+	defaultVisibility := []string{"//visibility:private"}
+	if pkgDecl := ExistingPackageDeclaration(f); pkgDecl != nil {
+		if pkgDecl.Attr("default_visibility") != nil {
+			defaultVisibility = pkgDecl.AttrStrings("default_visibility")
+		}
 	}
 
 	visibility := r.AttrStrings("visibility")
@@ -121,11 +127,11 @@ func removeVisibility(f *build.File, r *build.Rule, pkg string) bool {
 
 // removeTestOnly removes the useless testonly attributes.
 func removeTestOnly(f *build.File, r *build.Rule, pkg string) bool {
-	pkgDecl := PackageDeclaration(f)
+	pkgDecl := ExistingPackageDeclaration(f)
 
 	def := strings.HasSuffix(r.Kind(), "_test") || r.Kind() == "test_suite"
 	if !def {
-		if pkgDecl.Attr("default_testonly") == nil {
+		if pkgDecl == nil || pkgDecl.Attr("default_testonly") == nil {
 			def = strings.HasPrefix(pkg, "javatests/")
 		} else if pkgDecl.AttrLiteral("default_testonly") == "1" {
 			def = true
@@ -151,12 +157,14 @@ func genruleRenameDepsTools(_ *build.File, r *build.Rule, _ string) bool {
 	return r.Kind() == "genrule" && RenameAttribute(r, "deps", "tools") == nil
 }
 
+// Regexp comes from LABEL_CHAR_MATCHER in
+//
+//	java/com/google/devtools/build/lib/analysis/LabelExpander.java
+var labelCharMatcherRe = regexp.MustCompile("[a-zA-Z0-9:/_.+-]+|[^a-zA-Z0-9:/_.+-]+")
+
 // explicitHeuristicLabels adds $(location ...) for each label in the string s.
 func explicitHeuristicLabels(s string, labels map[string]bool) string {
-	// Regexp comes from LABEL_CHAR_MATCHER in
-	//   java/com/google/devtools/build/lib/analysis/LabelExpander.java
-	re := regexp.MustCompile("[a-zA-Z0-9:/_.+-]+|[^a-zA-Z0-9:/_.+-]+")
-	parts := re.FindAllString(s, -1)
+	parts := labelCharMatcherRe.FindAllString(s, -1)
 	changed := false
 	canChange := true
 	for i, part := range parts {
@@ -303,7 +311,8 @@ func mergeLiteralLists(_ *build.File, r *build.Rule, _ string) bool {
 
 // usePlusEqual replaces uses of extend and append with the += operator.
 // e.g. foo.extend(bar)  =>  foo += bar
-//      foo.append(bar)  =>  foo += [bar]
+//
+//	foo.append(bar)  =>  foo += [bar]
 func usePlusEqual(f *build.File) bool {
 	fixed := false
 	for i, stmt := range f.Stmt {
@@ -336,27 +345,6 @@ func usePlusEqual(f *build.File) bool {
 	return fixed
 }
 
-func isNonemptyComment(comment *build.Comments) bool {
-	return len(comment.Before)+len(comment.Suffix)+len(comment.After) > 0
-}
-
-// Checks whether a load statement or any of its arguments have a comment
-func hasComment(load *build.LoadStmt) bool {
-	if isNonemptyComment(load.Comment()) {
-		return true
-	}
-	if isNonemptyComment(load.Module.Comment()) {
-		return true
-	}
-
-	for i := range load.From {
-		if isNonemptyComment(load.From[i].Comment()) || isNonemptyComment(load.To[i].Comment()) {
-			return true
-		}
-	}
-	return false
-}
-
 // cleanUnusedLoads removes symbols from load statements that are not used in the file.
 // It also cleans symbols loaded multiple times, sorts symbol list, and removes load
 // statements when the list is empty.
@@ -364,10 +352,13 @@ func cleanUnusedLoads(f *build.File) bool {
 	symbols := UsedSymbols(f)
 	fixed := false
 
+	// Map of symbol in this file -> modules it's loaded from
+	symbolsToModules := make(map[string][]string)
+
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
 		load, ok := stmt.(*build.LoadStmt)
-		if !ok || hasComment(load) {
+		if !ok || ContainsComments(load, "@unused") {
 			all = append(all, stmt)
 			continue
 		}
@@ -377,10 +368,19 @@ func cleanUnusedLoads(f *build.File) bool {
 			toSymbol := load.To[i]
 			if symbols[toSymbol.Name] {
 				// The symbol is actually used
+
+				// If the most recent load for this symbol was from the same file, remove it.
+				previousModules := symbolsToModules[toSymbol.Name]
+				if len(previousModules) > 0 {
+					if previousModules[len(previousModules)-1] == load.Module.Value {
+						fixed = true
+						continue
+					}
+				}
+				symbolsToModules[toSymbol.Name] = append(symbolsToModules[toSymbol.Name], load.Module.Value)
+
 				fromSymbols = append(fromSymbols, fromSymbol)
 				toSymbols = append(toSymbols, toSymbol)
-				// If the same symbol is loaded twice, we'll remove it.
-				delete(symbols, toSymbol.Name)
 			} else {
 				fixed = true
 			}
@@ -392,6 +392,15 @@ func cleanUnusedLoads(f *build.File) bool {
 			all = append(all, load)
 		} else {
 			fixed = true
+			// If the load statement contains before- or after-comments,
+			// keep them by re-attaching to a new CommentBlock node.
+			if len(load.Comment().Before) == 0 && len(load.Comment().After) == 0 {
+				continue
+			}
+			cb := &build.CommentBlock{}
+			cb.Comment().After = load.Comment().Before
+			cb.Comment().After = append(cb.Comment().After, load.Comment().After...)
+			all = append(all, cb)
 		}
 	}
 	f.Stmt = all
@@ -433,7 +442,7 @@ func movePackageDeclarationToTheTop(f *build.File) bool {
 	return true
 }
 
-// moveToPackage is an auxilliary function used by moveLicensesAndDistribs.
+// moveToPackage is an auxiliary function used by moveLicenses.
 // The function shouldn't appear more than once in the file (depot cleanup has
 // been done).
 func moveToPackage(f *build.File, attrname string) bool {
@@ -454,14 +463,12 @@ func moveToPackage(f *build.File, attrname string) bool {
 	return fixed
 }
 
-// moveLicensesAndDistribs replaces the 'licenses' and 'distribs' functions
-// with an attribute in package.
+// moveLicenses replaces the 'licenses' function with an attribute
+// in package.
 // Before:  licenses(["notice"])
 // After:   package(licenses = ["notice"])
-func moveLicensesAndDistribs(f *build.File) bool {
-	fixed1 := moveToPackage(f, "licenses")
-	fixed2 := moveToPackage(f, "distribs")
-	return fixed1 || fixed2
+func moveLicenses(f *build.File) bool {
+	return moveToPackage(f, "licenses")
 }
 
 // AllRuleFixes is a list of all Buildozer fixes that can be applied on a rule.
@@ -483,7 +490,7 @@ var AllRuleFixes = []struct {
 	{"genruleRenameDepsTools", genruleRenameDepsTools,
 		"'deps' attribute in genrule has been renamed 'tools'"},
 	{"genruleFixHeuristicLabels", genruleFixHeuristicLabels,
-		"$(location) should be called explicitely"},
+		"$(location) should be called explicitly"},
 	{"sortExportsFiles", sortExportsFiles,
 		"Files in exports_files should be sorted"},
 	{"varref", removeVarref,
@@ -504,8 +511,8 @@ var FileLevelFixes = []struct {
 		"Prefer '+=' over 'extend' or 'append'"},
 	{"unusedLoads", cleanUnusedLoads,
 		"Remove unused symbols from load statements"},
-	{"moveLicensesAndDistribs", moveLicensesAndDistribs,
-		"Move licenses and distribs to the package function"},
+	{"moveLicenses", moveLicenses,
+		"Move licenses to the package function"},
 }
 
 // FixRule aims to fix errors in BUILD files, remove deprecated features, and

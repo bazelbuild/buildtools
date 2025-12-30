@@ -1,0 +1,41 @@
+cc_library(
+    name = "abc",
+    srcs = [
+        # Animals or animal sounds.
+        "yellowjacket.c",
+        "buzz.c",
+        "caribou.c",
+        foo(),
+
+        # Ocean phenomena.
+        "yellowjacket.c",
+        "wave.c",
+        "emerald_sea.c",
+        "caribou.c",
+        # End of ocean phenomena.
+
+        # Other stuff.
+    ],
+)
+
+cc_library(
+    name = "x",
+    # do not sort
+    srcs = [
+        "x.cc",
+        "y.cc",
+        "x.cc",
+    ],
+    data = [
+        # do not sort
+        ":x",
+        ":y",
+        ":x",
+    ],
+    # buildifier: leave-alone
+    deps = [
+        ":x",
+        ":y",
+        ":x",
+    ],
+)

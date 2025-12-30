@@ -1,8 +1,9 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "warn",
     srcs = [
+        "multifile.go",
         "types.go",
         "warn.go",
         "warn_bazel.go",
@@ -10,7 +11,9 @@ go_library(
         "warn_bazel_operation.go",
         "warn_control_flow.go",
         "warn_cosmetic.go",
+        "warn_deprecated.go",
         "warn_docstring.go",
+        "warn_macro.go",
         "warn_naming.go",
         "warn_operation.go",
         "warn_visibility.go",
@@ -18,35 +21,43 @@ go_library(
     importpath = "github.com/bazelbuild/buildtools/warn",
     visibility = ["//visibility:public"],
     deps = [
-        "//build:go_default_library",
-        "//bzlenv:go_default_library",
-        "//edit:go_default_library",
-        "//tables:go_default_library",
+        "//build",
+        "//bzlenv",
+        "//edit",
+        "//edit/bzlmod",
+        "//labels",
+        "//tables",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "warn_test",
     size = "small",
     srcs = [
-        "documentation_test.go",
         "types_test.go",
         "warn_bazel_api_test.go",
         "warn_bazel_operation_test.go",
         "warn_bazel_test.go",
         "warn_control_flow_test.go",
         "warn_cosmetic_test.go",
+        "warn_deprecated_test.go",
         "warn_docstring_test.go",
+        "warn_macro_test.go",
         "warn_naming_test.go",
         "warn_operation_test.go",
         "warn_test.go",
         "warn_visibility_test.go",
     ],
-    data = [
-        "//:warnings",
-    ],
-    embed = [":go_default_library"],
+    embed = [":warn"],
     deps = [
+        "//build",
+        "//tables",
         "//testutils",
     ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":warn",
+    visibility = ["//visibility:public"],
 )

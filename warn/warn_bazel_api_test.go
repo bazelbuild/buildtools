@@ -1,12 +1,29 @@
+/*
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package warn
 
 import (
 	"fmt"
-	"github.com/bazelbuild/buildtools/tables"
 	"testing"
+
+	"github.com/bazelbuild/buildtools/tables"
 )
 
-func TestAttrConfigurationWarning(t *testing.T) {
+func TestAttrDataConfigurationWarning(t *testing.T) {
 	checkFindingsAndFix(t, "attr-cfg", `
 rule(
   attrs = {
@@ -14,16 +31,49 @@ rule(
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`, `
+attr.label_list(mandatory = True, cfg = "exec")`, `
 rule(
   attrs = {
       "foo": attr.label_list(mandatory = True),
   }
 )
 
-attr.label_list(mandatory = True, cfg = "host")`,
+attr.label_list(mandatory = True, cfg = "exec")`,
 		[]string{`:3: cfg = "data" for attr definitions has no effect and should be removed.`},
 		scopeBzl)
+}
+
+func TestAttrHostConfigurationWarning(t *testing.T) {
+	checkFindingsAndFix(t, "attr-cfg", `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "host"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`, `
+rule(
+  attrs = {
+      "foo": attr.label_list(mandatory = True, cfg = "exec"),
+  }
+)
+
+attr.label_list(mandatory = True, cfg = "exec")`,
+		[]string{`:3: cfg = "host" for attr definitions should be replaced by cfg = "exec".`},
+		scopeBzl)
+}
+
+func TestDepsetItemsWarning(t *testing.T) {
+	checkFindings(t, "depset-items", `
+def f():
+  depset(items=foo)
+  a = depset()
+  depset(a)
+`, []string{
+		`:2: Parameter "items" is deprecated, use "direct" and/or "transitive" instead.`,
+		`:4: Giving a depset as first unnamed parameter to depset() is deprecated, use the "transitive" parameter instead.`,
+	},
+		scopeEverywhere)
 }
 
 func TestAttrNonEmptyWarning(t *testing.T) {
@@ -255,6 +305,8 @@ def _impl(ctx):
 }
 
 func TestNativeGitRepositoryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "git-repository", `
 """My file"""
 
@@ -318,6 +370,8 @@ def macro():
 }
 
 func TestNativeHttpArchiveWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "http-archive", `
 """My file"""
 
@@ -461,6 +515,8 @@ rule(foo = bar)  # no matching parameters
 }
 
 func TestNativeAndroidWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
 	checkFindingsAndFix(t, "native-android", `
 """My file"""
 
@@ -495,14 +551,16 @@ android_binary()
 }
 
 func TestNativeCcWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-cc", `
+	defer setUpFileReader(nil)()
+
+	expectedLoadPrefix := "@rules_cc//cc"
+	checkFindingsAndFix(t, "native-cc-binary,native-cc-import,native-cc-library,native-cc-test,native-cc-fdo-prefetch-hints,native-cc-objc-import,native-cc-objc-library,native-cc-toolchain,native-cc-toolchain-suite,native-cc-fdo-profile", `
 """My file"""
 
 def macro():
     cc_library()
     native.cc_binary()
     cc_test()
-    cc_proto_library()
     native.fdo_prefetch_hints()
     native.objc_library()
     objc_import()
@@ -514,13 +572,21 @@ cc_import()
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "cc_binary", "cc_import", "cc_library", "cc_proto_library", "cc_test", "cc_toolchain", "cc_toolchain_suite", "fdo_prefetch_hints", "fdo_profile", "objc_import", "objc_library")
+load("%[1]s:cc_binary.bzl", "cc_binary")
+load("%[1]s:cc_import.bzl", "cc_import")
+load("%[1]s:cc_library.bzl", "cc_library")
+load("%[1]s:cc_test.bzl", "cc_test")
+load("%[1]s:objc_import.bzl", "objc_import")
+load("%[1]s:objc_library.bzl", "objc_library")
+load("%[1]s/toolchains:cc_toolchain.bzl", "cc_toolchain")
+load("%[1]s/toolchains:cc_toolchain_suite.bzl", "cc_toolchain_suite")
+load("%[1]s/toolchains:fdo_prefetch_hints.bzl", "fdo_prefetch_hints")
+load("%[1]s/toolchains:fdo_profile.bzl", "fdo_profile")
 
 def macro():
     cc_library()
     cc_binary()
     cc_test()
-    cc_proto_library()
     fdo_prefetch_hints()
     objc_library()
     objc_import()
@@ -529,25 +595,34 @@ def macro():
 
 fdo_profile()
 cc_import()
-`, tables.CcLoadPath),
+`, expectedLoadPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "cc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:5: Function "cc_binary" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:6: Function "cc_test" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:7: Function "cc_proto_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:8: Function "fdo_prefetch_hints" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:9: Function "objc_library" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:10: Function "objc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:11: Function "cc_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:12: Function "cc_toolchain_suite" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:14: Function "fdo_profile" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
-			fmt.Sprintf(`:15: Function "cc_import" is not global anymore and needs to be loaded from "%s".`, tables.CcLoadPath),
+			fmt.Sprintf(`:4: Function "cc_library" is not global anymore and needs to be loaded from "%s:cc_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:5: Function "cc_binary" is not global anymore and needs to be loaded from "%s:cc_binary.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:6: Function "cc_test" is not global anymore and needs to be loaded from "%s:cc_test.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:7: Function "fdo_prefetch_hints" is not global anymore and needs to be loaded from "%s/toolchains:fdo_prefetch_hints.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:8: Function "objc_library" is not global anymore and needs to be loaded from "%s:objc_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:9: Function "objc_import" is not global anymore and needs to be loaded from "%s:objc_import.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:10: Function "cc_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:cc_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:11: Function "cc_toolchain_suite" is not global anymore and needs to be loaded from "%s/toolchains:cc_toolchain_suite.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:13: Function "fdo_profile" is not global anymore and needs to be loaded from "%s/toolchains:fdo_profile.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:14: Function "cc_import" is not global anymore and needs to be loaded from "%s:cc_import.bzl".`, expectedLoadPrefix),
 		},
 		scopeBzl|scopeBuild)
 }
 
 func TestNativeJavaWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-java", `
+	defer setUpFileReader(map[string]string{
+		"MODULE.bazel": `
+include("//my/pkg:java.MODULE.bazel")
+`,
+		"my/pkg/java.MODULE.bazel": `
+bazel_dep(name = "rules_java", version = "1.2.3", repo_name = "my_rules_java")
+`,
+	})()
+
+	expectedLoadPrefix := "@my_rules_java//java"
+	checkFindingsAndFix(t, "native-java-binary,native-java-import,native-java-library,native-java-plugin,native-java-test,native-java-package-config,native-java-runtime,native-java-toolchain,native-java-common,native-java-info,native-java-plugin-info", `
 """My file"""
 
 def macro():
@@ -555,32 +630,72 @@ def macro():
     java_library()
     native.java_library()
     native.java_binary()
+    native.java_plugin()
+    native.java_package_configuration()
+    native.java_runtime()
+    native.java_toolchain()
+
+    JavaInfo
+    JavaPluginInfo
+    java_common
 
 java_test()
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "java_binary", "java_import", "java_library", "java_test")
+load("%[1]s:java_binary.bzl", "java_binary")
+load("%[1]s:java_import.bzl", "java_import")
+load("%[1]s:java_library.bzl", "java_library")
+load("%[1]s:java_plugin.bzl", "java_plugin")
+load("%[1]s:java_test.bzl", "java_test")
+load("%[1]s/common:java_common.bzl", "java_common")
+load("%[1]s/common:java_info.bzl", "JavaInfo")
+load("%[1]s/common:java_plugin_info.bzl", "JavaPluginInfo")
+load("%[1]s/toolchains:java_package_configuration.bzl", "java_package_configuration")
+load("%[1]s/toolchains:java_runtime.bzl", "java_runtime")
+load("%[1]s/toolchains:java_toolchain.bzl", "java_toolchain")
 
 def macro():
     java_import()
     java_library()
     java_library()
     java_binary()
+    java_plugin()
+    java_package_configuration()
+    java_runtime()
+    java_toolchain()
+
+    JavaInfo
+    JavaPluginInfo
+    java_common
 
 java_test()
-`, tables.JavaLoadPath),
+`, expectedLoadPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
-			fmt.Sprintf(`:9: Function "java_test" is not global anymore and needs to be loaded from "%s".`, tables.JavaLoadPath),
+			fmt.Sprintf(`:4: Function "java_import" is not global anymore and needs to be loaded from "%s:java_import.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:5: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:6: Function "java_library" is not global anymore and needs to be loaded from "%s:java_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:7: Function "java_binary" is not global anymore and needs to be loaded from "%s:java_binary.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:8: Function "java_plugin" is not global anymore and needs to be loaded from "%s:java_plugin.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:9: Function "java_package_configuration" is not global anymore and needs to be loaded from "%s/toolchains:java_package_configuration.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:10: Function "java_runtime" is not global anymore and needs to be loaded from "%s/toolchains:java_runtime.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:11: Function "java_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:java_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:13: Symbol "JavaInfo" is not global anymore and needs to be loaded from "%s/common:java_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:14: Symbol "JavaPluginInfo" is not global anymore and needs to be loaded from "%s/common:java_plugin_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:15: Symbol "java_common" is not global anymore and needs to be loaded from "%s/common:java_common.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:17: Function "java_test" is not global anymore and needs to be loaded from "%s:java_test.bzl".`, expectedLoadPrefix),
 		},
 		scopeBzl|scopeBuild)
 }
 
 func TestNativePyWarning(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"MODULE.bazel": `
+bazel_dep(name = "rules_python", repo_name = "my_rules_python")
+`,
+	})()
+
+	expectedLoadPath := "@my_rules_python//python:defs.bzl"
 	checkFindingsAndFix(t, "native-py", `
 """My file"""
 
@@ -603,19 +718,23 @@ def macro():
     py_runtime()
 
 py_test()
-`, tables.PyLoadPath),
+`, expectedLoadPath),
 		[]string{
-			fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
-			fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, tables.PyLoadPath),
+			fmt.Sprintf(`:4: Function "py_library" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:5: Function "py_binary" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:6: Function "py_test" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:7: Function "py_runtime" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
+			fmt.Sprintf(`:9: Function "py_test" is not global anymore and needs to be loaded from "%s".`, expectedLoadPath),
 		},
 		scopeBzl|scopeBuild)
 }
 
 func TestNativeProtoWarning(t *testing.T) {
-	checkFindingsAndFix(t, "native-proto", `
+	// No MODULE.bazel file, so loads should use the legacy protobuf repo name.
+	defer setUpFileReader(nil)()
+
+	expectedLoadPrefix := "@com_google_protobuf//bazel"
+	checkFindingsAndFix(t, "native-proto,native-proto-lang-toolchain,native-proto-info,native-proto-common", `
 """My file"""
 
 def macro():
@@ -629,7 +748,10 @@ def macro():
 `, fmt.Sprintf(`
 """My file"""
 
-load(%q, "ProtoInfo", "proto_common", "proto_lang_toolchain", "proto_library")
+load("%[1]s:proto_library.bzl", "proto_library")
+load("%[1]s/common:proto_common.bzl", "proto_common")
+load("%[1]s/common:proto_info.bzl", "ProtoInfo")
+load("%[1]s/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
 
 def macro():
     proto_library()
@@ -639,14 +761,157 @@ def macro():
 
     ProtoInfo
     proto_common
-`, tables.ProtoLoadPath),
+`, expectedLoadPrefix),
 		[]string{
-			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
-			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s".`, tables.ProtoLoadPath),
+			fmt.Sprintf(`:4: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:5: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:6: Function "proto_lang_toolchain" is not global anymore and needs to be loaded from "%s/toolchains:proto_lang_toolchain.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:7: Function "proto_library" is not global anymore and needs to be loaded from "%s:proto_library.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:9: Symbol "ProtoInfo" is not global anymore and needs to be loaded from "%s/common:proto_info.bzl".`, expectedLoadPrefix),
+			fmt.Sprintf(`:10: Symbol "proto_common" is not global anymore and needs to be loaded from "%s/common:proto_common.bzl".`, expectedLoadPrefix),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeShBinaryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
+	checkFindingsAndFix(t, "native-sh-binary", `
+"""My file"""
+
+def macro():
+    native.sh_binary()
+
+sh_binary()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+def macro():
+    sh_binary()
+
+sh_binary()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeShLibraryWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
+	checkFindingsAndFix(t, "native-sh-library", `
+"""My file"""
+
+def macro():
+    native.sh_library()
+
+sh_library()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_library.bzl", "sh_library")
+
+def macro():
+    sh_library()
+
+sh_library()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_library" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_library.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_library" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_library.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeShTestWarning(t *testing.T) {
+	defer setUpFileReader(nil)()
+
+	checkFindingsAndFix(t, "native-sh-test", `
+"""My file"""
+
+def macro():
+    native.sh_test()
+
+sh_test()
+`, `
+"""My file"""
+
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+def macro():
+    sh_test()
+
+sh_test()
+`,
+		[]string{
+			fmt.Sprintf(`:4: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
+			fmt.Sprintf(`:6: Function "sh_test" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_test.bzl".`),
+		},
+		scopeBzl|scopeBuild)
+}
+
+func TestNativeWarningLoadPlacedAfterFileDocstringWithComment(t *testing.T) {
+	defer setUpFileReader(nil)()
+
+	checkFindingsAndFix(t, "native-sh-binary,native-java-binary", `
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""My file"""
+
+def macro():
+    native.sh_binary()
+    native.java_binary()
+
+java_binary()
+sh_binary()
+`, `
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""My file"""
+
+load("@rules_java//java:java_binary.bzl", "java_binary")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+def macro():
+    sh_binary()
+    java_binary()
+
+java_binary()
+sh_binary()
+`,
+		[]string{
+			fmt.Sprintf(`:18: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
+			fmt.Sprintf(`:19: Function "java_binary" is not global anymore and needs to be loaded from "@rules_java//java:java_binary.bzl".`),
+			fmt.Sprintf(`:21: Function "java_binary" is not global anymore and needs to be loaded from "@rules_java//java:java_binary.bzl".`),
+			fmt.Sprintf(`:22: Function "sh_binary" is not global anymore and needs to be loaded from "@rules_shell//shell:sh_binary.bzl".`),
 		},
 		scopeBzl|scopeBuild)
 }
@@ -735,56 +1000,50 @@ getattr(
 		`:11: Keyword parameter "name" for "getattr" should be positional.`,
 		`:12: Keyword parameter "default" for "getattr" should be positional.`,
 	}, scopeEverywhere)
+}
 
-	checkFindingsAndFix(t, "keyword-positional-params", `
-glob(["*.cc"], ["test*"])
-glob(["*.cc"])
-glob(include = [], exclude = [])
-glob([], exclude = [])
-glob([], [], 1)
-glob([], [], 1, 2)
-glob(*args, [])
-`, `
-glob(["*.cc"], exclude = ["test*"])
-glob(["*.cc"])
-glob([], exclude = [])
-glob([], exclude = [])
-glob([], exclude = [], exclude_directories = 1)
-glob([], [], 1, 2)
-glob(*args, [])
-`, []string{
-		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
-		`:3: Keyword parameter "include" for "glob" should be positional.`,
-		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-		`:5: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
-		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-		`:6: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
-		`:7: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-	}, scopeEverywhere)
+func TestProvider(t *testing.T) {
+	checkFindings(t, "provider-params", `provider(doc = "doc", fields = [])`, []string{}, scopeBzl)
+	checkFindings(t, "provider-params", `provider("doc", fields = [])`, []string{}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(fields = None, doc = "doc")`, []string{}, scopeBzl)
 
-	checkFindingsAndFix(t, "keyword-positional-params", `
-native.glob(["*.cc"], ["test*"])
-native.glob(["*.cc"])
-native.glob(include = [], exclude = [])
-native.glob([], exclude = [])
-native.glob([], [], 1)
-native.glob([], [], 1, 2)
-native.glob(*args, [])
-`, `
-native.glob(["*.cc"], exclude = ["test*"])
-native.glob(["*.cc"])
-native.glob([], exclude = [])
-native.glob([], exclude = [])
-native.glob([], exclude = [], exclude_directories = 1)
-native.glob([], [], 1, 2)
-native.glob(*args, [])
+	checkFindings(t, "provider-params", `provider(fields = [])`,
+		[]string{`1: Calls to 'provider' should provide a documentation`}, scopeBzl)
+	checkFindings(t, "provider-params", `provider(doc = "doc")`,
+		[]string{`1: Calls to 'provider' should provide a list of fields:`}, scopeBzl)
+	checkFindings(t, "provider-params", `p = provider()`,
+		[]string{`1: Calls to 'provider' should provide a list of fields and a documentation:`}, scopeBzl)
+}
+
+func TestAttributeNameWarning(t *testing.T) {
+	checkFindings(t, "attr-licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "license": attr.string(),
+        "licenses": attr.string(),
+    },
+)
 `, []string{
-		`:1: Parameter at the position 2 for "glob" should be keyword (exclude = ...).`,
-		`:3: Keyword parameter "include" for "glob" should be positional.`,
-		`:5: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-		`:5: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
-		`:6: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-		`:6: Parameter at the position 3 for "glob" should be keyword (exclude_directories = ...)`,
-		`:7: Parameter at the position 2 for "glob" should be keyword (exclude = ...)`,
-	}, scopeEverywhere)
+		":6: Do not use 'licenses' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
+
+	checkFindings(t, "attr-applicable_licenses", `
+def _impl(ctx):
+    pass
+
+foo = rule(
+    implementation = _impl,
+    attrs = {
+        "applicable_licenses": attr.string(),
+        "package_metadata": attr.string(),
+    },
+)
+`, []string{
+		":6: Do not use 'applicable_licenses' as an attribute name. It may cause unexpected behavior.",
+		":6: Do not use 'package_metadata' as an attribute name. It may cause unexpected behavior.",
+	}, scopeBzl)
 }

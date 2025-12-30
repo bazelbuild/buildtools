@@ -3,17 +3,17 @@
   "IsLabelArg": {
     "srcs": true
   },
-  "LabelBlacklist": {
+  "LabelDenylist": {
 
   },
   "IsSortableListArg": {
     "srcs": true,
     "visibility": true
   },
-  "SortableBlacklist": {
+  "SortableDenylist": {
     "genrule.srcs": true
   },
-  "SortableWhitelist": {
+  "SortableAllowlist": {
 
   },
   "NamePriority": {
