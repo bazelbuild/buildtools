@@ -274,7 +274,7 @@ func cmdNewIfAbsent(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return createNewRule(env)
 }
 
-// findInsertionIndex is used by cmdNew to find the place at which to insert the new rule.
+// findInsertionIndex is used by createNewRule to find the place at which to insert the new rule.
 func findInsertionIndex(env CmdEnvironment) (bool, int, error) {
 	if len(env.Args) < 4 {
 		return true, 0, nil
