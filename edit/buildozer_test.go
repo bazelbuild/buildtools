@@ -644,7 +644,12 @@ func TestCmdNewIfAbsent(t *testing.T) {
 			File: bld,
 			Args: tt.args,
 		}
-		if result, _ := cmdNewIfAbsent(NewOpts(), env); result != nil {
+		result, err := cmdNewIfAbsent(NewOpts(), env)
+		if err != nil {
+			t.Errorf("cmdNewIfAbsent(%d) returned an unexpected error: %v", i, err)
+			continue
+		}
+		if result != nil {
 			bld = result
 		}
 		got := strings.TrimSpace(string(build.Format(bld)))
