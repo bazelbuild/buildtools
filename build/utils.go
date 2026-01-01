@@ -79,3 +79,13 @@ func GetTypes(t Expr) []string {
 		return []string{}
 	}
 }
+
+// IsMultiLine returns whether an Expr is multiline or not.
+func IsMultiLine(param Expr) bool {
+	start, end := param.Span()
+	if end.Line == 0 && end.Byte == 0 && end.LineRune == 0 {
+		// If the end position is unknown, we assume it's single line (for backwards compatibility).
+		return false
+	}
+	return start.Line != end.Line
+}

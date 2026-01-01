@@ -30,6 +30,7 @@ func TestIsBuildFilename(t *testing.T) {
 		"BUILD.bazel.oss":     TypeBuild,
 		"BUILD.foo.bazel":     TypeBuild,
 		"BUILD.foo.oss":       TypeBuild,
+		"foo.BUILD.bazel":     TypeBuild,
 		"build.bzl":           TypeBzl,
 		"build.sky":           TypeDefault,
 		"WORKSPACE":           TypeWorkspace,

@@ -117,7 +117,7 @@ func cmdComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 		env.Rule.Call.Comments.Before = comment
 	case 2: // Attach to an attribute
 		if attr := env.Rule.AttrDefn(env.Args[0]); attr != nil {
-			if fullLine {
+			if fullLine || build.IsMultiLine(attr) {
 				attr.LHS.Comment().Before = comment
 			} else {
 				attr.RHS.Comment().Suffix = comment
@@ -1275,7 +1275,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 
 	if opts.Stdout || name == stdinPackageName {
 		opts.OutWriter.Write(ndata)
-		return &rewriteResult{file: name, errs: errs, records: records}
+		return &rewriteResult{file: name, errs: errs, modified: !bytes.Equal(data, ndata), records: records}
 	}
 
 	if bytes.Equal(data, ndata) {

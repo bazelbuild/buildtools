@@ -123,6 +123,124 @@ func TestCmdRemoveComment(t *testing.T) {
 	}
 }
 
+func TestCmdComment(t *testing.T) {
+	var tests = []struct {
+		name      string
+		args      []string
+		buildFile string
+		want      string
+	}{
+		{
+			name: "adds_comment_to_rule_call",
+			args: []string{"New Comment"},
+			buildFile: `foo(
+    name = "foo",
+)`,
+			want: `# New Comment
+foo(
+    name = "foo",
+)`,
+		}, {
+			name: "adds_comment_to_single_line_attribute",
+			args: []string{"deps", "New Comment"},
+			buildFile: `foo(
+    name = "foo",
+    deps = ["//some/dep"],
+)`,
+			want: `foo(
+    name = "foo",
+    deps = ["//some/dep"],  # New Comment
+)`,
+		}, {
+			name: "adds_multiline_comment_to_single_line_attribute",
+			args: []string{"deps", "New Comment\nWith Multiple Lines"},
+			buildFile: `foo(
+    name = "foo",
+    deps = ["//some/dep"],
+)`,
+			want: `foo(
+    name = "foo",
+    # New Comment
+    # With Multiple Lines
+    deps = ["//some/dep"],
+)`,
+		}, {
+			name: "adds_comment_to_multiline_attribute",
+			args: []string{"deps", "New Comment"},
+			buildFile: `foo(
+    name = "foo",
+    deps = [
+	    "//some/dep",
+	    "//some/other/dep",
+    ],
+)`,
+			want: `foo(
+    name = "foo",
+    # New Comment
+    deps = [
+        "//some/dep",
+        "//some/other/dep",
+    ],
+)`,
+		}, {
+			name: "adds_comment_to_element_in_list",
+			args: []string{"deps", "//some/other/dep", "New Comment"},
+			buildFile: `foo(
+    name = "foo",
+    deps = [
+	    "//some/dep",
+	    "//some/other/dep",
+    ],
+)`,
+			want: `foo(
+    name = "foo",
+    deps = [
+        "//some/dep",
+        "//some/other/dep",  # New Comment
+    ],
+)`,
+		}, {
+			name: "adds_multiline_comment_to_element_in_list",
+			args: []string{"deps", "//some/other/dep", "New Comment\nWith Multiple Lines"},
+			buildFile: `foo(
+    name = "foo",
+    deps = [
+	    "//some/dep",
+	    "//some/other/dep",
+    ],
+)`,
+			want: `foo(
+    name = "foo",
+    deps = [
+        "//some/dep",
+        # New Comment
+        # With Multiple Lines
+        "//some/other/dep",
+    ],
+)`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Error(err)
+			}
+			rl := bld.Rules("foo")[0]
+			env := CmdEnvironment{
+				File: bld,
+				Rule: rl,
+				Args: tc.args,
+			}
+			bld, _ = cmdComment(NewOpts(), env)
+			got := strings.TrimSpace(string(build.Format(bld)))
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Fatalf("cmdComment returned unexpected diff %s", diff)
+			}
+		})
+	}
+}
+
 type targetExpressionToBuildFilesTestCase struct {
 	rootDir, target string
 	buildFiles      []string
