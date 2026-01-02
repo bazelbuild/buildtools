@@ -832,12 +832,12 @@ func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
 
 func TestFindRuleByName(t *testing.T) {
 	input := `load("foo.bzl", "bar")
-rule(
+my_rule(
   name="r1",
 	srcs=["a.txt"]
 )
 
-a = rule2(
+a = my_macro(
 	name="r2",
 )
 `
@@ -847,17 +847,21 @@ a = rule2(
 		t.Error(err)
 		return
 	}
-	for _, name := range []string{"r1", "r2"} {
-		rule := FindRuleByName(bld, name)
-		if rule == nil {
-			t.Errorf("FindRuleByName: could not find rule with name '%s' in BUILD file <%s>", name, input)
-			return
-		}
+
+	testCases := []struct {
+		name       string
+		shouldFind bool
+	}{
+		{"r1", true}, {"r2", true}, {"r3", false},
 	}
-	// expect to not find:
-	rule := FindRuleByName(bld, "r3")
-	if rule != nil {
-		t.Errorf("FindRuleByName: found rule with name 'r3', expected not to find it")
-		return
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rule := FindRuleByName(bld, tc.name)
+			found := rule != nil
+			if found != tc.shouldFind {
+				t.Errorf("FindRuleByName(%q): found = %v, want %v", tc.name, found, tc.shouldFind)
+			}
+		})
 	}
 }
