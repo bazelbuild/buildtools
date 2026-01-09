@@ -18,6 +18,8 @@ package config
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -102,12 +104,16 @@ func ValidateModes(mode, lint *string, dflag *bool, additionalModes ...string) e
 func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) ([]string, error) {
 
 	// Check lint warnings
-	var warningsList []string
+	warningsMap := make(map[string]bool)
 	switch *warnings {
 	case "", "default":
-		warningsList = *defaultWarnings
+		for _, w := range *defaultWarnings {
+			warningsMap[w] = true
+		}
 	case "all":
-		warningsList = *allWarnings
+		for _, w := range *allWarnings {
+			warningsMap[w] = true
+		}
 	default:
 		// Either all or no warning categories should start with "+" or "-".
 		// If all of them start with "+" or "-", the semantics is
@@ -120,22 +126,25 @@ func ValidateWarnings(warnings *string, allWarnings, defaultWarnings *[]string) 
 			} else if strings.HasPrefix(warning, "-") {
 				minus[warning[1:]] = true
 			} else {
-				warningsList = append(warningsList, warning)
+				warningsMap[warning] = true
 			}
 		}
-		if len(warningsList) > 0 && (len(plus) > 0 || len(minus) > 0) {
+		if len(warningsMap) > 0 && (len(plus) > 0 || len(minus) > 0) {
 			return []string{}, fmt.Errorf("warning categories with modifiers (\"+\" or \"-\") can't be mixed with raw warning categories")
 		}
-		if len(warningsList) == 0 {
+		if len(warningsMap) == 0 {
 			for _, warning := range *defaultWarnings {
 				if !minus[warning] {
-					warningsList = append(warningsList, warning)
+					warningsMap[warning] = true
 				}
 			}
 			for warning := range plus {
-				warningsList = append(warningsList, warning)
+				warningsMap[warning] = true
 			}
 		}
 	}
-	return warningsList, nil
+	ws := slices.Collect(maps.Keys(warningsMap))
+	// Sorts the warnings to ensure behaviors are deterministic.
+	slices.Sort(ws)
+	return ws, nil
 }
