@@ -767,17 +767,36 @@ func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, erro
 		return env.File, nil
 	}
 
-	prev := DictionaryGet(dictAttr, key)
-	if prev == nil {
+	var keyValues []*build.KeyValueExpr
+	for _, kv := range dictAttr.List {
+		k, ok := kv.Key.(*build.StringExpr)
+		if !ok {
+			continue
+		}
+		if key == "*" {
+			keyValues = append(keyValues, kv)
+		} else if k.Value == key {
+			keyValues = append(keyValues, kv)
+			break
+		}
+	}
+	if len(keyValues) == 0 {
 		return nil, fmt.Errorf("key '%s' not found in dict", key)
 	}
-	if e, ok := prev.(*build.StringExpr); ok {
-		if labels.Equal(e.Value, oldV, env.Pkg) {
-			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+
+	for _, kv := range keyValues {
+		k, ok := kv.Key.(*build.StringExpr)
+		if !ok {
+			return nil, fmt.Errorf("key is unexpected type")
 		}
-	} else if e, ok := prev.(*build.Ident); ok {
-		if e.Name == oldV {
-			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+		if e, ok := kv.Value.(*build.StringExpr); ok {
+			if labels.Equal(e.Value, oldV, env.Pkg) {
+				DictionarySet(dictAttr, k.Value, getStringExpr(newV, env.Pkg))
+			}
+		} else if e, ok := kv.Value.(*build.Ident); ok {
+			if e.Name == oldV {
+				DictionarySet(dictAttr, k.Value, getStringExpr(newV, env.Pkg))
+			}
 		}
 	}
 	return env.File, nil
