@@ -124,7 +124,6 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 	"attr-output-default":       attrOutputDefaultWarning,
 	"attr-single-file":          attrSingleFileWarning,
 	"build-args-kwargs":         argsKwargsInBuildFilesWarning,
-	"bzl-visibility":            bzlVisibilityWarning,
 	"canonical-repository":      canonicalRepositoryWarning,
 	"confusing-name":            confusingNameWarning,
 	"constant-glob":             constantGlobWarning,
@@ -172,6 +171,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 
 // MultiFileWarningMap lists the warnings that run on the whole file, but may use other files.
 var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader) []*LinterFinding{
+	"bzl-visibility":                     bzlVisibilityWarning,
 	"deprecated-function":                deprecatedFunctionWarning,
 	"git-repository":                     nativeGitRepositoryWarning,
 	"http-archive":                       nativeHTTPArchiveWarning,

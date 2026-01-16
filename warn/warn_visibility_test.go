@@ -108,3 +108,40 @@ bar1()
 		[]string{},
 		scopeEverywhere)
 }
+
+// Test that the warning is not issued if the module has a visibility statement.
+func TestBzlVisibilityWithVisibilityStatement(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"foo/private/bar.bzl": `
+visibility([
+    "//test/package:__subpackages__",
+])
+
+abc = 1
+`,
+	})()
+
+	checkFindings(t, "bzl-visibility", `
+load("//foo/private:bar.bzl", "abc")
+`,
+		[]string{},
+		scopeEverywhere)
+}
+
+// Test that the warning *is* issued if the module does *not* have a visibility statement.
+func TestBzlVisibilityWithoutVisibilityStatement(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"foo/private/bar.bzl": `
+
+abc = 1
+`,
+	})()
+
+	checkFindings(t, "bzl-visibility", `
+load("//foo/private:bar.bzl", "abc")
+`,
+		[]string{
+			`Module "//foo/private:bar.bzl" can only be loaded from files located inside`,
+		},
+		scopeEverywhere)
+}
