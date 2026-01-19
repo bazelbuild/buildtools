@@ -24,11 +24,38 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/labels"
 )
 
 var internalDirectory = regexp.MustCompile("/(internal|private)[/:]")
 
-func bzlVisibilityWarning(f *build.File) []*LinterFinding {
+func hasVisibilityStatement(f *build.File, load *build.LoadStmt, fileReader *FileReader) bool {
+	if fileReader == nil {
+		return false
+	}
+	label := labels.ParseRelative(load.Module.Value, f.Pkg)
+	if label.Repository != "" || label.Target == "" {
+		return false
+	}
+	loadedFile := fileReader.GetFile(label.Package, label.Target)
+	if loadedFile == nil {
+		return false
+	}
+	for _, stmt := range loadedFile.Stmt {
+		call, ok := stmt.(*build.CallExpr)
+		if !ok {
+			continue
+		}
+		// We don't try to be exhaustive here, but rather only catch the most
+		// common cases of visibility declarations.
+        if ident, ok := call.X.(*build.Ident); ok && ident.Name == "visibility" {
+            return true
+        }
+	}
+	return false
+}
+
+func bzlVisibilityWarning(f *build.File, fileReader *FileReader) []*LinterFinding {
 	var findings []*LinterFinding
 
 	if f.WorkspaceRoot == "" {
@@ -56,6 +83,13 @@ func bzlVisibilityWarning(f *build.File) []*LinterFinding {
 			if chunks := strings.SplitN(module, "//", 2); len(chunks) == 2 {
 				module = "//" + chunks[1]
 			}
+		}
+
+		if hasVisibilityStatement(f, load, fileReader) {
+			// The module has a visibility statement, which is a more explicit
+			// (and strongly-enforced) mechanism to specify visibility. No need
+			// to issue a warning using the older and less explicit mechanism.
+			continue
 		}
 
 		path := f.CanonicalPath() // Canonical name of the file
