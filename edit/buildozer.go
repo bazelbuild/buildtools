@@ -811,7 +811,26 @@ func cmdDictListAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func copyAttributeBetweenRules(env CmdEnvironment, attrName string, from string) (*build.File, error) {
-	fromRule := FindRuleByName(env.File, from)
+	// Check if the source rule is in another package
+	buildFile, _, _, rule := InterpretLabelForWorkspaceLocation(NewOpts().RootDir, from)
+	var fromRule *build.Rule
+
+	if buildFile != "" && buildFile != env.File.Path {
+		// The rule is in another file, we need to load it
+		data, _, err := file.ReadFile(buildFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not read file '%s': %v", buildFile, err)
+		}
+		f, err := build.Parse(buildFile, data)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse file '%s': %v", buildFile, err)
+		}
+		fromRule = FindRuleByName(f, rule)
+	} else {
+		// The rule is in the same file
+		fromRule = FindRuleByName(env.File, from)
+	}
+
 	if fromRule == nil {
 		return nil, fmt.Errorf("could not find rule '%s'", from)
 	}
