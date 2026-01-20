@@ -44,9 +44,13 @@ func setFlags(file string) func() {
 	if strings.Contains(file, string(os.PathSeparator)+"050.") {
 		tables.ShortenAbsoluteLabelsToRelative = true
 	}
+	if strings.Contains(file, ".compactconst.") {
+		tables.CompactConstantDefinitions = true
+	}
 	return func() {
 		tables.StripLabelLeadingSlashes = false
 		tables.ShortenAbsoluteLabelsToRelative = false
+		tables.CompactConstantDefinitions = false
 	}
 }
 
