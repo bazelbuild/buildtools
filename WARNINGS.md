@@ -2,6 +2,7 @@
 
 Warning categories supported by buildifier's linter:
 
+  * [`allowed-symbol-load-locations`](#allowed-symbol-load-locations)
   * [`attr-applicable_licenses`](#attr-applicable_licenses)
   * [`attr-cfg`](#attr-cfg)
   * [`attr-license`](#attr-license)
@@ -96,7 +97,6 @@ Warning categories supported by buildifier's linter:
   * [`repository-name`](#repository-name)
   * [`return-value`](#return-value)
   * [`rule-impl-return`](#rule-impl-return)
-  * [`rule-load-location`](#rule-load-location)
   * [`same-origin-load`](#same-origin-load)
   * [`skylark-comment`](#skylark-comment)
   * [`skylark-docstring`](#skylark-docstring)
@@ -125,6 +125,27 @@ Docstrings don't trigger the warning if they are first statements of a file or a
 
 if debug:
     print("Debug information:", foo)  # buildifier: disable=print
+```
+
+--------------------------------------------------------------------------------
+
+## <a name="allowed-symbol-load-locations"></a>Symbol must be loaded from a specific location
+
+  * Category name: `allowed-symbol-load-locations`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=allowed-symbol-load-locations`
+
+Warns when a symbol is loaded from a location other than the expected ones.
+Expected locations are specified in the tables file:
+
+```json
+{
+  "AllowedSymbolLoadLocations": {
+    "genrule": [
+      "//tools/bazel:genrule.bzl"
+    ]
+  }
+}
 ```
 
 --------------------------------------------------------------------------------
@@ -1340,26 +1361,6 @@ Returning structs from rule implementation functions is
 consider using
 [providers](https://docs.bazel.build/versions/main/skylark/rules.html#providers)
 or lists of providers instead.
-
---------------------------------------------------------------------------------
-
-## <a name="rule-load-location"></a>Rule must be loaded from a specific location
-
-  * Category name: `rule-load-location`
-  * Automatic fix: no
-  * [Suppress the warning](#suppress): `# buildifier: disable=rule-load-location`
-
-Warns when a rule is loaded from a location other than the expected one.
-Expected locations are specified in the tables file:
-
-```json
-{
-  "RuleLoadLocation": {
-    "genrule": "//tools/bazel:genrule.bzl"
-  }
-}
-```
-
 
 --------------------------------------------------------------------------------
 

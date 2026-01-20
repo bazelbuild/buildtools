@@ -3,6 +3,23 @@
 # After modifying this file, run `bazel build //warn/docs:warnings_docs && cp bazel-bin/warn/docs/WARNINGS.md .`
 
 warnings: {
+  name: "allowed-symbol-load-locations"
+  header: "Symbol must be loaded from a specific location"
+  description:
+      "Warns when a symbol is loaded from a location other than the expected ones.\n"
+          "Expected locations are specified in the tables file:\n\n"
+          "```json\n"
+          "{\n"
+          "  \"AllowedSymbolLoadLocations\": {\n"
+          "    \"genrule\": [\n"
+          "      \"//tools/bazel:genrule.bzl\"\n"
+          "    ]\n"
+          "  }\n"
+          "}\n"
+          "```"
+}
+
+warnings: {
   name: "attr-cfg"
   header: "`cfg = \"data\"` for attr definitions has no effect"
   description:
@@ -981,21 +998,6 @@ warnings: {
     "consider using\n"
     "[providers](https://docs.bazel.build/versions/main/skylark/rules.html#providers)\n"
     "or lists of providers instead."
-}
-
-warnings: {
-  name: "rule-load-location"
-  header: "Rule must be loaded from a specific location"
-  description:
-      "Warns when a rule is loaded from a location other than the expected one.\n"
-      "Expected locations are specified in the tables file:\n\n"
-  "```json\n"
-  "{\n"
-  "  \"RuleLoadLocation\": {\n"
-  "    \"genrule\": \"//tools/bazel:genrule.bzl\"\n"
-  "  }\n"
-  "}\n"
-  "```\n"
 }
 
 warnings: {

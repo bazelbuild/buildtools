@@ -20,7 +20,9 @@
     "name": -1
   },
   "StripLabelLeadingSlashes": true,
-  "RuleLoadLocation": {
-    "genrule": "//tools/bazel:genrule.bzl"
+  "AllowedSymbolLoadLocations": {
+    "genrule": [
+      "//tools/bazel:genrule.bzl"
+    ]
   }
 }

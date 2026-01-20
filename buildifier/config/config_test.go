@@ -43,6 +43,7 @@ func ExampleExample() {
 	//   "mode": "fix",
 	//   "lint": "fix",
 	//   "warningsList": [
+	//     "allowed-symbol-load-locations",
 	//     "attr-applicable_licenses",
 	//     "attr-cfg",
 	//     "attr-license",
@@ -134,7 +135,6 @@ func ExampleExample() {
 	//     "repository-name",
 	//     "return-value",
 	//     "rule-impl-return",
-	//     "rule-load-location",
 	//     "skylark-comment",
 	//     "skylark-docstring",
 	//     "string-iteration",
@@ -264,6 +264,7 @@ func TestValidate(t *testing.T) {
 		"type auto":             {options: "--type=auto"},
 		"type error":            {options: "--type=foo", wantErr: fmt.Errorf("unrecognized input type foo; valid types are build, bzl, workspace, default, module, auto")},
 		"warnings all": {options: "--warnings=all", wantWarnings: []string{
+			"allowed-symbol-load-locations",
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -355,7 +356,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"rule-load-location",
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -366,6 +366,7 @@ func TestValidate(t *testing.T) {
 			"unused-variable",
 		}},
 		"warnings default": {options: "--warnings=default", wantWarnings: []string{
+			"allowed-symbol-load-locations",
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -457,7 +458,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"rule-load-location",
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -468,6 +468,7 @@ func TestValidate(t *testing.T) {
 			"unused-variable",
 		}},
 		"warnings plus/minus": {options: "--warnings=+unsorted-dict-items,-print,-deprecated-function", wantWarnings: []string{
+			"allowed-symbol-load-locations",
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -559,7 +560,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-			"rule-load-location",
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",
@@ -570,6 +570,7 @@ func TestValidate(t *testing.T) {
 			"unused-variable",
 		}},
 		"warnings no duplicates": {options: "--warnings=+unused-variable", wantWarnings: []string{
+			"allowed-symbol-load-locations",
 			"attr-applicable_licenses",
 			"attr-cfg",
 			"attr-license",
@@ -661,7 +662,6 @@ func TestValidate(t *testing.T) {
 			"repository-name",
 			"return-value",
 			"rule-impl-return",
-
 			"skylark-comment",
 			"skylark-docstring",
 			"string-iteration",

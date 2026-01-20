@@ -2,11 +2,14 @@ package warn
 
 import (
 	"fmt"
+	"slices"
+	"strings"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/tables"
 )
 
-func ruleLoadLocationWarning(f *build.File) []*LinterFinding {
+func symbolLoadLocationWarning(f *build.File) []*LinterFinding {
 	var findings []*LinterFinding
 
 	for stmtIndex := 0; stmtIndex < len(f.Stmt); stmtIndex++ {
@@ -18,12 +21,27 @@ func ruleLoadLocationWarning(f *build.File) []*LinterFinding {
 		for i := 0; i < len(load.From); i++ {
 			from := load.From[i]
 
-			expectedLocation, ok := tables.RuleLoadLocation[from.Name]
-			if !ok || expectedLocation == load.Module.Value {
+			expected, ok := tables.AllowedSymbolLoadLocations[from.Name]
+			if !ok || expected[load.Module.Value] {
 				continue
 			}
 
-			f := makeLinterFinding(from, fmt.Sprintf("Rule %q must be loaded from %v.", from.Name, expectedLocation))
+			var f *LinterFinding
+			if len(expected) == 1 {
+				var loc string
+				for l := range expected {
+					loc = l
+					break
+				}
+				f = makeLinterFinding(from, fmt.Sprintf("Symbol %q must be loaded from %s.", from.Name, loc))
+			} else {
+				locs := make([]string, 0, len(expected))
+				for l := range expected {
+					locs = append(locs, l)
+				}
+				slices.Sort(locs)
+				f = makeLinterFinding(from, fmt.Sprintf("Symbol %q must be loaded from one of the allowed locations: %s.", from.Name, strings.Join(locs, ", ")))
+			}
 			findings = append(findings, f)
 		}
 

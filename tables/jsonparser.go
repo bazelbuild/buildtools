@@ -31,7 +31,7 @@ type Definitions struct {
 	NamePriority                    map[string]int
 	StripLabelLeadingSlashes        bool
 	ShortenAbsoluteLabelsToRelative bool
-	RuleLoadLocation                map[string]string
+	AllowedSymbolLoadLocations      map[string][]string
 }
 
 // ParseJSONDefinitions reads and parses JSON table definitions from file.
@@ -56,9 +56,9 @@ func ParseAndUpdateJSONDefinitions(file string, merge bool) error {
 	}
 
 	if merge {
-		MergeTables(definitions.IsLabelArg, definitions.LabelDenylist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableDenylist, definitions.SortableAllowlist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative, definitions.RuleLoadLocation)
+		MergeTables(definitions.IsLabelArg, definitions.LabelDenylist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableDenylist, definitions.SortableAllowlist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative, definitions.AllowedSymbolLoadLocations)
 	} else {
-		OverrideTables(definitions.IsLabelArg, definitions.LabelDenylist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableDenylist, definitions.SortableAllowlist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative, definitions.RuleLoadLocation)
+		OverrideTables(definitions.IsLabelArg, definitions.LabelDenylist, definitions.IsListArg, definitions.IsSortableListArg, definitions.SortableDenylist, definitions.SortableAllowlist, definitions.NamePriority, definitions.StripLabelLeadingSlashes, definitions.ShortenAbsoluteLabelsToRelative, definitions.AllowedSymbolLoadLocations)
 	}
 	return nil
 }
