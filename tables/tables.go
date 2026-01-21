@@ -265,8 +265,11 @@ var IsModuleOverride = map[string]bool{
 	"single_version_override":   true,
 }
 
+// AllowedSymbolLoadLocations contains locations for loading rules that are allowed to be used.
+var AllowedSymbolLoadLocations = map[string]map[string]bool{}
+
 // OverrideTables allows a user of the build package to override the special-case rules. The user-provided tables replace the built-in tables.
-func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool, symbolLoadLocation map[string][]string) {
 	IsLabelArg = labelArg
 	LabelDenylist = denylist
 	IsListArg = listArg
@@ -276,10 +279,19 @@ func OverrideTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, 
 	NamePriority = namePriority
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative
+
+	AllowedSymbolLoadLocations = map[string]map[string]bool{}
+	for k, v := range symbolLoadLocation {
+		locations := map[string]bool{}
+		for _, l := range v {
+			locations[l] = true
+		}
+		AllowedSymbolLoadLocations[k] = locations
+	}
 }
 
 // MergeTables allows a user of the build package to override the special-case rules. The user-provided tables are merged into the built-in tables.
-func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool) {
+func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sortAllowlist map[string]bool, namePriority map[string]int, stripLabelLeadingSlashes, shortenAbsoluteLabelsToRelative bool, symbolLoadLocation map[string][]string) {
 	for k, v := range labelArg {
 		IsLabelArg[k] = v
 	}
@@ -303,4 +315,12 @@ func MergeTables(labelArg, denylist, listArg, sortableListArg, sortDenylist, sor
 	}
 	StripLabelLeadingSlashes = stripLabelLeadingSlashes || StripLabelLeadingSlashes
 	ShortenAbsoluteLabelsToRelative = shortenAbsoluteLabelsToRelative || ShortenAbsoluteLabelsToRelative
+
+	for k, v := range symbolLoadLocation {
+		locations := map[string]bool{}
+		for _, l := range v {
+			locations[l] = true
+		}
+		AllowedSymbolLoadLocations[k] = locations
+	}
 }

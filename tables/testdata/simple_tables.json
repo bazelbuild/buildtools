@@ -19,5 +19,10 @@
   "NamePriority": {
     "name": -1
   },
-  "StripLabelLeadingSlashes": true
+  "StripLabelLeadingSlashes": true,
+  "AllowedSymbolLoadLocations": {
+    "genrule": [
+      "//tools/bazel:genrule.bzl"
+    ]
+  }
 }
