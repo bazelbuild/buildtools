@@ -767,19 +767,26 @@ func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, erro
 		return env.File, nil
 	}
 
-	prev := DictionaryGet(dictAttr, key)
-	if prev == nil {
+	// If not using wildcard, missing key is considered an error.
+	if prev := DictionaryGet(dictAttr, key); key != "*" && prev == nil {
 		return nil, fmt.Errorf("key '%s' not found in dict", key)
 	}
-	if e, ok := prev.(*build.StringExpr); ok {
-		if labels.Equal(e.Value, oldV, env.Pkg) {
-			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
-		}
-	} else if e, ok := prev.(*build.Ident); ok {
-		if e.Name == oldV {
-			DictionarySet(dictAttr, key, getStringExpr(newV, env.Pkg))
+
+	for _, kv := range dictAttr.List {
+		if k, ok := kv.Key.(*build.StringExpr); key == "*" || (ok && k.Value == key) {
+			// Key-Value Pair matches key.
+			if val, ok := kv.Value.(*build.StringExpr); ok {
+				if labels.Equal(val.Value, oldV, env.Pkg) {
+					kv.Value = getStringExpr(newV, env.Pkg)
+				}
+			} else if val, ok := kv.Value.(*build.Ident); ok {
+				if val.Name == oldV {
+					kv.Value = getStringExpr(newV, env.Pkg)
+				}
+			}
 		}
 	}
+
 	return env.File, nil
 }
 

@@ -574,6 +574,24 @@ var dictReplaceIfEqualTests = []struct {
 		},
 )`,
 	},
+	{[]string{
+		"attr", "*", "value1", "value2",
+	},
+		`foo(
+		name = "foo",
+		attr = {
+			"key1": "value1",
+			"key2": "x",
+	},
+	)`,
+		`foo(
+    name = "foo",
+    attr = {
+			"key1": "value2",
+			"key2": "x",
+		},
+)`,
+	},
 }
 
 func TestCmdDictReplaceIfEqual(t *testing.T) {
