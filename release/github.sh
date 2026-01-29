@@ -43,7 +43,7 @@ copy_go_binaries() {
       # Ignores errors from "cp" since aquery will include some binaries besides
       # the expected tools. This script later validates that all required binaries
       # are present.
-      cp $binary_output_path $out_dir 2>/dev/null || true
+      cp "$binary_output_path" "$out_dir" 2>/dev/null || true
     fi
   done <<< "$go_binary_outputs"
 }
