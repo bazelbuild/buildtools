@@ -305,7 +305,7 @@ func setupAspect() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, f := range []string{"WORKSPACE", "BUILD"} {
+	for _, f := range []string{"MODULE.bazel", "WORKSPACE", "BUILD"} {
 		if err := os.WriteFile(path.Join(tmp, f), []byte{}, 0666); err != nil {
 			return "", err
 		}
@@ -381,8 +381,8 @@ func main() {
 	buildCmd = append(buildCmd, blazeFlags...)
 	buildCmd = append(buildCmd, config.DefaultExtraBuildFlags...)
 	buildCmd = append(buildCmd, "--output_groups=+unused_deps_outputs")
-	buildCmd = append(buildCmd, "--override_repository=unused_deps="+aspectDir)
-	buildCmd = append(buildCmd, "--aspects=@@unused_deps//:unused_deps.bzl%javac_params")
+	buildCmd = append(buildCmd, "--inject_repository=unused_deps="+aspectDir)
+	buildCmd = append(buildCmd, "--aspects=@unused_deps//:unused_deps.bzl%javac_params")
 	buildCmd = append(buildCmd, buildOptions()...)
 
 	blazeArgs := append(buildCmd, targetPatterns...)
