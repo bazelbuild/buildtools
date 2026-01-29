@@ -74,7 +74,7 @@ done
 
 echo "Validating that all expected binaries are present"
 for binary_name in "${all_binary_names[@]}"; do
-  if [ ! -f ""$BIN_DIR/$binary_name"" ]; then
+  if [[ ! -f "$BIN_DIR/$binary_name" ]]; then
     echo "Expected binary \"$binary_name\" was not found"
     exit 2
   fi
