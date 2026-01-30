@@ -38,7 +38,7 @@ copy_go_binaries() {
 
   while IFS= read -r line ; do 
     # Parses out the "Outputs" and copies them to the output dir.
-    local binary_output_path=$(echo "$line" | sed -n 's/Outputs: \[\(.*\)\]/\1/p')
+    local binary_output_path=$(echo "$line" | sed -n 's/^.*Outputs: \[\(.*\)\]/\1/p')
     if [[ ! -z "$binary_output_path" ]]; then
       # Ignores errors from "cp" since aquery will include some binaries besides
       # the expected tools. This script later validates that all required binaries
@@ -93,7 +93,9 @@ upload_file() {
 }
 
 for binary_name in "${all_binary_names[@]}"; do
-  upload_file "$BIN_DIR/$binary_name" "$binary_name"
+  # Output should contain dashes instead of underscores.
+  output_name=${binary_name//_/-}
+  upload_file "$BIN_DIR/$binary_name" "$output_name"
 done
 
 rm -rf $BIN_DIR
