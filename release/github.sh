@@ -20,17 +20,65 @@ BIN_DIR=`mktemp -d -p "$DIR"`
 
 bazel clean
 bazel build --config=release //buildifier:all //buildozer:all //unused_deps:all
+  
+#######################################
+# Copies all present output binaries to the given directory.
+# Arguments:
+#   Directory path to copy binaries to
+# Returns:
+#   0 if successful, non-zero on error
+#######################################
+copy_go_binaries() {
+  local out_dir="$1"
+  # Lists all GoLink actions produced by go_binary rules in the repository.
+  local go_binary_outputs="$(bazel aquery --config=release \
+      'mnemonic("GoLink", kind(go_binary, ...))' \
+      --noinclude_aspects \
+      --noinclude_commandline)"
 
-for tool in "buildifier" "buildozer" "unused_deps"; do
-  cp bazel-bin/"$tool/$tool-linux_amd64" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-linux_arm64" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-linux_riscv64" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-linux_s390x" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-darwin_amd64" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-darwin_arm64" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-windows_amd64.exe" $BIN_DIR
-  cp bazel-bin/"$tool/$tool-windows_arm64.exe" $BIN_DIR
-done;
+  while IFS= read -r line ; do 
+    # Parses out the "Outputs" and copies them to the output dir.
+    local binary_output_path=$(echo "$line" | sed -n 's/^.*Outputs: \[\(.*\)\]/\1/p')
+    if [[ ! -z "$binary_output_path" ]]; then
+      # Ignores errors from "cp" since aquery will include some binaries besides
+      # the expected tools. This script later validates that all required binaries
+      # are present.
+      cp "$binary_output_path" "$out_dir" 2>/dev/null || true
+    fi
+  done <<< "$go_binary_outputs"
+}
+  
+echo "Copies binaries to temp dir"
+copy_go_binaries "$BIN_DIR"
+
+# The list of tools to include in release.
+tools=("buildifier" "buildozer" "unused_deps")
+# Binary suffixes which should be included for all tools.
+binary_target_suffixes=(
+  "linux_amd64"
+  "linux_arm64"
+  "linux_riscv64"
+  "linux_s390x"
+  "darwin_amd64"
+  "darwin_arm64"
+  "windows_amd64.exe"
+  "windows_arm64.exe"
+)
+# Generates list of all $tool-$suffix binaries which should be included.
+all_binary_names=()
+for tool in "${tools[@]}"; do
+  for binary_suffix in "${binary_target_suffixes[@]}"; do
+    all_binary_names+=("$tool-$binary_suffix")
+  done
+done
+
+echo "Validating that all expected binaries are present"
+for binary_name in "${all_binary_names[@]}"; do
+  if [[ ! -f "$BIN_DIR/$binary_name" ]]; then
+    echo "Expected binary \"$binary_name\" was not found"
+    exit 2
+  fi
+done
 
 echo "Creating a draft release"
 API_JSON="{\"tag_name\": \"$TAG\", \"target_commitish\": \"main\", \"name\": \"$NAME\", \"draft\": true}"
@@ -44,15 +92,10 @@ upload_file() {
     curl --data-binary @"$1" -s --show-error -o /dev/null -H "$GH_AUTH_HEADER" -H "Content-Type: application/octet-stream" $ASSET
 }
 
-for tool in "buildifier" "buildozer" "unused_deps"; do
-  upload_file "$BIN_DIR/$tool-linux_amd64" "$tool-linux-amd64"
-  upload_file "$BIN_DIR/$tool-linux_arm64" "$tool-linux-arm64"
-  upload_file "$BIN_DIR/$tool-linux_riscv64" "$tool-linux-riscv64"
-  upload_file "$BIN_DIR/$tool-linux_s390x" "$tool-linux-s390x"
-  upload_file "$BIN_DIR/$tool-darwin_amd64" "$tool-darwin-amd64"
-  upload_file "$BIN_DIR/$tool-darwin_arm64" "$tool-darwin-arm64"
-  upload_file "$BIN_DIR/$tool-windows_amd64.exe" "$tool-windows-amd64.exe"
-  upload_file "$BIN_DIR/$tool-windows_arm64.exe" "$tool-windows-arm64.exe"
+for binary_name in "${all_binary_names[@]}"; do
+  # Output should contain dashes instead of underscores.
+  output_name=${binary_name//_/-}
+  upload_file "$BIN_DIR/$binary_name" "$output_name"
 done
 
 rm -rf $BIN_DIR
