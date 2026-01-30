@@ -168,6 +168,7 @@ def buildifier_impl_factory(ctx, test_rule = False):
             fail("Cannot use 'no_sandbox' without a 'workspace'")
         workspace = ctx.file.workspace.path
 
+    # buildifier: disable=canonical-repository
     substitutions = {
         "@@ARGS@@": shell.array_literal(args),
         "@@BUILDIFIER_SHORT_PATH@@": shell.quote(ctx.executable.buildifier.short_path),
