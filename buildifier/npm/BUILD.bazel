@@ -27,7 +27,8 @@ _PARENT_PACKAGE_FILES = [
     "buildifier-linux_arm64",
     "buildifier-linux_riscv64",
     "buildifier-windows_amd64.exe",
-    "buildifier-windows_arm64.exe",
+    # Excluded to meet npm package size limits.
+    # "buildifier-windows_arm64.exe",
 ]
 
 [

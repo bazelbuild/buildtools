@@ -27,7 +27,8 @@ _PARENT_PACKAGE_FILES = [
     "buildozer-linux_arm64",
     "buildozer-linux_riscv64",
     "buildozer-windows_amd64.exe",
-    "buildozer-windows_arm64.exe",
+    # Excluded to meet npm package size limits.
+    # "buildozer-windows_arm64.exe",
 ]
 
 [
