@@ -303,10 +303,20 @@ func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 	}
 
 	for i, stmt := range f.Stmt {
+		// first check if call is a CallExpr, else check if it's an AssignExpr
+		// with a CallExpr on the RHS
 		call, ok := stmt.(*build.CallExpr)
 		if !ok {
+			if as, ok := stmt.(*build.AssignExpr); ok {
+				if c, ok := as.RHS.(*build.CallExpr); ok {
+					call = c
+				}
+			}
+		}
+		if call == nil {
 			continue
 		}
+
 		r := f.Rule(call)
 		start, _ := call.X.Span()
 		if r.Name() == name || start.Line == linenum {

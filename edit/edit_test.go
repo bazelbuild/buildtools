@@ -829,3 +829,39 @@ func TestInterpretLabelForWorkspaceLocation(t *testing.T) {
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD")
 	runTestInterpretLabelForWorkspaceLocation(t, "BUILD.bazel")
 }
+
+func TestFindRuleByName(t *testing.T) {
+	input := `load("foo.bzl", "bar")
+my_rule(
+  name="r1",
+	srcs=["a.txt"]
+)
+
+a = my_macro(
+	name="r2",
+)
+`
+
+	bld, err := build.Parse("BUILD", []byte(input))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	testCases := []struct {
+		name       string
+		shouldFind bool
+	}{
+		{"r1", true}, {"r2", true}, {"r3", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rule := FindRuleByName(bld, tc.name)
+			found := rule != nil
+			if found != tc.shouldFind {
+				t.Errorf("FindRuleByName(%q): found = %v, want %v", tc.name, found, tc.shouldFind)
+			}
+		})
+	}
+}
