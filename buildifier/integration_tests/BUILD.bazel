@@ -1,0 +1,61 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+sh_test(
+    name = "integration_test_formatting",
+    size = "small",
+    srcs = ["test_formatting.sh"],
+    args = ["$(location //buildifier)"],
+    data = [
+        "//buildifier",
+        "test_utils.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_test(
+    name = "integration_test_lint",
+    size = "small",
+    srcs = ["test_lint.sh"],
+    args = ["$(location //buildifier)"],
+    data = [
+        "//buildifier",
+        "test_utils.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_test(
+    name = "integration_test_json",
+    size = "small",
+    srcs = ["test_json_output.sh"],
+    args = ["$(location //buildifier)"],
+    data = [
+        "//buildifier",
+        "test_utils.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_test(
+    name = "integration_test_multifile",
+    size = "small",
+    srcs = ["test_multifile.sh"],
+    args = ["$(location //buildifier)"],
+    data = [
+        "//buildifier",
+        "test_utils.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_test(
+    name = "integration_test_allowed_locations",
+    size = "small",
+    srcs = ["test_allowed_locations.sh"],
+    args = ["$(location //buildifier)"],
+    data = [
+        "//buildifier",
+        "test_utils.sh",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)

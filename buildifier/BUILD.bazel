@@ -87,20 +87,6 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-# Test that the buildifier binary works
-sh_test(
-    name = "buildifier_integration_test",
-    size = "small",
-    srcs = ["integration_test.sh"],
-    args = [
-        "$(location :buildifier)",
-    ],
-    data = [
-        ":buildifier",
-    ],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
-)
-
 go_library(
     name = "buildifier_lib",
     srcs = ["buildifier.go"],
