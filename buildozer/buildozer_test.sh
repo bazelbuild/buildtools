@@ -224,6 +224,50 @@ function test_add_duplicate_label2() {
 )'
 }
 
+function test_add_override_ident() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  run "$in" 'add deps:ident build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        build,
+        "build",
+    ],
+)'
+}
+
+function test_add_override_ident2() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  run "$in" 'add deps:raw_list build test()' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        build,
+        test(),
+        "build",
+    ],
+)'
+}
+
+function test_add_override_unknown_type() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  ERROR=2 run "$in" 'add deps:foo build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+}
+
+
 function test_remove_last_dep() {
   run "$one_dep" 'remove deps //buildifier:build' '//pkg:edit'
   assert_equals 'go_library(name = "edit")'
@@ -1085,6 +1129,16 @@ function test_set_if_absent_present() {
 )'
 }
 
+function test_set_if_absent_override_string() {
+  in='soy_js(name = "a")'
+
+  run "$in" 'set_if_absent allowv1syntax:string 1' '//pkg:a'
+  assert_equals 'soy_js(
+    name = "a",
+    allowv1syntax = "1",
+)'
+}
+
 function test_set_custom_code() {
   in='cc_test(name = "a")'
 
@@ -1096,6 +1150,46 @@ function test_set_custom_code() {
         b = 2,
     ),
 )'
+}
+
+function test_set_override_string() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set copts:string foo' '//pkg:a'
+  assert_equals 'cc_library(
+    name = "a",
+    copts = "foo",
+)'
+}
+
+function test_set_override_ident() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set copts:ident foo' '//pkg:a'
+  assert_equals 'cc_library(
+    name = "a",
+    copts = foo,
+)'
+}
+
+function test_set_override_list_of_strings() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set name:list_of_strings b c' '//pkg:a'
+  assert_equals 'cc_library(name = [
+    "b",
+    "c",
+])'
+}
+
+function test_set_override_list_of_idents() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set name:list b c' '//pkg:a'
+  assert_equals 'cc_library(name = [
+    b,
+    c,
+])'
 }
 
 function assert_output() {

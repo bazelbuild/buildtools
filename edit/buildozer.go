@@ -83,12 +83,54 @@ type CmdEnvironment struct {
 	output *apipb.Output_Record         // output proto, stores whatever a command wants to print
 }
 
+// AttrType is an enum representing a type of the attribute, e.g. int, string, list of strings, etc
+type AttrType int
+
+const (
+	// notProvidedTypeAttr represents an attr type that's not provided explicitly and
+	// needs to be inferred by buildozer from bazel's build language proto
+	notProvidedTypeAttr = iota
+	// rawAttr is a type for idents, ints or other types that buildozer should
+	// take as is, without quoting or wrapping
+	rawAttr
+	// stringAttr is a type for strings (or labels)
+	stringAttr
+	// rawListAttr is a type for lists of raw objects (same as rawAttr above)
+	rawListAttr
+	// stringListAttr is a type for lists of strings (or labels)
+	stringListAttr
+)
+
+// parseAttr parses the attr name and optional type, e.g. "foo" or "bar:string"
+func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
+	chunks := strings.SplitN(attrName, ":", 2)
+	if len(chunks) == 1 {
+		return attrName, notProvidedTypeAttr, nil
+	}
+	attr, typeName := chunks[0], chunks[1]
+	switch typeName {
+	case "int", "raw", "ident":
+		return attr, rawAttr, nil
+	case "string", "label":
+		return attr, stringAttr, nil
+	case "list", "raw_list":
+		return attr, rawListAttr, nil
+	case "list_of_strings", "list_of_labels":
+		return attr, stringListAttr, nil
+	default:
+		return attr, notProvidedTypeAttr, fmt.Errorf("unknown attr type: %q", typeName)
+	}
+}
+
 // The cmdXXX functions implement the various commands.
 
 func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
-	attr := env.Args[0]
+	attr, attrType, err := parseAttr(env.Args[0])
+	if err != nil {
+		return nil, err
+	}
 	for _, val := range env.Args[1:] {
-		if IsIntList(attr) {
+		if attrType == rawAttr || attrType == rawListAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
 			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
 			continue
 		}
@@ -528,7 +570,7 @@ func cmdReplace(opts *Options, env CmdEnvironment) (*build.File, error) {
 		attr := env.Rule.Attr(key)
 		if e, ok := attr.(*build.StringExpr); ok {
 			if labels.Equal(e.Value, oldV, env.Pkg) {
-				env.Rule.SetAttr(key, getAttrValueExpr(key, []string{newV}, env))
+				env.Rule.SetAttr(key, getAttrValueExpr(key, notProvidedTypeAttr, []string{newV}, env))
 			}
 		} else {
 			ListReplace(attr, oldV, newV, env.Pkg)
@@ -558,48 +600,70 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdSet(opts *Options, env CmdEnvironment) (*build.File, error) {
-	attr := env.Args[0]
+	attr, attrType, err := parseAttr(env.Args[0])
+	if err != nil {
+		return nil, err
+	}
 	args := env.Args[1:]
 	if attr == "kind" {
 		env.Rule.SetKind(args[0])
 	} else {
-		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args, env))
+		env.Rule.SetAttr(attr, getAttrValueExpr(attr, attrType, args, env))
 	}
 	return env.File, nil
 }
 
 func cmdSetIfAbsent(opts *Options, env CmdEnvironment) (*build.File, error) {
-	attr := env.Args[0]
+	attr, attrType, err := parseAttr(env.Args[0])
+	if err != nil {
+		return nil, err
+	}
 	args := env.Args[1:]
 	if attr == "kind" {
 		return nil, fmt.Errorf("setting 'kind' is not allowed for set_if_absent. Got %s", env.Args)
 	}
 	if env.Rule.Attr(attr) == nil {
-		env.Rule.SetAttr(attr, getAttrValueExpr(attr, args, env))
+		env.Rule.SetAttr(attr, getAttrValueExpr(attr, attrType, args, env))
 	}
 	return env.File, nil
 }
 
-func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr {
+func getAttrValueExpr(attr string, attrType AttrType, args []string, env CmdEnvironment) build.Expr {
 	switch {
 	case attr == "kind":
 		return nil
-	case IsIntList(attr):
+	case attrType == rawAttr:
+		// treat as an ident (it could be an arbitrary expression though, e.g. an
+		// already quoted string or a function call, will be re-parsed and
+		// formatted properly by the subsequent call of buildifier on the
+		//resulting file)
+		return &build.Ident{Name: args[0]}
+	case attrType == rawListAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)):
+		// list of raw objects (e.g. ints or idents)
 		var list []build.Expr
 		for _, i := range args {
 			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
-	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
+	case attrType == stringListAttr || (attrType == notProvidedTypeAttr && IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob("))):
+		// list of strings/labels
 		var list []build.Expr
 		for _, arg := range args {
 			list = append(list, getStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
+	case attrType == rawListAttr:
+		// list of arbitrary objects (idents, ints, already quoted strings, etc.)
+		var list []build.Expr
+		for _, arg := range args {
+			list = append(list, &build.Ident{Name: arg})
+		}
+		return &build.ListExpr{List: list}
 	case len(args) == 0:
 		// Expected a non-list argument, nothing provided
 		return &build.Ident{Name: "None"}
-	case IsString(attr):
+	case attrType == stringAttr || (attrType == notProvidedTypeAttr && IsString(attr)):
+		// single string
 		return getStringExpr(args[0], env.Pkg)
 	default:
 		return &build.Ident{Name: args[0]}
