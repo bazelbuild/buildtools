@@ -264,8 +264,10 @@ func isDocStringContext(stringExpr *build.StringExpr, stack []build.Expr) bool {
 	// Function docstring ("""...""")
 	if stringExpr.TripleQuote {
 		predecessor := stack[len(stack)-1]
-		if _, ok := predecessor.(*build.DefStmt); ok {
-			return true
+		if defStmt, ok := predecessor.(*build.DefStmt); ok {
+			if len(defStmt.Body) > 0 && defStmt.Body[0] == stringExpr {
+				return true
+			}
 		}
 	}
 
