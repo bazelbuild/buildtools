@@ -256,6 +256,22 @@ func printWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+func isDocStringContext(stringExpr *build.StringExpr, stack []build.Expr) bool {
+	if len(stack) == 0 {
+		return false
+	}
+
+	// Function docstring ("""...""")
+	if stringExpr.TripleQuote {
+		predecessor := stack[len(stack)-1]
+		if _, ok := predecessor.(*build.DefStmt); ok {
+			return true
+		}
+	}
+
+	return false
+}
+
 func externalPathWarning(f *build.File) []*LinterFinding {
 	if f.Type == build.TypeDefault {
 		// Only applicable to Bazel files
@@ -269,6 +285,11 @@ func externalPathWarning(f *build.File) []*LinterFinding {
 		if !ok {
 			return
 		}
+
+		if isDocStringContext(stringExpr, stack) {
+			return
+		}
+
 		// Warn for "/external/" but not if "//" appears in the string (main repository paths)
 		if strings.Contains(stringExpr.Value, "/external/") && !strings.Contains(stringExpr.Value, "//") {
 			findings = append(findings,
@@ -291,6 +312,11 @@ func canonicalRepositoryWarning(f *build.File) []*LinterFinding {
 		if !ok {
 			return
 		}
+
+		if isDocStringContext(stringExpr, stack) {
+			return
+		}
+
 		if strings.Contains(stringExpr.Value, "@@") {
 			findings = append(findings,
 				makeLinterFinding(stringExpr, `String contains "@@" which indicates a canonical repository name reference that should be avoided.`))

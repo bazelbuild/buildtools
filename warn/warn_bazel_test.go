@@ -233,7 +233,7 @@ filegroup(
 )
 
 some_rule(
-    arg1 = "normal/path/file.txt", 
+    arg1 = "normal/path/file.txt",
     arg2 = "/external/repo/file.py",
     arg3 = ["file1.txt", "/external/another/file.cc"],
 )`,
@@ -258,6 +258,15 @@ py_binary(
     data = ["//some/path/external/nested/file.txt"],
     args = ["//different/external/location/config.json"],
 )`,
+		[]string{},
+		scopeBazel)
+
+	// Test cases that should NOT warn (doc strings)
+	checkFindings(t, "external-path", `
+def foo():
+    """/external/"""
+    pass
+`,
 		[]string{},
 		scopeBazel)
 }
@@ -287,5 +296,14 @@ py_binary(
 			`:8: String contains "@@" which indicates a canonical repository name reference that should be avoided.`,
 			`:15: String contains "@@" which indicates a canonical repository name reference that should be avoided.`,
 		},
+		scopeBazel)
+
+	// Test cases that should NOT warn (doc strings)
+	checkFindings(t, "canonical-repository", `
+def foo():
+    """@@foo"""
+    pass
+`,
+		[]string{},
 		scopeBazel)
 }
