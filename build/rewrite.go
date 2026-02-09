@@ -465,7 +465,7 @@ func (x namedArgs) Less(i, j int) bool {
 	return p.index < q.index
 }
 
-// sortStringLists sorts lists of string literals used as specific rule arguments.
+// sortStringLists sorts lists of string literals used as specific rule or function arguments.
 func sortStringLists(f *File, w *Rewriter) {
 	sortStringList := func(x *Expr) {
 		SortStringList(*x)
@@ -474,21 +474,20 @@ func sortStringLists(f *File, w *Rewriter) {
 	Walk(f, func(e Expr, stk []Expr) {
 		switch v := e.(type) {
 		case *CallExpr:
-		        if f.Type == TypeDefault {
+			if f.Type == TypeDefault {
 				// Rule parameters, not applicable to default file types
 				return
 			}
+			if leaveAlone(stk, v) {
+				return
+			}
 			if f.Type == TypeBzl {
-				rule := callName(v)
-				if rule == "visibility" {
+				if name, ok := v.X.(*Ident); ok && name.Name == "visibility" {
+					// Call args to the native "visibility function should be sorted per default.
 					for _, arg := range v.List {
 						findAndModifyStrings(&arg, sortStringList)
 					}
 				}
-				// Rule parameters, not applicable to .bzl file types
-				return
-			}
-			if leaveAlone(stk, v) {
 				return
 			}
 			rule := callName(v)
