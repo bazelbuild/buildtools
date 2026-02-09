@@ -474,8 +474,18 @@ func sortStringLists(f *File, w *Rewriter) {
 	Walk(f, func(e Expr, stk []Expr) {
 		switch v := e.(type) {
 		case *CallExpr:
-			if f.Type == TypeDefault || f.Type == TypeBzl {
-				// Rule parameters, not applicable to .bzl or default file types
+		        if f.Type == TypeDefault {
+				// Rule parameters, not applicable to default file types
+				return
+			}
+			if f.Type == TypeBzl {
+				rule := callName(v)
+				if rule == "visibility" {
+					for _, arg := range v.List {
+						findAndModifyStrings(&arg, sortStringList)
+					}
+				}
+				// Rule parameters, not applicable to .bzl file types
 				return
 			}
 			if leaveAlone(stk, v) {

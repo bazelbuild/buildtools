@@ -1,0 +1,4 @@
+visibility([
+    "//bar",
+    "//foo",
+])
