@@ -1,0 +1,11 @@
+visibility([
+    "//foo",
+    "//bar",
+])
+
+# Not modified due to leave-alone comment.
+# buildifier: leave-alone
+visibility([
+    "//foo",
+    "//bar",
+])
