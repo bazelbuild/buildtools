@@ -580,6 +580,21 @@ func cmdSetIfAbsent(opts *Options, env CmdEnvironment) (*build.File, error) {
 	return env.File, nil
 }
 
+// isFunctionCall parses the args to see if they are arguments to a single
+// function call. This is naïve and does not attempt to parse the inner tokens.
+// example:
+//    the user input:  "glob(["*.c", "*.h"])"
+//    is tokenized to: "glob([\"*.c\",", "\"*.h\"])",
+func isFunctionCall(function string, args[] string) bool {
+	return strings.HasPrefix(args[0], function + "(") &&
+		strings.HasSuffix(args[len(args) -1], ")")
+}
+
+func functionCallExpr(args []string) build.Expr {
+	joined := strings.Join(args, "")
+	return &build.Ident{Name: joined}
+}
+
 func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr {
 	switch {
 	case attr == "kind":
@@ -590,7 +605,9 @@ func getAttrValueExpr(attr string, args []string, env CmdEnvironment) build.Expr
 			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
-	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
+	case IsList(attr) && isFunctionCall("glob", args):
+		return functionCallExpr(args)
+	case IsList(attr):
 		var list []build.Expr
 		for _, arg := range args {
 			list = append(list, getStringExpr(arg, env.Pkg))
