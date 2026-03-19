@@ -43,6 +43,12 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+type BuildozerComment string
+
+const (
+	BuildozerCommentLeaveAlone BuildozerComment = "buildozer: leave-alone"
+)
+
 // Options represents choices about how buildozer should behave.
 type Options struct {
 	Stdout             bool      // write changed BUILD file to stdout
@@ -987,10 +993,18 @@ func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
 }
 
 func filterRules(opts *Options, rules []*build.Rule) (result []*build.Rule) {
-	if len(opts.FilterRuleTypes) == 0 {
-		return rules
-	}
+	var rs []*build.Rule
 	for _, rule := range rules {
+		// Skip rules that are marked as leave-alone
+		if build.HasCommentContaining(rule.Call, string(BuildozerCommentLeaveAlone)) {
+			continue
+		}
+		rs = append(rs, rule)
+	}
+	if len(opts.FilterRuleTypes) == 0 {
+		return rs
+	}
+	for _, rule := range rs {
 		for _, filterType := range opts.FilterRuleTypes {
 			if rule.Kind() == filterType {
 				result = append(result, rule)

@@ -2423,4 +2423,82 @@ EOF
   diff -u MODULE.bazel.expected.stderr stderr || fail "Error output didn't match"
 }
 
+function test_buildozer_leave_alone_delete_is_not_deleted() {
+in='# buildozer: leave-alone
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)
+
+my_rule(
+    name = "y",
+    srcs = ["y.cc"],
+)'
+
+  run "$in" 'delete' '//pkg:%my_rule'
+
+  assert_equals '# buildozer: leave-alone
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)'
+}
+
+function test_buildozer_leave_alone_empty_package_is_not_deleted() {
+in='
+# buildozer: leave-alone
+package()
+
+package()
+
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)
+'
+
+  run "$in" 'delete' '//pkg:%my_rule'
+
+  assert_equals '# buildozer: leave-alone
+package()'
+}
+
+function test_buildozer_leave_alone_set_is_not_updated() {
+in='
+# buildozer: leave-alone
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)
+
+my_rule(
+    name = "y",
+    srcs = ["y.cc"],
+)'
+
+  run "$in" 'set foo "bar"' '//pkg:%my_rule'
+
+  assert_equals '# buildozer: leave-alone
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)
+
+my_rule(
+    name = "y",
+    srcs = ["y.cc"],
+    foo = "bar",
+)'
+}
+
+function test_buildozer_leave_alone_set_targeting_leave_alone_returns_error() {
+in='# buildozer: leave-alone
+my_rule(
+    name = "x",
+    srcs = ["x.cc"],
+)'
+
+  ERROR=2 run "$in" 'set foo "bar"' '//pkg:x'
+}
+
 run_suite "buildozer tests"

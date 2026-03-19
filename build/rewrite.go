@@ -29,6 +29,17 @@ import (
 	"github.com/bazelbuild/buildtools/tables"
 )
 
+type rewriteComment string
+
+const (
+	rewriteCommentDoNotSort         rewriteComment = "do not sort"
+	rewriteCommentKeepSorted        rewriteComment = "keep sorted"
+	rewriteCommentLeaveAlone        rewriteComment = "buildifier: leave-alone"
+	rewriteCommentDisableSame       rewriteComment = "disable=same-origin-load"
+	rewriteCommentDisableOutOfOrder rewriteComment = "disable=out-of-order-load"
+	rewriteCommentDisableLoadOnTop  rewriteComment = "disable=load-on-top"
+)
+
 // DisableRewrites disables certain rewrites (for debugging).
 var DisableRewrites []string
 
@@ -143,48 +154,16 @@ var rewrites = []struct {
 
 // leaveAlone reports whether any of the nodes on the stack are marked
 // with a comment containing "buildifier: leave-alone".
-func leaveAlone(stk []Expr, final Expr) bool {
-	for _, x := range stk {
-		if leaveAlone1(x) {
-			return true
-		}
-	}
-	if final != nil && leaveAlone1(final) {
-		return true
-	}
-	return false
-}
-
-// hasComment reports whether x is marked with a comment that
-// after being converted to lower case, contains the specified text.
-func hasComment(x Expr, text string) bool {
-	if x == nil {
-		return false
-	}
-	for _, com := range x.Comment().Before {
-		if strings.Contains(strings.ToLower(com.Token), text) {
-			return true
-		}
-	}
-	for _, com := range x.Comment().After {
-		if strings.Contains(strings.ToLower(com.Token), text) {
-			return true
-		}
-	}
-	for _, com := range x.Comment().Suffix {
-		if strings.Contains(strings.ToLower(com.Token), text) {
-			return true
-		}
-	}
-	return false
+func leaveAlone(final Expr) bool {
+	return HasCommentContaining(final, string(rewriteCommentLeaveAlone))
 }
 
 // isCommentAnywhere checks whether there's a comment containing the given text
 // anywhere in the file.
-func isCommentAnywhere(f *File, text string) bool {
+func isCommentAnywhere(f *File, comment rewriteComment) bool {
 	commentExists := false
 	WalkInterruptable(f, func(node Expr, stack []Expr) (err error) {
-		if hasComment(node, text) {
+		if HasCommentContaining(node, string(comment)) {
 			commentExists = true
 			return &StopTraversalError{}
 		}
@@ -193,22 +172,16 @@ func isCommentAnywhere(f *File, text string) bool {
 	return commentExists
 }
 
-// leaveAlone1 reports whether x is marked with a comment containing
-// "buildifier: leave-alone", case-insensitive.
-func leaveAlone1(x Expr) bool {
-	return hasComment(x, "buildifier: leave-alone")
-}
-
 // doNotSort reports whether x is marked with a comment containing
 // "do not sort", case-insensitive.
 func doNotSort(x Expr) bool {
-	return hasComment(x, "do not sort")
+	return HasCommentContaining(x, string(rewriteCommentDoNotSort))
 }
 
 // keepSorted reports whether x is marked with a comment containing
 // "keep sorted", case-insensitive.
 func keepSorted(x Expr) bool {
-	return hasComment(x, "keep sorted")
+	return HasCommentContaining(x, string(rewriteCommentKeepSorted))
 }
 
 // labelRE matches label strings, e.g. @r//x/y/z:abc
@@ -307,7 +280,7 @@ func fixLabels(f *File, w *Rewriter) {
 	fixLabelsWithinAContainer := func(e *Expr) {
 		if list, ok := (*e).(*ListExpr); ok {
 			for i := range list.List {
-				if leaveAlone1(list.List[i]) {
+				if leaveAlone(list.List[i]) {
 					continue
 				}
 				joinLabel(&list.List[i])
@@ -316,7 +289,7 @@ func fixLabels(f *File, w *Rewriter) {
 		}
 		if set, ok := (*e).(*SetExpr); ok {
 			for i := range set.List {
-				if leaveAlone1(set.List[i]) {
+				if leaveAlone(set.List[i]) {
 					continue
 				}
 				joinLabel(&set.List[i])
@@ -331,11 +304,11 @@ func fixLabels(f *File, w *Rewriter) {
 	Walk(f, func(v Expr, stk []Expr) {
 		switch v := v.(type) {
 		case *CallExpr:
-			if leaveAlone(stk, v) {
+			if leaveAlone(v) {
 				return
 			}
 			for i := range v.List {
-				if leaveAlone1(v.List[i]) {
+				if leaveAlone(v.List[i]) {
 					continue
 				}
 				as, ok := v.List[i].(*AssignExpr)
@@ -346,7 +319,7 @@ func fixLabels(f *File, w *Rewriter) {
 				if !ok || !w.IsLabelArg[key.Name] || w.LabelDenyList[callName(v)+"."+key.Name] {
 					continue
 				}
-				if leaveAlone1(as.RHS) {
+				if leaveAlone(as.RHS) {
 					continue
 				}
 
@@ -371,7 +344,7 @@ func sortCallArgs(f *File, w *Rewriter) {
 		if !ok {
 			return
 		}
-		if leaveAlone(stk, call) {
+		if leaveAlone(call) {
 			return
 		}
 		rule := callName(call)
@@ -478,7 +451,7 @@ func sortStringLists(f *File, w *Rewriter) {
 				// Rule parameters, not applicable to default file types
 				return
 			}
-			if leaveAlone(stk, v) {
+			if leaveAlone(v) {
 				return
 			}
 			if f.Type == TypeBzl {
@@ -492,11 +465,11 @@ func sortStringLists(f *File, w *Rewriter) {
 			}
 			rule := callName(v)
 			for _, arg := range v.List {
-				if leaveAlone1(arg) {
+				if leaveAlone(arg) {
 					continue
 				}
 				as, ok := arg.(*AssignExpr)
-				if !ok || leaveAlone1(as) {
+				if !ok || leaveAlone(as) {
 					continue
 				}
 				key, ok := as.LHS.(*Ident)
@@ -955,7 +928,7 @@ func moveLoadOnTop(f *File, _ *Rewriter) {
 		// Moving load statements in Workspace files can break the semantics
 		return
 	}
-	if isCommentAnywhere(f, "disable=load-on-top") {
+	if isCommentAnywhere(f, rewriteCommentDisableLoadOnTop) {
 		// For backward compatibility. This rewrite used to be a suppressible warning,
 		// in some cases it's hard to maintain the position of load statements (e.g.
 		// when the file is automatically generated or has automatic transformations
@@ -1034,8 +1007,8 @@ func compressSameOriginLoads(f *File, _ *Rewriter) {
 			loads[load.Module.Value] = load
 			continue
 		}
-		if hasComment(previousLoad, "disable=same-origin-load") ||
-			hasComment(load, "disable=same-origin-load") {
+		if HasCommentContaining(previousLoad, "disable=same-origin-load") ||
+			HasCommentContaining(load, "disable=same-origin-load") {
 			continue
 		}
 
@@ -1117,7 +1090,7 @@ func compareLoadLabels(load1Label, load2Label string) bool {
 // sortLoadStatements reorders sorts loads lexicographically by the source file,
 // but absolute loads have priority over local loads.
 func sortLoadStatements(f *File, _ *Rewriter) {
-	if isCommentAnywhere(f, "disable=out-of-order-load") {
+	if isCommentAnywhere(f, rewriteCommentDisableOutOfOrder) {
 		// For backward compatibility. This rewrite used to be a suppressible warning,
 		// in some cases it's hard to maintain the position of load statements (e.g.
 		// when the file is automatically generated or has automatic transformations
