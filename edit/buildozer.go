@@ -714,7 +714,7 @@ func addToListSelect(r *build.Rule, attr, pkg, key string, value build.Expr) {
 		dict := last.List[0].(*build.DictExpr)
 		cur := DictionaryGet(dict, key)
 		if cur != nil {
-			DictionarySet(dict, key, AddValueToList(cur, pkg, value, false))
+DictionarySet(dict, key, AddValueToList(cur, pkg, value, !attributeMustNotBeSorted(r.Name(), attr)))
 		} else {
 			DictionarySet(dict, key, &build.ListExpr{List: []build.Expr{value}})
 			if DictionaryGet(dict, "//conditions:default") == nil {
