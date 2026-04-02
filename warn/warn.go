@@ -174,6 +174,7 @@ var FileWarningMap = map[string]func(f *build.File) []*LinterFinding{
 var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader) []*LinterFinding{
 	"bzl-visibility":                     bzlVisibilityWarning,
 	"deprecated-function":                deprecatedFunctionWarning,
+	"deprecated-module-ext":              deprecatedModuleExtWarning,
 	"git-repository":                     nativeGitRepositoryWarning,
 	"http-archive":                       nativeHTTPArchiveWarning,
 	"native-android":                     nativeAndroidRulesWarning,

@@ -274,6 +274,7 @@ cat > golden/.buildifier.example.json <<EOF
     "ctx-actions",
     "ctx-args",
     "deprecated-function",
+    "deprecated-module-ext",
     "depset-items",
     "depset-iteration",
     "depset-union",
@@ -654,10 +655,10 @@ diff -u json_report ../../golden/json_report_invalid_file_golden || die "$1: wro
 
 cd ../..
 
-# Test the multifile functionality
+# Test deprecated functions
 
-mkdir multifile
-cd multifile
+mkdir -p test_dir/multifile_deprecated_function
+cd test_dir/multifile_deprecated_function
 
 cat > lib.bzl <<EOF
 def foo():
@@ -693,7 +694,36 @@ EOF
 $buildifier --lint=warn --warnings=deprecated-function BUILD 2> report || ret=$?
 diff -u report_golden report || die "$1: wrong console output for multifile warnings (WORKSPACE exists)"
 
-cd ..
+cd ../..
+
+# Test that use_extension checks catch a deprecated module extensions
+
+mkdir -p test_dir/deprecated_module_extension
+cd test_dir/deprecated_module_extension
+
+cat > ext_dep.bzl <<EOF
+def _ext_impl(ctx):
+  """
+  Deprecated:
+    Use something else.
+  """
+  pass
+
+my_ext = module_extension(implementation = _ext_impl)
+EOF
+
+cat > MODULE.bazel <<EOF
+my_ext = use_extension("//:ext_dep.bzl", "my_ext")
+EOF
+
+cat > report_golden_ext <<EOF
+MODULE.bazel:1: deprecated-module-ext: The module extension "my_ext" defined in "//ext_dep.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#deprecated-module-ext)
+EOF
+
+$buildifier --lint=warn --warnings=deprecated-module-ext MODULE.bazel 2> report || ret=$?
+diff -u report_golden_ext report || die "$1: wrong console output for deprecated-module-ext"
+
+cd ../..
 
 # Test allowed symbol load locations
 

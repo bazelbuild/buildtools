@@ -19,6 +19,7 @@ Warning categories supported by buildifier's linter:
   * [`ctx-actions`](#ctx-actions)
   * [`ctx-args`](#ctx-args)
   * [`deprecated-function`](#deprecated-function)
+  * [`deprecated-module-ext`](#deprecated-module-ext)
   * [`depset-items`](#depset-items)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
@@ -394,6 +395,19 @@ depending on the desired behavior.
 The function defined in another .bzl file has a docstring stating that it's deprecated, i.e. it
 contains a `Deprecated:` section. The convention for function docstrings is described by
 the [`function-docstring`](#function-docstring) warning.
+
+--------------------------------------------------------------------------------
+
+## <a name="deprecated-module-ext"></a>The module extension is deprecated
+
+  * Category name: `deprecated-module-ext`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=deprecated-module-ext`
+
+The module extension defined in another .bzl file and referenced by a `use_extension`
+has a docstring stating that it is deprecated. This is indicated by either the `doc`
+argument of the `module_extension` definition function, or the docstring of the
+module extension implementation function containing a `Deprecated:` section.
 
 --------------------------------------------------------------------------------
 
