@@ -75,3 +75,35 @@ my_ext_v4 = use_extension(":extensions.bzl", "my_ext_v4")
 		},
 		scopeModule)
 }
+
+func TestDeprecatedTagClass(t *testing.T) {
+	defer setUpFileReader(map[string]string{
+		"test/package/extensions.bzl": `
+def _ext_impl(ctx):
+  pass
+
+my_ext = module_extension(
+    implementation = _ext_impl,
+    tag_classes = {
+        "tag_v1": tag_class(
+            doc = "Deprecated: use tag_v3 instead.",
+        ),
+        "tag_v2": tag_class(
+            doc = "Deprecated: use tag_v3 instead.",
+        ),
+        "tag_v3": tag_class(),
+    },
+)
+`,
+	})()
+
+	checkFindings(t, "deprecated-module-ext-tag", `
+my_ext = use_extension(":extensions.bzl", "my_ext")
+my_ext.tag_v1(name = "v1")
+my_ext.tag_v3(name = "v3")
+`,
+		[]string{
+			`2: The tag class "tag_v1" of module extension "my_ext" defined in "//test/package/extensions.bzl" is deprecated.`,
+		},
+		scopeModule)
+}

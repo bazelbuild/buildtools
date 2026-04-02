@@ -275,6 +275,7 @@ cat > golden/.buildifier.example.json <<EOF
     "ctx-args",
     "deprecated-function",
     "deprecated-module-ext",
+    "deprecated-module-ext-tag",
     "depset-items",
     "depset-iteration",
     "depset-union",
@@ -722,6 +723,38 @@ EOF
 
 $buildifier --lint=warn --warnings=deprecated-module-ext MODULE.bazel 2> report || ret=$?
 diff -u report_golden_ext report || die "$1: wrong console output for deprecated-module-ext"
+
+cd ../..
+
+# Test that module extension tag use checks catch a deprecated tag_class
+
+mkdir -p test_dir/deprecated_module_extension_tag_class
+cd test_dir/deprecated_module_extension_tag_class
+cat > ext_tag_dep.bzl <<EOF
+def _ext_impl(ctx):
+    pass
+
+my_ext = module_extension(
+    implementation = _ext_impl,
+    tag_classes = {
+        "tag": tag_class(
+            doc = "Deprecated: tag is deprecated",
+        ),
+    },
+)
+EOF
+
+cat > MODULE.bazel <<EOF
+my_ext = use_extension("//:ext_tag_dep.bzl", "my_ext")
+my_ext.tag()
+EOF
+
+cat > report_golden_tag <<EOF
+MODULE.bazel:2: deprecated-module-ext-tag: The tag class "tag" of module extension "my_ext" defined in "//ext_tag_dep.bzl" is deprecated. (https://github.com/bazelbuild/buildtools/blob/main/WARNINGS.md#deprecated-module-ext-tag)
+EOF
+
+$buildifier --lint=warn --warnings=deprecated-module-ext-tag MODULE.bazel 2> report || ret=$?
+diff -u report_golden_tag report || die "$1: wrong console output for deprecated-module-ext-tag"
 
 cd ../..
 

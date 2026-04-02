@@ -225,6 +225,15 @@ warnings: {
 }
 
 warnings: {
+  name: "deprecated-module-ext-tag"
+  header: "The tag_class from a module extension is deprecated"
+  description:
+    "The module extension defined in another .bzl file has a tag class with a docstring\n"
+    "stating it is deprecated. This is indicated by the `doc` argument to the `tag_class`\n"
+    "function containing a `Deprecated:` section."
+}
+
+warnings: {
   name: "depset-items"
   header: "Depset's \"items\" parameter is deprecated"
   description:

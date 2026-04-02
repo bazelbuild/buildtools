@@ -20,6 +20,7 @@ Warning categories supported by buildifier's linter:
   * [`ctx-args`](#ctx-args)
   * [`deprecated-function`](#deprecated-function)
   * [`deprecated-module-ext`](#deprecated-module-ext)
+  * [`deprecated-module-ext-tag`](#deprecated-module-ext-tag)
   * [`depset-items`](#depset-items)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
@@ -408,6 +409,18 @@ The module extension defined in another .bzl file and referenced by a `use_exten
 has a docstring stating that it is deprecated. This is indicated by either the `doc`
 argument of the `module_extension` definition function, or the docstring of the
 module extension implementation function containing a `Deprecated:` section.
+
+--------------------------------------------------------------------------------
+
+## <a name="deprecated-module-ext-tag"></a>The tag_class from a module extension is deprecated
+
+  * Category name: `deprecated-module-ext-tag`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=deprecated-module-ext-tag`
+
+The module extension defined in another .bzl file has a tag class with a docstring
+stating it is deprecated. This is indicated by the `doc` argument to the `tag_class`
+function containing a `Deprecated:` section.
 
 --------------------------------------------------------------------------------
 
