@@ -21,6 +21,7 @@ Warning categories supported by buildifier's linter:
   * [`deprecated-function`](#deprecated-function)
   * [`deprecated-module-ext`](#deprecated-module-ext)
   * [`deprecated-module-ext-tag`](#deprecated-module-ext-tag)
+  * [`deprecated-rule`](#deprecated-rule)
   * [`depset-items`](#depset-items)
   * [`depset-iteration`](#depset-iteration)
   * [`depset-union`](#depset-union)
@@ -420,6 +421,19 @@ module extension implementation function containing a `Deprecated:` section.
 
 The module extension defined in another .bzl file has a tag class with a docstring
 stating it is deprecated. This is indicated by the `doc` argument to the `tag_class`
+function containing a `Deprecated:` section.
+
+--------------------------------------------------------------------------------
+
+## <a name="deprecated-rule"></a>The rule is deprecated
+
+  * Category name: `deprecated-rule`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=deprecated-rule`
+
+The rule defined in another .bzl file and referenced by a `load` or by `use_repo_rule`
+has a docstring stating that it is deprecated. This is indicated by either the `doc`
+argument of the rule definition function, or the docstring of the rule implementation
 function containing a `Deprecated:` section.
 
 --------------------------------------------------------------------------------

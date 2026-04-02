@@ -176,6 +176,7 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 	"deprecated-function":                deprecatedFunctionWarning,
 	"deprecated-module-ext":              deprecatedModuleExtWarning,
 	"deprecated-module-ext-tag":          deprecatedModuleExtTagWarning,
+	"deprecated-rule":                    deprecatedRuleWarning,
 	"git-repository":                     nativeGitRepositoryWarning,
 	"http-archive":                       nativeHTTPArchiveWarning,
 	"native-android":                     nativeAndroidRulesWarning,

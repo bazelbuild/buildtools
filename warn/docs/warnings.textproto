@@ -234,6 +234,16 @@ warnings: {
 }
 
 warnings: {
+  name: "deprecated-rule"
+  header: "The rule is deprecated"
+  description:
+    "The rule defined in another .bzl file and referenced by a `load` or by `use_repo_rule`\n"
+    "has a docstring stating that it is deprecated. This is indicated by either the `doc`\n"
+    "argument of the rule definition function, or the docstring of the rule implementation\n"
+    "function containing a `Deprecated:` section."
+}
+
+warnings: {
   name: "depset-items"
   header: "Depset's \"items\" parameter is deprecated"
   description:
