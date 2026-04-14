@@ -30,18 +30,16 @@ import (
 func isStarlarkFile(name string) bool {
 	ext := filepath.Ext(name)
 	switch ext {
-	case ".bzl", ".sky", ".star":
+	case ".bazel", ".BUILD", ".bzl", ".sky", ".star":
 		return true
 	}
 
 	switch ext {
-	case ".bazel", ".oss":
-		// BUILD.bazel or BUILD.foo.bazel should be treated as Starlark files, same for WORSKSPACE and MODULE
-		// MODULE files flip the order: [prefix.]MODULE.bazel
-		return strings.HasPrefix(name, "BUILD.") || strings.HasPrefix(name, "WORKSPACE.") || strings.HasSuffix(name, "MODULE.bazel")
+	case ".oss":
+		return strings.HasPrefix(name, "BUILD.") || strings.HasPrefix(name, "WORKSPACE.")
 	}
 
-	return name == "BUILD" || name == "WORKSPACE"
+	return name == "BUILD" || name == "WORKSPACE" || name == "WORKSPACE.bzlmod"
 }
 
 func skip(info os.FileInfo) bool {
