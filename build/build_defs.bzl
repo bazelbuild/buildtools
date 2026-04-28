@@ -82,18 +82,24 @@ extract_go_src = rule(
 )
 
 # buildifier: disable=unnamed-macro
-def genfile_check_test(src, gen):
+def genfile_check_test(src, gen, allowed_diffs = []):
     """
     Asserts that any checked-in generated code matches bazel gen.
 
     Args:
       src: checked in file
       gen: generated file
+      allowed_diffs: optional list of regexes to ignore in diff
     """
     if not src:
         fail("src is required", "src")
     if not gen:
         fail("gen is required", "gen")
+
+    diff_args = ""
+    for d in allowed_diffs:
+        diff_args += " -I '%s'" % d
+
     native.genrule(
         name = src + "_checksh",
         outs = [src + "_check.sh"],
@@ -128,9 +134,9 @@ fi
 [[ "$$2" = external/* ]] && F2="$${2#external/}" || F2="$$TEST_WORKSPACE/$$2"
 F1="$$(rlocation "$$F1")"
 F2="$$(rlocation "$$F2")"
-diff -q "$$F1" "$$F2"
+diff -q%s "$$F1" "$$F2"
 eof
-""",
+""" % diff_args,
     )
     sh_test(
         name = src + "_checkshtest",
@@ -156,13 +162,14 @@ eof
     )
 
 # buildifier: disable=unnamed-macro
-def go_proto_checkedin_test(src, proto = "go_default_library"):
+def go_proto_checkedin_test(src, proto = "go_default_library", allowed_diffs = []):
     """
     Asserts that any checked-in .pb.go code matches bazel gen.
 
     Args:
       src: checked in file
       proto: generated file
+      allowed_diffs: optional list of regexes to ignore in diff
     """
     genfile = src + "_genfile"
     extract_go_src(
@@ -177,4 +184,4 @@ def go_proto_checkedin_test(src, proto = "go_default_library"):
         outs = [genfile + ".go"],
         cmd = "cp $< $@",
     )
-    genfile_check_test(src, genfile)
+    genfile_check_test(src, genfile, allowed_diffs = allowed_diffs)

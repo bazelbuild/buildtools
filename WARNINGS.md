@@ -2,6 +2,7 @@
 
 Warning categories supported by buildifier's linter:
 
+  * [`allowed-symbol-load-locations`](#allowed-symbol-load-locations)
   * [`attr-applicable_licenses`](#attr-applicable_licenses)
   * [`attr-cfg`](#attr-cfg)
   * [`attr-license`](#attr-license)
@@ -124,6 +125,27 @@ Docstrings don't trigger the warning if they are first statements of a file or a
 
 if debug:
     print("Debug information:", foo)  # buildifier: disable=print
+```
+
+--------------------------------------------------------------------------------
+
+## <a name="allowed-symbol-load-locations"></a>Symbol must be loaded from a specific location
+
+  * Category name: `allowed-symbol-load-locations`
+  * Automatic fix: no
+  * [Suppress the warning](#suppress): `# buildifier: disable=allowed-symbol-load-locations`
+
+Warns when a symbol is loaded from a location other than the expected ones.
+Expected locations are specified in the tables file:
+
+```json
+{
+  "AllowedSymbolLoadLocations": {
+    "genrule": [
+      "//tools/bazel:genrule.bzl"
+    ]
+  }
+}
 ```
 
 --------------------------------------------------------------------------------

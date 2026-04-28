@@ -10,6 +10,7 @@ load("//build:build_defs.bzl", "go_proto_checkedin_test")
 
 go_proto_checkedin_test(
     src = "build.gen.pb.go",
+    allowed_diffs = ["^[[:space:]]*//.*protoc"],
 )
 
 proto_library(
