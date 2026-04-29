@@ -86,8 +86,9 @@ See `buildozer -help` for the full list.
 
 Buildozer supports the following commands(`'command args'`):
 
-  * `add <attr> <value(s)>`: Adds value(s) to a list attribute of a rule. If a
-    value is already present in the list, it is not added.
+  * `add <attr>[:type] <value(s)>`: Adds value(s) to a list attribute of a rule.
+    If a value is already present in the list, it is not added. See
+   [supported types](#supported-types) for the available types.
   * `new_load <path> <[to=]from(s)>`: Add a load statement for the given path,
     importing the symbols. Afterwards, consider running `buildozer 'fix unusedLoads'`.
   * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
@@ -130,10 +131,12 @@ Buildozer supports the following commands(`'command args'`):
     be a simple replacement string, but it may also expand numbered or named
     groups using `$0` or `$x`. Lists without strings that match `old_regexp`
     are not modified.
-  * `set <attr> <value(s)>`: Sets the value of an attribute. If the attribute
-    was already present, its old value is replaced.
-  * `set_if_absent <attr> <value(s)>`: Sets the value of an attribute. If the
-    attribute was already present, no action is taken.
+  * `set <attr>[:<type>] <value(s)>`: Sets the value of an attribute. If the
+   attribute was already present, its old value is replaced. See
+    [supported types](#supported-types) for the available types.
+  * `set_if_absent <attr>[:<type>] <value(s)>`: Sets the value of an attribute. If the
+    attribute was already present, no action is taken. See
+    [supported types](#supported-types) for the available types.
   * `set kind <value>`: Set the target type to value.
   * `set_select <attr> <key_1> <value_1> <key_n> <value_n>`
   * `copy <attr> <from_rule>`: Copies the value of `attr` between rules. If it
@@ -187,6 +190,21 @@ The following commands only apply to `MODULE.bazel` files (e.g. the target
     *not* imported via `use_repo`. If the `dev` argument is given, extension
     usages with `dev_dependency = True` will be considered instead. Extension
     usages with `isolated = True` are ignored.
+
+#### Supported types
+
+For the commands that support explicitly providing argument types, the following
+types are available:
+
+  * `expr`: arbitrary expression, won't be quoted as a string unless already
+    quoted.
+  * `int`: reserved for integer values, but currently is equivalent to `expr`.
+  * `label`: a string containing a Bazel label, will be quoted and shortened if
+    necessary.
+  * `string`: a string value which will be quoted if necessary, but not treated
+    as a label (won't be transformed).
+  * `expr_list`, `int_list`, `label_list`, `string_list`: a list containing
+    variables of the types listed above. 
 
 #### Examples
 
