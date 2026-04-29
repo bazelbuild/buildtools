@@ -93,12 +93,16 @@ const (
 	// rawAttr is a type for idents, ints or other types that buildozer should
 	// take as is, without quoting or wrapping
 	rawAttr
-	// stringAttr is a type for strings (or labels)
+	// stringAttr is a type for strings
 	stringAttr
+	// labelAttr is similar to stringAttr but is automatically shortened if necessary
+	labelAttr
 	// rawListAttr is a type for lists of raw objects (same as rawAttr above)
 	rawListAttr
-	// stringListAttr is a type for lists of strings (or labels)
+	// stringListAttr is a type for lists of strings
 	stringListAttr
+	// labelListAttr is a type for lists of labels
+	labelListAttr
 )
 
 // parseAttr parses the attr name and optional type, e.g. "foo" or "bar:string"
@@ -113,12 +117,16 @@ func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
 	switch typeName {
 	case "expr", "int":
 		return attr, rawAttr, nil
-	case "string", "label":
+	case "string":
 		return attr, stringAttr, nil
+	case "label":
+		return attr, labelAttr, nil
 	case "expr_list", "int_list":
 		return attr, rawListAttr, nil
-	case "string_list", "label_list":
+	case "string_list":
 		return attr, stringListAttr, nil
+	case "label_list":
+		return attr, labelListAttr, nil
 	default:
 		return attr, notProvidedTypeAttr, fmt.Errorf("unknown attr type: %q", typeName)
 	}
@@ -134,14 +142,23 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if attrType == rawListAttr {
 		AddValueToListAttribute(env.Rule, attr, env.Pkg, getListExpr(env.Args[1:]...), &env.Vars)
 	} else if attrType == stringListAttr {
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, getStringsListExpr(env.Pkg, env.Args[1:]...), &env.Vars)
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, getStringsListExpr(env.Args[1:]...), &env.Vars)
+	} else if attrType == labelListAttr {
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, getLabelsListExpr(env.Pkg, env.Args[1:]...), &env.Vars)
 	} else {
 		for _, val := range env.Args[1:] {
 			if attrType == rawAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
 				AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
 				continue
 			}
-			strVal := getStringExpr(val, env.Pkg)
+			var strVal build.Expr
+			if attrType == stringAttr {
+				strVal = getStringExpr(val)
+			} else {
+				// Fall back to the legacy behavior for backwards compatibility,
+				// which is to treat all unknown attributes as labels.
+				strVal = getLabelStringExpr(val, env.Pkg)
+			}
 			AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 		}
 
@@ -603,7 +620,7 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 			continue
 		}
 		if newValue, ok := stringSubstitute(e.Value, oldRegexp, newTemplate); ok {
-			env.Rule.SetAttr(key, getStringExpr(newValue, env.Pkg))
+			env.Rule.SetAttr(key, getLabelStringExpr(newValue, env.Pkg))
 		}
 	}
 	return env.File, nil
@@ -656,10 +673,17 @@ func getAttrValueExpr(attr string, attrType AttrType, args []string, env CmdEnvi
 		}
 		return &build.ListExpr{List: list}
 	case attrType == stringListAttr || (attrType == notProvidedTypeAttr && IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob("))):
-		// list of strings/labels
+		// list of strings
 		var list []build.Expr
 		for _, arg := range args {
-			list = append(list, getStringExpr(arg, env.Pkg))
+			list = append(list, getStringExpr(arg))
+		}
+		return &build.ListExpr{List: list}
+	case attrType == labelListAttr || (attrType == notProvidedTypeAttr && IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob("))):
+		// list of labels
+		var list []build.Expr
+		for _, arg := range args {
+			list = append(list, getLabelStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
 	case attrType == rawListAttr:
@@ -672,9 +696,12 @@ func getAttrValueExpr(attr string, attrType AttrType, args []string, env CmdEnvi
 	case len(args) == 0:
 		// Expected a non-list argument, nothing provided
 		return &build.Ident{Name: "None"}
-	case attrType == stringAttr || (attrType == notProvidedTypeAttr && IsString(attr)):
+	case attrType == labelAttr || (attrType == notProvidedTypeAttr && IsString(attr)):
+		// single label
+		return getLabelStringExpr(args[0], env.Pkg)
+	case attrType == stringAttr:
 		// single string
-		return getStringExpr(args[0], env.Pkg)
+		return getStringExpr(args[0])
 	default:
 		return &build.Ident{Name: args[0]}
 	}
@@ -688,9 +715,17 @@ func getStringValue(value string) string {
 	return value
 }
 
-// getStringExpr creates a StringExpr from an input argument, which can be either quoted or not,
+// getStringExpr creates a StringExpr from an input argument, which can be either quoted or not.necessary
+func getStringExpr(value string) build.Expr {
+	if unquoted, triple, err := build.Unquote(value); err == nil {
+		return &build.StringExpr{Value: unquoted, TripleQuote: triple}
+	}
+	return &build.StringExpr{Value: value}
+}
+
+// getStringExprLabel creates a StringExpr from an input argument, which can be either quoted or not,
 // and shortens the label value if possible.
-func getStringExpr(value, pkg string) build.Expr {
+func getLabelStringExpr(value, pkg string) build.Expr {
 	if unquoted, triple, err := build.Unquote(value); err == nil {
 		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
@@ -708,10 +743,20 @@ func getListExpr(exprs ...string) *build.ListExpr {
 
 // getStringsListExpr creates a ListExpr from a list of input arguments, each of which is ensured
 // to be a string (the labels are shortened if necessary).
-func getStringsListExpr(pkg string, exprs ...string) *build.ListExpr {
+func getStringsListExpr(exprs ...string) *build.ListExpr {
 	listVal := &build.ListExpr{}
 	for _, expr := range exprs {
-		listVal.List = append(listVal.List, getStringExpr(expr, pkg))
+		listVal.List = append(listVal.List, getStringExpr(expr))
+	}
+	return listVal
+}
+
+// getLabelsListExpr creates a ListExpr from a list of input arguments, each of which is ensured
+// to be a string (the labels are shortened if necessary).
+func getLabelsListExpr(pkg string, exprs ...string) *build.ListExpr {
+	listVal := &build.ListExpr{}
+	for _, expr := range exprs {
+		listVal.List = append(listVal.List, getLabelStringExpr(expr, pkg))
 	}
 	return listVal
 }
@@ -751,7 +796,7 @@ func cmdDictAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 			return nil, fmt.Errorf("no colon in dict_add argument %q found", x)
 		}
 		kv = removeEscapes(kv, ':')
-		expr := getStringExpr(kv[1], env.Pkg)
+		expr := getLabelStringExpr(kv[1], env.Pkg)
 
 		prev := DictionaryGet(dict, kv[0])
 		if prev == nil {
@@ -781,10 +826,10 @@ func cmdSetSelect(opts *Options, env CmdEnvironment) (*build.File, error) {
 			if cur := DictionaryGet(dict, key); cur != nil {
 				list = cur.(*build.ListExpr)
 			}
-			AddValueToList(list, env.Pkg, getStringExpr(value, env.Pkg), !attributeMustNotBeSorted(env.Rule.Name(), attr))
+			AddValueToList(list, env.Pkg, getLabelStringExpr(value, env.Pkg), !attributeMustNotBeSorted(env.Rule.Name(), attr))
 			expr = list
 		} else {
-			expr = getStringExpr(value, env.Pkg)
+			expr = getLabelStringExpr(value, env.Pkg)
 		}
 		// Set overwrites previous values.
 		DictionarySet(dict, key, expr)
@@ -812,7 +857,7 @@ func cmdDictSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 			return nil, fmt.Errorf("no colon in dict_set argument %q found", x)
 		}
 		kv = removeEscapes(kv, ':')
-		expr := getStringExpr(kv[1], env.Pkg)
+		expr := getLabelStringExpr(kv[1], env.Pkg)
 		// Set overwrites previous values.
 		DictionarySet(dict, kv[0], expr)
 	}
@@ -870,11 +915,11 @@ func cmdDictReplaceIfEqual(opts *Options, env CmdEnvironment) (*build.File, erro
 			// Key-Value Pair matches key.
 			if val, ok := kv.Value.(*build.StringExpr); ok {
 				if labels.Equal(val.Value, oldV, env.Pkg) {
-					kv.Value = getStringExpr(newV, env.Pkg)
+					kv.Value = getLabelStringExpr(newV, env.Pkg)
 				}
 			} else if val, ok := kv.Value.(*build.Ident); ok {
 				if val.Name == oldV {
-					kv.Value = getStringExpr(newV, env.Pkg)
+					kv.Value = getLabelStringExpr(newV, env.Pkg)
 				}
 			}
 		}
@@ -900,7 +945,7 @@ func cmdDictListAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	}
 
 	for _, val := range args {
-		expr := getStringExpr(val, env.Pkg)
+		expr := getLabelStringExpr(val, env.Pkg)
 		prev = AddValueToList(prev, env.Pkg, expr, true)
 	}
 

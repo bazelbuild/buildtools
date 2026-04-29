@@ -257,6 +257,69 @@ function test_add_override_expr_list() {
 )'
 }
 
+function test_add_override_string() {
+  in='go_library(
+    name = "edit",
+    deps = ["old"],
+)'
+  run "$in" 'add deps:string //pkg:new' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        "old",
+        "//pkg:new",
+    ],
+)'
+}
+
+function test_add_override_string_list() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  run "$in" 'add deps:string_list //pkg:build test()' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        [
+            "//pkg:build",
+            "test()",
+        ],
+        "build",
+    ],
+)'
+}
+
+function test_add_override_label() {
+  in='go_library(
+    name = "edit",
+    deps = [":old"],
+)'
+  run "$in" 'add deps:label //pkg:new' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        ":new",
+        ":old",
+    ],
+)'
+}
+
+function test_add_override_label_list() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  run "$in" 'add deps:label_list //pkg:build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        [":build"],
+        "build",
+    ],
+)'
+}
+
 function test_add_override_unknown_type() {
   in='go_library(
     name = "edit",
@@ -1141,6 +1204,16 @@ function test_set_if_absent_override_string() {
 )'
 }
 
+function test_set_if_absent_override_label() {
+  in='soy_js(name = "a")'
+
+  run "$in" 'set_if_absent allowv1syntax:label //pkg:c' '//pkg:a'
+  assert_equals 'soy_js(
+    name = "a",
+    allowv1syntax = ":c",
+)'
+}
+
 function test_set_custom_code() {
   in='cc_test(name = "a")'
 
@@ -1157,10 +1230,20 @@ function test_set_custom_code() {
 function test_set_override_string() {
   in='cc_library(name = "a")'
 
-  run "$in" 'set copts:string foo' '//pkg:a'
+  run "$in" 'set copts:string //pkg:foo' '//pkg:a'
   assert_equals 'cc_library(
     name = "a",
-    copts = "foo",
+    copts = "//pkg:foo",
+)'
+}
+
+function test_set_override_label() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set copts:label //pkg:foo' '//pkg:a'
+  assert_equals 'cc_library(
+    name = "a",
+    copts = ":foo",
 )'
 }
 
@@ -1177,10 +1260,20 @@ function test_set_override_expr() {
 function test_set_override_string_list() {
   in='cc_library(name = "a")'
 
-  run "$in" 'set name:string_list b c' '//pkg:a'
+  run "$in" 'set name:string_list b //pkg:c' '//pkg:a'
   assert_equals 'cc_library(name = [
     "b",
-    "c",
+    "//pkg:c",
+])'
+}
+
+function test_set_override_label_list() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set name:label_list b //pkg:c' '//pkg:a'
+  assert_equals 'cc_library(name = [
+    "b",
+    ":c",
 ])'
 }
 
