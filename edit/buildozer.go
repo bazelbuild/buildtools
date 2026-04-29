@@ -102,6 +102,8 @@ const (
 )
 
 // parseAttr parses the attr name and optional type, e.g. "foo" or "bar:string"
+// The type names are taken from https://bazel.build/rules/lib/toplevel/attr
+// when possible
 func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
 	chunks := strings.SplitN(attrName, ":", 2)
 	if len(chunks) == 1 {
@@ -109,13 +111,13 @@ func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
 	}
 	attr, typeName := chunks[0], chunks[1]
 	switch typeName {
-	case "int", "raw", "ident":
+	case "expr", "int":
 		return attr, rawAttr, nil
 	case "string", "label":
 		return attr, stringAttr, nil
-	case "list", "raw_list":
+	case "expr_list", "int_list":
 		return attr, rawListAttr, nil
-	case "list_of_strings", "list_of_labels":
+	case "string_list", "label_list":
 		return attr, stringListAttr, nil
 	default:
 		return attr, notProvidedTypeAttr, fmt.Errorf("unknown attr type: %q", typeName)
@@ -129,14 +131,22 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, val := range env.Args[1:] {
-		if attrType == rawAttr || attrType == rawListAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
-			continue
+	if attrType == rawListAttr {
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, getListExpr(env.Args[1:]...), &env.Vars)
+	} else if attrType == stringListAttr {
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, getStringsListExpr(env.Pkg, env.Args[1:]...), &env.Vars)
+	} else {
+		for _, val := range env.Args[1:] {
+			if attrType == rawAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
+				AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
+				continue
+			}
+			strVal := getStringExpr(val, env.Pkg)
+			AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 		}
-		strVal := getStringExpr(val, env.Pkg)
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
+
 	}
+
 	ResolveAttr(env.Rule, attr, env.Pkg)
 	return env.File, nil
 }
@@ -685,6 +695,25 @@ func getStringExpr(value, pkg string) build.Expr {
 		return &build.StringExpr{Value: ShortenLabel(unquoted, pkg), TripleQuote: triple}
 	}
 	return &build.StringExpr{Value: ShortenLabel(value, pkg)}
+}
+
+// getListExpr creates a ListExpr from a list of input arguments
+func getListExpr(exprs ...string) *build.ListExpr {
+	listVal := &build.ListExpr{}
+	for _, expr := range exprs {
+		listVal.List = append(listVal.List, &build.Ident{Name: expr})
+	}
+	return listVal
+}
+
+// getStringsListExpr creates a ListExpr from a list of input arguments, each of which is ensured
+// to be a string (the labels are shortened if necessary).
+func getStringsListExpr(pkg string, exprs ...string) *build.ListExpr {
+	listVal := &build.ListExpr{}
+	for _, expr := range exprs {
+		listVal.List = append(listVal.List, getStringExpr(expr, pkg))
+	}
+	return listVal
 }
 
 func cmdCopy(opts *Options, env CmdEnvironment) (*build.File, error) {

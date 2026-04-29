@@ -224,12 +224,12 @@ function test_add_duplicate_label2() {
 )'
 }
 
-function test_add_override_ident() {
+function test_add_override_expr() {
   in='go_library(
     name = "edit",
     deps = ["build"],
 )'
-  run "$in" 'add deps:ident build' '//pkg:edit'
+  run "$in" 'add deps:expr build' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     deps = [
@@ -239,17 +239,19 @@ function test_add_override_ident() {
 )'
 }
 
-function test_add_override_ident2() {
+function test_add_override_expr_list() {
   in='go_library(
     name = "edit",
     deps = ["build"],
 )'
-  run "$in" 'add deps:raw_list build test()' '//pkg:edit'
+  run "$in" 'add deps:expr_list build test()' '//pkg:edit'
   assert_equals 'go_library(
     name = "edit",
     deps = [
-        build,
-        test(),
+        [
+            build,
+            test(),
+        ],
         "build",
     ],
 )'
@@ -1162,33 +1164,33 @@ function test_set_override_string() {
 )'
 }
 
-function test_set_override_ident() {
+function test_set_override_expr() {
   in='cc_library(name = "a")'
 
-  run "$in" 'set copts:ident foo' '//pkg:a'
+  run "$in" 'set copts:expr foo()' '//pkg:a'
   assert_equals 'cc_library(
     name = "a",
-    copts = foo,
+    copts = foo(),
 )'
 }
 
-function test_set_override_list_of_strings() {
+function test_set_override_string_list() {
   in='cc_library(name = "a")'
 
-  run "$in" 'set name:list_of_strings b c' '//pkg:a'
+  run "$in" 'set name:string_list b c' '//pkg:a'
   assert_equals 'cc_library(name = [
     "b",
     "c",
 ])'
 }
 
-function test_set_override_list_of_idents() {
+function test_set_override_expr_list() {
   in='cc_library(name = "a")'
 
-  run "$in" 'set name:list b c' '//pkg:a'
+  run "$in" 'set name:expr_list b c()' '//pkg:a'
   assert_equals 'cc_library(name = [
     b,
-    c,
+    c(),
 ])'
 }
 
