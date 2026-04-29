@@ -29,6 +29,13 @@ import (
 	"github.com/bazelbuild/buildtools/testutils"
 )
 
+// List of test files that have irreversible changes (e.g. if a list is sorted only for Bzl,
+// the tests TestPrintBuildAsBzl and TestPrintBzlAsBuild will fail as the list will not be
+// un-sorted by formatting it in the reverse order).
+var hasIrreversibleChanges = map[string]bool{
+	"testdata/077": true,
+}
+
 // exists reports whether the named file exists.
 func exists(name string) bool {
 	_, err := os.Stat(name)
@@ -50,14 +57,14 @@ func setFlags(file string) func() {
 	}
 }
 
-func testIdempotence(t *testing.T, file string, isBuild bool) {
+func testIdempotence(t *testing.T, file string, fileType FileType) {
 	defer setFlags(file)()
-	testPrint(t, file, file, isBuild)
+	testPrint(t, file, file, fileType)
 }
 
-func testFormat(t *testing.T, input, output string, isBuild bool) {
+func testFormat(t *testing.T, input, output string, fileType FileType) {
 	defer setFlags(output)()
-	testPrint(t, input, output, isBuild)
+	testPrint(t, input, output, fileType)
 }
 
 // Test that reading and then writing the golden files
@@ -68,18 +75,18 @@ func TestPrintGolden(t *testing.T) {
 
 	// Run the tests with --type=build
 	for _, out := range outs {
-		if strings.HasSuffix(out, ".bzl.golden") {
+		if !strings.HasSuffix(out, ".build.golden") {
 			continue
 		}
-		testIdempotence(t, out, true)
+		testIdempotence(t, out, TypeBuild)
 	}
 
 	// Run the same tests with --type=bzl
 	for _, out := range outs {
-		if strings.HasSuffix(out, ".build.golden") {
+		if !strings.HasSuffix(out, ".bzl.golden") {
 			continue
 		}
-		testIdempotence(t, out, false)
+		testIdempotence(t, out, TypeBzl)
 	}
 }
 
@@ -89,21 +96,26 @@ func TestPrintRewrite(t *testing.T) {
 	defer chdir()
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
-		outBzl := prefix + ".golden"
-		outBuild := prefix + ".golden"
 
-		if !exists(outBzl) {
-			outBzl = prefix + ".bzl.golden"
-			outBuild = prefix + ".build.golden"
+		if out := prefix + ".golden"; exists(out) {
+			// Tests with a single .golden suffix test that build, bzl and default
+			// all result in same output.
+			testFormat(t, in, out, TypeDefault)
+			testFormat(t, in, out, TypeBzl)
+			testFormat(t, in, out, TypeBuild)
 		}
-
-		testFormat(t, in, outBzl, false)
-		testFormat(t, in, outBuild, true)
-
-		stripslashesBuild := prefix + ".stripslashes.golden"
-		if exists(stripslashesBuild) {
-			// Test this file in BUILD mode only
-			testFormat(t, in, stripslashesBuild, true)
+		if out := prefix + ".default.golden"; exists(out) {
+			testFormat(t, in, out, TypeDefault)
+		}
+		if out := prefix + ".bzl.golden"; exists(out) {
+			testFormat(t, in, out, TypeBzl)
+		}
+		if out := prefix + ".build.golden"; exists(out) {
+			testFormat(t, in, out, TypeBuild)
+		}
+		if out := prefix + ".stripslashes.golden"; exists(out) {
+			// Stripslashes in BUILD mode only.
+			testFormat(t, in, out, TypeBuild)
 		}
 	}
 }
@@ -140,11 +152,14 @@ func TestPrintBuildAsBzl(t *testing.T) {
 	defer chdir()
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
+		if hasIrreversibleChanges[prefix] {
+			continue
+		}
 		outBuild := prefix + ".build.golden"
 		if !exists(outBuild) {
 			continue
 		}
-		testIdempotence(t, outBuild, false)
+		testIdempotence(t, outBuild, TypeBzl|TypeDefault)
 	}
 }
 
@@ -155,12 +170,15 @@ func TestPrintBzlAsBuild(t *testing.T) {
 	defer chdir()
 	for _, in := range ins {
 		prefix := in[:len(in)-len(".in")]
+		if hasIrreversibleChanges[prefix] {
+			continue
+		}
 		outBuild := prefix + ".build.golden"
 		outBzl := prefix + ".bzl.golden"
 		if !exists(outBuild) {
 			continue
 		}
-		testFormat(t, outBzl, outBuild, true)
+		testFormat(t, outBzl, outBuild, TypeBuild)
 	}
 }
 
@@ -175,7 +193,7 @@ func findTests(t *testing.T, suffix string) ([]string, func()) {
 // testPrint is a helper for testing the printer.
 // It reads the file named in, reformats it, and compares
 // the result to the file named out.
-func testPrint(t *testing.T, in, out string, isBuild bool) {
+func testPrint(t *testing.T, in, out string, fileType FileType) {
 	data, err := os.ReadFile(in)
 	if err != nil {
 		t.Error(err)
@@ -189,14 +207,15 @@ func testPrint(t *testing.T, in, out string, isBuild bool) {
 	}
 
 	base := "testdata/" + filepath.Base(in)
-	parsers := map[string]func(string, []byte) (*File, error){
-		"bzl":     ParseBzl,
-		"default": ParseDefault,
+	parsers := make(map[string]func(string, []byte) (*File, error))
+	if (fileType & TypeBzl) != 0 {
+		parsers["bzl"] = ParseBzl
 	}
-	if isBuild {
-		parsers = map[string]func(string, []byte) (*File, error){
-			"build": ParseBuild,
-		}
+	if (fileType & TypeBuild) != 0 {
+		parsers["build"] = ParseBuild
+	}
+	if (fileType & TypeDefault) != 0 {
+		parsers["default"] = ParseDefault
 	}
 
 	for name, parser := range parsers {
