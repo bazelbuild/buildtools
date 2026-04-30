@@ -86,9 +86,10 @@ See `buildozer -help` for the full list.
 
 Buildozer supports the following commands(`'command args'`):
 
-  * `add <attr>[:type] <value(s)>`: Adds value(s) to a list attribute of a rule.
-    If a value is already present in the list, it is not added. See
-   [supported types](#supported-types) for the available types.
+  * `add <attr>[:<type>] <value(s)>`: Adds value(s) to a list attribute of a rule.
+    If a value is already present in the list, it is not added. `type` specifies
+    the type of values being added. See [supported types](#supported-types) for
+    the available types.
   * `new_load <path> <[to=]from(s)>`: Add a load statement for the given path,
     importing the symbols. Afterwards, consider running `buildozer 'fix unusedLoads'`.
   * `replace_load <path> <[to=]from(s)>`: Similar to `new_load`, but removes
@@ -132,11 +133,13 @@ Buildozer supports the following commands(`'command args'`):
     groups using `$0` or `$x`. Lists without strings that match `old_regexp`
     are not modified.
   * `set <attr>[:<type>] <value(s)>`: Sets the value of an attribute. If the
-   attribute was already present, its old value is replaced. See
+   attribute was already present, its old value is replaced. `type` specifies
+   the type of values being added. See
     [supported types](#supported-types) for the available types.
-  * `set_if_absent <attr>[:<type>] <value(s)>`: Sets the value of an attribute. If the
-    attribute was already present, no action is taken. See
-    [supported types](#supported-types) for the available types.
+  * `set_if_absent <attr>[:<type>] <value(s)>`: Sets the value of an attribute.
+    If the attribute was already present, no action is taken. `type` specifies
+    the type of values being added. See [supported types](#supported-types) for
+  * the available types.
   * `set kind <value>`: Set the target type to value.
   * `set_select <attr> <key_1> <value_1> <key_n> <value_n>`
   * `copy <attr> <from_rule>`: Copies the value of `attr` between rules. If it
