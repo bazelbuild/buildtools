@@ -1247,6 +1247,16 @@ function test_set_override_label() {
 )'
 }
 
+function test_set_override_label_2() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set copts:label foo' '//pkg:a'
+  assert_equals 'cc_library(
+    name = "a",
+    copts = "foo",
+)'
+}
+
 function test_set_override_expr() {
   in='cc_library(name = "a")'
 
