@@ -859,6 +859,67 @@ func TestCmdDictOperations(t *testing.T) {
 	}
 }
 
+func TestCmdAddRemove_GlobalVariableInBzl(t *testing.T) {
+	input := `my_patches = ["a.patch"]
+
+def _fn():
+    my_patches = ["function_local.patch"]
+`
+	f, err := build.ParseBzl("defs.bzl", []byte(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	vars := getGlobalVariables(f.Stmt)
+	if _, ok := vars["my_patches"]; !ok {
+		t.Fatalf("expected my_patches to be detected as a global variable")
+	}
+	// Ensure we don't treat function-local assignments as globals.
+	if _, ok := vars["_fn"]; ok {
+		t.Fatalf("unexpected: function name should not be treated as a variable")
+	}
+
+	// Variable targets are represented by a dummy Rule with nil Call.
+	varTarget := &build.Rule{ImplicitName: "my_patches"}
+
+	// Add b.patch to the variable list.
+	_, err = cmdAdd(NewOpts(), CmdEnvironment{
+		File: f,
+		Rule: varTarget,
+		Vars: vars,
+		Pkg:  "",
+		Args: []string{"patches", "b.patch"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove a.patch from the variable list.
+	_, err = cmdRemove(NewOpts(), CmdEnvironment{
+		File: f,
+		Rule: varTarget,
+		Vars: vars,
+		Pkg:  "",
+		Args: []string{"patches", "a.patch"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := strings.TrimSpace(string(build.Format(f)))
+	expected := `my_patches = ["b.patch"]
+
+def _fn():
+    my_patches = ["function_local.patch"]`
+	wantF, err := build.ParseBzl("defs.bzl", []byte(expected))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := strings.TrimSpace(string(build.Format(wantF)))
+	if got != want {
+		t.Errorf("global variable edit in .bzl:\n got: %s\nwant: %s", got, want)
+	}
+}
+
 func TestCmdSetSelect(t *testing.T) {
 	for i, tc := range []struct {
 		name      string

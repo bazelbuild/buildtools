@@ -86,6 +86,20 @@ type CmdEnvironment struct {
 // The cmdXXX functions implement the various commands.
 
 func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Variable targets are represented by a dummy Rule with a nil Call.
+	if env.Rule != nil && env.Rule.Call == nil {
+		varName := env.Rule.ImplicitName
+		varAssign, ok := env.Vars[varName]
+		if !ok {
+			return nil, fmt.Errorf("variable %s is not defined", varName)
+		}
+		for _, val := range env.Args[1:] {
+			strVal := getStringExpr(val, env.Pkg)
+			varAssign.RHS = AddValueToList(varAssign.RHS, env.Pkg, strVal, true)
+		}
+
+		return env.File, nil
+	}
 	attr := env.Args[0]
 	for _, val := range env.Args[1:] {
 		if IsIntList(attr) {
@@ -419,6 +433,18 @@ func attrKeysForPattern(rule *build.Rule, pattern string) []string {
 }
 
 func cmdRemove(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Variable targets are represented by a dummy Rule with a nil Call.
+	if env.Rule != nil && env.Rule.Call == nil {
+		varName := env.Rule.ImplicitName
+		varAssign, ok := env.Vars[varName]
+		if !ok {
+			return nil, fmt.Errorf("variable %s is not defined", varName)
+		}
+		for _, val := range env.Args[1:] {
+			ListDelete(varAssign.RHS, val, env.Pkg)
+		}
+		return env.File, nil
+	}
 	if len(env.Args) == 1 { // Remove the attribute
 		if env.Args[0] == "*" {
 			didDelete := false
@@ -962,7 +988,7 @@ var readonlyCommands = map[string]bool{
 	"print_comment": true,
 }
 
-func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
+func expandTargets(f *build.File, rule string, vars map[string]*build.AssignExpr) ([]*build.Rule, error) {
 	if r := FindRuleByName(f, rule); r != nil {
 		return []*build.Rule{r}, nil
 	} else if r := FindExportedFile(f, rule); r != nil {
@@ -981,6 +1007,12 @@ func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {
 			}
 		} else {
 			return f.Rules(kind), nil
+		}
+	} else if vars != nil {
+		// When variable editing is enabled, allow targeting global variables directly,
+		// but only if the variable is actually defined in the file.
+		if _, ok := vars[rule]; ok {
+			return []*build.Rule{{ImplicitName: rule}}, nil
 		}
 	}
 	return nil, fmt.Errorf("rule '%s' not found", rule)
@@ -1132,11 +1164,19 @@ type rewriteResult struct {
 func getGlobalVariables(exprs []build.Expr) (vars map[string]*build.AssignExpr) {
 	vars = make(map[string]*build.AssignExpr)
 	for _, expr := range exprs {
-		if as, ok := expr.(*build.AssignExpr); ok {
-			if lhs, ok := as.LHS.(*build.Ident); ok {
-				vars[lhs.Name] = as
+		build.Walk(expr, func(x build.Expr, stk []build.Expr) {
+			//Skip variables defined inside functions
+			for _, frame := range stk {
+				if _, ok := frame.(*build.DefStmt); ok {
+					return
+				}
 			}
-		}
+			if as, ok := x.(*build.AssignExpr); ok {
+				if lhs, ok := as.LHS.(*build.Ident); ok {
+					vars[lhs.Name] = as
+				}
+			}
+		})
 	}
 	return vars
 }
@@ -1238,7 +1278,7 @@ func rewrite(opts *Options, commandsForFile commandsForFile) *rewriteResult {
 			absPkg = f.Pkg
 		}
 
-		targets, err := expandTargets(f, rule)
+		targets, err := expandTargets(f, rule, vars)
 		if err != nil {
 			cerr := commandError(cft.commands, cft.target, err)
 			errs = append(errs, cerr)
@@ -1691,7 +1731,7 @@ func ExecuteCommandsOnInlineFile(fileContent []byte, commands []string) ([]byte,
 		f.Type = build.TypeBuild
 	}
 	for _, cft := range commandsByTargetName {
-		rules, err := expandTargets(f, cft.target)
+		rules, err := expandTargets(f, cft.target, nil)
 		if err != nil {
 			return nil, err
 		}
