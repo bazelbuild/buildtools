@@ -225,6 +225,23 @@ func cmdPrintComment(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdDelete(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Variable targets are represented by a dummy Rule with a nil Call.
+	if env.Rule != nil && env.Rule.Call == nil {
+		varName := env.Rule.ImplicitName
+		varAssign, ok := env.Vars[varName]
+		if !ok {
+			return nil, fmt.Errorf("variable %s is not defined", varName)
+		}
+		var all []build.Expr
+		for _, stmt := range env.File.Stmt {
+			if stmt == varAssign {
+				continue
+			}
+			all = append(all, stmt)
+		}
+		env.File.Stmt = all
+		return env.File, nil
+	}
 	return DeleteRule(env.File, env.Rule), nil
 }
 
@@ -345,6 +362,47 @@ func cmdSubstituteLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
+	// Variable targets are represented by a dummy Rule with a nil Call.
+	if env.Rule != nil && env.Rule.Call == nil {
+		varName := env.Rule.ImplicitName
+		varAssign, ok := env.Vars[varName]
+		if !ok {
+			return nil, fmt.Errorf("variable %s is not defined", varName)
+		}
+		format := env.Args
+		if len(format) == 0 {
+			format = []string{"value"}
+		}
+		fields := make([]*apipb.Output_Record_Field, len(format))
+		for i, str := range format {
+			switch str {
+			case "name":
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: varName}}
+			case "kind":
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: "var"}}
+			case "label":
+				label := labels.Label{Package: env.Pkg, Target: varName}
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: label.Format()}}
+			case "path":
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: env.File.Path}}
+			case "startline":
+				start, _ := varAssign.Span()
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{Number: int32(start.Line)}}
+			case "endline":
+				_, end := varAssign.Span()
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Number{Number: int32(end.Line)}}
+			case "rule":
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(varAssign)}}
+			case "value":
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Text{Text: build.FormatString(varAssign.RHS)}}
+			default:
+				fields[i] = &apipb.Output_Record_Field{Value: &apipb.Output_Record_Field_Error{Error: apipb.Output_Record_Field_MISSING}}
+			}
+		}
+		env.output.Fields = fields
+		return nil, nil
+	}
+
 	format := env.Args
 	if len(format) == 0 {
 		format = []string{"name", "kind"}
@@ -586,6 +644,16 @@ func cmdSubstitute(opts *Options, env CmdEnvironment) (*build.File, error) {
 func cmdSet(opts *Options, env CmdEnvironment) (*build.File, error) {
 	attr := env.Args[0]
 	args := env.Args[1:]
+	// Variable targets are represented by a dummy Rule with a nil Call.
+	if env.Rule != nil && env.Rule.Call == nil {
+		varName := env.Rule.ImplicitName
+		varAssign, ok := env.Vars[varName]
+		if !ok {
+			return nil, fmt.Errorf("variable %s is not defined", varName)
+		}
+		varAssign.RHS = getAttrValueExpr(attr, args, env)
+		return env.File, nil
+	}
 	if attr == "kind" {
 		env.Rule.SetKind(args[0])
 	} else {
@@ -1338,6 +1406,7 @@ func executeCommandsInFile(
 ) (*build.File, error) {
 	changed := false
 	for _, cmd := range cft.commands {
+		cmdName := cmd.tokens[0]
 		cmdInfo := AllCommands[cmd.tokens[0]]
 		// Depending on whether a transformation is rule-specific or not, it should be applied to
 		// every rule that satisfies the filter or just once to the file.
@@ -1346,6 +1415,22 @@ func executeCommandsInFile(
 			cmdTargets = []*build.Rule{nil}
 		}
 		for _, r := range cmdTargets {
+			// Variable targets are represented by a dummy Rule with a nil Call.
+			// Most rule-specific commands assume a non-nil Call, so guard centrally to avoid panics.
+			if r != nil && r.Call == nil {
+				switch cmdName {
+				case "add", "remove", "set", "print", "delete":
+					// Supported variable-target commands.
+				default:
+					err := fmt.Errorf("command %q does not support variable targets", cmdName)
+					cerr := commandError([]command{cmd}, cft.target, err)
+					if opts.KeepGoing {
+						*errs = append(*errs, cerr)
+						continue
+					}
+					return nil, cerr
+				}
+			}
 			record := &apipb.Output_Record{}
 			newf, err := cmdInfo.Fn(opts, CmdEnvironment{f, r, vars, absPkg, cmd.tokens[1:], record})
 			if len(record.Fields) != 0 {
