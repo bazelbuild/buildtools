@@ -560,9 +560,11 @@ func deduplicateStringList(x Expr) {
 // deduplicateStringExprs removes duplicate string expressions from a slice
 // without reordering its elements.
 // Any suffix-comments are lost, any before- and after-comments are preserved.
+// Strings with different prefixes (e.g. f"x" vs "x") are not duplicates.
 func deduplicateStringExprs(list []Expr) []Expr {
+	type key struct{ prefix, value string }
 	var comments []Comment
-	alreadySeen := make(map[string]bool)
+	alreadySeen := make(map[key]bool)
 	var deduplicated []Expr
 	for _, value := range list {
 		str, ok := value.(*StringExpr)
@@ -570,15 +572,15 @@ func deduplicateStringExprs(list []Expr) []Expr {
 			deduplicated = append(deduplicated, value)
 			continue
 		}
-		strVal := str.Value
-		if _, ok := alreadySeen[strVal]; ok {
+		k := key{str.Prefix, str.Value}
+		if _, ok := alreadySeen[k]; ok {
 			// This is a duplicate of a string above.
 			// Collect comments so that they're not lost.
 			comments = append(comments, str.Comment().Before...)
 			comments = append(comments, str.Comment().After...)
 			continue
 		}
-		alreadySeen[strVal] = true
+		alreadySeen[k] = true
 		if len(comments) > 0 {
 			comments = append(comments, value.Comment().Before...)
 			value.Comment().Before = comments
@@ -698,10 +700,11 @@ func sortStringExprs(list []Expr) []Expr {
 
 // uniq removes duplicates from a list, which must already be sorted.
 // It edits the list in place.
+// Strings with different prefixes (e.g. f"x" vs "x") are not duplicates.
 func uniq(sortedList []stringSortKey) []stringSortKey {
 	out := sortedList[:0]
 	for _, sk := range sortedList {
-		if len(out) == 0 || sk.value != out[len(out)-1].value {
+		if len(out) == 0 || sk.value != out[len(out)-1].value || sk.prefix != out[len(out)-1].prefix {
 			out = append(out, sk)
 		}
 	}
@@ -711,7 +714,7 @@ func uniq(sortedList []stringSortKey) []stringSortKey {
 // isUniq reports whether the sorted list only contains unique elements.
 func isUniq(list []stringSortKey) bool {
 	for i := range list {
-		if i+1 < len(list) && list[i].value == list[i+1].value {
+		if i+1 < len(list) && list[i].value == list[i+1].value && list[i].prefix == list[i+1].prefix {
 			return false
 		}
 	}
@@ -728,6 +731,7 @@ type stringSortKey struct {
 	phase    int
 	split    []string
 	value    string
+	prefix   string
 	original int
 	x        Expr
 }
@@ -735,6 +739,7 @@ type stringSortKey struct {
 func makeSortKey(index int, x *StringExpr) stringSortKey {
 	key := stringSortKey{
 		value:    x.Value,
+		prefix:   x.Prefix,
 		original: index,
 		x:        x,
 	}
@@ -775,6 +780,9 @@ func (x byStringExpr) Less(i, j int) bool {
 	}
 	if xi.value != xj.value {
 		return xi.value < xj.value
+	}
+	if xi.prefix != xj.prefix {
+		return xi.prefix < xj.prefix
 	}
 	return xi.original < xj.original
 }
