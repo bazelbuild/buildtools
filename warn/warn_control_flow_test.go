@@ -774,6 +774,27 @@ _format(1, 2)
 `,
 		[]string{},
 		scopeEverywhere)
+
+	// Non-ASCII identifiers are recognized inside f-string fields.
+	checkFindings(t, "unused-variable", `
+def _greet(café):
+  return f"hello {café}"
+
+_greet("x")
+`,
+		[]string{},
+		scopeEverywhere)
+
+	// Attribute names after a dot are not variable references: `path` is the
+	// unused parameter, not the `ctx.label.path` attribute.
+	checkFindings(t, "unused-variable", `
+def _f(ctx, path):
+  return f"{ctx.label.path}"
+
+_f(None, "x")
+`,
+		[]string{`:1: Variable "path" is unused.`},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {

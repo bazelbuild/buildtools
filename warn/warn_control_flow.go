@@ -29,7 +29,7 @@ import (
 )
 
 // fstringIdentRE matches identifier names inside f-string fields.
-var fstringIdentRE = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_]*`)
+var fstringIdentRE = regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
 
 // fstringKeywords are reserved words to exclude when scanning f-string fields.
 var fstringKeywords = map[string]bool{
@@ -93,7 +93,12 @@ func extractIdentsFromFString(value string) []string {
 			return idents
 		}
 		expr := value[j+1 : k-1]
-		for _, m := range fstringIdentRE.FindAllString(expr, -1) {
+		for _, idx := range fstringIdentRE.FindAllStringIndex(expr, -1) {
+			// Skip attribute names: `bar` in `{foo.bar}` is not a variable.
+			if idx[0] > 0 && expr[idx[0]-1] == '.' {
+				continue
+			}
+			m := expr[idx[0]:idx[1]]
 			if !fstringKeywords[m] {
 				idents = append(idents, m)
 			}
