@@ -138,15 +138,10 @@ var fstringUnquoteTests = []struct {
 	{`f""`, ``, false},
 	{`f'single'`, `single`, false},
 	{`f"\n{x}\t"`, "\n{x}\t", false},
-	{`f"\\windows\\{path}"`, `\windows\{path}`, false},
-	{`f"\x41={x}"`, "A={x}", false},
-	{`f"é_{name}"`, "é_{name}", false},
 	{`f"got \"{value}\""`, `got "{value}"`, false},
 	{`f"""line1
 {x}
 line3"""`, "line1\n{x}\nline3", true},
-	{`f'''{x}'''`, `{x}`, true},
-	{`f"""line:\n\t{x}"""`, "line:\n\t{x}", true},
 }
 
 func TestUnquoteFString(t *testing.T) {

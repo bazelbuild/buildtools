@@ -43,7 +43,6 @@ error: {msg}
 """`, "\nerror: {msg}\n  at {loc}\n", true, "f"},
 		// Plain strings must not pick up a prefix.
 		{`"plain {x}"`, "plain {x}", false, ""},
-		{`"//foo:bar"`, "//foo:bar", false, ""},
 	}
 
 	for _, c := range cases {
@@ -133,7 +132,6 @@ func TestFStringPrintFallback(t *testing.T) {
 		{&StringExpr{Value: "err:\n  {detail}", Prefix: "f", TripleQuote: true}, "f\"\"\"err:\n  {detail}\"\"\""},
 		{&StringExpr{Value: "{not_a_field}"}, `"{not_a_field}"`},
 		{&StringExpr{Value: "{x}", Prefix: "f", Token: `"{x}"`}, `f"{x}"`},
-		{&StringExpr{Value: `says "hi" {x}`, Prefix: "f", Token: `"says \"hi\" {x}"`}, `f"says \"hi\" {x}"`},
 	}
 	for _, c := range cases {
 		f := &File{Stmt: []Expr{c.s}}

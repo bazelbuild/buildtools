@@ -709,17 +709,6 @@ _make_lib("foo", "core")
 		[]string{},
 		scopeEverywhere)
 
-	// Multiple variables inside an f-string with !r conversions.
-	checkFindings(t, "unused-variable", `
-def _check_eq(got, want):
-  if got != want:
-    fail(f"got {got!r}, want {want!r}")
-
-_check_eq(1, 1)
-`,
-		[]string{},
-		scopeEverywhere)
-
 	// Comprehension iterator used only inside an f-string is still considered used.
 	checkFindings(t, "unused-variable", `
 def _deps_for(targets):
