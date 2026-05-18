@@ -628,9 +628,18 @@ func (p *printer) expr(v Expr, outerPrec int) {
 		// also use it if it has single quotes and the value itself contains a double quote symbol
 		// or if it's a raw string literal (starts with "r") or an f-string (starts with "f").
 		// This preserves the specific escaping choices that BUILD authors have made.
+		prefix := v.Prefix
+		if prefix == "" {
+			if strings.HasPrefix(v.Token, "r") {
+				prefix = "r"
+			} else if strings.HasPrefix(v.Token, "f") {
+				prefix = "f"
+			}
+		}
+
 		s, triple, err := Unquote(v.Token)
 		if err == nil && s == v.Value && triple == v.TripleQuote {
-			if v.Prefix == "r" && strings.HasPrefix(v.Token, `r`) {
+			if prefix == "r" && strings.HasPrefix(v.Token, `r`) {
 				// Raw string literal
 				token := v.Token
 				if strings.HasSuffix(v.Token, `'`) && !strings.ContainsRune(v.Value, '"') {
@@ -645,7 +654,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 				break
 			}
 
-			if v.Prefix == "f" && strings.HasPrefix(v.Token, `f`) {
+			if prefix == "f" && strings.HasPrefix(v.Token, `f`) {
 				// f-string literal
 				token := v.Token
 				if strings.HasSuffix(v.Token, `'`) && !strings.ContainsRune(v.Value, '"') {
@@ -661,7 +670,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 
 			// Non-raw string literal
-			if v.Prefix == "" && (strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"')) {
+			if prefix == "" && (strings.HasPrefix(v.Token, `"`) || strings.ContainsRune(v.Value, '"')) {
 				// Either double quoted or there are double-quotes inside the string
 				if IsCorrectEscaping(v.Token) {
 					p.printf("%s", v.Token)
@@ -670,7 +679,7 @@ func (p *printer) expr(v Expr, outerPrec int) {
 			}
 		}
 
-		if v.Prefix == "f" {
+		if prefix == "f" {
 			p.printf("f%s", quote(v.Value, v.TripleQuote))
 		} else {
 			p.printf("%s", quote(v.Value, v.TripleQuote))
