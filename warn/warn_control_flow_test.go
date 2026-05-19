@@ -795,6 +795,16 @@ _f(None, "x")
 `,
 		[]string{`:1: Variable "path" is unused.`},
 		scopeEverywhere)
+
+	// Braces inside string literals don't terminate the field early.
+	checkFindings(t, "unused-variable", `
+def _f(prefix, suffix):
+  return f"{prefix + '}' + suffix}"
+
+_f("a", "b")
+`,
+		[]string{},
+		scopeEverywhere)
 }
 
 func TestRedefinedVariable(t *testing.T) {

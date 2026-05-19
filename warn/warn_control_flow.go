@@ -76,15 +76,27 @@ func extractIdentsFromFString(value string) []string {
 			continue
 		}
 		// Find the matching '}', tracking nested {...} (allowed in format
-		// specs). Inside a field, "{{"/"}}" are not escapes.
+		// specs) and skipping braces inside string literals.
 		depth := 1
 		k := j + 1
+		var quote byte
 		for k < len(value) && depth > 0 {
-			switch value[k] {
-			case '{':
-				depth++
-			case '}':
-				depth--
+			c := value[k]
+			if quote != 0 {
+				if c == quote {
+					quote = 0
+				} else if c == '\\' && k+1 < len(value) {
+					k++ // skip escaped char
+				}
+			} else {
+				switch c {
+				case '{':
+					depth++
+				case '}':
+					depth--
+				case '"', '\'':
+					quote = c
+				}
 			}
 			k++
 		}
