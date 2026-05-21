@@ -93,16 +93,6 @@ const (
 	// rawAttr is a type for idents, ints or other types that buildozer should
 	// take as is, without quoting or wrapping
 	rawAttr
-	// stringAttr is a type for strings
-	stringAttr
-	// labelAttr is similar to stringAttr but is automatically shortened if necessary
-	labelAttr
-	// rawListAttr is a type for lists of raw objects (same as rawAttr above)
-	rawListAttr
-	// stringListAttr is a type for lists of strings
-	stringListAttr
-	// labelListAttr is a type for lists of labels
-	labelListAttr
 )
 
 // parseAttr parses the attr name and optional type, e.g. "foo" or "bar:string"
@@ -115,18 +105,8 @@ func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
 	}
 	attr, typeName := chunks[0], chunks[1]
 	switch typeName {
-	case "expr", "int":
+	case "expr":
 		return attr, rawAttr, nil
-	case "string":
-		return attr, stringAttr, nil
-	case "label":
-		return attr, labelAttr, nil
-	case "expr_list", "int_list":
-		return attr, rawListAttr, nil
-	case "string_list":
-		return attr, stringListAttr, nil
-	case "label_list":
-		return attr, labelListAttr, nil
 	default:
 		return attr, notProvidedTypeAttr, fmt.Errorf("unknown attr type: %q", typeName)
 	}
@@ -139,29 +119,14 @@ func cmdAdd(opts *Options, env CmdEnvironment) (*build.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	if attrType == rawListAttr {
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, getListExpr(env.Args[1:]...), &env.Vars)
-	} else if attrType == stringListAttr {
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, getStringsListExpr(env.Args[1:]...), &env.Vars)
-	} else if attrType == labelListAttr {
-		AddValueToListAttribute(env.Rule, attr, env.Pkg, getLabelsListExpr(env.Pkg, env.Args[1:]...), &env.Vars)
-	} else {
-		for _, val := range env.Args[1:] {
-			if attrType == rawAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
-				AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
-				continue
-			}
-			var strVal build.Expr
-			if attrType == stringAttr {
-				strVal = getStringExpr(val)
-			} else {
-				// Fall back to the legacy behavior for backwards compatibility,
-				// which is to treat all unknown attributes as labels.
-				strVal = getLabelStringExpr(val, env.Pkg)
-			}
-			AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
+	for _, val := range env.Args[1:] {
+		if attrType == rawAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)) {
+			AddValueToListAttribute(env.Rule, attr, env.Pkg, &build.LiteralExpr{Token: val}, &env.Vars)
+			continue
 		}
-
+		var strVal build.Expr
+		strVal = getLabelStringExpr(val, env.Pkg)
+		AddValueToListAttribute(env.Rule, attr, env.Pkg, strVal, &env.Vars)
 	}
 
 	ResolveAttr(env.Rule, attr, env.Pkg)
@@ -665,43 +630,26 @@ func getAttrValueExpr(attr string, attrType AttrType, args []string, env CmdEnvi
 		// formatted properly by the subsequent call of buildifier on the
 		//resulting file)
 		return &build.Ident{Name: args[0]}
-	case attrType == rawListAttr || (attrType == notProvidedTypeAttr && IsIntList(attr)):
+	case IsIntList(attr):
 		// list of raw objects (e.g. ints or idents)
 		var list []build.Expr
 		for _, i := range args {
 			list = append(list, &build.LiteralExpr{Token: i})
 		}
 		return &build.ListExpr{List: list}
-	case attrType == stringListAttr || (attrType == notProvidedTypeAttr && IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob("))):
-		// list of strings
-		var list []build.Expr
-		for _, arg := range args {
-			list = append(list, getStringExpr(arg))
-		}
-		return &build.ListExpr{List: list}
-	case attrType == labelListAttr || (attrType == notProvidedTypeAttr && IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob("))):
+	case IsList(attr) && !(len(args) == 1 && strings.HasPrefix(args[0], "glob(")):
 		// list of labels
 		var list []build.Expr
 		for _, arg := range args {
 			list = append(list, getLabelStringExpr(arg, env.Pkg))
 		}
 		return &build.ListExpr{List: list}
-	case attrType == rawListAttr:
-		// list of arbitrary objects (idents, ints, already quoted strings, etc.)
-		var list []build.Expr
-		for _, arg := range args {
-			list = append(list, &build.Ident{Name: arg})
-		}
-		return &build.ListExpr{List: list}
 	case len(args) == 0:
 		// Expected a non-list argument, nothing provided
 		return &build.Ident{Name: "None"}
-	case attrType == labelAttr || (attrType == notProvidedTypeAttr && IsString(attr)):
+	case IsString(attr):
 		// single label
 		return getLabelStringExpr(args[0], env.Pkg)
-	case attrType == stringAttr:
-		// single string
-		return getStringExpr(args[0])
 	default:
 		return &build.Ident{Name: args[0]}
 	}
@@ -713,14 +661,6 @@ func getStringValue(value string) string {
 		return unquoted
 	}
 	return value
-}
-
-// getStringExpr creates a StringExpr from an input argument, which can be either quoted or not.necessary
-func getStringExpr(value string) build.Expr {
-	if unquoted, triple, err := build.Unquote(value); err == nil {
-		return &build.StringExpr{Value: unquoted, TripleQuote: triple}
-	}
-	return &build.StringExpr{Value: value}
 }
 
 // getStringExprLabel creates a StringExpr from an input argument, which can be either quoted or not,
@@ -737,26 +677,6 @@ func getListExpr(exprs ...string) *build.ListExpr {
 	listVal := &build.ListExpr{}
 	for _, expr := range exprs {
 		listVal.List = append(listVal.List, &build.Ident{Name: expr})
-	}
-	return listVal
-}
-
-// getStringsListExpr creates a ListExpr from a list of input arguments, each of which is ensured
-// to be a string (the labels are shortened if necessary).
-func getStringsListExpr(exprs ...string) *build.ListExpr {
-	listVal := &build.ListExpr{}
-	for _, expr := range exprs {
-		listVal.List = append(listVal.List, getStringExpr(expr))
-	}
-	return listVal
-}
-
-// getLabelsListExpr creates a ListExpr from a list of input arguments, each of which is ensured
-// to be a string (the labels are shortened if necessary).
-func getLabelsListExpr(pkg string, exprs ...string) *build.ListExpr {
-	listVal := &build.ListExpr{}
-	for _, expr := range exprs {
-		listVal.List = append(listVal.List, getLabelStringExpr(expr, pkg))
 	}
 	return listVal
 }

@@ -201,13 +201,6 @@ types are available:
 
   * `expr`: arbitrary expression, won't be quoted as a string unless already
     quoted.
-  * `int`: reserved for integer values, but currently is equivalent to `expr`.
-  * `label`: a string containing a Bazel label, will be quoted and shortened if
-    necessary.
-  * `string`: a string value which will be quoted if necessary, but not treated
-    as a label (won't be transformed).
-  * `expr_list`, `int_list`, `label_list`, `string_list`: a list containing
-    variables of the types listed above. 
 
 #### Examples
 
