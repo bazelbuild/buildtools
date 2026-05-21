@@ -15,16 +15,16 @@ Build the tool:
 Use buildifier to create standardized formatting for BUILD and .bzl files in the
 same way that clang-format is used for source files.
 
-    $ buildifier path/to/file
+    buildifier path/to/file
 
 You can also process multiple files at once:
 
-    $ buildifier path/to/file1 path/to/file2
+    buildifier path/to/file1 path/to/file2
 
 You can make buildifier automatically find all Starlark files (i.e. BUILD, WORKSPACE, .bzl, or .sky)
 in a directory recursively:
 
-    $ buildifier -r path/to/dir
+    buildifier -r path/to/dir
 
 Buildifier supports the following file types: `BUILD`, `WORKSPACE`, `.bzl`, and
 default, the latter is reserved for Starlark files buildifier doesn't know about
@@ -43,11 +43,11 @@ account optional prefixes and suffixes, e.g. `BUILD`, `BUILD.oss`, or
 will be treated as default file type. To override the automatic file type
 detection use the `--type` flag explicitly:
 
-    $ cat foo.bar | buildifier --type=build
-    $ cat foo.bar | buildifier --type=bzl
-    $ cat foo.bar | buildifier --type=workspace
-    $ cat foo.bar | buildifier --type=default
-    $ cat foo.bar | buildifier --type=module
+    cat foo.bar | buildifier --type=build
+    cat foo.bar | buildifier --type=bzl
+    cat foo.bar | buildifier --type=workspace
+    cat foo.bar | buildifier --type=default
+    cat foo.bar | buildifier --type=module
 
 ## Linter
 
