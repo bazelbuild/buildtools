@@ -15,16 +15,22 @@ Build the tool:
 Use buildifier to create standardized formatting for BUILD and .bzl files in the
 same way that clang-format is used for source files.
 
-    buildifier path/to/file
+```bash
+buildifier path/to/file
+```
 
 You can also process multiple files at once:
 
-    buildifier path/to/file1 path/to/file2
+```bash
+buildifier path/to/file1 path/to/file2
+```
 
 You can make buildifier automatically find all Starlark files (i.e. BUILD, WORKSPACE, .bzl, or .sky)
 in a directory recursively:
 
-    buildifier -r path/to/dir
+```bash
+buildifier -r path/to/dir
+```
 
 Buildifier supports the following file types: `BUILD`, `WORKSPACE`, `.bzl`, and
 default, the latter is reserved for Starlark files buildifier doesn't know about
@@ -43,11 +49,13 @@ account optional prefixes and suffixes, e.g. `BUILD`, `BUILD.oss`, or
 will be treated as default file type. To override the automatic file type
 detection use the `--type` flag explicitly:
 
-    cat foo.bar | buildifier --type=build
-    cat foo.bar | buildifier --type=bzl
-    cat foo.bar | buildifier --type=workspace
-    cat foo.bar | buildifier --type=default
-    cat foo.bar | buildifier --type=module
+```bash
+cat foo.bar | buildifier --type=build
+cat foo.bar | buildifier --type=bzl
+cat foo.bar | buildifier --type=workspace
+cat foo.bar | buildifier --type=default
+cat foo.bar | buildifier --type=module
+```
 
 ## Linter
 
@@ -56,8 +64,10 @@ automatically fix various issues. To use it launch one of the following commands
 to show and to fix the issues correspondingly (note that some issues cannot be
 fixed automatically):
 
-    buildifier --lint=warn path/to/file
-    buildifier --lint=fix path/to/file
+```bash
+buildifier --lint=warn path/to/file
+buildifier --lint=fix path/to/file
+```
 
 By default, the linter searches for all known issues relevant for the given
 file type except those that are marked with
@@ -66,12 +76,16 @@ file type except those that are marked with
 You can specify the categories using the `--warnings` flag either by providing
 the categories explicitly:
 
-    buildifier --lint=warn --warnings=positional-args,duplicated-name
+```bash
+buildifier --lint=warn --warnings=positional-args,duplicated-name
+```
 
 or by modifying the default warnings set by using `+` or `-` modifiers before
 each warning category:
 
-    buildifier --lint=warn --warnings=-positional-args,+unsorted-dict-items
+```bash
+buildifier --lint=warn --warnings=-positional-args,+unsorted-dict-items
+```
 
 It's also possible to provide `--warnings=all` to use all supported warnings
 categories (they will still be limited to relevant warnings for the given file
