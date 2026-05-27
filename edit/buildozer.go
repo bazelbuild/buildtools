@@ -628,7 +628,7 @@ func getAttrValueExpr(attr string, attrType AttrType, args []string, env CmdEnvi
 		// treat as an ident (it could be an arbitrary expression though, e.g. an
 		// already quoted string or a function call, will be re-parsed and
 		// formatted properly by the subsequent call of buildifier on the
-		//resulting file)
+		// resulting file)
 		return &build.Ident{Name: args[0]}
 	case IsIntList(attr):
 		// list of raw objects (e.g. ints or idents)
