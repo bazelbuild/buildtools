@@ -200,7 +200,8 @@ For the commands that support explicitly providing argument types, the following
 types are available:
 
   * `expr`: arbitrary expression, won't be quoted as a string unless already
-    quoted.
+    quoted. Buildozer doesn't check that the expression is syntactically
+    correct, however the subsequent formatting step will fail if it's not.
 
 #### Examples
 
@@ -261,6 +262,9 @@ buildozer 'set_if_absent allowv1syntax 1' //pkg:%soy_js
 # Add an attribute new_attr with value "def_val" to all cc_binary rules
 # Note that special characters will automatically be escaped in the string
 buildozer 'add new_attr def_val' //:%cc_binary
+
+# Specifying an argument type to prevent automatic quoting
+buildozer 'add tags:expr FOO' //pkg:rule  # adds tags = [FOO]
 ```
 
 ### Print commands

@@ -83,7 +83,8 @@ type CmdEnvironment struct {
 	output *apipb.Output_Record         // output proto, stores whatever a command wants to print
 }
 
-// AttrType is an enum representing a type of the attribute, e.g. int, string, list of strings, etc
+// AttrType is an enum representing a type of the attribute, e.g. expr or not
+// provided type
 type AttrType int
 
 const (
@@ -95,9 +96,8 @@ const (
 	rawAttr
 )
 
-// parseAttr parses the attr name and optional type, e.g. "foo" or "bar:string"
-// The type names are taken from https://bazel.build/rules/lib/toplevel/attr
-// when possible
+// parseAttr parses the attr name and optional type, e.g. "foo" or "bar:expr"
+// The only supported type now is `expr`
 func parseAttr(attrName string) (attr string, attrType AttrType, err error) {
 	chunks := strings.SplitN(attrName, ":", 2)
 	if len(chunks) == 1 {
