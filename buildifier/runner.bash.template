@@ -50,6 +50,7 @@ find . \
     -o -name BUILD.bazel \
     -o -name BUILD \
     -o -name '*.BUILD' \
+    -o -name '*.BUILD.bazel' \
     -o -name 'BUILD.*.bazel' \
     -o -name 'BUILD.*.oss' \
     -o -name MODULE.bazel \
