@@ -231,6 +231,7 @@ var mutatingMethodsReturningNone = map[string]bool{
 	"extend": true,
 	"insert": true,
 	"remove": true,
+	"sort":   true,
 	"update": true,
 }
 
