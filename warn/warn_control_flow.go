@@ -225,6 +225,15 @@ func noEffectWarning(f *build.File) []*LinterFinding {
 	return findings
 }
 
+var mutatingMethodsReturningNone = map[string]bool{
+	"append": true,
+	"clear":  true,
+	"extend": true,
+	"insert": true,
+	"remove": true,
+	"update": true,
+}
+
 // extractIdentsFromStmt returns all idents from an AST node representing a
 // single statement that are either defined outside the node and used inside,
 // or defined inside the node and can be used outside.
@@ -303,6 +312,13 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 			for _, lValue := range bzlenv.CollectLValues(expr.LHS) {
 				assigned[lValue] = hasUnusedComment ||
 					(!allLValuesUnderscored && strings.HasPrefix(lValue.Name, "_"))
+			}
+
+		case *build.CallExpr:
+			if dot, ok := expr.X.(*build.DotExpr); ok && mutatingMethodsReturningNone[dot.Name] {
+				if _, ok := dot.X.(*build.Ident); ok {
+					blockedNodes[dot.X] = true
+				}
 			}
 
 		case *build.ForStmt:
