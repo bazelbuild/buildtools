@@ -245,7 +245,7 @@ var mutatingMethodsReturningNone = map[string]bool{
 //
 // Statements that contain other statements (for-loops, if-else blocks) are not
 // traversed inside.
-func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]bool) {
+func extractIdentsFromStmt(stmt build.Expr, mutatingReceiversCountAsUsed map[string]bool) (assigned, used map[*build.Ident]bool) {
 	// The values for `assigned` are `true` if the warning for the variable should
 	// be suppressed, and `false` otherwise.
 	// It's still important to know that the variable has been assigned in the
@@ -317,8 +317,10 @@ func extractIdentsFromStmt(stmt build.Expr) (assigned, used map[*build.Ident]boo
 
 		case *build.CallExpr:
 			if dot, ok := expr.X.(*build.DotExpr); ok && mutatingMethodsReturningNone[dot.Name] {
-				if _, ok := dot.X.(*build.Ident); ok {
-					blockedNodes[dot.X] = true
+				if receiver, ok := dot.X.(*build.Ident); ok {
+					if !mutatingReceiversCountAsUsed[receiver.Name] {
+						blockedNodes[dot.X] = true
+					}
 				}
 			}
 
@@ -427,6 +429,11 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 	// Symbols for which the warning should be suppressed
 	suppressedWarnings := make(map[string]bool)
 
+	// Symbols that can represent mutable values received from outside the current
+	// scope. Mutating method calls on these symbols count as usage unless the
+	// symbol has been reassigned.
+	mutatingReceiversCountAsUsed := make(map[string]bool)
+
 	// Symbols from outer scopes that are used in the current scope
 	usedSymbolsFromOuterScope := make(map[string]bool)
 
@@ -462,6 +469,7 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// Function parameters are defined in the current scope.
 				if ident, _ := build.GetParamIdent(param); ident != nil {
 					definedSymbols[ident.Name] = ident
+					mutatingReceiversCountAsUsed[ident.Name] = true
 					if ident.Name == "name" || strings.HasPrefix(ident.Name, "_") || edit.ContainsComments(param, "@unused") {
 						// Don't warn about function arguments if they start with "_"
 						// or explicitly marked with @unused.
@@ -481,7 +489,7 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 				// RHS is not a statement, but similar traversal rules should be applied
 				// to it. E.g. it may have a comprehension node with its inner scope or
 				// a function call with a keyword parameter.
-				_, used := extractIdentsFromStmt(assign.RHS)
+				_, used := extractIdentsFromStmt(assign.RHS, nil)
 				for ident := range used {
 					// RHS idents in the def statement contains direct references to the outer scope.
 					usedSymbolsFromOuterScope[ident.Name] = true
@@ -496,7 +504,8 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			return
 
 		default:
-			assigned, used := extractIdentsFromStmt(expr)
+			assigned, used := extractIdentsFromStmt(expr, mutatingReceiversCountAsUsed)
+			newlyDefinedSymbols := make(map[string]*build.Ident)
 
 			for symbol := range used {
 				usedSymbols[symbol.Name] = true
@@ -504,8 +513,17 @@ func unusedVariableCheck(f *build.File, root build.Expr) (map[string]bool, []*Li
 			for symbol, isSuppressed := range assigned {
 				if _, ok := definedSymbols[symbol.Name]; !ok {
 					definedSymbols[symbol.Name] = symbol
+					newlyDefinedSymbols[symbol.Name] = symbol
 					if isSuppressed {
 						suppressedWarnings[symbol.Name] = true
+					}
+				}
+				delete(mutatingReceiversCountAsUsed, symbol.Name)
+			}
+			if forStmt, ok := expr.(*build.ForStmt); ok {
+				for _, lValue := range bzlenv.CollectLValues(forStmt.Vars) {
+					if newlyDefinedSymbols[lValue.Name] == lValue {
+						mutatingReceiversCountAsUsed[lValue.Name] = true
 					}
 				}
 			}
@@ -802,7 +820,7 @@ func findUninitializedVariables(stmts []build.Expr, previouslyInitialized map[st
 				// function to retrieve idents from the outer scope that are used inside
 				// the comprehension.
 
-				_, used := extractIdentsFromStmt(expr)
+				_, used := extractIdentsFromStmt(expr, nil)
 				for ident := range used {
 					callbackIfNeeded(ident)
 				}

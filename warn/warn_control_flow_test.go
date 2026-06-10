@@ -699,6 +699,25 @@ sample_macro_with_used_foo()
 		scopeEverywhere)
 
 	checkFindings(t, "unused-variable", `
+def foo(items):
+  items.append(1)
+
+foo([])
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
+def foo(passed_in_list_of_lists):
+  for mutatable_list in passed_in_list_of_lists:
+    mutatable_list.append(1)
+
+foo([[], []])
+`,
+		[]string{},
+		scopeEverywhere)
+
+	checkFindings(t, "unused-variable", `
 def framework_import_impl():
   used_list = []
   unused_list = []
