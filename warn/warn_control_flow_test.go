@@ -282,6 +282,13 @@ def foo():
 		`:4: The statement is unreachable.`,
 	}, scopeEverywhere)
 
+	// comment after fail is ok
+	checkFindings(t, "unreachable", `
+def foo():
+  fail("die")
+
+  # comment
+`, []string{}, scopeEverywhere)
 }
 
 func TestNoEffect(t *testing.T) {
