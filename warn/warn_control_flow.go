@@ -119,8 +119,8 @@ func findUnreachableStatements(stmts []build.Expr, callback func(build.Expr)) bo
 	for _, stmt := range stmts {
 		if unreachable {
 		  if _, ok := stmt.(*build.CommentBlock); ok {
-    				continue
-    	  }
+    	  continue
+    	}
 			callback(stmt)
 			return true
 		}

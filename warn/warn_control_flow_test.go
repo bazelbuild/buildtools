@@ -282,7 +282,7 @@ def foo():
 		`:4: The statement is unreachable.`,
 	}, scopeEverywhere)
 
-	// comment after fail is ok
+	// unreachable comment is ok
 	checkFindings(t, "unreachable", `
 def foo():
   fail("die")
