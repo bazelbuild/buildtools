@@ -162,7 +162,6 @@ func TestProxies(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			for _, extBzlFile := range tc.extBzlFiles {
 				t.Run("label_"+extBzlFile, func(t *testing.T) {
-
 					f, err := build.ParseModule("MODULE.bazel", []byte(tc.content))
 					if err != nil {
 						t.Fatal(err)
@@ -447,6 +446,257 @@ use_repo(
 )
 
 use_repo(prox, "repo3", "repo4")
+`,
+		},
+		// Test mapped repo names with valid identifiers
+		{
+			`use_repo(prox)`,
+			[]string{"foo", "bar=baz"},
+			`use_repo(prox, "foo", bar = "baz")
+`,
+		},
+		{
+			`use_repo(prox)`,
+			[]string{"my_repo=actual_repo"},
+			`use_repo(prox, my_repo = "actual_repo")
+`,
+		},
+		// Test mapped repo names with invalid identifiers (dict unpacking)
+		{
+			`use_repo(prox)`,
+			[]string{"foo.2=foo"},
+			`use_repo(prox, **{"foo.2": "foo"})
+`,
+		},
+		{
+			`use_repo(prox)`,
+			[]string{"foo-bar=baz"},
+			`use_repo(prox, **{"foo-bar": "baz"})
+`,
+		},
+		// Test mixed positional, keyword, and dict unpacking
+		{
+			`use_repo(prox)`,
+			[]string{"simple", "valid_key=value", "invalid.key=value2"},
+			`use_repo(prox, "simple", valid_key = "value", **{"invalid.key": "value2"})
+`,
+		},
+		// Test extending existing dict unpacking
+		{
+			`use_repo(prox, **{"existing.key": "existing_value"})`,
+			[]string{"new.key=new_value"},
+			`use_repo(prox, **{
+    "existing.key": "existing_value",
+    "new.key": "new_value",
+})
+`,
+		},
+		// Test that duplicates are not added
+		{
+			`use_repo(prox, "repo1")`,
+			[]string{"repo1", "repo2"},
+			`use_repo(prox, "repo1", "repo2")
+`,
+		},
+		{
+			`use_repo(prox, my_repo = "actual")`,
+			[]string{"my_other=actual", "new=other"},
+			`use_repo(prox, my_other = "actual", new = "other")
+`,
+		},
+		// Test that existing mappings are preserved when adding the same underlying repo
+		{
+			`use_repo(image, my_ubuntu = "img_12345")`,
+			[]string{"img_12345"},
+			`use_repo(image, my_ubuntu = "img_12345")
+`,
+		},
+		{
+			`use_repo(ext, custom_name = "repo_value")`,
+			[]string{"repo_value", "other_repo"},
+			`use_repo(ext, "other_repo", custom_name = "repo_value")
+`,
+		},
+		{
+			`use_repo(ext, my_mapping = "actual_repo", "existing")`,
+			[]string{"actual_repo", "new_repo"},
+			`use_repo(ext, "existing", "new_repo", my_mapping = "actual_repo")
+`,
+		},
+		// Test that mappings can be replaced/renamed
+		{
+			`use_repo(proxy, foo = "bar")`,
+			[]string{"foo=baz"},
+			`use_repo(proxy, foo = "baz")
+`,
+		},
+		{
+			`use_repo(proxy, foo = "bar")`,
+			[]string{"qux=bar"},
+			`use_repo(proxy, qux = "bar")
+`,
+		},
+		{
+			`use_repo(proxy, foo = "bar", "other")`,
+			[]string{"foo=baz"},
+			`use_repo(proxy, "other", foo = "baz")
+`,
+		},
+		{
+			`use_repo(proxy, foo = "bar", "other")`,
+			[]string{"qux=bar", "new"},
+			`use_repo(proxy, "other", "new", qux = "bar")
+`,
+		},
+		// Test that Starlark reserved keywords are treated as invalid identifiers
+		{
+			`use_repo(proxy)`,
+			[]string{"for=my_repo"},
+			`use_repo(proxy, **{"for": "my_repo"})
+`,
+		},
+		{
+			`use_repo(proxy)`,
+			[]string{"if=my_repo", "else=other"},
+			`use_repo(proxy, **{
+    "if": "my_repo",
+    "else": "other",
+})
+`,
+		},
+		// Test that True, False, None are also treated as reserved keywords
+		{
+			`use_repo(proxy)`,
+			[]string{"True=my_repo"},
+			`use_repo(proxy, **{"True": "my_repo"})
+`,
+		},
+		{
+			`use_repo(proxy)`,
+			[]string{"False=repo1", "None=repo2"},
+			`use_repo(proxy, **{
+    "False": "repo1",
+    "None": "repo2",
+})
+`,
+		},
+		// Test that foo=foo is simplified to just foo (positional argument)
+		{
+			`use_repo(proxy)`,
+			[]string{"foo=foo"},
+			`use_repo(proxy, "foo")
+`,
+		},
+		{
+			`use_repo(proxy)`,
+			[]string{"foo=foo", "bar=baz"},
+			`use_repo(proxy, "foo", bar = "baz")
+`,
+		},
+		{
+			`use_repo(proxy)`,
+			[]string{"foo=foo", "bar=bar", "baz=qux"},
+			`use_repo(proxy, "bar", "foo", baz = "qux")
+`,
+		},
+		// Test foo=foo with existing repos
+		{
+			`use_repo(proxy, "existing")`,
+			[]string{"foo=foo"},
+			`use_repo(proxy, "existing", "foo")
+`,
+		},
+		// Test that non-ASCII identifiers use dict unpacking (ASCII-only validation)
+		{
+			`use_repo(proxy)`,
+			[]string{"café=my_repo"},
+			`use_repo(proxy, **{"caf\303\251": "my_repo"})
+`,
+		},
+		{
+			`use_repo(proxy)`,
+			[]string{"变量=var"},
+			`use_repo(proxy, **{"\345\217\230\351\207\217": "var"})
+`,
+		},
+		// Test support for Bazel placeholders in repository names.
+		// See https://github.com/bazelbuild/bazel/pull/27890 for the Bazel feature.
+		// Placeholders like {name} and {version} in the RHS are replaced with module attributes by Bazel.
+		// buildozer should preserve these placeholders when adding repos via use_repo_add.
+		{
+			`use_repo(ext)`,
+			[]string{"custom={name}_suffix"},
+			`use_repo(ext, custom = "{name}_suffix")
+`,
+		},
+		{
+			`use_repo(ext)`,
+			[]string{"my_repo={name}-v{version}"},
+			`use_repo(ext, my_repo = "{name}-v{version}")
+`,
+		},
+		{
+			`use_repo(ext)`,
+			[]string{"local_name={version}_tag"},
+			`use_repo(ext, local_name = "{version}_tag")
+`,
+		},
+		// Test that placeholders already present in use_repo are preserved (not duplicated)
+		{
+			`use_repo(ext, custom = "{name}-v{version}")`,
+			[]string{"custom={name}-v{version}"},
+			`use_repo(ext, custom = "{name}-v{version}")
+`,
+		},
+		{
+			`use_repo(ext, my_mapping = "{name}_value")`,
+			[]string{"my_mapping={name}_value"},
+			`use_repo(ext, my_mapping = "{name}_value")
+`,
+		},
+		// Test mixed scenarios with placeholders and regular repos
+		{
+			`use_repo(ext)`,
+			[]string{"regular_repo", "alias={version}_tag"},
+			`use_repo(ext, "regular_repo", alias = "{version}_tag")
+`,
+		},
+		{
+			`use_repo(ext, "existing")`,
+			[]string{"custom={name}-{version}", "other"},
+			`use_repo(ext, "existing", "other", custom = "{name}-{version}")
+`,
+		},
+		{
+			`use_repo(ext, "foo")`,
+			[]string{"versioned={name}-{version}", "bar"},
+			`use_repo(ext, "foo", "bar", versioned = "{name}-{version}")
+`,
+		},
+		// Test that existing placeholder mappings can be updated/replaced
+		{
+			`use_repo(ext, my_name = "{name}_old")`,
+			[]string{"my_name={name}_new"},
+			`use_repo(ext, my_name = "{name}_new")
+`,
+		},
+		{
+			`use_repo(ext, old_key = "{name}-v{version}")`,
+			[]string{"new_key={name}-v{version}"},
+			`use_repo(ext, new_key = "{name}-v{version}")
+`,
+		},
+		// Test placeholders survive when the same value already exists under different mapping
+		{
+			`use_repo(ext, version1 = "{name}-v{version}")`,
+			[]string{"{name}-v{version}"},
+			`use_repo(ext, version1 = "{name}-v{version}")
+`,
+		},
+		{
+			`use_repo(ext, old_mapping = "{name}_suffix")`,
+			[]string{"new_mapping={name}_suffix"},
+			`use_repo(ext, new_mapping = "{name}_suffix")
 `,
 		},
 	} {

@@ -19,6 +19,7 @@ package bzlmod
 
 import (
 	"path"
+	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/labels"
@@ -118,10 +119,20 @@ func NewUseRepo(f *build.File, proxies []string) (*build.File, *build.CallExpr) 
 	return &build.File{Path: f.Path, Comments: f.Comments, Stmt: stmt, Type: build.TypeModule}, useRepo
 }
 
+// repoToAdd represents a repository to be added to a use_repo call.
+type repoToAdd struct {
+	key          string
+	value        string
+	isMapping    bool
+	isValidIdent bool
+}
+
 // AddRepoUsages adds the given repos to the given use_repo calls without introducing duplicate
 // arguments.
 // useRepos must not be empty.
-// Keyword arguments are preserved but adding them is currently not supported.
+// Keyword arguments are preserved and can be added using the syntax "key=value".
+// For invalid identifiers (e.g., containing dots), dict unpacking syntax is used.
+// If a mapping conflicts with an existing one (same key or same value), the existing one is replaced.
 func AddRepoUsages(useRepos []*build.CallExpr, repos ...string) {
 	if len(repos) == 0 {
 		return
@@ -130,25 +141,178 @@ func AddRepoUsages(useRepos []*build.CallExpr, repos ...string) {
 		panic("useRepos must not be empty")
 	}
 
-	seen := make(map[string]struct{})
-	for _, useRepo := range useRepos {
-		if len(useRepo.List) == 0 {
-			// Invalid use_repo call, skip.
-			continue
+	// Parse all repos to add and track which keys/values are being added
+	var reposToAdd []repoToAdd
+	mappingValuesToAdd := make(map[string]struct{}) // Values being added as mappings
+	keysToAdd := make(map[string]struct{})
+
+	for _, repo := range repos {
+		key, value, isMapping := parseRepoMapping(repo)
+
+		// Simplify foo=foo to just foo (positional argument)
+		if isMapping && key == value {
+			isMapping = false
 		}
-		for _, arg := range useRepo.List[1:] {
-			seen[repoFromUseRepoArg(arg)] = struct{}{}
+
+		validIdent := isValidIdentifier(key)
+
+		reposToAdd = append(reposToAdd, repoToAdd{
+			key:          key,
+			value:        value,
+			isMapping:    isMapping,
+			isValidIdent: validIdent,
+		})
+
+		if isMapping {
+			mappingValuesToAdd[value] = struct{}{}
+			keysToAdd[key] = struct{}{}
 		}
 	}
 
+	// Track existing values to detect duplicates when adding positional args
+	existingValues := collectExistingValues(useRepos)
+
+	// Remove conflicting arguments from all use_repo calls
+	removeConflictingRepos(useRepos, mappingValuesToAdd, keysToAdd)
+
+	// Add new repos to the last use_repo call
 	lastUseRepo := getLastUseRepo(useRepos)
-	for _, repo := range repos {
-		if _, ok := seen[repo]; ok {
+	addNewRepos(lastUseRepo, reposToAdd, existingValues)
+}
+
+// collectExistingValues returns a set of all repository values currently referenced in use_repo calls.
+func collectExistingValues(useRepos []*build.CallExpr) map[string]struct{} {
+	existingValues := make(map[string]struct{})
+	for _, useRepo := range useRepos {
+		if len(useRepo.List) == 0 {
 			continue
 		}
-		// Sorting of use_repo arguments is handled by Buildify.
-		// TODO: Add a keyword argument instead if repo is of the form "key=value".
-		lastUseRepo.List = append(lastUseRepo.List, &build.StringExpr{Value: repo})
+		for _, arg := range useRepo.List[1:] {
+			if val := repoFromUseRepoArg(arg); val != "" {
+				existingValues[val] = struct{}{}
+			}
+		}
+	}
+	return existingValues
+}
+
+// removeConflictingRepos removes arguments from use_repo calls that conflict with repos being added.
+func removeConflictingRepos(useRepos []*build.CallExpr, mappingValuesToAdd, keysToAdd map[string]struct{}) {
+	for _, useRepo := range useRepos {
+		if len(useRepo.List) == 0 {
+			continue
+		}
+
+		var newArgs []build.Expr
+		var dictToUpdate *build.DictExpr
+
+		for _, arg := range useRepo.List[1:] {
+			shouldKeep := true
+
+			switch arg := arg.(type) {
+			case *build.StringExpr:
+				// Positional argument: only remove if a mapping is being added with this value
+				if _, conflicts := mappingValuesToAdd[arg.Value]; conflicts {
+					shouldKeep = false
+				}
+			case *build.AssignExpr:
+				// Keyword argument: remove if same key is being added
+				if ident, ok := arg.LHS.(*build.Ident); ok {
+					if _, conflicts := keysToAdd[ident.Name]; conflicts {
+						shouldKeep = false
+					}
+				}
+				// Or if same value is being added as a mapping (replacement)
+				if str, ok := arg.RHS.(*build.StringExpr); ok {
+					if _, conflicts := mappingValuesToAdd[str.Value]; conflicts {
+						shouldKeep = false
+					}
+				}
+			case *build.UnaryExpr:
+				// Dict unpacking: we'll handle this separately
+				if arg.Op == "**" {
+					if dict, ok := arg.X.(*build.DictExpr); ok {
+						dictToUpdate = dict
+						shouldKeep = false // Remove from list, we'll re-add after filtering
+					}
+				}
+			}
+
+			if shouldKeep {
+				newArgs = append(newArgs, arg)
+			}
+		}
+
+		// Filter dict entries if we have a dict to update
+		if dictToUpdate != nil {
+			filteredDictEntries := filterDictEntries(dictToUpdate, mappingValuesToAdd, keysToAdd)
+			// Only keep dict if it still has entries after filtering
+			if len(filteredDictEntries) > 0 {
+				dictToUpdate.List = filteredDictEntries
+				newArgs = append(newArgs, &build.UnaryExpr{Op: "**", X: dictToUpdate})
+			}
+		}
+
+		useRepo.List = append(useRepo.List[:1], newArgs...)
+	}
+}
+
+// filterDictEntries removes dict entries that conflict with repos being added.
+// Filters in-place to reuse the underlying array for better memory efficiency.
+func filterDictEntries(dict *build.DictExpr, mappingValuesToAdd, keysToAdd map[string]struct{}) []*build.KeyValueExpr {
+	n := 0
+	for _, kv := range dict.List {
+		shouldKeep := true
+		// Check if key conflicts
+		if keyStr, ok := kv.Key.(*build.StringExpr); ok {
+			if _, conflicts := keysToAdd[keyStr.Value]; conflicts {
+				shouldKeep = false
+			}
+		}
+		// Check if value conflicts with a mapping being added
+		if valStr, ok := kv.Value.(*build.StringExpr); ok {
+			if _, conflicts := mappingValuesToAdd[valStr.Value]; conflicts {
+				shouldKeep = false
+			}
+		}
+		if shouldKeep {
+			dict.List[n] = kv
+			n++
+		}
+	}
+	return dict.List[:n]
+}
+
+// addNewRepos adds new repository arguments to the given use_repo call.
+func addNewRepos(useRepo *build.CallExpr, reposToAdd []repoToAdd, existingValues map[string]struct{}) {
+	var dictEntries []*build.KeyValueExpr
+
+	for _, repo := range reposToAdd {
+		if !repo.isMapping {
+			// Simple positional argument: use_repo(ext, "foo")
+			// Skip if already exists (to preserve existing mappings)
+			if _, exists := existingValues[repo.value]; !exists {
+				useRepo.List = append(useRepo.List, &build.StringExpr{Value: repo.value})
+			}
+		} else if repo.isValidIdent {
+			// Valid identifier as keyword argument: use_repo(ext, bar = "baz")
+			useRepo.List = append(useRepo.List, &build.AssignExpr{
+				LHS: &build.Ident{Name: repo.key},
+				Op:  "=",
+				RHS: &build.StringExpr{Value: repo.value},
+			})
+		} else {
+			// Invalid identifier, need dict unpacking: use_repo(ext, **{"foo.2": "foo"})
+			dictEntries = append(dictEntries, &build.KeyValueExpr{
+				Key:   &build.StringExpr{Value: repo.key},
+				Value: &build.StringExpr{Value: repo.value},
+			})
+		}
+	}
+
+	// If we have dict entries, add or extend the **kwargs dict
+	if len(dictEntries) > 0 {
+		addOrExtendDictUnpack(useRepo, dictEntries)
 	}
 }
 
@@ -431,4 +595,92 @@ func collectApparentNamesAndIncludes(f *build.File) (map[string]string, []string
 	}
 
 	return apparentNames, includeLabels
+}
+
+// parseRepoMapping parses a repo string which may be in the form "key=value" or just "value".
+// Returns (key, value, isMapping) where isMapping indicates if it was a mapping.
+func parseRepoMapping(repo string) (key, value string, isMapping bool) {
+	key, value, found := strings.Cut(repo, "=")
+	if found {
+		return key, value, true
+	}
+	return "", repo, false
+}
+
+// starlarkReservedKeywords contains Starlark reserved keywords that cannot be used as identifiers.
+var starlarkReservedKeywords = map[string]bool{
+	"and":      true,
+	"break":    true,
+	"continue": true,
+	"def":      true,
+	"elif":     true,
+	"else":     true,
+	"for":      true,
+	"if":       true,
+	"in":       true,
+	"lambda":   true,
+	"load":     true,
+	"not":      true,
+	"or":       true,
+	"pass":     true,
+	"return":   true,
+	"while":    true,
+	"False":    true,
+	"None":     true,
+	"True":     true,
+}
+
+// isValidIdentifier checks if a string is a valid Starlark identifier.
+// Per Starlark rules: must start with ASCII letter (a-z, A-Z) or underscore,
+// followed by ASCII letters, digits (0-9), or underscores, and must not be a reserved keyword.
+// This matches Bazel's Lexer.scanIdentifier behavior.
+func isValidIdentifier(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	// Check if it's a reserved keyword
+	if starlarkReservedKeywords[s] {
+		return false
+	}
+
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if i == 0 {
+			// First character must be ASCII letter or underscore
+			if !(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
+				return false
+			}
+		} else {
+			// Subsequent characters must be ASCII letter, digit, or underscore
+			if !(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_') {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// addOrExtendDictUnpack adds dict entries to an existing **kwargs dict unpacking expression,
+// or creates a new one if none exists.
+func addOrExtendDictUnpack(useRepo *build.CallExpr, newEntries []*build.KeyValueExpr) {
+	// Look for an existing **dict unpacking expression
+	for _, arg := range useRepo.List {
+		if unary, ok := arg.(*build.UnaryExpr); ok && unary.Op == "**" {
+			if dict, ok := unary.X.(*build.DictExpr); ok {
+				// Found existing dict unpacking, add new entries to it
+				dict.List = append(dict.List, newEntries...)
+				return
+			}
+		}
+	}
+
+	// No existing **dict found, create a new one
+	useRepo.List = append(useRepo.List, &build.UnaryExpr{
+		Op: "**",
+		X: &build.DictExpr{
+			List: newEntries,
+		},
+	})
 }
