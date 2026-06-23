@@ -840,6 +840,11 @@ my_rule(
 a = my_macro(
 	name="r2",
 )
+
+# buildozer: leave-alone
+my_rule(
+	name="r4",
+)
 `
 
 	bld, err := build.Parse("BUILD", []byte(input))
@@ -852,7 +857,7 @@ a = my_macro(
 		name       string
 		shouldFind bool
 	}{
-		{"r1", true}, {"r2", true}, {"r3", false},
+		{"r1", true}, {"r2", true}, {"r3", false}, {"r4", false},
 	}
 
 	for _, tc := range testCases {
