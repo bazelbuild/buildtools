@@ -224,6 +224,34 @@ function test_add_duplicate_label2() {
 )'
 }
 
+function test_add_override_expr() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  run "$in" 'add deps:expr build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = [
+        build,
+        "build",
+    ],
+)'
+}
+
+function test_add_override_unknown_type() {
+  in='go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+  ERROR=2 run "$in" 'add deps:foo build' '//pkg:edit'
+  assert_equals 'go_library(
+    name = "edit",
+    deps = ["build"],
+)'
+}
+
+
 function test_remove_last_dep() {
   run "$one_dep" 'remove deps //buildifier:build' '//pkg:edit'
   assert_equals 'go_library(name = "edit")'
@@ -1085,6 +1113,16 @@ function test_set_if_absent_present() {
 )'
 }
 
+function test_set_if_absent_override_expr() {
+  in='soy_js(name = "a")'
+
+  run "$in" 'set_if_absent copts:expr foo()' '//pkg:a'
+  assert_equals 'soy_js(
+    name = "a",
+    copts = foo(),
+)'
+}
+
 function test_set_custom_code() {
   in='cc_test(name = "a")'
 
@@ -1095,6 +1133,16 @@ function test_set_custom_code() {
         a = 1,
         b = 2,
     ),
+)'
+}
+
+function test_set_override_expr() {
+  in='cc_library(name = "a")'
+
+  run "$in" 'set copts:expr foo()' '//pkg:a'
+  assert_equals 'cc_library(
+    name = "a",
+    copts = foo(),
 )'
 }
 
