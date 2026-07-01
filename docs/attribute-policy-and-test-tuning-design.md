@@ -17,9 +17,8 @@ We want two related capabilities for Bazel `BUILD` files:
 
 2. **Empirical test-tuning** in a **new, separate tool** (`testpolicy`) — read
    historical test-execution stats from a metrics warehouse, compute recommended
-   `timeout` and `flaky` values (and a flakiness score / recommended retry count),
-   and apply them via `buildozer` commands / PRs. `buildifier` never touches the
-   warehouse.
+   `timeout` and `flaky` values (and a flakiness score), and apply them via
+   `buildozer` commands / PRs. `buildifier` never touches the warehouse.
 
 These are split deliberately: `buildifier` stays a fast, hermetic, offline static
 linter; all data-dependent analysis lives in a tool that can query a warehouse and
@@ -32,7 +31,6 @@ open PRs.
 | Source of empirical data | Metrics DB / warehouse (queried by the new tool) |
 | How empirical recommendations are applied | `buildozer` commands + PRs; `buildifier` stays purely static |
 | Where policy config lives | Extend the existing `.buildifier.json` config |
-| Upstream Bazel work (`flaky=N`, parallel attempts) | **Out of scope**; documented as a future RFC |
 
 ---
 
@@ -339,21 +337,18 @@ Answers "does a single retry likely pass, or does it need multiple?".
   N ≥ ceil( log(1 - T) / log(1 - a) )
   ```
 
-- Classification:
-  | N | Meaning | Recommendation |
+- `N` is used internally to distinguish "a single retry almost always recovers it"
+  from "retries rarely help", which drives the `flaky` recommendation:
+  | `N` | Meaning | Recommendation |
   |---|---|---|
   | ≤ 1 | not flaky | `flaky = False` (or leave unset) |
-  | 2 | one retry suffices | `flaky = True` |
-  | 3 | within Bazel default cap (3 attempts) | `flaky = True` |
-  | > 3 | needs more than Bazel allows today | `flaky = True` **+ report**: recommend `--flaky_test_attempts` / future `flaky=N` |
+  | 2–3 | retries reliably recover it | `flaky = True` |
+  | > 3 | retries rarely recover it | report for owner; `flaky` won't reliably help |
   | very low `a` | chronically broken | **do not** mask with retries; report for owner |
 
-- **Reality check (must be in tool output & docs):** Bazel's `flaky` is a **boolean**
-  today (retries up to 3, **sequentially**). `flaky = 2` is not valid syntax; there is
-  no per-target attempt count and no parallel-attempt option. The tool sets
-  `flaky = True/False` now and *records* the recommended attempt count `N` in the
-  report. Real per-target counts + parallel attempts require an upstream Bazel change
-  (§6), which is out of scope.
+- **Reality check (must be in tool output & docs):** Bazel's `flaky` is a **boolean**;
+  the tool only ever recommends `flaky = True` / `flaky = False`. `N` is an internal
+  signal for classification, not something written into the BUILD file.
 
 ### 4.5 Emit (`emit/`)
 
@@ -395,18 +390,7 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 ---
 
-## 6. Out of scope (future Bazel RFC)
-
-- Per-target flaky **attempt count** (`flaky = N`).
-- **Parallel** retry attempts (spawn N attempts at once; pass if any passes) instead of
-  sequential retry-on-failure.
-- These require changes to Bazel itself (attribute semantics + test execution). We
-  document the desired end-state and the recommended `N` values the `testpolicy` tool
-  computes, so an RFC has data behind it. Not built here.
-
----
-
-## 7. Phasing & work breakdown (for agent hand-off)
+## 6. Phasing & work breakdown (for agent hand-off)
 
 Each task is independently ownable; dependencies noted. "AC" = acceptance criteria above.
 
@@ -433,12 +417,9 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
 - **B5. Warehouse (BigQuery/DB) source impl** — behind flag. *(dep: B1)*
 - **B6. `apply` mode + PR grouping (CODEOWNERS)** — §4.5. *(dep: B2/B3/B4)*
 
-### Phase 4 — future
-- **C1. Bazel RFC** for `flaky=N` + parallel attempts (§6). *(data from B4)*
-
 ---
 
-## 8. Open questions
+## 7. Open questions
 
 1. **Import direction** between `warn` and `buildifier/config` — confirm no cycle
    (§3.4). If one exists, the compiled-policy-type-in-`warn` approach resolves it.
