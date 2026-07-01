@@ -300,7 +300,7 @@ testpolicy/
     bigquery.go      //   concrete impl (behind a build tag / flag)
   analyze/
     timeout.go       //   timeout recommender
-    flaky.go         //   flakiness scoring + flaky/attempt recommender
+    flaky.go         //   flakiness scoring + flaky (bool) recommender
   emit/
     buildozer.go     //   emit buildozer command script
     pr.go            //   group by owner, open PRs (later phase)
@@ -317,7 +317,7 @@ type TargetStats struct {
     DurationP50      time.Duration
     DurationP95      time.Duration
     DurationMax      time.Duration
-    DeclaredTimeout  string        // as observed in runs, if available
+    DeclaredTimeout  string        // bucket keyword (short|moderate|long|eternal) as observed, if available; may be empty (then derived from `size`, see §4.3)
     TimeoutFailures  int           // failures attributed to hitting the timeout
     // Per-attempt outcomes for flakiness math:
     Attempts         int           // total attempts observed
@@ -335,11 +335,27 @@ while letting the query backend be swapped/tested with a fake.
 
 ### 4.3 Timeout recommender (`analyze/timeout.go`)
 
-- Bazel buckets: `short≈60s`, `moderate≈300s`, `long≈900s`, `eternal≈3600s`.
-- Recommend the **smallest bucket** where `DurationP95 * safetyFactor` fits (default
-  `safetyFactor = 1.5`, configurable).
+**Bucket → seconds is a configured input, not a constant.** The `timeout` attribute is a
+*bucket keyword* (`short`/`moderate`/`long`/`eternal`); the number of seconds each
+bucket allows defaults to `60 / 300 / 900 / 3600` but a repo can override it with
+`--test_timeout=short,moderate,long,eternal` (usually in `.bazelrc`). The recommender
+cannot resolve a bucket to seconds — nor pick a bucket for an observed duration —
+without the repo's actual mapping. So:
+
+- The tool takes a **`timeoutBuckets` config** (`map[string]int` keyword→seconds),
+  defaulting to Bazel's `60/300/900/3600`. Populate it either by parsing the repo's
+  `.bazelrc` for `--test_timeout`, or via an explicit flag/config value. Surface the
+  effective mapping in the report so recommendations are auditable.
+- **Timeout may be implicit.** If a target sets no `timeout`, Bazel derives the bucket
+  from `size` (`small→short`, `medium→moderate`, `large→long`, `enormous→eternal`), then
+  resolves seconds via the same `timeoutBuckets` map. The recommender must apply this
+  fallback when `DeclaredTimeout` is empty, and decide whether to write a `timeout` attr
+  or adjust `size` (recommend setting `timeout` explicitly to avoid perturbing other
+  `size`-driven behavior like resource reservations).
+- Recommend the **smallest bucket** whose configured seconds ≥ `DurationP95 *
+  safetyFactor` (default `safetyFactor = 1.5`, configurable).
 - **Bump up** if either: observed runtime is within `X%` (default 20%) of the current
-  limit, **or** `TimeoutFailures > 0`.
+  bucket's configured seconds, **or** `TimeoutFailures > 0`.
 - **Never recommend `eternal`** unless the target is on the eternal allow-list (shared
   with Workstream A's config so policy stays single-sourced). If data says a target
   needs > `long` and isn't allow-listed, emit a **report finding for a human**, not an
@@ -519,10 +535,14 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
    can't be silenced by `disable=` locally, accepting a break to the "every warning is
    suppressible" contract? Or rely solely on the CI gate? (Leaning CI-gate-only for the
    first cut.)
-3. Warehouse **schema/columns** available for `TargetStats` — especially whether
+4. Warehouse **schema/columns** available for `TargetStats` — especially whether
    per-attempt outcomes (`PassByAttempt`) exist, or only aggregate pass/fail. This
    changes flakiness estimation fidelity.
-4. Timeout **safety factor** and bucket cutoffs — defaults proposed; confirm with SRE/CI.
-5. PR routing — CODEOWNERS-based? One PR per owner, or batched?
-6. Do we want the shared eternal-allow-list loader as its own small package now, or
+5. **`timeoutBuckets` sourcing (§4.3)** — parse `.bazelrc` for `--test_timeout`, or
+   require it as explicit tool config? Note `--test_timeout` can differ per bazelrc
+   `--config`/platform, so "the" mapping may be ambiguous; do we pin one config, or
+   analyze per-config?
+6. Timeout **safety factor** and bucket cutoffs — defaults proposed; confirm with SRE/CI.
+7. PR routing — CODEOWNERS-based? One PR per owner, or batched?
+8. Do we want the shared eternal-allow-list loader as its own small package now, or
    duplicate-read for Phase 1 and refactor later?
