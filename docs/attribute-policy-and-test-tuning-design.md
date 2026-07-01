@@ -408,8 +408,13 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 - Require a minimum `Runs` sample size before recommending (default e.g. 20); otherwise
   report "insufficient data".
-- Only ever *raise* timeouts automatically; *lowering* a timeout is report-only (risk of
-  new flakes) unless `--allow-lowering`.
+- **Lowering timeouts is a normal, first-class recommendation** — not gated behind a
+  flag. Bazel's default `size` is `medium` ⇒ `moderate` (300s), so many genuinely fast
+  tests sit at `moderate` unnecessarily; dropping them to `short` speeds failure
+  detection and scheduling. Safety comes from the recommender itself, not from
+  suppressing downgrades: the `safetyFactor` headroom and the bump-up-on-`TimeoutFailures`
+  / near-limit rules (§4.3) already keep a downgrade from cutting it too close, and the
+  minimum-sample-size guard avoids acting on noise.
 - Respect the eternal allow-list from `.buildifier.json` so the two systems agree.
 - Dry-run is the default mode.
 
