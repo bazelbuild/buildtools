@@ -77,7 +77,9 @@ whatever CI/automation invokes the tool.
 
 A **single generalized** warning, `attr-policy`, driven entirely by config. It covers
 the initial asks (eternal-timeout allow-list, no `exclusive` on tests) and any future
-"attribute constrained on rule-kind unless allow-listed" rule **without new Go code**.
+"attribute constrained on rule-kind unless allow-listed" rule **without new Go code** —
+including boolean literals (`local = True`) and dict attributes
+(`execution_requirements = {"no-cache": "1"}`).
 
 Rationale for one generalized warning vs. many hardcoded ones: buildifier warnings are
 individually toggleable by name, but the *policy content* here is site-specific and
@@ -104,6 +106,21 @@ generic and lets each repo express its own policy.
         "attr": "tags",
         "forbidListItems": ["exclusive"],      // list-membership constraint
         "allowlist": []
+      },
+      {
+        "name": "no-local-tests",
+        "ruleKinds": ["*_test"],
+        "attr": "local",
+        "forbidValues": ["True"],              // boolean literal constraint (see below)
+        "message": "Tests must not set local = True; use a hermetic test instead."
+      },
+      {
+        "name": "no-no-cache",
+        "attr": "execution_requirements",
+        "forbidDictEntries": {               // dict key→value constraint (see below)
+          "no-cache": "1"
+        },
+        "message": "Do not set execution_requirements['no-cache'] = '1'."
       }
     ]
   }
@@ -117,18 +134,40 @@ generic and lets each repo express its own policy.
 | `name` | string (required) | Stable identifier, included in the finding message. Must be unique. |
 | `ruleKinds` | []string | Globs matched against `rule.Kind()`. Empty/absent ⇒ matches all kinds. |
 | `attr` | string (required) | Attribute to inspect. |
-| `forbidValues` | []string | Scalar attr must not equal any of these. |
+| `forbidValues` | []string | Scalar attr must not equal any of these (see scalar matching below). |
 | `requireValues` | []string | If attr present, must equal one of these. (If also want "must be present", see `required`.) |
 | `forbidListItems` | []string | List attr must not contain any of these items. |
 | `requireListItems` | []string | List attr must contain all of these items. |
+| `forbidDictEntries` | object (string→string) | Dict attr must not contain any of these key→value pairs. |
+| `requireDictEntries` | object (string→string) | Dict attr must contain all of these key→value pairs. |
+| `forbidDictKeys` | []string | Dict attr must not contain any of these keys (value ignored). |
 | `required` | bool | Attr must be present at all. |
 | `allowlist` | []string | Target patterns exempt from this rule (see grammar below). |
 | `suppressible` | bool (default `true`) | Whether `# buildifier: disable=attr-policy` silences this rule. `false` = a "hard" rule enforced authoritatively by CI regardless of in-file comments (see §6). |
 | `message` | string | Custom message. If absent, a default is synthesized from the constraint. |
 
+**Scalar matching (`forbidValues` / `requireValues`).** Covers string attributes
+(`timeout = "eternal"`) and boolean/identifier literals (`local = True`,
+`flaky = False`). At check time, read the attribute with `rule.AttrString` first,
+then fall back to `rule.AttrLiteral` (which returns `True`/`False` for boolean
+literals and identifier names for unquoted tokens). Compare the normalized string
+form. An absent attribute does not match `forbidValues`; it only fails
+`requireValues` when the attribute is present but wrong.
+
+**Dict matching (`forbidDictEntries` / `requireDictEntries` / `forbidDictKeys`).**
+Covers `string_dict` / `label_dict` attributes such as `execution_requirements`.
+The attribute must be a `*build.DictExpr`; look up keys with `edit.DictionaryGet`.
+Dict values are normalized the same way as scalars (string literal or
+`AttrLiteral` on the value node). Example: `execution_requirements = {"no-cache":
+"1"}` is flagged by the `no-no-cache` rule above because the dict contains key
+`no-cache` with value `"1"`. `forbidDictKeys` is a weaker variant that flags the
+presence of a key regardless of its value (useful when any non-default value is
+undesirable but the exact value varies).
+
 Exactly one *constraint family* (`forbidValues`/`requireValues` **or**
-`forbidListItems`/`requireListItems`) should be set per rule; `required` is
-orthogonal. Validation enforces this (see 3.5).
+`forbidListItems`/`requireListItems` **or**
+`forbidDictEntries`/`requireDictEntries`/`forbidDictKeys`) should be set per
+rule; `required` is orthogonal. Validation enforces this (see 3.5).
 
 **Allow-list pattern grammar.** Entries are Bazel-style target patterns (a subset of
 what users already know from `bazel build`):
@@ -167,17 +206,20 @@ type AttrPolicy struct {
 }
 
 type AttrPolicyRule struct {
-    Name             string   `json:"name"`
-    RuleKinds        []string `json:"ruleKinds,omitempty"`
-    Attr             string   `json:"attr"`
-    ForbidValues     []string `json:"forbidValues,omitempty"`
-    RequireValues    []string `json:"requireValues,omitempty"`
-    ForbidListItems  []string `json:"forbidListItems,omitempty"`
-    RequireListItems []string `json:"requireListItems,omitempty"`
-    Required         bool     `json:"required,omitempty"`
-    Allowlist        []string `json:"allowlist,omitempty"`
-    Suppressible     *bool    `json:"suppressible,omitempty"` // pointer so absent ⇒ default true
-    Message          string   `json:"message,omitempty"`
+    Name               string            `json:"name"`
+    RuleKinds          []string          `json:"ruleKinds,omitempty"`
+    Attr               string            `json:"attr"`
+    ForbidValues       []string          `json:"forbidValues,omitempty"`
+    RequireValues      []string          `json:"requireValues,omitempty"`
+    ForbidListItems    []string          `json:"forbidListItems,omitempty"`
+    RequireListItems   []string          `json:"requireListItems,omitempty"`
+    ForbidDictEntries  map[string]string `json:"forbidDictEntries,omitempty"`
+    RequireDictEntries map[string]string `json:"requireDictEntries,omitempty"`
+    ForbidDictKeys     []string          `json:"forbidDictKeys,omitempty"`
+    Required           bool              `json:"required,omitempty"`
+    Allowlist          []string          `json:"allowlist,omitempty"`
+    Suppressible       *bool             `json:"suppressible,omitempty"` // pointer so absent ⇒ default true
+    Message            string            `json:"message,omitempty"`
 }
 ```
 
@@ -218,7 +260,7 @@ On load, reject:
 - duplicate `name`s,
 - empty `name` or empty `attr`,
 - a rule with no constraint set,
-- a rule mixing scalar and list constraint families,
+- a rule mixing scalar, list, and dict constraint families,
 - malformed globs in `ruleKinds` / malformed target patterns in `allowlist` (must
   match the §3.2 grammar; reject a bare `...`, repository-qualified entries, etc.).
 
@@ -250,8 +292,15 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
 
 - `p.allowed` runs the precompiled `allowlistMatch` (§3.2 grammar) over the target
   label — exact / `:all` / `/...` — not a bare `labels.Equal`.
-- `p.check` handles the constraint families using `rule.AttrString` / `rule.AttrStrings`
-  and `rule.Attr(attr)` for the anchor node; returns `makeLinterFinding(node, msg)`.
+- `p.check` handles the constraint families:
+  - **Scalars:** `attrScalarString(rule, attr)` → `rule.AttrString`, else
+    `rule.AttrLiteral`; compare against `forbidValues` / `requireValues`.
+  - **Lists:** `rule.AttrStrings`.
+  - **Dicts:** `rule.Attr(attr)` as `*build.DictExpr`; `edit.DictionaryGet` per
+    key; normalize values like scalars. `forbidDictKeys` flags any listed key
+    that is present.
+  Returns `makeLinterFinding(node, msg)` anchored on the offending attr node (or a
+  specific dict entry's value node when possible).
 - Scope: BUILD files only (targets live there). Return `nil` for other file types.
 - **Autofix: none initially.** We cannot infer a correct scalar value. The one
   mechanically-safe fix (remove a forbidden list item / forbidden tag) is a good
@@ -264,7 +313,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
   (recommended, since it no-ops without config anyway — but being config-gated it's
   harmless in the default set too; pick opt-in to be conservative).
 - Docs: add an entry to `WARNINGS.md` and `warn/docs/warnings.textproto` describing the
-  warning **and** the `attrPolicy` config block (with the two example rules).
+  warning **and** the `attrPolicy` config block (with the example rules, including
+  boolean and dict constraints).
 - Add a `-config=example` sample entry so `buildifier -config=example` prints an
   `attrPolicy` stub (see `config.Example()`).
 - Tests `warn/warn_attr_policy_test.go`:
@@ -273,6 +323,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
   - Cases: forbidden scalar value flagged; allow-listed target exempt; recursive
     `//pkg/...` allow-list; forbidden list item in `tags`; `ruleKinds` glob match &
     non-match; missing-when-`required`; `# buildifier: disable=attr-policy` suppression;
+    forbidden boolean literal (`local = True`); forbidden dict entry
+    (`execution_requirements = {"no-cache": "1"}`); `forbidDictKeys` on a dict key;
     empty config = no findings.
   - Config tests in `buildifier/config/config_test.go`: parse the sample JSON;
     validation rejects malformed rules.
