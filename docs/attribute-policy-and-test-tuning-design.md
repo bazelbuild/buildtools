@@ -120,20 +120,37 @@ generic and lets each repo express its own policy.
 | `forbidListItems` | []string | List attr must not contain any of these items. |
 | `requireListItems` | []string | List attr must contain all of these items. |
 | `required` | bool | Attr must be present at all. |
-| `allowlist` | []string | Labels exempt from this rule. Exact labels or `//pkg/...` recursive globs. |
+| `allowlist` | []string | Target patterns exempt from this rule (see grammar below). |
+| `suppressible` | bool (default `true`) | Whether `# buildifier: disable=attr-policy` silences this rule. `false` = a "hard" rule enforced authoritatively by CI regardless of in-file comments (see §6). |
 | `message` | string | Custom message. If absent, a default is synthesized from the constraint. |
 
 Exactly one *constraint family* (`forbidValues`/`requireValues` **or**
 `forbidListItems`/`requireListItems`) should be set per rule; `required` is
 orthogonal. Validation enforces this (see 3.5).
 
+**Allow-list pattern grammar.** Entries are Bazel-style target patterns (a subset of
+what users already know from `bazel build`):
+
+| Pattern | Matches |
+|---|---|
+| `//pkg:name` or `//pkg` | exactly the target `//pkg:name` (`//pkg` ⇒ `//pkg:pkg`) |
+| `//pkg:all` (also `//pkg:*`) | any target *directly* in package `pkg` |
+| `//pkg/...` | any target in package `pkg` or any package beneath it (recursive) |
+| `//...` | every target |
+
+There is **no off-the-shelf matcher** for this in the repo — `labels.Equal` is
+exact-only, and buildozer's `/...` handling is for filesystem BUILD discovery, not
+in-memory label matching. So the warning ships a small matcher (`allowlistMatch`) that
+parses each entry once at config-compile time and, for a given target
+`//{f.Pkg}:{rule.Name()}`, tests: exact via `labels.Equal`; `:all`/`:*` via package
+equality; `/...` via `pkg == P || strings.HasPrefix(pkg, P+"/")`.
+
 **Semantics:**
 - Empty/absent `attrPolicy` ⇒ warning is a no-op. Safe to enable in `--warnings=all`.
 - A target matches a policy rule if its `Kind()` matches any `ruleKinds` glob **and**
-  its full label is **not** in `allowlist`.
-- Full label computed as `//{f.Pkg}:{rule.Name()}` then compared with `labels.Equal`
-  (handles `:name` == package-dir shorthand). Recursive `//pkg/...` entries match any
-  target whose package is `pkg` or under it.
+  its label matches **no** entry in `allowlist`.
+- Target label computed as `//{f.Pkg}:{rule.Name()}` and tested with `allowlistMatch`
+  per the grammar above (not a bare `labels.Equal`, which can't express patterns).
 - Finding is anchored on the offending attribute node
   (`rule.Attr(attr).Span()`); if the constraint is `required` and the attr is missing,
   anchor on `rule.Call`.
@@ -157,6 +174,7 @@ type AttrPolicyRule struct {
     RequireListItems []string `json:"requireListItems,omitempty"`
     Required         bool     `json:"required,omitempty"`
     Allowlist        []string `json:"allowlist,omitempty"`
+    Suppressible     *bool    `json:"suppressible,omitempty"` // pointer so absent ⇒ default true
     Message          string   `json:"message,omitempty"`
 }
 ```
@@ -176,7 +194,7 @@ global in `warn`, set once during config application — exactly how `tables` wo
 - In `warn/warn_attr_policy.go`, define:
   ```go
   // AttrPolicyConfig is process-global policy, set from buildifier config before linting.
-  var AttrPolicyConfig []AttrPolicyRuleCompiled // compiled form (globs precompiled)
+  var AttrPolicyConfig []AttrPolicyRuleCompiled // compiled form: kind globs + allow-list patterns precompiled
 
   func SetAttrPolicy(rules []AttrPolicyRuleCompiled) { AttrPolicyConfig = rules }
   ```
@@ -199,7 +217,8 @@ On load, reject:
 - empty `name` or empty `attr`,
 - a rule with no constraint set,
 - a rule mixing scalar and list constraint families,
-- malformed globs in `ruleKinds` / malformed labels in `allowlist`.
+- malformed globs in `ruleKinds` / malformed target patterns in `allowlist` (must
+  match the §3.2 grammar; reject a bare `...`, repository-qualified entries, etc.).
 
 Emit clear errors (`fmt.Errorf("attrPolicy rule %q: ...", name)`).
 
@@ -227,6 +246,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
 }
 ```
 
+- `p.allowed` runs the precompiled `allowlistMatch` (§3.2 grammar) over the target
+  label — exact / `:all` / `/...` — not a bare `labels.Equal`.
 - `p.check` handles the constraint families using `rule.AttrString` / `rule.AttrStrings`
   and `rule.Attr(attr)` for the anchor node; returns `makeLinterFinding(node, msg)`.
 - Scope: BUILD files only (targets live there). Return `nil` for other file types.
@@ -390,7 +411,70 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 ---
 
-## 6. Phasing & work breakdown (for agent hand-off)
+## 6. Suppression & enforcement
+
+Every buildifier warning is silenceable with `# buildifier: disable=<category>` (also
+`# buildozer: disable=`). Suppression is centralized: `runWarningsFunction` drops any
+finding for which `DisabledWarning(f, line, category)` is true (`warn/warn.go:281`),
+keyed only on the category string. There is **no per-warning "cannot be suppressed"
+flag** today — so out of the box a user can write:
+
+```python
+# buildifier: disable=attr-policy
+my_test(name = "x", timeout = "eternal")
+```
+
+…and the policy evaporates locally. We handle this deliberately rather than fighting it.
+
+**Reframe:** a `disable=` comment is not a silent back door — it lives in the BUILD
+file, shows up in the diff, in `git blame`, and in code review. The governance question
+is not "can it be bypassed?" (it can) but "is the bypass visible and attributable?"
+(yes). That points to a two-tier model.
+
+### 6.1 Two-tier enforcement
+
+1. **buildifier `attr-policy` — fast, local, suppressible.** Normal buildifier UX:
+   dev-time feedback, silenceable with a visible comment. Advisory; not a gate.
+2. **Authoritative CI gate — non-bypassable.** A CI job (naturally hosted in the
+   `testpolicy` tool, which already loads the policy config) re-evaluates the *same*
+   `.buildifier.json` policy against the tree and, for rules with `suppressible: false`,
+   **ignores `disable=` comments entirely**. In-file suppression can't defeat it because
+   the gate doesn't consult the file's comments for hard rules. This is where
+   "eternal timeout requires the allow-list, full stop" actually lives.
+
+Result: the **sanctioned** escape hatch is the allow-list (a reviewed edit to
+`.buildifier.json`, ideally CODEOWNER-guarded); the **unsanctioned** one (a `disable=`
+comment on a hard rule) is ignored by the gate and surfaced as debt.
+
+### 6.2 `suppressible` config field
+
+Per-rule `suppressible` (§3.2, default `true`) tunes this:
+- `true` — soft rule; local `disable=attr-policy` silences it (advisory policy).
+- `false` — hard rule; the CI gate enforces it regardless of comments. buildifier
+  locally still shows (and, unless we take the core change in §6.4, still lets users
+  *locally* suppress) it, but the merge gate is authoritative.
+
+### 6.3 Suppression audit
+
+A cheap job/report that inventories every `disable=attr-policy` (and, if we add
+sub-scoping, `attr-policy=<rule>`) comment across the repo, so escape hatches are
+**visible and burn-down-able** instead of accumulating silently. Pairs well with
+CODEOWNERS on `.buildifier.json` and on BUILD files so both allow-list edits and
+suppressions land on a policy owner.
+
+### 6.4 Optional core change (open question)
+
+If we want the *local* linter — not just CI — to refuse suppression for hard rules,
+that's a small but real change to buildifier's contract: add a `NonSuppressible bool`
+to `LinterFinding` and have `runWarningsFunction` skip the `DisabledWarning` check when
+it's set; `attr-policy` sets it per-finding from the rule's `suppressible` flag. Clean
+and gives per-rule granularity, **but** it breaks the long-standing invariant that every
+warning is silenceable, so it needs buy-in before upstreaming. Recommendation: keep the
+CI gate as the real enforcement regardless, and treat this as a nice-to-have. See §8.
+
+---
+
+## 7. Phasing & work breakdown (for agent hand-off)
 
 Each task is independently ownable; dependencies noted. "AC" = acceptance criteria above.
 
@@ -417,14 +501,24 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
 - **B5. Warehouse (BigQuery/DB) source impl** — behind flag. *(dep: B1)*
 - **B6. `apply` mode + PR grouping (CODEOWNERS)** — §4.5. *(dep: B2/B3/B4)*
 
+### Phase 1b — enforcement (Workstream A, in parallel with Phase 2)
+- **A7. Authoritative CI gate** — evaluate policy ignoring `disable=` for
+  `suppressible: false` rules (§6.1/§6.2); non-zero exit on violation. *(dep: A1–A4)*
+- **A8. Suppression audit** — inventory `disable=attr-policy` comments across the
+  repo as a report (§6.3). *(dep: A3)*
+
 ---
 
-## 7. Open questions
+## 8. Open questions
 
 1. **Import direction** between `warn` and `buildifier/config` — confirm no cycle
    (§3.4). If one exists, the compiled-policy-type-in-`warn` approach resolves it.
 2. Should `attr-policy` be **default-on** (config-gated no-op) or opt-in via
    `--warnings`? (Leaning opt-in.)
+3. **`NonSuppressible` core change (§6.4)** — do we extend buildifier so hard rules
+   can't be silenced by `disable=` locally, accepting a break to the "every warning is
+   suppressible" contract? Or rely solely on the CI gate? (Leaning CI-gate-only for the
+   first cut.)
 3. Warehouse **schema/columns** available for `TargetStats` — especially whether
    per-attempt outcomes (`PassByAttempt`) exist, or only aggregate pass/fail. This
    changes flakiness estimation fidelity.
