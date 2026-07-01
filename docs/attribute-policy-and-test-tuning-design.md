@@ -17,19 +17,21 @@ We want two related capabilities for Bazel `BUILD` files:
 
 2. **Empirical test-tuning** in a **new, separate tool** (`testpolicy`) — read
    historical test-execution stats from a metrics warehouse, compute recommended
-   `timeout` and `flaky` values (and a flakiness score), and apply them via
-   `buildozer` commands / PRs. `buildifier` never touches the warehouse.
+   `timeout` and `flaky` values (and a flakiness score), and **emit the `buildozer`
+   commands** that would repair the repo. `buildifier` never touches the warehouse.
 
 These are split deliberately: `buildifier` stays a fast, hermetic, offline static
-linter; all data-dependent analysis lives in a tool that can query a warehouse and
-open PRs.
+linter; all data-dependent analysis lives in a tool that queries a warehouse and
+produces buildozer commands. **The tool's job ends when those commands are produced** —
+running them, opening PRs, and routing to reviewers are downstream concerns left to
+whatever CI/automation invokes the tool.
 
 ### Decisions locked in (from design review)
 
 | Question | Decision |
 |---|---|
 | Source of empirical data | Metrics DB / warehouse (queried by the new tool) |
-| How empirical recommendations are applied | `buildozer` commands + PRs; `buildifier` stays purely static |
+| How empirical recommendations are applied | Tool emits `buildozer` commands (its terminal deliverable); applying/PRs are downstream. `buildifier` stays purely static |
 | Where policy config lives | Extend the existing `.buildifier.json` config |
 
 ---
@@ -294,7 +296,7 @@ never blocks pre-commit.
 
 ```
 testpolicy/
-  main.go            // CLI: window, filters, dry-run/report/apply modes
+  main.go            // CLI: window, filters, report output
   source/            // warehouse adapter
     source.go        //   interface + data model
     bigquery.go      //   concrete impl (behind a build tag / flag)
@@ -302,8 +304,7 @@ testpolicy/
     timeout.go       //   timeout recommender
     flaky.go         //   flakiness scoring + flaky (bool) recommender
   emit/
-    buildozer.go     //   emit buildozer command script
-    pr.go            //   group by owner, open PRs (later phase)
+    buildozer.go     //   emit buildozer command script (terminal deliverable)
   report/            //   human-readable + machine (JSON) report
 ```
 
@@ -395,14 +396,18 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 ### 4.5 Emit (`emit/`)
 
-- **Phase 2 (first):** `report`/`dry-run` only — print recommendations + reasons; emit a
-  `buildozer` command script to stdout/file, e.g.:
-  ```
-  buildozer 'set timeout "long"' //pkg:target
-  buildozer 'set flaky True'     //pkg:other
-  ```
-- **Phase 3:** `apply` mode runs buildozer and/or opens PRs grouped by CODEOWNERS.
-- Always emit a machine-readable JSON report for auditability.
+The tool's **terminal output** is a `buildozer` command script that would repair the
+repo, printed to stdout/file, e.g.:
+```
+buildozer 'set timeout "short"' //pkg:target
+buildozer 'set flaky True'      //pkg:other
+```
+- Also emit a machine-readable JSON report (recommendations + reasons + effective
+  `timeoutBuckets`) for auditability.
+- The tool **does not run buildozer, commit, or open PRs.** Executing the script,
+  batching edits, opening PRs, and routing to reviewers are downstream responsibilities
+  of whatever CI/automation calls `testpolicy`. Keeping the boundary here makes the tool
+  trivially testable (assert on emitted commands) and reusable by any apply/review flow.
 
 ### 4.6 Safety / guardrails
 
@@ -420,10 +425,10 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 ### 4.7 Acceptance criteria (Workstream B)
 
-- With a fake `Source`, `testpolicy report` produces correct timeout & flaky
-  recommendations and a valid buildozer script for a fixture dataset.
+- With a fake `Source`, `testpolicy` produces correct timeout & flaky recommendations
+  and a valid buildozer command script for a fixture dataset.
 - No warehouse credentials required for tests (fake source).
-- `apply` mode is gated behind an explicit flag and off by default.
+- Output is deterministic (stable ordering) so the emitted script can be asserted on.
 
 ---
 
@@ -433,8 +438,8 @@ Answers "does a single retry likely pass, or does it need multiple?".
   Both `buildifier` (enforce) and `testpolicy` (never recommend eternal off-list) read
   it. Consider a tiny shared loader package so the schema isn't duplicated.
 - `buildifier` enforces the *invariants*; `testpolicy` proposes the *values*. A
-  `testpolicy`-generated PR must itself pass `attr-policy` lint — i.e. the tool won't
-  propose an edit that buildifier would reject.
+  `testpolicy`-emitted edit must itself satisfy `attr-policy` — i.e. the tool won't emit
+  a buildozer command that buildifier would then reject.
 
 ---
 
@@ -523,10 +528,9 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
 - **B2. Timeout recommender** — §4.3 + tests on fixtures. *(dep: B1)*
 - **B3. buildozer emitter + report** — §4.5 dry-run path. *(dep: B1)*
 
-### Phase 3 — flakiness + application
+### Phase 3 — flakiness + real data source
 - **B4. Flakiness scoring** — §4.4 + tests. *(dep: B1)*
 - **B5. Warehouse (BigQuery/DB) source impl** — behind flag. *(dep: B1)*
-- **B6. `apply` mode + PR grouping (CODEOWNERS)** — §4.5. *(dep: B2/B3/B4)*
 
 ### Phase 1b — enforcement (Workstream A, in parallel with Phase 2)
 - **A7. Authoritative CI gate** — evaluate policy ignoring `disable=` for
@@ -554,6 +558,5 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
    `--config`/platform, so "the" mapping may be ambiguous; do we pin one config, or
    analyze per-config?
 6. Timeout **safety factor** and bucket cutoffs — defaults proposed; confirm with SRE/CI.
-7. PR routing — CODEOWNERS-based? One PR per owner, or batched?
-8. Do we want the shared eternal-allow-list loader as its own small package now, or
+7. Do we want the shared eternal-allow-list loader as its own small package now, or
    duplicate-read for Phase 1 and refactor later?
