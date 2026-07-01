@@ -385,7 +385,13 @@ Answers "does a single retry likely pass, or does it need multiple?".
 
 - **Reality check (must be in tool output & docs):** Bazel's `flaky` is a **boolean**;
   the tool only ever recommends `flaky = True` / `flaky = False`. `N` is an internal
-  signal for classification, not something written into the BUILD file.
+  signal for classification, not something written into the BUILD file. There is no way
+  today to express *how* flaky a target is (a per-target retry count) in a BUILD file:
+  the `flaky` attribute and the `--flaky_test_attempts` flag are disconnected, so
+  per-target attempt counts require unwieldy regex lists on the flag. This limitation is
+  tracked upstream in [bazelbuild/bazel#30108](https://github.com/bazelbuild/bazel/issues/30108);
+  if/when it lands, the classifier's `N` becomes directly expressible and this section
+  should be revisited.
 
 ### 4.5 Emit (`emit/`)
 
