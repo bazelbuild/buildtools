@@ -10,6 +10,7 @@ Warning categories supported by buildifier's linter:
   * [`attr-non-empty`](#attr-non-empty)
   * [`attr-output-default`](#attr-output-default)
   * [`attr-package-metadata`](#attr-package-metadata)
+  * [`attr-policy`](#attr-policy)
   * [`attr-single-file`](#attr-single-file)
   * [`build-args-kwargs`](#build-args-kwargs)
   * [`bzl-visibility`](#bzl-visibility)
@@ -228,6 +229,47 @@ for these attributes instead.
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-package-metadata`
 
 Using `package_metadata` as an attribute name may cause unexpected behavior. Its use may be prohibited in future Bazel releases.
+
+--------------------------------------------------------------------------------
+
+## <a name="attr-policy"></a>Attribute value violates a configured policy rule
+
+  * Category name: `attr-policy`
+  * Automatic fix: no
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=attr-policy`
+
+Enforces declarative attribute constraints configured in `.buildifier.json` under
+`attrPolicy`. Each rule names an attribute and a constraint family (scalar,
+list, dict, or numeric bounds). Targets matching an `allowlist` pattern are
+exempt.
+
+Example:
+
+```json
+{
+  "attrPolicy": {
+    "rules": [
+      {
+        "name": "no-eternal-timeout",
+        "ruleKinds": ["*_test"],
+        "attr": "timeout",
+        "forbidValues": ["eternal"],
+        "allowlist": ["//slow/..."]
+      },
+      {
+        "name": "max-shard-count",
+        "ruleKinds": ["*_test"],
+        "attr": "shard_count",
+        "maxValue": 50
+      }
+    ]
+  }
+}
+```
+
+A JSON Schema for `.buildifier.json` (including `attrPolicy`) lives at
+`buildifier/config/buildifier.schema.json`.
 
 --------------------------------------------------------------------------------
 

@@ -6,6 +6,8 @@ go_library(
         "multifile.go",
         "types.go",
         "warn.go",
+        "attr_policy.go",
+        "warn_attr_policy.go",
         "warn_bazel.go",
         "warn_bazel_api.go",
         "warn_bazel_operation.go",
@@ -36,6 +38,7 @@ go_test(
     size = "small",
     srcs = [
         "types_test.go",
+        "warn_attr_policy_test.go",
         "warn_bazel_api_test.go",
         "warn_bazel_operation_test.go",
         "warn_bazel_test.go",

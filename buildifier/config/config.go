@@ -130,6 +130,8 @@ type Config struct {
 	DisableRewrites ArrayFlags `json:"buildifier_disable,omitempty"`
 	// AllowSort specifies additional sort contexts to treat as safe
 	AllowSort ArrayFlags `json:"allowsort,omitempty"`
+	// AttrPolicy configures config-driven attribute policy lint rules.
+	AttrPolicy *AttrPolicy `json:"attrPolicy,omitempty"`
 
 	// Help is true if the -h flag is set
 	Help bool `json:"-"`
@@ -231,6 +233,12 @@ func (c *Config) Validate(args []string) error {
 		}
 	}
 
+	compiledAttrPolicy, err := compileAttrPolicy(c.AttrPolicy)
+	if err != nil {
+		return err
+	}
+	warn.SetAttrPolicy(compiledAttrPolicy)
+
 	warningsList := c.WarningsList
 	if c.Warnings != "" {
 		warningsList = append(warningsList, c.Warnings)
@@ -276,5 +284,17 @@ func Example() *Config {
 	c.Mode = "fix"
 	c.Lint = "fix"
 	c.WarningsList = warn.AllWarnings
+	c.AttrPolicy = &AttrPolicy{
+		Rules: []AttrPolicyRule{
+			{
+				Name:         "no-eternal-timeout",
+				RuleKinds:    []string{"*_test"},
+				Attr:         "timeout",
+				ForbidValues: []string{"eternal"},
+				Allowlist:    []string{"//slow/..."},
+				Message:      "'eternal' timeout requires approval; add the target to the attrPolicy allowlist.",
+			},
+		},
+	}
 	return c
 }
