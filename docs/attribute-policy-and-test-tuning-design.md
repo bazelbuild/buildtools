@@ -12,13 +12,18 @@ We want two related capabilities for Bazel `BUILD` files:
 
 1. **Static attribute-policy linting** in `buildifier` — enforce declarative rules about
    attribute values, e.g. forbid `timeout = "eternal"` unless the target is on an
-   approved allow-list, forbid `exclusive` in a test's `tags`, and similar
-   attribute/rule-kind constraints. Purely static, config-driven, no runtime data.
+   approved allow-list, forbid `exclusive` in a test's `tags`, cap `shard_count` at 50,
+   and similar attribute/rule-kind constraints. Purely static, config-driven, no runtime data.
 
 2. **Empirical test-tuning** in a **new, separate tool** (`testpolicy`) — read
    historical test-execution stats from a metrics warehouse, compute recommended
-   `timeout` and `flaky` values (and a flakiness score), and **emit the `buildozer`
+   `timeout`, `flaky`, and (in theory) `shard_count` values, and **emit the `buildozer`
    commands** that would repair the repo. `buildifier` never touches the warehouse.
+
+   `timeout`, `flaky`, and `shard_count` are the three test attributes meant to reflect
+   **how the test currently executes**, not how it was designed. `shard_count` tuning is
+   feasible only if telemetry can separate fixture/SUT setup time from assertion time;
+   otherwise the tool cannot tell whether more shards would shorten the critical path.
 
 These are split deliberately: `buildifier` stays a fast, hermetic, offline static
 linter; all data-dependent analysis lives in a tool that queries a warehouse and
@@ -33,6 +38,16 @@ whatever CI/automation invokes the tool.
 | Source of empirical data | Metrics DB / warehouse (queried by the new tool) |
 | How empirical recommendations are applied | Tool emits `buildozer` commands (its terminal deliverable); applying/PRs are downstream. `buildifier` stays purely static |
 | Where policy config lives | Extend the existing `.buildifier.json` config |
+
+### Motivating use cases
+
+| Policy | Encoding | Context |
+|---|---|---|
+| No `timeout = "eternal"` without approval | `forbidValues` + `allowlist` | Initial ask |
+| No `exclusive` in test `tags` | `forbidListItems` | Initial ask |
+| No `local = True` on tests | `forbidValues: ["True"]` | Hermetic-test policy |
+| No `execution_requirements["no-cache"] = "1"` | `forbidDictEntries` | Cache-bypass policy |
+| `shard_count` ≤ 50 on tests | `maxValue: 50` | [figma/bazel#12](https://github.com/figma/bazel/pull/12) removed Bazel's hardcoded 50-shard cap; repos that want to keep that limit (or any other bound) can enforce it in buildifier instead of forking Bazel |
 
 ---
 
@@ -78,8 +93,8 @@ whatever CI/automation invokes the tool.
 A **single generalized** warning, `attr-policy`, driven entirely by config. It covers
 the initial asks (eternal-timeout allow-list, no `exclusive` on tests) and any future
 "attribute constrained on rule-kind unless allow-listed" rule **without new Go code** —
-including boolean literals (`local = True`) and dict attributes
-(`execution_requirements = {"no-cache": "1"}`).
+including boolean literals (`local = True`), dict attributes
+(`execution_requirements = {"no-cache": "1"}`), and numeric bounds (`shard_count` ≤ 50).
 
 Rationale for one generalized warning vs. many hardcoded ones: buildifier warnings are
 individually toggleable by name, but the *policy content* here is site-specific and
@@ -121,6 +136,14 @@ generic and lets each repo express its own policy.
           "no-cache": "1"
         },
         "message": "Do not set execution_requirements['no-cache'] = '1'."
+      },
+      {
+        "name": "max-shard-count",
+        "ruleKinds": ["*_test"],
+        "attr": "shard_count",
+        "maxValue": 50,                        // numeric range constraint (see below)
+        "allowlist": ["//huge_suite:..."],
+        "message": "shard_count must not exceed 50; add the target to the allowlist for larger suites."
       }
     ]
   }
@@ -141,6 +164,8 @@ generic and lets each repo express its own policy.
 | `forbidDictEntries` | object (string→string) | Dict attr must not contain any of these key→value pairs. |
 | `requireDictEntries` | object (string→string) | Dict attr must contain all of these key→value pairs. |
 | `forbidDictKeys` | []string | Dict attr must not contain any of these keys (value ignored). |
+| `minValue` | int | Numeric attr must be ≥ this (inclusive). At least one of `minValue` / `maxValue` required for the numeric family. |
+| `maxValue` | int | Numeric attr must be ≤ this (inclusive). |
 | `required` | bool | Attr must be present at all. |
 | `allowlist` | []string | Target patterns exempt from this rule (see grammar below). |
 | `suppressible` | bool (default `true`) | Whether `# buildifier: disable=attr-policy` silences this rule. `false` = a "hard" rule enforced authoritatively by CI regardless of in-file comments (see §6). |
@@ -164,10 +189,19 @@ Dict values are normalized the same way as scalars (string literal or
 presence of a key regardless of its value (useful when any non-default value is
 undesirable but the exact value varies).
 
+**Numeric matching (`minValue` / `maxValue`).** Covers integer attributes such as
+`shard_count`. Read the attribute with `rule.AttrLiteral` (a `*build.LiteralExpr`
+whose `Token` is the decimal representation) and parse with `strconv.Atoi`. An absent
+attribute does not violate `maxValue` / `minValue` — only an explicitly set value
+outside the range is flagged. This is the mechanism repos use to re-impose limits
+Bazel no longer enforces globally (e.g. the former 50-shard cap removed in
+[figma/bazel#12](https://github.com/figma/bazel/pull/12)).
+
 Exactly one *constraint family* (`forbidValues`/`requireValues` **or**
 `forbidListItems`/`requireListItems` **or**
-`forbidDictEntries`/`requireDictEntries`/`forbidDictKeys`) should be set per
-rule; `required` is orthogonal. Validation enforces this (see 3.5).
+`forbidDictEntries`/`requireDictEntries`/`forbidDictKeys` **or**
+`minValue`/`maxValue`) should be set per rule; `required` is orthogonal. Validation
+enforces this (see 3.5).
 
 **Allow-list pattern grammar.** Entries are Bazel-style target patterns (a subset of
 what users already know from `bazel build`):
@@ -216,6 +250,8 @@ type AttrPolicyRule struct {
     ForbidDictEntries  map[string]string `json:"forbidDictEntries,omitempty"`
     RequireDictEntries map[string]string `json:"requireDictEntries,omitempty"`
     ForbidDictKeys     []string          `json:"forbidDictKeys,omitempty"`
+    MinValue           *int              `json:"minValue,omitempty"` // pointer: absent vs set-to-zero
+    MaxValue           *int              `json:"maxValue,omitempty"`
     Required           bool              `json:"required,omitempty"`
     Allowlist          []string          `json:"allowlist,omitempty"`
     Suppressible       *bool             `json:"suppressible,omitempty"` // pointer so absent ⇒ default true
@@ -260,7 +296,9 @@ On load, reject:
 - duplicate `name`s,
 - empty `name` or empty `attr`,
 - a rule with no constraint set,
-- a rule mixing scalar, list, and dict constraint families,
+- a rule mixing scalar, list, dict, and numeric constraint families,
+- a numeric rule with neither `minValue` nor `maxValue` set, or with `minValue` >
+  `maxValue` when both are set,
 - malformed globs in `ruleKinds` / malformed target patterns in `allowlist` (must
   match the §3.2 grammar; reject a bare `...`, repository-qualified entries, etc.).
 
@@ -299,6 +337,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
   - **Dicts:** `rule.Attr(attr)` as `*build.DictExpr`; `edit.DictionaryGet` per
     key; normalize values like scalars. `forbidDictKeys` flags any listed key
     that is present.
+  - **Numerics:** `strconv.Atoi(rule.AttrLiteral(attr))`; flag if value `< minValue`
+    or `> maxValue` (bounds inclusive; absent bound ignored).
   Returns `makeLinterFinding(node, msg)` anchored on the offending attr node (or a
   specific dict entry's value node when possible).
 - Scope: BUILD files only (targets live there). Return `nil` for other file types.
@@ -314,7 +354,7 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
   harmless in the default set too; pick opt-in to be conservative).
 - Docs: add an entry to `WARNINGS.md` and `warn/docs/warnings.textproto` describing the
   warning **and** the `attrPolicy` config block (with the example rules, including
-  boolean and dict constraints).
+  boolean, dict, and numeric constraints).
 - Add a `-config=example` sample entry so `buildifier -config=example` prints an
   `attrPolicy` stub (see `config.Example()`).
 - Tests `warn/warn_attr_policy_test.go`:
@@ -325,14 +365,16 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
     non-match; missing-when-`required`; `# buildifier: disable=attr-policy` suppression;
     forbidden boolean literal (`local = True`); forbidden dict entry
     (`execution_requirements = {"no-cache": "1"}`); `forbidDictKeys` on a dict key;
-    empty config = no findings.
+    `shard_count` above `maxValue` flagged, within range OK, absent OK; allow-listed
+    high-shard target exempt; empty config = no findings.
   - Config tests in `buildifier/config/config_test.go`: parse the sample JSON;
     validation rejects malformed rules.
 
 ### 3.8 Acceptance criteria (Workstream A)
 
 - `buildifier --lint=warn --warnings=attr-policy BUILD` flags eternal timeout on
-  non-allow-listed test targets and `exclusive` tags on tests, given the sample config.
+  non-allow-listed test targets, `exclusive` tags on tests, and `shard_count > 50`,
+  given the sample config.
 - Zero findings when `attrPolicy` is absent.
 - All new + existing `warn` and `config` tests pass; `WARNINGS.md` regeneration (if
   applicable) is consistent.
@@ -354,7 +396,8 @@ testpolicy/
     bigquery.go      //   concrete impl (behind a build tag / flag)
   analyze/
     timeout.go       //   timeout recommender
-    flaky.go         //   flakiness scoring + flaky (bool) recommender
+    flaky.go         //   flakiness scoring + flaky recommender
+    shard.go         //   (future) shard_count recommender — needs setup vs assertion timing
   emit/
     buildozer.go     //   emit buildozer command script (terminal deliverable)
   report/            //   human-readable + machine (JSON) report
@@ -375,6 +418,10 @@ type TargetStats struct {
     // Per-attempt outcomes for flakiness math:
     Attempts         int           // total attempts observed
     PassByAttempt    []float64     // PassByAttempt[k] = P(pass by attempt k+1), empirical
+    // Per-shard timing (optional; needed for shard_count recommender):
+    ShardCount       int           // declared shard_count, if any
+    ShardDurationP95 []time.Duration // per-shard P95, when available
+    SetupDurationP95 time.Duration // fixture/SUT setup time P95, when separable from assertions
 }
 
 type Source interface {
@@ -431,28 +478,46 @@ Answers "does a single retry likely pass, or does it need multiple?".
   from "retries rarely help", which drives the `flaky` recommendation:
   | `N` | Meaning | Recommendation |
   |---|---|---|
-  | ≤ 1 | not flaky | `flaky = False` (or leave unset) |
-  | 2–3 | retries reliably recover it | `flaky = True` |
-  | > 3 | retries rarely recover it | report for owner; `flaky` won't reliably help |
+  | ≤ 1 | not flaky | `flaky = 0` (or leave unset) |
+  | 2–3 | retries reliably recover it | `flaky = N - 1` (extra retries beyond the first attempt) |
+  | > 3 | retries rarely recover it | report for owner; more retries won't reliably help |
   | very low `a` | chronically broken | **do not** mask with retries; report for owner |
 
-- **Reality check (must be in tool output & docs):** Bazel's `flaky` is a **boolean**;
-  the tool only ever recommends `flaky = True` / `flaky = False`. `N` is an internal
-  signal for classification, not something written into the BUILD file. There is no way
-  today to express *how* flaky a target is (a per-target retry count) in a BUILD file:
-  the `flaky` attribute and the `--flaky_test_attempts` flag are disconnected, so
-  per-target attempt counts require unwieldy regex lists on the flag. This limitation is
-  tracked upstream in [bazelbuild/bazel#30108](https://github.com/bazelbuild/bazel/issues/30108);
-  if/when it lands, the classifier's `N` becomes directly expressible and this section
-  should be revisited.
+- **Semantics (with integer `flaky`):** When `--flaky_test_attempts=default`, Bazel runs
+  `1 + flaky` total attempts for flaky targets (`flaky = 0` ⇒ one attempt). The tool
+  writes the integer directly: `buildozer 'set flaky 2' //pkg:target` for three total
+  attempts. This is implemented in [figma/bazel#13](https://github.com/figma/bazel/pull/13);
+  upstream tracking in [bazelbuild/bazel#30108](https://github.com/bazelbuild/bazel/issues/30108).
+  When CI sets `--flaky_test_attempts=N` (bare integer), that flag overrides the attribute
+  for all targets — the tool should surface that in its report so owners know BUILD-file
+  edits may have no effect.
 
-### 4.5 Emit (`emit/`)
+### 4.5 Shard-count recommender (`analyze/shard.go`) — future
+
+`shard_count` is the third execution-reflecting test attribute alongside `timeout` and
+`flaky`: all three describe **how the test currently executes**, not how it was designed.
+
+Tuning `shard_count` is feasible **only if** telemetry can separate fixture/SUT setup time
+from assertion (test-case) time. Without that split, the tool cannot tell whether more
+shards would shorten the critical path or just duplicate expensive setup across shards.
+
+When per-shard data is available:
+
+- Recommend raising `shard_count` when per-shard assertion time is high and setup is
+  amortizable (e.g. many cases per shard, setup ≪ case time).
+- Recommend lowering `shard_count` when shards are mostly idle or setup dominates.
+- Respect `attr-policy` caps (e.g. `shard_count` ≤ 50) from Workstream A.
+
+Output per target: `{current, recommended, reason}`; emit `buildozer 'set shard_count N'`.
+
+### 4.6 Emit (`emit/`)
 
 The tool's **terminal output** is a `buildozer` command script that would repair the
 repo, printed to stdout/file, e.g.:
 ```
 buildozer 'set timeout "short"' //pkg:target
-buildozer 'set flaky True'      //pkg:other
+buildozer 'set flaky 2'         //pkg:other
+buildozer 'set shard_count 4'   //pkg:sharded
 ```
 - Also emit a machine-readable JSON report (recommendations + reasons + effective
   `timeoutBuckets`) for auditability.
@@ -461,7 +526,7 @@ buildozer 'set flaky True'      //pkg:other
   of whatever CI/automation calls `testpolicy`. Keeping the boundary here makes the tool
   trivially testable (assert on emitted commands) and reusable by any apply/review flow.
 
-### 4.6 Safety / guardrails
+### 4.7 Safety / guardrails
 
 - Require a minimum `Runs` sample size before recommending (default e.g. 20); otherwise
   report "insufficient data".
@@ -475,10 +540,11 @@ buildozer 'set flaky True'      //pkg:other
 - Respect the eternal allow-list from `.buildifier.json` so the two systems agree.
 - Dry-run is the default mode.
 
-### 4.7 Acceptance criteria (Workstream B)
+### 4.8 Acceptance criteria (Workstream B)
 
-- With a fake `Source`, `testpolicy` produces correct timeout & flaky recommendations
-  and a valid buildozer command script for a fixture dataset.
+- With a fake `Source`, `testpolicy` produces correct `timeout`, `flaky`, and (when
+  fixture data includes per-shard timing) `shard_count` recommendations and a valid
+  buildozer command script for a fixture dataset.
 - No warehouse credentials required for tests (fake source).
 - Output is deterministic (stable ordering) so the emitted script can be asserted on.
 
@@ -578,11 +644,15 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
 - **B1. Tool scaffold + CLI + fake source** — `testpolicy/main.go`, `source` interface,
   in-memory fake. *(no deps)*
 - **B2. Timeout recommender** — §4.3 + tests on fixtures. *(dep: B1)*
-- **B3. buildozer emitter + report** — §4.5 dry-run path. *(dep: B1)*
+- **B3. buildozer emitter + report** — §4.6 dry-run path. *(dep: B1)*
 
 ### Phase 3 — flakiness + real data source
 - **B4. Flakiness scoring** — §4.4 + tests. *(dep: B1)*
 - **B5. Warehouse (BigQuery/DB) source impl** — behind flag. *(dep: B1)*
+
+### Phase 4 — shard_count tuning (future)
+- **B6. Shard-count recommender** — §4.5; requires per-shard telemetry with setup vs
+  assertion split. *(dep: B1, B5)*
 
 ### Phase 1b — enforcement (Workstream A, in parallel with Phase 2)
 - **A7. Authoritative CI gate** — evaluate policy ignoring `disable=` for
