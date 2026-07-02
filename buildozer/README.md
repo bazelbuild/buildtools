@@ -66,6 +66,26 @@ macros.
     input instead of from a local file in the package directory: `-:all_tests`.
     (It is presumably not useful to both use a `-` package name and use the `-f
     -` flag to read commands from the standard input.)
+  * In `.bzl` files, use a label to refer to a top-level global variable:
+    `//pkg:my_patches` (see [Global variables in .bzl files](#global-variables-in-bzl-files)).
+
+### Global variables in .bzl files
+
+Buildozer can edit top-level global variables in `.bzl` files. Target the
+variable by name, for example `//pkg:my_patches`, and use `add`, `remove`, `set`,
+`print`, or `delete`. Other commands return an error on variable targets.
+
+Only simple assignments of the form `name = value` at module scope are
+supported. Variables assigned via tuple unpacking (e.g. `(A, B) = ...`) or `for`
+loop variables are not detected. Assignments inside `def` bodies are ignored.
+
+Example:
+
+```bash
+# In defs.bzl: my_patches = ["a.patch"]
+buildozer 'add patches b.patch' //pkg:my_patches
+buildozer 'remove patches a.patch' //pkg:my_patches
+```
 
 ### Options
 
