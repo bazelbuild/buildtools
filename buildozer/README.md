@@ -105,7 +105,7 @@ See `buildozer -help` for the full list.
 ### Edit commands
 
 Buildozer supports the following commands(`'command args'`):
-
+ 
   * `add <attr>[:<type>] <value(s)>`: Adds value(s) to a list attribute of a rule.
     If a value is already present in the list, it is not added. `type` specifies
     the type of values being added. See [supported types](#supported-types) for
@@ -273,7 +273,7 @@ buildozer 'new cc_binary new_bin before tests' //:__pkg__
 # Copy an attribute from `protolib` to `py_protolib`.
 buildozer 'copy testonly protolib' //pkg:py_protolib
 
-# Set two attributes in the same rule
+# Set two attributes in the same  rule
 buildozer 'set compile 1' 'set srcmap 1' //pkg:rule
 
 # Make a default explicit in all soy_js rules in a package
