@@ -3,10 +3,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "warn",
     srcs = [
+        "attr_policy.go",
         "multifile.go",
         "types.go",
         "warn.go",
-        "attr_policy.go",
         "warn_attr_policy.go",
         "warn_bazel.go",
         "warn_bazel_api.go",

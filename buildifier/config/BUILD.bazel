@@ -21,7 +21,7 @@ go_library(
 
 go_test(
     name = "config_test",
-    srcs = ["config_test.go", "attrpolicy_test.go"],
+    srcs = ["attrpolicy_test.go", "config_test.go"],
     embed = [":config"],
 )
 
