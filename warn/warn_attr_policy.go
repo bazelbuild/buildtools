@@ -66,7 +66,11 @@ func attrPolicyCheckRule(rule *build.Rule, p AttrPolicyRuleCompiled) []*LinterFi
 		}
 		for _, forbidden := range p.ForbidListItems {
 			if slices.Contains(items, forbidden) {
-				findings = append(findings, makeLinterFinding(attrExpr, attrPolicyMessage(p,
+				node := attrExpr
+				if itemExpr := listItemExpr(attrExpr, forbidden); itemExpr != nil {
+					node = itemExpr
+				}
+				findings = append(findings, makeLinterFinding(node, attrPolicyMessage(p,
 					fmt.Sprintf("attribute %q must not contain %q", p.Attr, forbidden))))
 			}
 		}
@@ -161,4 +165,17 @@ func quoteList(values []string) string {
 		quoted[i] = fmt.Sprintf("%q", v)
 	}
 	return strings.Join(quoted, ", ")
+}
+
+func listItemExpr(attrExpr build.Expr, item string) build.Expr {
+	list, ok := attrExpr.(*build.ListExpr)
+	if !ok {
+		return nil
+	}
+	for _, elem := range list.List {
+		if str, ok := elem.(*build.StringExpr); ok && str.Value == item {
+			return elem
+		}
+	}
+	return nil
 }

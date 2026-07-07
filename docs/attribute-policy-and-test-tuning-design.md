@@ -103,15 +103,18 @@ generic and lets each repo express its own policy.
 
 ### 3.2 Config schema (extends `.buildifier.json`)
 
-```jsonc
+`.buildifier.json` is parsed with standard `encoding/json` (no comments). Examples
+below are valid JSON you can copy into config.
+
+```json
 {
   "attrPolicy": {
     "rules": [
       {
-        "name": "no-eternal-timeout",          // stable id, shown in the finding
-        "ruleKinds": ["*_test"],               // globs matched against rule.Kind(); omit/[] = any kind
+        "name": "no-eternal-timeout",
+        "ruleKinds": ["*_test"],
         "attr": "timeout",
-        "forbidValues": ["eternal"],           // scalar-attr constraint
+        "forbidValues": ["eternal"],
         "allowlist": ["//slow/...", "//foo:big_test"],
         "message": "'eternal' timeout requires approval; add the target to the attrPolicy allowlist."
       },
@@ -119,20 +122,20 @@ generic and lets each repo express its own policy.
         "name": "no-exclusive-tests",
         "ruleKinds": ["*_test"],
         "attr": "tags",
-        "forbidListItems": ["exclusive"],      // list-membership constraint
+        "forbidListItems": ["exclusive"],
         "allowlist": []
       },
       {
         "name": "no-local-tests",
         "ruleKinds": ["*_test"],
         "attr": "local",
-        "forbidValues": ["True"],              // boolean literal constraint (see below)
+        "forbidValues": ["True"],
         "message": "Tests must not set local = True; use a hermetic test instead."
       },
       {
         "name": "no-no-cache",
         "attr": "execution_requirements",
-        "forbidDictEntries": {               // dict key→value constraint (see below)
+        "forbidDictEntries": {
           "no-cache": "1"
         },
         "message": "Do not set execution_requirements['no-cache'] = '1'."
@@ -141,7 +144,7 @@ generic and lets each repo express its own policy.
         "name": "max-shard-count",
         "ruleKinds": ["*_test"],
         "attr": "shard_count",
-        "maxValue": 50,                        // numeric range constraint (see below)
+        "maxValue": 50,
         "allowlist": ["//huge_suite:..."],
         "message": "shard_count must not exceed 50; add the target to the allowlist for larger suites."
       }
@@ -226,9 +229,12 @@ equality; `/...` via `pkg == P || strings.HasPrefix(pkg, P+"/")`.
   its label matches **no** entry in `allowlist`.
 - Target label computed as `//{f.Pkg}:{rule.Name()}` and tested with `allowlistMatch`
   per the grammar above (not a bare `labels.Equal`, which can't express patterns).
-- Finding is anchored on the offending attribute node
-  (`rule.Attr(attr).Span()`); if the constraint is `required` and the attr is missing,
-  anchor on `rule.Call`.
+- Finding is anchored on the offending node. Default: the attribute expression
+  (`rule.Attr(attr)`). Exceptions for precise IDE highlighting:
+  - **List items:** anchor on the matching string literal inside the list (e.g. the
+    `"exclusive"` entry in `tags`), not the whole list.
+  - **Dict entries:** anchor on the offending value node when possible.
+  - **Missing required attr:** anchor on `rule.Call`.
 
 ### 3.3 Go types
 
@@ -333,7 +339,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
 - `p.check` handles the constraint families:
   - **Scalars:** `attrScalarString(rule, attr)` → `rule.AttrString`, else
     `rule.AttrLiteral`; compare against `forbidValues` / `requireValues`.
-  - **Lists:** `rule.AttrStrings`.
+  - **Lists:** `rule.AttrStrings`; for `forbidListItems`, anchor on the matching
+    list element node (not the whole list).
   - **Dicts:** `rule.Attr(attr)` as `*build.DictExpr`; `edit.DictionaryGet` per
     key; normalize values like scalars. `forbidDictKeys` flags any listed key
     that is present.
@@ -474,6 +481,14 @@ Answers "does a single retry likely pass, or does it need multiple?".
   N ≥ ceil( log(1 - T) / log(1 - a) )
   ```
 
+**Boundary cases** (handle before applying the formula):
+
+| Condition | Handling |
+|---|---|
+| `a = 1` (never fails) | `N = 1`; recommend `flaky = 0` / leave unset |
+| `a = 0` or `a` below a minimum threshold (e.g. 0.05) | Classify as chronically broken; do **not** recommend retries |
+| `a` very close to 1 (e.g. `a ≥ 0.999`) | Treat as `a = 1` to avoid `log(0)` |
+
 - `N` is used internally to distinguish "a single retry almost always recovers it"
   from "retries rarely help", which drives the `flaky` recommendation:
   | `N` | Meaning | Recommendation |
@@ -525,6 +540,10 @@ buildozer 'set shard_count 4'   //pkg:sharded
   batching edits, opening PRs, and routing to reviewers are downstream responsibilities
   of whatever CI/automation calls `testpolicy`. Keeping the boundary here makes the tool
   trivially testable (assert on emitted commands) and reusable by any apply/review flow.
+- **Skip stale targets:** warehouse rows may refer to deleted or renamed targets.
+  Before emitting a `buildozer` line, verify the label still exists in the workspace
+  (e.g. index targets while walking BUILD files, or a fast `bazel query` check). Report
+  skipped labels in the JSON output instead of emitting commands that would fail.
 
 ### 4.7 Safety / guardrails
 
@@ -539,6 +558,7 @@ buildozer 'set shard_count 4'   //pkg:sharded
   minimum-sample-size guard avoids acting on noise.
 - Respect the eternal allow-list from `.buildifier.json` so the two systems agree.
 - Dry-run is the default mode.
+- Do not emit `buildozer` commands for labels absent from the workspace (see §4.6).
 
 ### 4.8 Acceptance criteria (Workstream B)
 
