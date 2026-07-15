@@ -318,7 +318,14 @@ stmts:
 	{
 		$$ = $1
 		$<lastStmt>$ = $<lastStmt>1
-		if $<lastStmt>$ == nil {
+		if $<lastStmt>$ == nil || isBlockStmt($<lastStmt>$) {
+			// Comments after a block statement (e.g. a compact `def f(): pass`)
+			// must become a standalone CommentBlock, matching how the same
+			// comment is parsed when the block is written in its expanded,
+			// indented form (see extractTrailingComments). Attaching it to the
+			// block's After list instead makes the printer emit it without the
+			// blank line that separates a block from a trailing comment, so
+			// formatting would need a second pass to become stable.
 			cb := &CommentBlock{Start: $2}
 			$$ = append($$, cb)
 			$<lastStmt>$ = cb
@@ -1219,6 +1226,19 @@ func forceMultiLineComprehension(start Position, expr Expr, clauses []Expr, end 
 		previousEnd = clauseEnd
 	}
 	return previousEnd.Line != end.Line
+}
+
+// isBlockStmt reports whether x is a statement with an indentable body
+// (def, for, or if). Line comments that follow such statements should form
+// standalone CommentBlock statements rather than being attached to the block
+// as After-comments, matching how the same comments are parsed when the
+// block is written in its expanded form (see extractTrailingComments).
+func isBlockStmt(x Expr) bool {
+	switch x.(type) {
+	case *DefStmt, *ForStmt, *IfStmt:
+		return true
+	}
+	return false
 }
 
 // extractTrailingComments extracts trailing comments of an indented block starting with the first
