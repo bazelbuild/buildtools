@@ -374,7 +374,8 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
     forbidden boolean literal (`local = True`); forbidden dict entry
     (`execution_requirements = {"no-cache": "1"}`); `forbidDictKeys` on a dict key;
     `shard_count` above `maxValue` flagged, within range OK, absent OK; allow-listed
-    high-shard target exempt; empty config applies default `shard_count` ≤ 50 rule.
+    high-shard target exempt; empty config applies built-in defaults (`shard_count` ≤ 50,
+    deprecated `licenses`, deprecated `output_licenses` on binary-producing rules).
   - Config tests in `buildifier/config/config_test.go`: parse the sample JSON;
     validation rejects malformed rules.
 

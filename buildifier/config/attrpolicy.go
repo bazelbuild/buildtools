@@ -29,6 +29,7 @@ type AttrPolicyRule struct {
 	MinValue           *int              `json:"minValue,omitempty"`
 	MaxValue           *int              `json:"maxValue,omitempty"`
 	Required           bool              `json:"required,omitempty"`
+	ForbidPresence     bool              `json:"forbidPresence,omitempty"`
 	Allowlist          []string          `json:"allowlist,omitempty"`
 	Suppressible       *bool             `json:"suppressible,omitempty"`
 	Message            string            `json:"message,omitempty"`
@@ -70,8 +71,11 @@ func compileAttrPolicyRule(rule *AttrPolicyRule, seen map[string]bool) (warn.Att
 	if err != nil {
 		return warn.AttrPolicyRuleCompiled{}, fmt.Errorf("attrPolicy rule %q: %w", name, err)
 	}
+	if rule.ForbidPresence && rule.Required {
+		return warn.AttrPolicyRuleCompiled{}, fmt.Errorf("attrPolicy rule %q: forbidPresence and required cannot both be true", name)
+	}
 	if families == 0 && !rule.Required {
-		return warn.AttrPolicyRuleCompiled{}, fmt.Errorf("attrPolicy rule %q: at least one constraint or required=true is required", name)
+		return warn.AttrPolicyRuleCompiled{}, fmt.Errorf("attrPolicy rule %q: at least one constraint, required=true, or forbidPresence=true is required", name)
 	}
 
 	for _, kindGlob := range rule.RuleKinds {
@@ -116,6 +120,7 @@ func attrPolicyConstraintFamily(rule *AttrPolicyRule) (warn.AttrPolicyConstraint
 	list := len(rule.ForbidListItems) > 0 || len(rule.RequireListItems) > 0
 	dict := len(rule.ForbidDictEntries) > 0 || len(rule.RequireDictEntries) > 0 || len(rule.ForbidDictKeys) > 0
 	numeric := rule.MinValue != nil || rule.MaxValue != nil
+	presence := rule.ForbidPresence
 
 	families := 0
 	var family warn.AttrPolicyConstraintFamily
@@ -135,8 +140,12 @@ func attrPolicyConstraintFamily(rule *AttrPolicyRule) (warn.AttrPolicyConstraint
 		families++
 		family = warn.AttrPolicyNumericFamily
 	}
+	if presence {
+		families++
+		family = warn.AttrPolicyForbidPresenceFamily
+	}
 	if families > 1 {
-		return 0, families, fmt.Errorf("cannot mix scalar, list, dict, and numeric constraint families")
+		return 0, families, fmt.Errorf("cannot mix scalar, list, dict, numeric, and presence constraint families")
 	}
 	if numeric && rule.MinValue != nil && rule.MaxValue != nil && *rule.MinValue > *rule.MaxValue {
 		return 0, families, fmt.Errorf("minValue must be <= maxValue")

@@ -31,12 +31,12 @@ func TestCompileAttrPolicy(t *testing.T) {
 	}{
 		"nil uses default shard_count rule": {
 			policy:   nil,
-			wantLen:  1,
+			wantLen:  3,
 			wantName: "max-shard-count",
 		},
 		"empty rules uses default shard_count rule": {
 			policy:   &AttrPolicy{},
-			wantLen:  1,
+			wantLen:  3,
 			wantName: "max-shard-count",
 		},
 	} {
@@ -123,7 +123,7 @@ func TestCompileAttrPolicyValidation(t *testing.T) {
 			policy: &AttrPolicy{Rules: []AttrPolicyRule{
 				{Name: "x", Attr: "timeout", ForbidValues: []string{"eternal"}, ForbidListItems: []string{"exclusive"}},
 			}},
-			wantErr: `cannot mix scalar, list, dict, and numeric`,
+			wantErr: `cannot mix scalar, list, dict, numeric, and presence`,
 		},
 		"numeric min greater than max": {
 			policy: &AttrPolicy{Rules: []AttrPolicyRule{
@@ -147,6 +147,23 @@ func TestCompileAttrPolicyValidation(t *testing.T) {
 			policy: &AttrPolicy{Rules: []AttrPolicyRule{
 				{Name: "x", Attr: "timeout", Required: true},
 			}},
+		},
+		"forbid presence only": {
+			policy: &AttrPolicy{Rules: []AttrPolicyRule{
+				{Name: "x", Attr: "licenses", ForbidPresence: true},
+			}},
+		},
+		"forbid presence and required": {
+			policy: &AttrPolicy{Rules: []AttrPolicyRule{
+				{Name: "x", Attr: "licenses", ForbidPresence: true, Required: true},
+			}},
+			wantErr: `forbidPresence and required cannot both be true`,
+		},
+		"forbid presence mixed with scalar": {
+			policy: &AttrPolicy{Rules: []AttrPolicyRule{
+				{Name: "x", Attr: "timeout", ForbidPresence: true, ForbidValues: []string{"eternal"}},
+			}},
+			wantErr: `cannot mix scalar, list, dict, numeric, and presence`,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

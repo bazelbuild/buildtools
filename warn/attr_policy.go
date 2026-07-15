@@ -15,6 +15,7 @@ const (
 	AttrPolicyListFamily
 	AttrPolicyDictFamily
 	AttrPolicyNumericFamily
+	AttrPolicyForbidPresenceFamily
 )
 
 // AttrPolicyAllowlistKind is a compiled allow-list pattern kind.
@@ -59,19 +60,41 @@ type AttrPolicyRuleCompiled struct {
 
 const defaultShardCountMax = 50
 
+var defaultOutputLicensesRuleKinds = []string{
+	"genrule",
+	"cc_binary",
+	"cc_toolchain",
+	"java_binary",
+	"java_plugin",
+}
+
 // DefaultAttrPolicyRules returns the built-in attribute policy rules applied when
-// no attrPolicy configuration is present. Currently this mirrors Bazel's default
-// shard_count constraint on test rules.
+// no attrPolicy configuration is present.
 func DefaultAttrPolicyRules() []AttrPolicyRuleCompiled {
 	maxValue := defaultShardCountMax
 	return []AttrPolicyRuleCompiled{
 		{
-			Name:      "max-shard-count",
-			RuleKinds: []string{"*_test"},
-			Attr:      "shard_count",
-			Family:    AttrPolicyNumericFamily,
-			MaxValue:  &maxValue,
-			Message:   "Having more than 50 shards is indicative of poor test organization. Please reduce the number of shards.",
+			Name:         "max-shard-count",
+			RuleKinds:    []string{"*_test"},
+			Attr:         "shard_count",
+			Family:       AttrPolicyNumericFamily,
+			MaxValue:     &maxValue,
+			Message:      "Having more than 50 shards is indicative of poor test organization. Please reduce the number of shards.",
+			Suppressible: true,
+		},
+		{
+			Name:         "no-licenses",
+			Attr:         "licenses",
+			Family:       AttrPolicyForbidPresenceFamily,
+			Message:      "The licenses attribute is deprecated; use package(default_applicable_licenses = ...) and applicable_licenses on targets instead (https://github.com/bazelbuild/bazel/issues/188).",
+			Suppressible: true,
+		},
+		{
+			Name:         "no-output-licenses",
+			RuleKinds:    append([]string(nil), defaultOutputLicensesRuleKinds...),
+			Attr:         "output_licenses",
+			Family:       AttrPolicyForbidPresenceFamily,
+			Message:      "The output_licenses attribute is deprecated; use applicable_licenses instead (https://github.com/bazelbuild/bazel/issues/7444).",
 			Suppressible: true,
 		},
 	}

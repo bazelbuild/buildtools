@@ -125,8 +125,42 @@ cc_test(name = "bad", timeout = "eternal")
 cc_test(name = "bad", timeout = "eternal")
 cc_test(name = "sharded", shard_count = 100)
 cc_test(name = "ok", shard_count = 4)
+cc_library(name = "lib", licenses = ["notice"])
+cc_binary(name = "bin", licenses = ["notice"], output_licenses = ["notice"])
+cc_library(name = "lib2", output_licenses = ["notice"])
 `, []string{
 		`:2: [max-shard-count] Having more than 50 shards is indicative of poor test organization. Please reduce the number of shards.`,
+		`:4: [no-licenses] The licenses attribute is deprecated; use package(default_applicable_licenses = ...) and applicable_licenses on targets instead (https://github.com/bazelbuild/bazel/issues/188).`,
+		`:5: [no-licenses] The licenses attribute is deprecated; use package(default_applicable_licenses = ...) and applicable_licenses on targets instead (https://github.com/bazelbuild/bazel/issues/188).`,
+		`:5: [no-output-licenses] The output_licenses attribute is deprecated; use applicable_licenses instead (https://github.com/bazelbuild/bazel/issues/7444).`,
+	}, scopeBuild)
+}
+
+func TestAttrPolicyForbidPresence(t *testing.T) {
+	old := AttrPolicyConfig
+	defer func() { SetAttrPolicy(old) }()
+	SetAttrPolicy([]AttrPolicyRuleCompiled{
+		{
+			Name:   "no-licenses",
+			Attr:   "licenses",
+			Family: AttrPolicyForbidPresenceFamily,
+		},
+		{
+			Name:      "no-output-licenses",
+			RuleKinds: append([]string(nil), defaultOutputLicensesRuleKinds...),
+			Attr:      "output_licenses",
+			Family:    AttrPolicyForbidPresenceFamily,
+		},
+	})
+
+	checkFindings(t, "attr-policy", `
+cc_library(name = "lib", licenses = ["notice"])
+cc_binary(name = "bin", output_licenses = ["notice"])
+cc_library(name = "lib2", output_licenses = ["notice"])
+cc_library(name = "clean")
+`, []string{
+		`:1: [no-licenses] attribute "licenses" must not be set`,
+		`:2: [no-output-licenses] attribute "output_licenses" must not be set`,
 	}, scopeBuild)
 }
 

@@ -153,6 +153,11 @@
           "default": false,
           "description": "Attribute must be present."
         },
+        "forbidPresence": {
+          "type": "boolean",
+          "default": false,
+          "description": "Attribute must not be present."
+        },
         "allowlist": {
           "type": "array",
           "items": {
@@ -187,7 +192,8 @@
               { "required": ["requireDictEntries"] },
               { "required": ["forbidDictKeys"] },
               { "required": ["minValue"] },
-              { "required": ["maxValue"] }
+              { "required": ["maxValue"] },
+              { "required": ["forbidPresence"] }
             ]
           }
         },
@@ -205,7 +211,8 @@
               { "required": ["requireDictEntries"] },
               { "required": ["forbidDictKeys"] },
               { "required": ["minValue"] },
-              { "required": ["maxValue"] }
+              { "required": ["maxValue"] },
+              { "required": ["forbidPresence"] }
             ]
           }
         },
@@ -223,7 +230,8 @@
               { "required": ["forbidListItems"] },
               { "required": ["requireListItems"] },
               { "required": ["minValue"] },
-              { "required": ["maxValue"] }
+              { "required": ["maxValue"] },
+              { "required": ["forbidPresence"] }
             ]
           }
         },
@@ -241,7 +249,8 @@
               { "required": ["requireListItems"] },
               { "required": ["forbidDictEntries"] },
               { "required": ["requireDictEntries"] },
-              { "required": ["forbidDictKeys"] }
+              { "required": ["forbidDictKeys"] },
+              { "required": ["forbidPresence"] }
             ]
           }
         },
@@ -261,7 +270,29 @@
               { "required": ["requireDictEntries"] },
               { "required": ["forbidDictKeys"] },
               { "required": ["minValue"] },
-              { "required": ["maxValue"] }
+              { "required": ["maxValue"] },
+              { "required": ["forbidPresence"] }
+            ]
+          }
+        },
+        {
+          "description": "Forbid-presence rule",
+          "required": ["forbidPresence"],
+          "properties": {
+            "forbidPresence": { "const": true }
+          },
+          "not": {
+            "anyOf": [
+              { "required": ["forbidValues"] },
+              { "required": ["requireValues"] },
+              { "required": ["forbidListItems"] },
+              { "required": ["requireListItems"] },
+              { "required": ["forbidDictEntries"] },
+              { "required": ["requireDictEntries"] },
+              { "required": ["forbidDictKeys"] },
+              { "required": ["minValue"] },
+              { "required": ["maxValue"] },
+              { "required": ["required"] }
             ]
           }
         }

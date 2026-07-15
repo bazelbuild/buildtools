@@ -243,8 +243,11 @@ Enforces declarative attribute constraints configured in `.buildifier.json` unde
 list, dict, or numeric bounds). Targets matching an `allowlist` pattern are
 exempt.
 
-When no `attrPolicy` block is configured, the warning applies Bazel's default
-`shard_count` constraint on test rules (`shard_count` must be ≤ 50).
+When no `attrPolicy` block is configured, the warning applies these built-in rules:
+
+* `shard_count` must be ≤ 50 on `*_test` rules (matching Bazel's default constraint)
+* `licenses` must not be set on any rule (deprecated; see [bazel#188](https://github.com/bazelbuild/bazel/issues/188))
+* `output_licenses` must not be set on `genrule`, `cc_binary`, `cc_toolchain`, `java_binary`, or `java_plugin` (deprecated; see [bazel#7444](https://github.com/bazelbuild/bazel/issues/7444))
 
 Example:
 

@@ -126,6 +126,11 @@ func attrPolicyCheckRule(rule *build.Rule, p AttrPolicyRuleCompiled) []*LinterFi
 			findings = append(findings, makeLinterFinding(attrExpr, attrPolicyMessage(p,
 				fmt.Sprintf("attribute %q must be <= %d", p.Attr, *p.MaxValue))))
 		}
+	case AttrPolicyForbidPresenceFamily:
+		if attrExpr != nil {
+			findings = append(findings, makeLinterFinding(attrExpr, attrPolicyMessage(p,
+				fmt.Sprintf("attribute %q must not be set", p.Attr))))
+		}
 	}
 	return findings
 }
