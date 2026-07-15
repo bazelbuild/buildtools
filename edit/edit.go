@@ -557,7 +557,7 @@ func ContainsComments(expr build.Expr, str string) bool {
 
 // ContainsDisableComment checks whether the expr has a comment that disables
 // a warning, including when multiple warnings are disabled on the same line.
-func ContainsDisableComments(expr build.Expr, warning string) bool {
+func ContainsDisableComment(expr build.Expr, warning string) bool {
 	warning = strings.ToLower(warning)
 	com := expr.Comment()
 	comments := append(com.Before, com.Suffix...)
@@ -569,7 +569,7 @@ func ContainsDisableComments(expr build.Expr, warning string) bool {
 				return true
 			}
 		}
-    }
+	}
 	return false
 }
 

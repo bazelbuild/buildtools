@@ -113,6 +113,19 @@ All warnings can be disabled / suppressed / ignored by adding a special comment 
 the expression that causes the warning. Historically comments with `buildozer` instead of
 `buildifier` are also supported, they are equivalent.
 
+To disable multiple warnings, you can specify them as a comma-separated list on a single line:
+
+```python
+# buildifier: disable=warning1,warning2
+```
+
+Or place them on separate lines:
+
+```python
+# buildifier: disable=warning1
+# buildifier: disable=warning2
+```
+
 #### Examples
 
 ```python
@@ -125,20 +138,6 @@ Docstrings don't trigger the warning if they are first statements of a file or a
 
 if debug:
     print("Debug information:", foo)  # buildifier: disable=print
-```
-
-To disable multiple warnings, you can specify them as a comma-separated list on
-a single line:
-
-```python
-# buildifier: disable=warning1,warning2
-```
-
-Or place them on separate lines:
-
-```python
-# buildifier: disable=warning1
-# buildifier: disable=warning2
 ```
 
 --------------------------------------------------------------------------------
