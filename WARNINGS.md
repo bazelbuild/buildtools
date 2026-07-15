@@ -236,13 +236,15 @@ Using `package_metadata` as an attribute name may cause unexpected behavior. Its
 
   * Category name: `attr-policy`
   * Automatic fix: no
-  * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=attr-policy`
 
 Enforces declarative attribute constraints configured in `.buildifier.json` under
 `attrPolicy`. Each rule names an attribute and a constraint family (scalar,
 list, dict, or numeric bounds). Targets matching an `allowlist` pattern are
 exempt.
+
+When no `attrPolicy` block is configured, the warning applies Bazel's default
+`shard_count` constraint on test rules (`shard_count` must be ≤ 50).
 
 Example:
 

@@ -24,6 +24,39 @@ import (
 )
 
 func TestCompileAttrPolicy(t *testing.T) {
+	for name, tc := range map[string]struct {
+		policy   *AttrPolicy
+		wantLen  int
+		wantName string
+	}{
+		"nil uses default shard_count rule": {
+			policy:   nil,
+			wantLen:  1,
+			wantName: "max-shard-count",
+		},
+		"empty rules uses default shard_count rule": {
+			policy:   &AttrPolicy{},
+			wantLen:  1,
+			wantName: "max-shard-count",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			compiled, err := compileAttrPolicy(tc.policy)
+			if err != nil {
+				t.Fatalf("compileAttrPolicy() error = %v", err)
+			}
+			if len(compiled) != tc.wantLen {
+				t.Fatalf("len(compiled) = %d, want %d", len(compiled), tc.wantLen)
+			}
+			if compiled[0].Name != tc.wantName {
+				t.Fatalf("compiled[0].Name = %q, want %q", compiled[0].Name, tc.wantName)
+			}
+			if compiled[0].MaxValue == nil || *compiled[0].MaxValue != 50 {
+				t.Fatalf("compiled[0].MaxValue = %+v", compiled[0].MaxValue)
+			}
+		})
+	}
+
 	policy := &AttrPolicy{
 		Rules: []AttrPolicyRule{
 			{

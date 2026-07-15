@@ -356,9 +356,10 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
 ### 3.7 Registration, docs, tests
 
 - Register in `warn/warn.go`: `FileWarningMap["attr-policy"] = attrPolicyWarning`.
-- Decide default-on vs. opt-in: add to `nonDefaultWarnings` if it should be opt-in
-  (recommended, since it no-ops without config anyway — but being config-gated it's
-  harmless in the default set too; pick opt-in to be conservative).
+- Decide default-on vs. opt-in: **default-on** (included in `DefaultWarnings`). When no
+  `attrPolicy` config is present, the warning enforces Bazel's default `shard_count`
+  constraint (`maxValue: 50` on `*_test` rules). Custom rules replace the default
+  entirely once `attrPolicy.rules` is non-empty.
 - Docs: add an entry to `WARNINGS.md` and `warn/docs/warnings.textproto` describing the
   warning **and** the `attrPolicy` config block (with the example rules, including
   boolean, dict, and numeric constraints).
@@ -373,7 +374,7 @@ func attrPolicyWarning(f *build.File) []*LinterFinding {
     forbidden boolean literal (`local = True`); forbidden dict entry
     (`execution_requirements = {"no-cache": "1"}`); `forbidDictKeys` on a dict key;
     `shard_count` above `maxValue` flagged, within range OK, absent OK; allow-listed
-    high-shard target exempt; empty config = no findings.
+    high-shard target exempt; empty config applies default `shard_count` ≤ 50 rule.
   - Config tests in `buildifier/config/config_test.go`: parse the sample JSON;
     validation rejects malformed rules.
 
@@ -686,8 +687,9 @@ Each task is independently ownable; dependencies noted. "AC" = acceptance criter
 
 1. **Import direction** between `warn` and `buildifier/config` — confirm no cycle
    (§3.4). If one exists, the compiled-policy-type-in-`warn` approach resolves it.
-2. Should `attr-policy` be **default-on** (config-gated no-op) or opt-in via
-   `--warnings`? (Leaning opt-in.)
+2. ~~Should `attr-policy` be **default-on** (config-gated no-op) or opt-in via
+   `--warnings`?~~ **Resolved:** default-on; with no `attrPolicy` config, enforces
+   Bazel's `shard_count` ≤ 50 constraint on test rules.
 3. **`NonSuppressible` core change (§6.4)** — do we extend buildifier so hard rules
    can't be silenced by `disable=` locally, accepting a break to the "every warning is
    suppressible" contract? Or rely solely on the CI gate? (Leaning CI-gate-only for the

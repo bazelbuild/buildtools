@@ -57,12 +57,39 @@ type AttrPolicyRuleCompiled struct {
 	Message      string
 }
 
+const defaultShardCountMax = 50
+
+// DefaultAttrPolicyRules returns the built-in attribute policy rules applied when
+// no attrPolicy configuration is present. Currently this mirrors Bazel's default
+// shard_count constraint on test rules.
+func DefaultAttrPolicyRules() []AttrPolicyRuleCompiled {
+	maxValue := defaultShardCountMax
+	return []AttrPolicyRuleCompiled{
+		{
+			Name:      "max-shard-count",
+			RuleKinds: []string{"*_test"},
+			Attr:      "shard_count",
+			Family:    AttrPolicyNumericFamily,
+			MaxValue:  &maxValue,
+			Message:   "Having more than 50 shards is indicative of poor test organization. Please reduce the number of shards.",
+			Suppressible: true,
+		},
+	}
+}
+
 // AttrPolicyConfig is process-global policy, set from buildifier config before linting.
 var AttrPolicyConfig []AttrPolicyRuleCompiled
 
 // SetAttrPolicy replaces the active attribute policy rules.
 func SetAttrPolicy(rules []AttrPolicyRuleCompiled) {
 	AttrPolicyConfig = rules
+}
+
+func effectiveAttrPolicyConfig() []AttrPolicyRuleCompiled {
+	if len(AttrPolicyConfig) > 0 {
+		return AttrPolicyConfig
+	}
+	return DefaultAttrPolicyRules()
 }
 
 func matchesRuleKind(globs []string, kind string) bool {

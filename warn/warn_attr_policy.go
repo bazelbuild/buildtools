@@ -12,14 +12,15 @@ import (
 )
 
 func attrPolicyWarning(f *build.File) []*LinterFinding {
-	if f.Type != build.TypeBuild || len(AttrPolicyConfig) == 0 {
+	if f.Type != build.TypeBuild {
 		return nil
 	}
+	config := effectiveAttrPolicyConfig()
 	var findings []*LinterFinding
 	for _, rule := range f.Rules("") {
 		kind := rule.Kind()
 		label := labels.Label{Package: f.Pkg, Target: rule.Name()}.Format()
-		for _, p := range AttrPolicyConfig {
+		for _, p := range config {
 			if !matchesRuleKind(p.RuleKinds, kind) || allowlistMatches(p.Allowlist, label, f.Pkg) {
 				continue
 			}

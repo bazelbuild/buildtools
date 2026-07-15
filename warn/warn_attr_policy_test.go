@@ -123,7 +123,11 @@ cc_test(name = "bad", timeout = "eternal")
 	SetAttrPolicy(nil)
 	checkFindings(t, "attr-policy", `
 cc_test(name = "bad", timeout = "eternal")
-`, nil, scopeBuild)
+cc_test(name = "sharded", shard_count = 100)
+cc_test(name = "ok", shard_count = 4)
+`, []string{
+		`:2: [max-shard-count] Having more than 50 shards is indicative of poor test organization. Please reduce the number of shards.`,
+	}, scopeBuild)
 }
 
 func TestAttrPolicyRequired(t *testing.T) {

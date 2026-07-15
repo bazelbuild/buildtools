@@ -226,7 +226,6 @@ var MultiFileWarningMap = map[string]func(f *build.File, fileReader *FileReader)
 // nonDefaultWarnings contains warnings that are enabled by default because they're not applicable
 // for all files and cause too much diff noise when applied.
 var nonDefaultWarnings = map[string]bool{
-	"attr-policy":         true,
 	"unsorted-dict-items": true, // dict items should be sorted
 }
 

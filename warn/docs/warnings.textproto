@@ -87,10 +87,12 @@ warnings: {
   name: "attr-policy"
   header: "Attribute value violates a configured policy rule"
   description:
-      "Enforces declarative attribute constraints configured in `.buildifier.json` under\n"
+          "Enforces declarative attribute constraints configured in `.buildifier.json` under\n"
           "`attrPolicy`. Each rule names an attribute and a constraint family (scalar,\n"
           "list, dict, or numeric bounds). Targets matching an `allowlist` pattern are\n"
           "exempt.\n\n"
+          "When no `attrPolicy` block is configured, the warning applies Bazel's default\n"
+          "`shard_count` constraint on test rules (`shard_count` must be ≤ 50).\n\n"
           "Example:\n\n"
           "```json\n"
           "{\n"

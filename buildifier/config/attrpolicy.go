@@ -35,8 +35,8 @@ type AttrPolicyRule struct {
 }
 
 func compileAttrPolicy(policy *AttrPolicy) ([]warn.AttrPolicyRuleCompiled, error) {
-	if policy == nil {
-		return nil, nil
+	if policy == nil || len(policy.Rules) == 0 {
+		return warn.DefaultAttrPolicyRules(), nil
 	}
 	seen := make(map[string]bool)
 	var compiled []warn.AttrPolicyRuleCompiled
