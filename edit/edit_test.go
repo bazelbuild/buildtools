@@ -865,3 +865,35 @@ a = my_macro(
 		})
 	}
 }
+
+func TestContainsDisableComment(t *testing.T) {
+	testCases := []struct {
+		comment string
+		prefix  string
+		warning string
+		want    bool
+	}{
+		{"# buildifier: disable=warning1", "buildifier", "warning1", true},
+		{"# buildifier: disable=warning1", "buildifier", "warning2", false},
+		{"# buildifier: disable=warning1,warning2", "buildifier", "warning1", true},
+		{"# buildifier: disable=warning1,warning2", "buildifier", "warning2", true},
+		{"# buildifier: disable=warning1,warning2", "buildifier", "warning3", false},
+		{"# buildifier: disable=warning1, warning2", "buildifier", "warning2", true},
+		{"# buildifier: disable=warning1,warning2 (explanation)", "buildifier", "warning1", true},
+		{"# buildifier: disable=warn", "buildifier", "warning1", false},
+		{"# buildifier: disable=warning1", "buildifier", "warn", true},
+		{"# buildozer: disable=warning1,warning2", "buildozer", "warning2", true},
+		{"# buildozer: disable=warning1,warning2", "buildifier", "warning2", false},
+	}
+
+	for i, tc := range testCases {
+		expr := &build.Ident{
+			Comments: build.Comments{
+				Before: []build.Comment{{Token: tc.comment}},
+			},
+		}
+		if got := ContainsDisableComment(expr, tc.prefix, tc.warning); got != tc.want {
+			t.Errorf("case %d: ContainsDisableComment(%q, %q, %q) = %v, want %v", i, tc.comment, tc.prefix, tc.warning, got, tc.want)
+		}
+	}
+}

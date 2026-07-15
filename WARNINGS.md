@@ -127,6 +127,20 @@ if debug:
     print("Debug information:", foo)  # buildifier: disable=print
 ```
 
+To disable multiple warnings, you can specify them as a comma-separated list on
+a single line:
+
+```python
+# buildifier: disable=warning1,warning2
+```
+
+Or place them on separate lines:
+
+```python
+# buildifier: disable=warning1
+# buildifier: disable=warning2
+```
+
 --------------------------------------------------------------------------------
 
 ## <a name="allowed-symbol-load-locations"></a>Symbol must be loaded from a specific location
