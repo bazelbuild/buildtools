@@ -555,20 +555,21 @@ func ContainsComments(expr build.Expr, str string) bool {
 	return false
 }
 
-// ContainsDisableComment checks whether the expr has a comment that disables warning
-// under the given tool prefix (such as "buildifier" or "buildozer"),
-// including when multiple warnings are disabled on the same line.
-func ContainsDisableComment(expr build.Expr, tool string, warning string) bool {
-	tool = strings.ToLower(tool)
+// ContainsDisableComment checks whether the expr has a comment that disables
+// a warning, including when multiple warnings are disabled on the same line.
+func ContainsDisableComments(expr build.Expr, warning string) bool {
 	warning = strings.ToLower(warning)
 	com := expr.Comment()
 	comments := append(com.Before, com.Suffix...)
 	comments = append(comments, com.After...)
-	for _, c := range comments {
-		if commentDisables(strings.ToLower(c.Token), tool, warning) {
-			return true
+	tools := []string{"buildifier", "buildozer"}
+	for _, tool := range tools {
+		for _, c := range comments {
+			if commentDisables(strings.ToLower(c.Token), tool, warning) {
+				return true
+			}
 		}
-	}
+    }
 	return false
 }
 

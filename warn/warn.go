@@ -312,8 +312,7 @@ func runWarningsFunction(category string, f *build.File, fct func(f *build.File,
 
 // HasDisablingComment checks if a node has a comment that disables a certain warning
 func HasDisablingComment(expr build.Expr, warning string) bool {
-	return edit.ContainsDisableComment(expr, "buildifier", warning) ||
-		edit.ContainsDisableComment(expr, "buildozer", warning)
+	return edit.ContainsDisableComment(expr, warning)
 }
 
 // DisabledWarning checks if the warning was disabled by a comment.
