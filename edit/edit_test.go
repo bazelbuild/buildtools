@@ -882,6 +882,7 @@ func TestContainsDisableComment(t *testing.T) {
 		{"# buildifier: disable=warning1,warning2 (explanation)", "buildifier", "warning1", true},
 		{"# buildifier: disable=warn", "buildifier", "warning1", false},
 		{"# buildifier: disable=warning1", "buildifier", "warn", true},
+		{"# buildifier: disable=warning1,warning2 (warning3)", "buildifier", "warning3", true},
 		{"# buildozer: disable=warning1,warning2", "buildozer", "warning2", true},
 		{"# buildozer: disable=warning1,warning2", "buildifier", "warning2", false},
 	}
