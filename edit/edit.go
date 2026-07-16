@@ -524,6 +524,23 @@ func hasComments(literal *build.StringExpr) bool {
 	return len(literal.Before) > 0 || len(literal.Suffix) > 0
 }
 
+// commentDisables checks whether token contains prefix + ": disable=" followed by,
+// at some positition, target.
+func commentDisables(token string, prefix string, target string) bool {
+	search := prefix + ": disable="
+	for {
+		idx := strings.Index(token, search)
+		if idx < 0 {
+			return false
+		}
+		rest := token[idx+len(search):]
+		if strings.Contains(rest, target) {
+			return true
+		}
+		token = rest
+	}
+}
+
 // ContainsComments returns whether the expr has a comment that includes str.
 func ContainsComments(expr build.Expr, str string) bool {
 	str = strings.ToLower(str)
@@ -533,6 +550,24 @@ func ContainsComments(expr build.Expr, str string) bool {
 	for _, c := range comments {
 		if strings.Contains(strings.ToLower(c.Token), str) {
 			return true
+		}
+	}
+	return false
+}
+
+// ContainsDisableComment checks whether the expr has a comment that disables
+// a warning, including when multiple warnings are disabled on the same line.
+func ContainsDisableComment(expr build.Expr, warning string) bool {
+	warning = strings.ToLower(warning)
+	com := expr.Comment()
+	comments := append(com.Before, com.Suffix...)
+	comments = append(comments, com.After...)
+	tools := []string{"buildifier", "buildozer"}
+	for _, tool := range tools {
+		for _, c := range comments {
+			if commentDisables(strings.ToLower(c.Token), tool, warning) {
+				return true
+			}
 		}
 	}
 	return false

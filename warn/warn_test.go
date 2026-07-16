@@ -420,3 +420,59 @@ cc_library(
 		}
 	}
 }
+
+func TestDisabledWarningMultiple(t *testing.T) {
+	contents := `foo()
+
+# buildifier: disable=depset-iteration,print
+for x in depset([1, 2, 3]):
+    print(x)
+
+# buildozer: disable=string-iteration, no-effect (with explanation)
+for y in "foobar":
+    y
+`
+	f, err := build.ParseBzl("file.bzl", []byte(contents))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	tests := []struct {
+		start    int
+		end      int
+		category string
+	}{
+		{
+			start:    3,
+			end:      5,
+			category: "depset-iteration",
+		},
+		{
+			start:    3,
+			end:      5,
+			category: "print",
+		},
+		{
+			start:    7,
+			end:      9,
+			category: "string-iteration",
+		},
+		{
+			start:    7,
+			end:      9,
+			category: "no-effect",
+		},
+	}
+
+	linesCount := strings.Count(contents, "\n")
+
+	for _, tc := range tests {
+		for line := 1; line <= linesCount; line++ {
+			disabled := DisabledWarning(f, line, tc.category)
+			shouldBeDisabled := line >= tc.start && line <= tc.end
+			if disabled != shouldBeDisabled {
+				t.Errorf("Wrong disabled status for category %q at line %d: want %t, got %t", tc.category, line, shouldBeDisabled, disabled)
+			}
+		}
+	}
+}
