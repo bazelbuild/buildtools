@@ -182,6 +182,10 @@ func PackageDeclaration(f *build.File) *build.Rule {
 func RemoveEmptyPackage(f *build.File) *build.File {
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
+		if build.HasCommentContaining(stmt, string(BuildozerCommentLeaveAlone)) {
+			all = append(all, stmt)
+			continue
+		}
 		if isEmptyPackage(stmt) {
 			continue
 		}
@@ -216,6 +220,10 @@ func RemoveEmptyUseRepoCalls(f *build.File) *build.File {
 	}
 	var all []build.Expr
 	for _, stmt := range f.Stmt {
+		if build.HasCommentContaining(stmt, string(BuildozerCommentLeaveAlone)) {
+			all = append(all, stmt)
+			continue
+		}
 		if isEmptyUseRepoCall(stmt) {
 			continue
 		}
@@ -303,6 +311,10 @@ func IndexOfRuleByName(f *build.File, name string) (int, *build.Rule) {
 	}
 
 	for i, stmt := range f.Stmt {
+		if build.HasCommentContaining(stmt, string(BuildozerCommentLeaveAlone)) {
+			// Do not find rules that are marked to be left alone.
+			continue
+		}
 		// first check if call is a CallExpr, else check if it's an AssignExpr
 		// with a CallExpr on the RHS
 		call, ok := stmt.(*build.CallExpr)

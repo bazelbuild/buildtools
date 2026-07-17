@@ -250,4 +250,78 @@ var parseTests = []struct {
 			},
 		},
 	},
+	{
+		in: `go_binary(name = "x") # comment`,
+		out: &File{
+			Path: "BUILD",
+			Type: TypeBuild,
+			Stmt: []Expr{
+				&CallExpr{
+					X: &Ident{
+						NamePos: Position{1, 1, 0},
+						Name:    "go_binary",
+						Comments: Comments{
+							Inherited: []Comment{
+								{
+									Token: "# comment",
+									Start: Position{1, 23, 22},
+								},
+							},
+						},
+					},
+					ListStart: Position{1, 10, 9},
+					List: []Expr{
+						&AssignExpr{
+							LHS: &Ident{
+								NamePos: Position{1, 11, 10},
+								Name:    "name",
+								Comments: Comments{
+									Inherited: []Comment{
+										{
+											Token: "# comment",
+											Start: Position{1, 23, 22},
+										},
+									},
+								},
+							},
+							OpPos: Position{1, 16, 15},
+							Op:    "=",
+							RHS: &StringExpr{
+								Start: Position{1, 18, 17},
+								Value: "x",
+								End:   Position{1, 21, 20},
+								Token: `"x"`,
+								Comments: Comments{
+									Inherited: []Comment{
+										{
+											Token: "# comment",
+											Start: Position{1, 23, 22},
+										},
+									},
+								},
+							},
+							Comments: Comments{
+								Inherited: []Comment{
+									{
+										Token: "# comment",
+										Start: Position{1, 23, 22},
+									},
+								},
+							},
+						},
+					},
+					End:            End{Pos: Position{1, 21, 20}},
+					ForceMultiLine: false,
+					Comments: Comments{
+						Suffix: []Comment{
+							{
+								Token: "# comment",
+								Start: Position{1, 23, 22},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
 }

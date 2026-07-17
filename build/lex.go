@@ -843,6 +843,7 @@ func (in *input) assignComments() {
 	in.order(in.file)
 	in.assignSuffixComments()
 	in.assignLineComments()
+	in.assignInheritedComments()
 }
 
 func (in *input) assignSuffixComments() {
@@ -902,4 +903,23 @@ func reverseComments(list []Comment) {
 	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
 		list[i], list[j] = list[j], list[i]
 	}
+}
+
+// assignInheritedComments assigns comments to the Inherited field of each expression.
+func (in *input) assignInheritedComments() {
+	Walk(in.file, func(node Expr, stack []Expr) {
+		cs := node.Comment()
+		for _, stackExpr := range stack {
+			cs.Inherited = append(cs.Inherited, stackExpr.Comment().Before...)
+			cs.Inherited = append(cs.Inherited, stackExpr.Comment().After...)
+
+			eStart, eEnd := node.Span()
+			for _, suffixComment := range stackExpr.Comment().Suffix {
+				if suffixComment.Start.Line <= eStart.Line || suffixComment.Start.Line <= eEnd.Line {
+					// Suffix comments are inherited only for expressions which overlap with the comment line number.
+					cs.Inherited = append(cs.Inherited, suffixComment)
+				}
+			}
+		}
+	})
 }

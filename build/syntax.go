@@ -80,6 +80,8 @@ type Comments struct {
 	// For top-level expressions only, After lists whole-line
 	// comments following the expression.
 	After []Comment
+	// Comments which are inherited from parent expressions.
+	Inherited []Comment
 }
 
 // Comment returns the receiver. This isn't useful by itself, but
@@ -139,7 +141,7 @@ func (f *File) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of File
+// Copy creates and returns a non-deep copy of File
 func (f *File) Copy() Expr {
 	n := *f
 	return &n
@@ -157,7 +159,7 @@ func (x *CommentBlock) Span() (start, end Position) {
 	return x.Start, x.Start
 }
 
-//Copy creates and returns a non-deep copy of CommentBlock
+// Copy creates and returns a non-deep copy of CommentBlock
 func (x *CommentBlock) Copy() Expr {
 	n := *x
 	return &n
@@ -175,7 +177,7 @@ func (x *Ident) Span() (start, end Position) {
 	return x.NamePos, x.NamePos.add(x.Name)
 }
 
-//Copy creates and returns a non-deep copy of Ident
+// Copy creates and returns a non-deep copy of Ident
 func (x *Ident) Copy() Expr {
 	n := *x
 	return &n
@@ -205,7 +207,7 @@ func (x *TypedIdent) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of TypedIdent
+// Copy creates and returns a non-deep copy of TypedIdent
 func (x *TypedIdent) Copy() Expr {
 	n := *x
 	return &n
@@ -223,7 +225,7 @@ func (x *BranchStmt) Span() (start, end Position) {
 	return x.TokenPos, x.TokenPos.add(x.Token)
 }
 
-//Copy creates and returns a non-deep copy of BranchStmt
+// Copy creates and returns a non-deep copy of BranchStmt
 func (x *BranchStmt) Copy() Expr {
 	n := *x
 	return &n
@@ -241,7 +243,7 @@ func (x *LiteralExpr) Span() (start, end Position) {
 	return x.Start, x.Start.add(x.Token)
 }
 
-//Copy creates and returns a non-deep copy of LiteralExpr
+// Copy creates and returns a non-deep copy of LiteralExpr
 func (x *LiteralExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -267,7 +269,7 @@ func (x *StringExpr) Span() (start, end Position) {
 	return x.Start, x.End
 }
 
-//Copy creates and returns a non-deep copy of StringExpr
+// Copy creates and returns a non-deep copy of StringExpr
 func (x *StringExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -285,7 +287,7 @@ func (x *End) Span() (start, end Position) {
 	return x.Pos, x.Pos.add(")")
 }
 
-//Copy creates and returns a non-deep copy of End
+// Copy creates and returns a non-deep copy of End
 func (x *End) Copy() Expr {
 	n := *x
 	return &n
@@ -308,7 +310,7 @@ func (x *CallExpr) Span() (start, end Position) {
 	return start, x.End.Pos.add(")")
 }
 
-//Copy creates and returns a non-deep copy of CallExpr
+// Copy creates and returns a non-deep copy of CallExpr
 func (x *CallExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -329,7 +331,7 @@ func (x *DotExpr) Span() (start, end Position) {
 	return start, x.NamePos.add(x.Name)
 }
 
-//Copy creates and returns a non-deep copy of DotExpr
+// Copy creates and returns a non-deep copy of DotExpr
 func (x *DotExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -351,7 +353,7 @@ func (x *Comprehension) Span() (start, end Position) {
 	return x.Lbrack, x.End.Pos.add("]")
 }
 
-//Copy creates and returns a non-deep copy of Comprehension
+// Copy creates and returns a non-deep copy of Comprehension
 func (x *Comprehension) Copy() Expr {
 	n := *x
 	return &n
@@ -372,7 +374,7 @@ func (x *ForClause) Span() (start, end Position) {
 	return x.For, end
 }
 
-//Copy creates and returns a non-deep copy of ForClause
+// Copy creates and returns a non-deep copy of ForClause
 func (x *ForClause) Copy() Expr {
 	n := *x
 	return &n
@@ -391,7 +393,7 @@ func (x *IfClause) Span() (start, end Position) {
 	return x.If, end
 }
 
-//Copy creates and returns a non-deep copy of IfClause
+// Copy creates and returns a non-deep copy of IfClause
 func (x *IfClause) Copy() Expr {
 	n := *x
 	return &n
@@ -412,7 +414,7 @@ func (x *KeyValueExpr) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of KeyValueExpr
+// Copy creates and returns a non-deep copy of KeyValueExpr
 func (x *KeyValueExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -432,7 +434,7 @@ func (x *DictExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add("}")
 }
 
-//Copy creates and returns a non-deep copy of DictExpr
+// Copy creates and returns a non-deep copy of DictExpr
 func (x *DictExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -452,7 +454,7 @@ func (x *ListExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add("]")
 }
 
-//Copy creates and returns a non-deep copy of ListExpr
+// Copy creates and returns a non-deep copy of ListExpr
 func (x *ListExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -472,7 +474,7 @@ func (x *SetExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add("}")
 }
 
-//Copy creates and returns a non-deep copy of SetExpr
+// Copy creates and returns a non-deep copy of SetExpr
 func (x *SetExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -499,7 +501,7 @@ func (x *TupleExpr) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of TupleExpr
+// Copy creates and returns a non-deep copy of TupleExpr
 func (x *TupleExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -522,7 +524,7 @@ func (x *UnaryExpr) Span() (start, end Position) {
 	return x.OpStart, end
 }
 
-//Copy creates and returns a non-deep copy of UnaryExpr
+// Copy creates and returns a non-deep copy of UnaryExpr
 func (x *UnaryExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -545,7 +547,7 @@ func (x *BinaryExpr) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of BinaryExpr
+// Copy creates and returns a non-deep copy of BinaryExpr
 func (x *BinaryExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -576,7 +578,7 @@ func (x *AssignExpr) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of AssignExpr
+// Copy creates and returns a non-deep copy of AssignExpr
 func (x *AssignExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -596,7 +598,7 @@ func (x *ParenExpr) Span() (start, end Position) {
 	return x.Start, x.End.Pos.add(")")
 }
 
-//Copy creates and returns a non-deep copy of ParenExpr
+// Copy creates and returns a non-deep copy of ParenExpr
 func (x *ParenExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -621,7 +623,7 @@ func (x *SliceExpr) Span() (start, end Position) {
 	return start, x.End.add("]")
 }
 
-//Copy creates and returns a non-deep copy of SliceExpr
+// Copy creates and returns a non-deep copy of SliceExpr
 func (x *SliceExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -642,7 +644,7 @@ func (x *IndexExpr) Span() (start, end Position) {
 	return start, x.End.add("]")
 }
 
-//Copy creates and returns a non-deep copy of IndexExpr
+// Copy creates and returns a non-deep copy of IndexExpr
 func (x *IndexExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -662,7 +664,7 @@ func (x *Function) Span() (start, end Position) {
 	return x.StartPos, end
 }
 
-//Copy creates and returns a non-deep copy of Function
+// Copy creates and returns a non-deep copy of Function
 func (x *Function) Copy() Expr {
 	n := *x
 	return &n
@@ -679,7 +681,7 @@ func (x *LambdaExpr) Span() (start, end Position) {
 	return x.Function.Span()
 }
 
-//Copy creates and returns a non-deep copy of LambdaExpr
+// Copy creates and returns a non-deep copy of LambdaExpr
 func (x *LambdaExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -704,7 +706,7 @@ func (x *ConditionalExpr) Span() (start, end Position) {
 	return start, end
 }
 
-//Copy creates and returns a non-deep copy of ConditionalExpr
+// Copy creates and returns a non-deep copy of ConditionalExpr
 func (x *ConditionalExpr) Copy() Expr {
 	n := *x
 	return &n
@@ -733,7 +735,7 @@ func (x *LoadStmt) Span() (start, end Position) {
 	return x.Load, x.Rparen.Pos.add(")")
 }
 
-//Copy creates and returns a non-deep copy of LoadStmt
+// Copy creates and returns a non-deep copy of LoadStmt
 func (x *LoadStmt) Copy() Expr {
 	n := *x
 	return &n
@@ -755,7 +757,7 @@ func (x *DefStmt) Span() (start, end Position) {
 	return x.Function.Span()
 }
 
-//Copy creates and returns a non-deep copy of DefStmt
+// Copy creates and returns a non-deep copy of DefStmt
 func (x *DefStmt) Copy() Expr {
 	n := *x
 	return &n
@@ -782,7 +784,7 @@ func (x *ReturnStmt) Span() (start, end Position) {
 	return x.Return, end
 }
 
-//Copy creates and returns a non-deep copy of ReturnStmt
+// Copy creates and returns a non-deep copy of ReturnStmt
 func (x *ReturnStmt) Copy() Expr {
 	n := *x
 	return &n
@@ -804,7 +806,7 @@ func (x *ForStmt) Span() (start, end Position) {
 	return x.For, end
 }
 
-//Copy creates and returns a non-deep copy of ForStmt
+// Copy creates and returns a non-deep copy of ForStmt
 func (x *ForStmt) Copy() Expr {
 	n := *x
 	return &n
@@ -831,7 +833,7 @@ func (x *IfStmt) Span() (start, end Position) {
 	return x.If, end
 }
 
-//Copy creates and returns a non-deep copy of IfStmt
+// Copy creates and returns a non-deep copy of IfStmt
 func (x *IfStmt) Copy() Expr {
 	n := *x
 	return &n
