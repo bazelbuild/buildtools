@@ -885,6 +885,8 @@ warnings: {
     "```python\n"
     "args = ctx.actions.args()\n"
     "args.add(src.path)\n"
+    "args.add(\"--include=\" + hdr.path)\n"
+    "args.add_all([src.path for src in srcs])\n"
     "args.add(dir.path)\n"
     "args.add(src.dirname)\n"
     "ctx.actions.run_shell(\n"
@@ -899,6 +901,8 @@ warnings: {
     "    return file.dirname\n\n"
     "args = ctx.actions.args()\n"
     "args.add(src)\n"
+    "args.add(hdr, format = \"--include=%s\")\n"
+    "args.add_all(srcs)\n"
     "args.add_all([dir], expand_directories = False)\n"
     "args.add_all([src], map_each = _dirname)\n"
     "ctx.actions.run(\n"
@@ -906,8 +910,15 @@ warnings: {
     "    executable = cp,\n"
     "    arguments = [args],\n"
     ")\n"
-    "```"
-  autofix: false
+    "```\n\n"
+    "Simple cases are fixed automatically: a `File.path` passed to `args.add()`,\n"
+    "`args.add_all()`, `args.add_joined()` or `executable`, optionally formatted\n"
+    "into a string literal or wrapped in a list comprehension, is replaced by the\n"
+    "`File` object. Variables assigned from `ctx.actions.declare_directory()` are\n"
+    "passed with `expand_directories = False`. Other directories have to be fixed\n"
+    "manually, since `args.add()` rejects them and `args.add_all()` expands them by\n"
+    "default."
+  autofix: true
 }
 
 warnings: {

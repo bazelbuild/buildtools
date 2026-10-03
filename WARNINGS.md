@@ -1204,7 +1204,7 @@ The linter allows the following to be before `package()`:
 ## <a name="path-mapping"></a>Action command lines should not contain path strings
 
   * Category name: `path-mapping`
-  * Automatic fix: no
+  * Automatic fix: yes
   * [Disabled by default](buildifier/README.md#linter)
   * [Suppress the warning](#suppress): `# buildifier: disable=path-mapping`
 
@@ -1227,6 +1227,8 @@ Instead of path strings:
 ```python
 args = ctx.actions.args()
 args.add(src.path)
+args.add("--include=" + hdr.path)
+args.add_all([src.path for src in srcs])
 args.add(dir.path)
 args.add(src.dirname)
 ctx.actions.run_shell(
@@ -1244,6 +1246,8 @@ def _dirname(file):
 
 args = ctx.actions.args()
 args.add(src)
+args.add(hdr, format = "--include=%s")
+args.add_all(srcs)
 args.add_all([dir], expand_directories = False)
 args.add_all([src], map_each = _dirname)
 ctx.actions.run(
@@ -1252,6 +1256,14 @@ ctx.actions.run(
     arguments = [args],
 )
 ```
+
+Simple cases are fixed automatically: a `File.path` passed to `args.add()`,
+`args.add_all()`, `args.add_joined()` or `executable`, optionally formatted
+into a string literal or wrapped in a list comprehension, is replaced by the
+`File` object. Variables assigned from `ctx.actions.declare_directory()` are
+passed with `expand_directories = False`. Other directories have to be fixed
+manually, since `args.add()` rejects them and `args.add_all()` expands them by
+default.
 
 --------------------------------------------------------------------------------
 
