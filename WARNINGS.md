@@ -89,6 +89,7 @@ Warning categories supported by buildifier's linter:
   * [`overly-nested-depset`](#overly-nested-depset)
   * [`package-name`](#package-name)
   * [`package-on-top`](#package-on-top)
+  * [`path-mapping`](#path-mapping)
   * [`positional-args`](#positional-args)
   * [`print`](#print)
   * [`provider-params`](#provider-params)
@@ -1197,6 +1198,60 @@ The linter allows the following to be before `package()`:
   * variable declarations
   * `package_group()`
   * `licenses()`
+
+--------------------------------------------------------------------------------
+
+## <a name="path-mapping"></a>Action command lines should not contain path strings
+
+  * Category name: `path-mapping`
+  * Automatic fix: no
+  * [Disabled by default](buildifier/README.md#linter)
+  * [Suppress the warning](#suppress): `# buildifier: disable=path-mapping`
+
+[Path mapping](https://github.com/bazelbuild/bazel/discussions/22658)
+(`--experimental_output_paths=strip`) rewrites configuration-specific output
+paths such as `bazel-out/k8-fastbuild/bin` on action command lines to improve
+cache hit rates. Bazel can only rewrite `File` objects that are passed to
+`ctx.actions.args()`. Path strings obtained from `File.path`, `File.dirname`,
+`File.root.path`, `ctx.bin_dir.path` or `ctx.genfiles_dir.path` are passed
+through unchanged and break actions that opt into path mapping with the
+`supports-path-mapping` execution requirement.
+
+This warning reports such path strings in the arguments of `args.add()`,
+`args.add_all()` and `args.add_joined()` as well as in the `executable`,
+`arguments` and `command` parameters of `ctx.actions.run()` and
+`ctx.actions.run_shell()`.
+
+Instead of path strings:
+
+```python
+args = ctx.actions.args()
+args.add(src.path)
+args.add(dir.path)
+args.add(src.dirname)
+ctx.actions.run_shell(
+    outputs = [out],
+    command = "cp %s %s" % (src.path, out.path),
+)
+```
+
+Pass `File` objects to `ctx.actions.args()` and compute derived paths in a
+`map_each` callback, where they are path mapped by Bazel:
+
+```python
+def _dirname(file):
+    return file.dirname
+
+args = ctx.actions.args()
+args.add(src)
+args.add_all([dir], expand_directories = False)
+args.add_all([src], map_each = _dirname)
+ctx.actions.run(
+    outputs = [out],
+    executable = cp,
+    arguments = [args],
+)
+```
 
 --------------------------------------------------------------------------------
 

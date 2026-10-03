@@ -279,3 +279,97 @@ func makeLocationVariableWarning(f *build.File) []*LinterFinding {
 	})
 	return findings
 }
+
+// pathStringAttrs lists attributes that return a path string which may contain a configuration
+// prefix (such as `bazel-out/k8-fastbuild/bin`) and is therefore not rewritten by path mapping:
+// `File.path`, `File.dirname`, `File.root.path`, `ctx.bin_dir.path` and `ctx.genfiles_dir.path`.
+var pathStringAttrs = map[string]bool{
+	"path":    true,
+	"dirname": true,
+}
+
+// isCtxActionsArgs reports whether expr is a `ctx.actions.args()` object. Besides the detected
+// types, a variable named `args` is assumed to be one, e.g. a parameter of a helper function.
+func isCtxActionsArgs(expr build.Expr, types map[build.Expr]Type) bool {
+	if types[expr] == CtxActionsArgs {
+		return true
+	}
+	ident, ok := expr.(*build.Ident)
+	return ok && ident.Name == "args"
+}
+
+// pathMappingWarning reports path strings used in action command lines. Path mapping
+// (https://github.com/bazelbuild/bazel/discussions/22658) can only rewrite `File` objects passed to
+// `ctx.actions.args()`, so strings obtained from `File.path`, `File.dirname` etc. break actions
+// that opt into it.
+func pathMappingWarning(f *build.File) []*LinterFinding {
+	if f.Type != build.TypeBzl {
+		return nil
+	}
+
+	types := DetectTypes(f)
+	findings := []*LinterFinding{}
+
+	// checkArgument reports every path string expression inside a command line argument.
+	checkArgument := func(arg build.Expr) {
+		build.Walk(arg, func(expr build.Expr, stack []build.Expr) {
+			dot, ok := expr.(*build.DotExpr)
+			if !ok || !pathStringAttrs[dot.Name] {
+				return
+			}
+			if len(stack) > 0 {
+				// Skip method calls such as `ctx.path(...)` or `paths.dirname(...)`
+				if call, ok := stack[len(stack)-1].(*build.CallExpr); ok && call.X == expr {
+					return
+				}
+			}
+			findings = append(findings, makeLinterFinding(dot, fmt.Sprintf(
+				`%q is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+				build.FormatString(dot))))
+		})
+	}
+
+	build.Walk(f, func(expr build.Expr, stack []build.Expr) {
+		call, ok := expr.(*build.CallExpr)
+		if !ok {
+			return
+		}
+		dot, ok := call.X.(*build.DotExpr)
+		if !ok {
+			return
+		}
+
+		switch {
+		case isCtxActionsArgs(dot.X, types):
+			// `args.add(...)`, `args.add_all(...)`, `args.add_joined(...)`
+			switch dot.Name {
+			case "add", "add_all", "add_joined":
+			default:
+				return
+			}
+			for _, arg := range call.List {
+				if assign, ok := arg.(*build.AssignExpr); ok {
+					arg = assign.RHS
+				}
+				checkArgument(arg)
+			}
+		case types[dot.X] == CtxActions:
+			// `ctx.actions.run(...)` and `ctx.actions.run_shell(...)`
+			var params []string
+			switch dot.Name {
+			case "run":
+				params = []string{"executable", "arguments"}
+			case "run_shell":
+				params = []string{"command", "arguments"}
+			default:
+				return
+			}
+			for _, name := range params {
+				if _, _, param := getParam(call.List, name); param != nil {
+					checkArgument(param.RHS)
+				}
+			}
+		}
+	})
+	return findings
+}

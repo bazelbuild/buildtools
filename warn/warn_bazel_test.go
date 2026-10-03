@@ -245,3 +245,99 @@ load("location", "symbol")
 		},
 		scopeBuild)
 }
+
+func TestPathMapping(t *testing.T) {
+	checkFindings(t, "path-mapping", `
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
+def _dirname(file):
+    return file.dirname
+
+def _add_srcs(args, srcs):
+    args.add_all([src.path for src in srcs])
+
+def _impl(ctx):
+    args = ctx.actions.args()
+    actions = ctx.actions
+
+    # Compatible with path mapping
+    args.add(src)
+    args.add("--out", out)
+    args.add_all(dirs, expand_directories = False)
+    args.add_all([src], map_each = _dirname)
+    args.add_all(srcs, format_each = "--src=%s")
+    args.add(src.short_path)
+    args.add(src.basename)
+    args.add(paths.dirname(src.short_path))
+    ctx.actions.run(
+        outputs = [out],
+        executable = ctx.executable._tool,
+        arguments = [args],
+    )
+    ctx.actions.run_shell(
+        outputs = [out],
+        command = "cp $1 $2",
+        arguments = [args],
+    )
+
+    # Incompatible with path mapping
+    args.add(src.path)
+    args.add("--out", out.path)
+    args.add(src.dirname)
+    args.add(dir.path)
+    args.add_all([src.path for src in srcs])
+    args.add_joined([src.path for src in srcs], join_with = ",")
+    args.add("--bin=%s" % ctx.bin_dir.path)
+    args.add("--gen={}".format(ctx.genfiles_dir.path))
+    args.add("--root=" + src.root.path)
+    args.add(paths.join(ctx.bin_dir.path, "include"))
+    args.add(src.path if src else out.path)
+    ctx.actions.run(
+        outputs = [out],
+        executable = tool.path,
+        arguments = [src.path, "--out", out.path],
+    )
+    ctx.actions.run_shell(
+        outputs = [out],
+        command = "cp %s %s" % (src.path, out.path),
+    )
+    actions.run_shell(
+        outputs = [out],
+        command = "cp $1 " + out.dirname,
+        arguments = [src.path],
+    )
+
+    # Unrelated
+    other.add(src.path)
+    ctx.actions.other(arguments = [src.path])
+    ctx.actions.run(
+        outputs = [out],
+        executable = ctx.executable._tool,
+        arguments = [args],
+        progress_message = "Building %s" % out.path,
+    )
+`,
+		[]string{
+			`:7: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:34: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:35: "out.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:36: "src.dirname" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:37: "dir.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:38: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:39: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:40: "ctx.bin_dir.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:41: "ctx.genfiles_dir.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:42: "src.root.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:43: "ctx.bin_dir.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:44: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:44: "out.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:47: "tool.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:48: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:48: "out.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:52: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:52: "out.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:56: "out.dirname" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+			`:57: "src.path" is a path string that is not rewritten by path mapping. Pass the "File" object to "ctx.actions.args()" or compute the path in a "map_each" callback instead.`,
+		},
+		scopeBzl)
+}
