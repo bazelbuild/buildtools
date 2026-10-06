@@ -112,6 +112,7 @@ Buildozer supports the following commands(`'command args'`):
     new rule at the end of the BUILD file (before/after `<relative_rule>`). The
     identifier `__pkg__` can be used to position rules relative to package().
   * `print <attr(s)>`
+  * `print_all_lists <attr(s)>`
   * `remove <attr>`: Removes attribute `attr`. The wildcard `*` matches all
     attributes except `name`.
   * `remove <attr> <value(s)>`: Removes `value(s)` from the list `attr`. The
@@ -275,6 +276,12 @@ execution.
 
   * `print <attribute(s)>`: For each target, prints the value of the attributes
    (see below).
+  * `print_all_lists <attribute(s)>`: Similar to `print`, except that for `+`
+    concatenation expressions containing top-level list literals, it prints the
+    combined string elements from all top-level list literals as a list instead
+    of the raw expression string (ignoring non-list operands such as variables
+    or `select(...)` calls). For example, `["a"] + select(...)` prints `[a]`,
+    and `VAR + ["a"] + ["b"]` prints `[a b]`.
   * `print_comment <attr>? <value>?`: Prints a comment associated with a rule,
     an attribute or a specific value in a list.
 

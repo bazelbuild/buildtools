@@ -370,6 +370,21 @@ func cmdSubstituteLoad(opts *Options, env CmdEnvironment) (*build.File, error) {
 }
 
 func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return printAttrs(opts, env, false)
+}
+
+func cmdPrintAllLists(opts *Options, env CmdEnvironment) (*build.File, error) {
+	return printAttrs(opts, env, true)
+}
+
+func attrStrings(e build.Expr, allLists bool) []string {
+	if allLists {
+		return AllListsStrings(e)
+	}
+	return build.Strings(e)
+}
+
+func printAttrs(opts *Options, env CmdEnvironment, allLists bool) (*build.File, error) {
 	format := env.Args
 	if len(format) == 0 {
 		format = []string{"name", "kind"}
@@ -434,7 +449,7 @@ func cmdPrint(opts *Options, env CmdEnvironment) (*build.File, error) {
 				Value:             &apipb.Output_Record_Field_Text{Text: string.Value},
 				QuoteWhenPrinting: true,
 			}
-		} else if strList := env.Rule.AttrStrings(str); strList != nil {
+		} else if strList := attrStrings(value, allLists); strList != nil {
 			fields[i] = &apipb.Output_Record_Field{
 				Value: &apipb.Output_Record_Field_List{List: &apipb.RepeatedString{Strings: strList}},
 			}
@@ -999,6 +1014,7 @@ var AllCommands = map[string]CommandInfo{
 	"move":                  {cmdMove, true, 3, -1, "<old_attr> <new_attr> <value(s)>"},
 	"new":                   {cmdNew, false, 2, 4, "<rule_kind> <rule_name> [(before|after) <relative_rule_name>]"},
 	"print":                 {cmdPrint, true, 0, -1, "<attribute(s)>"},
+	"print_all_lists":       {cmdPrintAllLists, true, 0, -1, "<attribute(s)>"},
 	"remove":                {cmdRemove, true, 1, -1, "<attr> <value(s)>"},
 	"remove_comment":        {cmdRemoveComment, true, 0, 2, "<attr>? <value>?"},
 	"remove_if_equal":       {cmdRemoveIfEqual, true, 2, 2, "<attr> <value>"},
@@ -1021,8 +1037,9 @@ var AllCommands = map[string]CommandInfo{
 }
 
 var readonlyCommands = map[string]bool{
-	"print":         true,
-	"print_comment": true,
+	"print":           true,
+	"print_all_lists": true,
+	"print_comment":   true,
 }
 
 func expandTargets(f *build.File, rule string) ([]*build.Rule, error) {

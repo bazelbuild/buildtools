@@ -1418,3 +1418,133 @@ foo(
 		t.Errorf("got %q, want %q", got, expected)
 	}
 }
+
+func TestAllListsStrings(t *testing.T) {
+	tests := []struct {
+		name      string
+		buildFile string
+		want      []string
+	}{
+		{
+			name:      "single_list",
+			buildFile: `foo(name = "foo", deps = [":a", ":b"])`,
+			want:      []string{":a", ":b"},
+		},
+		{
+			name:      "empty_list",
+			buildFile: `foo(name = "foo", deps = [])`,
+			want:      []string{},
+		},
+		{
+			name:      "empty_list_plus_select",
+			buildFile: `foo(name = "foo", deps = [] + select({"//cond": [":a"]}))`,
+			want:      []string{},
+		},
+		{
+			name:      "concatenated_lists",
+			buildFile: `foo(name = "foo", deps = [":a"] + [":b", ":c"])`,
+			want:      []string{":a", ":b", ":c"},
+		},
+		{
+			name:      "list_plus_select",
+			buildFile: `foo(name = "foo", deps = [":a", ":b"] + select({"//cond": [":c"]}))`,
+			want:      []string{":a", ":b"},
+		},
+		{
+			name:      "var_plus_list_plus_select_plus_list",
+			buildFile: `foo(name = "foo", deps = VAR + [":a"] + select({"//cond": [":c"]}) + [":b"])`,
+			want:      []string{":a", ":b"},
+		},
+		{
+			name:      "var_only",
+			buildFile: `foo(name = "foo", deps = VAR)`,
+			want:      nil,
+		},
+		{
+			name:      "select_only",
+			buildFile: `foo(name = "foo", deps = select({"//cond": [":c"]}))`,
+			want:      nil,
+		},
+		{
+			name:      "missing_attr",
+			buildFile: `foo(name = "foo")`,
+			want:      nil,
+		},
+		{
+			name:      "non_string_element_in_list",
+			buildFile: `foo(name = "foo", deps = [":a" % 1] + [":b"])`,
+			want:      nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bld, err := build.Parse("BUILD", []byte(tc.buildFile))
+			if err != nil {
+				t.Fatalf("build.Parse(\"BUILD\", %q) failed: %v", tc.buildFile, err)
+			}
+			rl := bld.Rules("foo")[0]
+			got := AllListsStrings(rl.Attr("deps"))
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("AllListsStrings(%q) returned unexpected diff (-want +got):\n%s", tc.buildFile, diff)
+			}
+		})
+	}
+}
+
+func TestCmdPrintAllLists(t *testing.T) {
+	wsDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(wsDir, "WORKSPACE"), nil, 0644); err != nil {
+		t.Fatalf("os.WriteFile() failed: %v", err)
+	}
+	buildFile := `foo(
+    name = "foo",
+    deps = VAR + [":a", ":b"] + select({"//cond": [":c"]}) + [":d"],
+    visibility = VIS_VAR + ["//foo:__pkg__"],
+    tags = ONLY_VAR,
+    copts = select({"//cond": ["-DFOO"]}),
+)
+`
+	if err := os.WriteFile(filepath.Join(wsDir, "BUILD"), []byte(buildFile), 0644); err != nil {
+		t.Fatalf("os.WriteFile() failed: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		args    []string
+		wantOut string
+		wantErr string
+	}{
+		{
+			name:    "print_all_lists_command",
+			args:    []string{"print_all_lists name deps visibility tags copts", "//:foo"},
+			wantOut: "foo [:a :b :d] [//foo:__pkg__] ONLY_VAR select({\"//cond\": [\"-DFOO\"]})\n",
+		},
+		{
+			name:    "missing_attr",
+			args:    []string{"print_all_lists missing", "//:foo"},
+			wantOut: "(missing)\n",
+			wantErr: "rule \"//:foo\" has no attribute \"missing\"\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var out, errOut strings.Builder
+			opts := NewOpts()
+			opts.RootDir = wsDir
+			opts.OutWriter = &out
+			opts.ErrWriter = &errOut
+
+			if exitCode := Buildozer(opts, tc.args); exitCode != 0 {
+				t.Fatalf("Buildozer(opts, %q) = %d, want 0", tc.args, exitCode)
+			}
+			if got := out.String(); got != tc.wantOut {
+				t.Errorf("Buildozer(opts, %q) stdout = %q, want %q", tc.args, got, tc.wantOut)
+			}
+			if got := errOut.String(); got != tc.wantErr {
+				t.Errorf("Buildozer(opts, %q) stderr = %q, want %q", tc.args, got, tc.wantErr)
+			}
+		})
+	}
+}
