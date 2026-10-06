@@ -412,6 +412,28 @@ func AllLists(e build.Expr) []*build.ListExpr {
 	return nil
 }
 
+// AllListsStrings returns all string literals from all top-level list
+// expressions concatenated in e (as returned by AllLists).
+// If e contains no top-level list expressions, or if any top-level list
+// expression contains a non-string element, AllListsStrings returns a nil slice.
+// If all top-level list expressions are empty, it returns a non-nil empty slice.
+func AllListsStrings(e build.Expr) []string {
+	lists := AllLists(e)
+	if len(lists) == 0 {
+		return nil
+	}
+	// Non-nil to distinguish empty lists from non-list expressions, matching build.Strings.
+	all := []string{}
+	for _, list := range lists {
+		strs := build.Strings(list)
+		if strs == nil {
+			return nil
+		}
+		all = append(all, strs...)
+	}
+	return all
+}
+
 // AllSelects returns all the selects concatenated in an expression.
 func AllSelects(e build.Expr) []*build.CallExpr {
 	switch e := e.(type) {

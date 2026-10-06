@@ -1326,6 +1326,25 @@ cc_library(
 [name srcs deps]'
 }
 
+function test_print_all_lists() {
+  in='cc_library(
+  name = "a",
+  deps = VAR + [":foo", ":bar"] + select({"//cond": [":baz"]}) + [":qux"],
+)'
+  run "$in" 'print_all_lists name deps' '//pkg:a'
+  assert_output 'a [:foo :bar :qux]'
+}
+
+function test_print_all_lists_json() {
+  in='cc_library(
+  name = "a",
+  deps = [":foo"] + select({"//cond": [":bar"]}),
+  tags = VAR,
+)'
+  run --output_json "$in" 'print_all_lists name deps tags' '//pkg:a'
+  assert_output '{"records":[{"fields":[{"text":"a"},{"list":{"strings":[":foo"]}},{"text":"VAR"}]}]}'
+}
+
 function test_new_cc_library() {
   in='cc_test(name = "a")
 
